@@ -21,11 +21,14 @@ type ConversationContext struct {
 	BaseURL string
 	Model   string
 	Chain   string
+
+	Data any
 }
 
 type Limiter interface {
 	Join(ConversationContext, chan PartialResponse) error
 	Remove(bot string)
+	RegChain(name string, inter Interceptor) error
 }
 
 // 机器人管理器
@@ -36,6 +39,8 @@ type BotManager interface {
 	Add(key string, bot Bot)
 	// 删除机器人
 	Remove(key string)
+
+	RegChain(name string, inter Interceptor) error
 }
 
 // 机器人

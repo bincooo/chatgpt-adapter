@@ -113,3 +113,12 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan type
 	mgr.chain.After(&bot, &ctx, message)
 	return types.PartialResponse{Message: message, Error: err, Closed: true}
 }
+
+func (mgr *CommonBotManager) RegChain(name string, inter types.Interceptor) error {
+	if mgr.chain.Has(name) {
+		return errors.New("拦截处理器`" + name + "`已存在")
+	}
+
+	mgr.chain.Set(name, inter)
+	return nil
+}

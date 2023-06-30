@@ -33,7 +33,7 @@ type Limiter struct {
 // 群组限流器
 type GroupLimiter struct {
 	kv    map[string]*Limiter
-	botKv map[string][]*Limiter
+	chain map[string]types.Interceptor
 }
 
 func NewCommonLimiter() *CommonLimiter {
@@ -55,8 +55,8 @@ func NewLimiter() *Limiter {
 
 func NewGroupLimiter() *GroupLimiter {
 	lmt := GroupLimiter{
-		kv:    make(map[string]*Limiter, 0),
-		botKv: make(map[string][]*Limiter, 0),
+		kv:    make(map[string]*Limiter),
+		chain: make(map[string]types.Interceptor),
 	}
 	return &lmt
 }
@@ -74,6 +74,18 @@ func (cLmt *CommonLimiter) Remove(bot string) {
 	if lmt != nil {
 		lmt.Remove(bot)
 	}
+}
+
+func (cLmt *CommonLimiter) RegChain(name string, inter types.Interceptor) error {
+	if err := cLmt.gLmt.RegChain(name, inter); err != nil {
+		return err
+	}
+
+	if err := cLmt.lmt.RegChain(name, inter); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (cLmt *CommonLimiter) matchLimiter(bot string) types.Limiter {
@@ -109,6 +121,10 @@ func (lmt *Limiter) Remove(bot string) {
 	lmt.mgr.Remove(bot)
 }
 
+func (lmt *Limiter) RegChain(name string, inter types.Interceptor) error {
+	return lmt.mgr.RegChain(name, inter)
+}
+
 // ==== End =====
 
 // ==== GroupLimiter =====
@@ -118,26 +134,26 @@ func (gLmt *GroupLimiter) Join(context types.ConversationContext, response chan 
 	value, ok := gLmt.kv[context.Id]
 	if !ok {
 		value = NewLimiter()
+		for name, iter := range gLmt.chain {
+			if err := value.RegChain(name, iter); err != nil {
+				return err
+			}
+		}
 		gLmt.kv[context.Id] = value
-	}
-
-	botV, ok := gLmt.botKv[context.Bot]
-	if !ok {
-		gLmt.botKv[context.Bot] = []*Limiter{value}
-	} else {
-		gLmt.botKv[context.Bot] = append(botV, value)
 	}
 
 	return value.Join(context, response)
 }
 
 func (gLmt *GroupLimiter) Remove(bot string) {
-	values, ok := gLmt.botKv[bot]
-	if ok {
-		for _, value := range values {
-			value.Remove(bot)
-		}
+	for _, value := range gLmt.kv {
+		value.Remove(bot)
 	}
+}
+
+func (gLmt *GroupLimiter) RegChain(name string, inter types.Interceptor) error {
+	gLmt.chain[name] = inter
+	return nil
 }
 
 // ==== End ====

@@ -18,6 +18,18 @@ func New() *Chain {
 	}}
 }
 
+func (c *Chain) Has(name string) bool {
+	if _, ok := c.chain[name]; ok {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (c *Chain) Set(name string, inter types.Interceptor) {
+	c.chain[name] = inter
+}
+
 func (c *Chain) Before(bot *types.Bot, ctx *types.ConversationContext) {
 	chunk := c.chunk(ctx.Chain)
 	if len(chunk) == 0 {
