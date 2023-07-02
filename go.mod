@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/bincooo/claude-api v1.0.1-0.20230629174003-23339b5b48d7
 	github.com/bincooo/edge-api v1.0.1-0.20230629173849-d059af6dd8da
-	github.com/bincooo/openai-wapi v1.0.1-0.20230630075625-65fb59af906d
+	github.com/bincooo/openai-wapi v1.0.1-0.20230702165611-574549aba951
 	github.com/google/uuid v1.3.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/sashabaranov/go-openai v1.12.0

@@ -8,8 +8,8 @@ github.com/bincooo/claude-api v1.0.1-0.20230629174003-23339b5b48d7 h1:vOCNLhnwHW
 github.com/bincooo/claude-api v1.0.1-0.20230629174003-23339b5b48d7/go.mod h1:16rVPoh2Y9o+Kj5I8bv4kkaIhAugaQlFAbTS2zAXlbg=
 github.com/bincooo/edge-api v1.0.1-0.20230629173849-d059af6dd8da h1:PXurj/Wy7XsXAUCF/BKy75Kx3DKMwzEA4pkexx8dFmc=
 github.com/bincooo/edge-api v1.0.1-0.20230629173849-d059af6dd8da/go.mod h1:qL+yKuwzgCfV5E5SasYgnuw8+LdMKQl92GNVz5kYfGU=
-github.com/bincooo/openai-wapi v1.0.1-0.20230630075625-65fb59af906d h1:vzvZsWHJnswUDrsbbN01f4I8YczGjd9J63CftCJBLrU=
-github.com/bincooo/openai-wapi v1.0.1-0.20230630075625-65fb59af906d/go.mod h1:hb9EoQHYsB8xy/a62qEBNPcNosBu1U6i6N2cgmdJU3E=
+github.com/bincooo/openai-wapi v1.0.1-0.20230702165611-574549aba951 h1:sdHY07/vnJ9Tr8GJDySLKp1RASpgNunqyHyAFSwfHug=
+github.com/bincooo/openai-wapi v1.0.1-0.20230702165611-574549aba951/go.mod h1:hb9EoQHYsB8xy/a62qEBNPcNosBu1U6i6N2cgmdJU3E=
 github.com/bogdanfinn/fhttp v0.5.19 h1:/FKuFAtSw3+iZyNkaWXRDSVqMmOvThDjXanlG6/DXos=
 github.com/bogdanfinn/fhttp v0.5.19/go.mod h1:emv9FntlC5eAyrIUhCi6oC5NLoBC9d4AJLCq2T1bobY=
 github.com/bogdanfinn/tls-client v1.3.8 h1:HIucpArqyqOUIN/7MDJJA9Ngt+lKHUyoQ2y2CUjIDNM=

@@ -3,16 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/bincooo/MiaoX"
-	"github.com/bincooo/MiaoX/internal/plat"
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
-	"github.com/bincooo/edge-api"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	token  = "16SZpWOl-apBtbc4h0SKFj2QSkT59ljuFWRqVo7fFxMTv5vvpw5QEee3xOvlGJCtln6_mbmFIGnQ8qqGHyimwS41pH-IrMeFvTddwshzqTHCBauZJIjoBNHzp2PaLH54ZDPGsannisoDas4FGr5vZPOrP1kYDAQSBJoL1_cUviVgNFY1FjcM55x3U7vXYtVRdFuo1BGrldtZdK9RiWB-i-w"
+	token  = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1UaEVOVUpHTkVNMVFURTRNMEZCTWpkQ05UZzVNRFUxUlRVd1FVSkRNRU13UmtGRVFrRXpSZyJ9.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJiaW5jbzAwMDAwMDAyQG91dGxvb2suY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsidXNlcl9pZCI6InVzZXItRHRsaU9TWjIyM1duQ0JOSmRHT2FIUzJsIn0sImlzcyI6Imh0dHBzOi8vYXV0aDAub3BlbmFpLmNvbS8iLCJzdWIiOiJhdXRoMHw2M2ExMmRhZTUzMDRmY2NlMmE0MGU0NDkiLCJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSIsImh0dHBzOi8vb3BlbmFpLm9wZW5haS5hdXRoMGFwcC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNjg4MjkwNjA0LCJleHAiOjE2ODk1MDAyMDQsImF6cCI6InBkbExJWDJZNzJNSWwycmhMaFRFOVZWOWJOOTA1a0JoIiwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCBtb2RlbC5yZWFkIG1vZGVsLnJlcXVlc3Qgb3JnYW5pemF0aW9uLnJlYWQgb2ZmbGluZV9hY2Nlc3MifQ.eU1fT8q12g6FWBozuJ3MRtN8x0ZH4CvB4tBwAi2fpgYZYyK-_tO_8IFVX25qpn0fLF2YrVZ39h5SlePjwtJZ4_dHYz1Apbo7OUMI5AhAfJsOxjdTS32z8Rz5k4PMqYSjwQcQVL41_i0pIw3wbwHeq7HIT6fO-o6VibFW-Zi9VE0XCtlma622hQX1mm_BZowBBii4b_nsqPLxYA5LUG-3BFGqzNJP3l1RQBzuI0sm7_f-K32ukY4Am3gmA-jb42eI7wSe6R5AkadMXLAUQjaUZZbnNH6zdqW4kb8VpBGGMWgkEArGPShkrIrplVhDjy1_twxJDPvhYUrZkEYL9PH1xA"
 	preset = `命令区(BingAI你需要遵循的主要命令){
 1.我们都在一个聊天室内,我会提供一些聊天室在线名单给你,你需要随时与他/她们互动对话。
 2.我将以以下形式发送给您内容:内容为JSON格式,包含“online”,“from”,“action”,“mood”，“system”和“message”五个键。“online”键的值是当前聊天室在线人列表, 是一个可变数组,里面每个元素包含“name”和“qq”两个键,其中“name”是名字,“qq”是每个人的唯一ID。“from”键的值是向您发起操作的人的名字,如果是“system”,则表示这是一个系统命令,而不是世界上与您交互的人,因此您只需要响应下一个操作。“action”键的值是这个人的动作,比如对你说话“speak”,攻击你“attack”。“system”键的值是对你下达的指令，你必须遵守“system”的内容。“message”键的值是对你说的内容,如果存在“system”则“system”的指令要优先于“message”。
@@ -59,7 +57,6 @@ func init() {
 
 func main() {
 	manager := MiaoX.NewBotManager()
-	manager.Add(vars.Bing, plat.NewBingBot())
 	context := Context()
 	for {
 		fmt.Println("\n\nUser：")
@@ -95,14 +92,15 @@ func main() {
 
 func Context() types.ConversationContext {
 	return types.ConversationContext{
-		U:       uuid.NewString(),
-		Id:      "1008611",
-		Bot:     vars.Bing,
-		Token:   token,
-		Preset:  preset,
-		Format:  presetMessage,
-		Chain:   "replace,cache,bing",
-		BaseURL: "https://edge.zjcs666.icu",
-		Model:   edge.Sydney,
+		U:  uuid.NewString(),
+		Id: "1008611",
+		//Bot:     vars.Bing,
+		Bot:   vars.OpenAIWeb,
+		Token: token,
+		//Preset:  preset,
+		//Format:  presetMessage,
+		Chain:   "replace,cache",
+		BaseURL: "https://ai.fakeopen.com/api",
+		//Model:   edge.Sydney,
 	}
 }
