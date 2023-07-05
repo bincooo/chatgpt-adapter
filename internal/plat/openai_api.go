@@ -71,8 +71,12 @@ func (bot *OpenAIAPIBot) Reset(id string) bool {
 }
 
 func (bot *OpenAIAPIBot) makeCompletionStream(ctx types.ConversationContext) (stream *openai.ChatCompletionStream, err error) {
+	model := ctx.Model
+	if model == "" {
+		model = openai.GPT3Dot5Turbo
+	}
 	request := openai.ChatCompletionRequest{
-		Model:    openai.GPT3Dot5Turbo,
+		Model:    model,
 		Messages: bot.completionMessage(ctx),
 		//MaxTokens:   ctx.MaxTokens,
 		Temperature: 0.8,

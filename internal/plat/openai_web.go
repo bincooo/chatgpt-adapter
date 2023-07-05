@@ -28,6 +28,9 @@ func (bot *OpenAIWebBot) Reply(ctx types.ConversationContext) chan types.Partial
 		session, ok := bot.sessions[ctx.Id]
 		if !ok {
 			session = chat.New(ctx.Token, ctx.BaseURL)
+			if ctx.Model != "" {
+				session.Model = ctx.Model
+			}
 			bot.sessions[ctx.Id] = session
 		}
 
