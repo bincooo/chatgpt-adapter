@@ -10,4 +10,8 @@ const (
 	OpenAIWeb = "openai-web"
 	Claude    = "claude"
 	Bing      = "bing"
+
+	Closed = "closed"
+	Begin  = "begin"
+	Trying = "trying"
 )

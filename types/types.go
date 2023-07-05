@@ -1,14 +1,13 @@
 package types
 
 type PartialResponse struct {
-	Closed  bool
+	Status  string
 	Message string
 	Error   error
 }
 
 // 会话上下文
 type ConversationContext struct {
-	U         string
 	Id        string
 	Bot       string
 	Prompt    string

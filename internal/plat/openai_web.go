@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"github.com/bincooo/MiaoX/types"
+	"github.com/bincooo/MiaoX/vars"
 	chat "github.com/bincooo/openai-wapi"
 	"github.com/sirupsen/logrus"
 	"io"
-	"time"
 )
 
 type OpenAIWebBot struct {
@@ -35,7 +35,7 @@ func (bot *OpenAIWebBot) Reply(ctx types.ConversationContext) chan types.Partial
 			ctx.Prompt = "continue"
 		}
 
-		timeout, cancel := context.WithTimeout(context.TODO(), 3*time.Minute)
+		timeout, cancel := context.WithTimeout(context.TODO(), Timeout)
 		defer cancel()
 		partialResponse, err := session.Reply(timeout, ctx.Prompt)
 		if err != nil {
@@ -87,7 +87,7 @@ func (*OpenAIWebBot) handle(partialResponse chan chat.PartialResponse, message c
 	for {
 		response := r.Read()
 		message <- response
-		if response.Closed {
+		if response.Status == vars.Closed {
 			break
 		}
 	}

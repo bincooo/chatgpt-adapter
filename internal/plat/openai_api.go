@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/bincooo/MiaoX/types"
+	"github.com/bincooo/MiaoX/vars"
 	wapi "github.com/bincooo/openai-wapi"
 	"github.com/sashabaranov/go-openai"
 	"github.com/sirupsen/logrus"
@@ -50,7 +51,7 @@ func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.Partial
 		for {
 			response := r.Read()
 			message <- response
-			if response.Closed {
+			if response.Status == vars.Closed {
 				break
 			}
 		}
@@ -80,7 +81,9 @@ func (bot *OpenAIAPIBot) makeCompletionStream(ctx types.ConversationContext) (st
 	if bot.client == nil || bot.token != ctx.Token {
 		bot.makeClient(ctx.Token)
 	}
-	return bot.client.CreateChatCompletionStream(context.Background(), request)
+	timeout, cancel := context.WithTimeout(context.TODO(), Timeout)
+	defer cancel()
+	return bot.client.CreateChatCompletionStream(timeout, request)
 }
 
 func (bot *OpenAIAPIBot) completionMessage(ctx types.ConversationContext) []openai.ChatCompletionMessage {

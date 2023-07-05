@@ -6,7 +6,6 @@ import (
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
 	"github.com/bincooo/edge-api"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -96,7 +95,7 @@ func lmtHandle(prompt string, message chan types.PartialResponse) {
 			break
 		}
 
-		if response.Closed {
+		if response.Status == vars.Closed {
 			close(message)
 			break
 		}
@@ -106,7 +105,6 @@ func lmtHandle(prompt string, message chan types.PartialResponse) {
 
 func ContextLmt(id string, prompt string) types.ConversationContext {
 	return types.ConversationContext{
-		U:     uuid.NewString(),
 		Id:    id,
 		Bot:   vars.Claude,
 		Token: token,

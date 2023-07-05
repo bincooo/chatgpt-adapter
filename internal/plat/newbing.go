@@ -7,7 +7,6 @@ import (
 	"github.com/bincooo/MiaoX/vars"
 	"github.com/bincooo/edge-api"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type BingBot struct {
@@ -37,7 +36,7 @@ func (bot *BingBot) Reply(ctx types.ConversationContext) chan types.PartialRespo
 			bot.sessions[ctx.Id] = session
 		}
 
-		timeout, cancel := context.WithTimeout(context.TODO(), 3*time.Minute)
+		timeout, cancel := context.WithTimeout(context.TODO(), Timeout)
 		defer cancel()
 		messages := store.GetMessages(ctx.Id)
 		if ctx.Preset != "" {
@@ -118,7 +117,7 @@ func (bot *BingBot) handle(botId string, partialResponse chan edge.PartialRespon
 	for {
 		response := r.Read()
 		message <- response
-		if response.Closed {
+		if response.Status == vars.Closed {
 			break
 		}
 	}

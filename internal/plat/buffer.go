@@ -2,6 +2,7 @@ package plat
 
 import (
 	"github.com/bincooo/MiaoX/types"
+	"github.com/bincooo/MiaoX/vars"
 	"time"
 )
 
@@ -60,6 +61,10 @@ func (r *CacheBuffer) Read() types.PartialResponse {
 		r.cache = ""
 	}
 
-	partialResponse.Closed = r.Closed
+	if r.Closed {
+		partialResponse.Status = vars.Closed
+	} else {
+		partialResponse.Status = vars.Trying
+	}
 	return partialResponse
 }

@@ -85,6 +85,13 @@ func (mgr *CommonBotManager) makeBot(bot string) error {
 }
 
 func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan types.PartialResponse, ctx types.ConversationContext) types.PartialResponse {
+	h := func(value types.PartialResponse) {
+		if response != nil {
+			response <- value
+		}
+	}
+
+	h(types.PartialResponse{Status: vars.Begin})
 	mgr.chain.Before(&bot, &ctx)
 
 	var err error
@@ -93,13 +100,12 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan type
 	for {
 		if value, ok := <-reply; ok {
 			if value.Error != nil {
-				response <- value
+				h(value)
 				err = value.Error
 				break
 			}
-			if response != nil {
-				response <- value
-			}
+
+			h(value)
 			slice = append(slice, value)
 		} else {
 			break
@@ -111,7 +117,7 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan type
 		message += value.Message
 	}
 	mgr.chain.After(&bot, &ctx, message)
-	return types.PartialResponse{Message: message, Error: err, Closed: true}
+	return types.PartialResponse{Message: message, Error: err, Status: vars.Closed}
 }
 
 func (mgr *CommonBotManager) RegChain(name string, inter types.Interceptor) error {

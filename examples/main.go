@@ -5,7 +5,6 @@ import (
 	"github.com/bincooo/MiaoX"
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -82,7 +81,7 @@ func main() {
 				break
 			}
 
-			if response.Closed {
+			if response.Status == vars.Closed {
 				close(message)
 				break
 			}
@@ -92,7 +91,6 @@ func main() {
 
 func Context() types.ConversationContext {
 	return types.ConversationContext{
-		U:  uuid.NewString(),
 		Id: "1008611",
 		//Bot:     vars.Bing,
 		Bot:   vars.OpenAIWeb,
