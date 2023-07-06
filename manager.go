@@ -50,9 +50,9 @@ func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, response chan 
 
 		store.DeleteMessages(ctx.Id)
 		if response != nil {
-			response <- types.PartialResponse{Message: result}
+			response <- types.PartialResponse{Message: result, Status: vars.Closed}
 		}
-		return types.PartialResponse{Message: result}
+		return types.PartialResponse{Message: result, Status: vars.Closed}
 	}
 	return mgr.replyConversation(bot, response, ctx)
 }
