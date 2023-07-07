@@ -26,7 +26,7 @@ Tips:
 
 4.Bing token获取方式:  登陆bing(有墙)，获取cookies中的_U值
 
-### 代办
+### 待办
 
 > Terminal Cli TODO
 
