@@ -9,11 +9,11 @@
 
 ZeroBot for QQ  [【临时项目地址】]([新建标签页 (github.com)](https://github.com/bincooo/ZeroBot-Plugin-Playground))
 
-![截屏2023-07-08 00.02.13](./srouces/截屏2023-07-08 00.02.13.png)
+![截屏2023-07-08 00.02.13](resources/截屏2023-07-08 00.02.13.png)
 
 Terminal Example
 
-![截屏2023-07-08 00.20.51](/Users/admin/code-workspace/go-space/20230503/MiaoX/srouces/截屏2023-07-08 00.20.51.png)
+![截屏2023-07-08 00.20.51](resources/截屏2023-07-08 00.20.51.png)
 
 Tips:
 Claude for slack 配置以及token获取方式 [点我](https://github.com/Anyc66666666/claude-api)
