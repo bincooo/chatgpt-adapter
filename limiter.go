@@ -69,10 +69,10 @@ func (cLmt *CommonLimiter) Join(context types.ConversationContext, response chan
 	return lmt.Join(context, response)
 }
 
-func (cLmt *CommonLimiter) Remove(bot string) {
+func (cLmt *CommonLimiter) Remove(id string, bot string) {
 	lmt := cLmt.matchLimiter(bot)
 	if lmt != nil {
-		lmt.Remove(bot)
+		lmt.Remove(id, bot)
 	}
 }
 
@@ -117,8 +117,8 @@ func (lmt *Limiter) Join(context types.ConversationContext, response chan types.
 	return nil
 }
 
-func (lmt *Limiter) Remove(bot string) {
-	lmt.mgr.Remove(bot)
+func (lmt *Limiter) Remove(id string, bot string) {
+	lmt.mgr.Remove(id, bot)
 }
 
 func (lmt *Limiter) RegChain(name string, inter types.Interceptor) error {
@@ -145,9 +145,9 @@ func (gLmt *GroupLimiter) Join(context types.ConversationContext, response chan 
 	return value.Join(context, response)
 }
 
-func (gLmt *GroupLimiter) Remove(bot string) {
+func (gLmt *GroupLimiter) Remove(id string, bot string) {
 	for _, value := range gLmt.kv {
-		value.Remove(bot)
+		value.Remove(id, bot)
 	}
 }
 

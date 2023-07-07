@@ -26,7 +26,7 @@ type ConversationContext struct {
 
 type Limiter interface {
 	Join(ConversationContext, chan PartialResponse) error
-	Remove(bot string)
+	Remove(id string, bot string)
 	RegChain(name string, inter Interceptor) error
 }
 
@@ -37,7 +37,7 @@ type BotManager interface {
 	// 添加机器人
 	Add(key string, bot Bot)
 	// 删除机器人
-	Remove(key string)
+	Remove(id string, key string)
 
 	RegChain(name string, inter Interceptor) error
 }

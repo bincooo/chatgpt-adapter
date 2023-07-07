@@ -63,7 +63,8 @@ func (mgr *CommonBotManager) Add(name string, bot types.Bot) {
 }
 
 // 删除机器人
-func (mgr *CommonBotManager) Remove(name string) {
+func (mgr *CommonBotManager) Remove(uid string, name string) {
+	store.DeleteMessages(uid)
 	delete(mgr.bots, name)
 }
 

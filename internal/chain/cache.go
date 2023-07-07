@@ -15,6 +15,7 @@ var (
 	}
 )
 
+// 缓存对话记录
 type CacheInterceptor struct {
 	types.BaseInterceptor
 }

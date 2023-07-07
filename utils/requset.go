@@ -66,7 +66,7 @@ func (req *HttpRequest) AddHeader(name string, value string) *HttpRequest {
 		return req
 	}
 	if req.request == nil {
-		req.err = errors.New("please initialize `Request` before executing here")
+		req.err = errors.New("please initialize `Request` before executing `AddHeader`")
 		return req
 	}
 	req.request.Header.Add(name, value)
@@ -78,7 +78,7 @@ func (req *HttpRequest) Build() (*http.Response, error) {
 		return nil, req.err
 	}
 	if req.request == nil {
-		return nil, errors.New("please initialize `Request` before executing here")
+		return nil, errors.New("please initialize `Request` before executing `Build`")
 	}
 	return req.client.Do(req.request)
 }

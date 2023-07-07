@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// 预加载预设
+// 预加载预设（协助openai-web和claude这类需要预先发送预设的AI）
 type AssistInterceptor struct {
 	types.BaseInterceptor
 }

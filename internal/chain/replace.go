@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// 内置默认的替换标记符
 type ReplaceInterceptor struct {
 	types.BaseInterceptor
 }

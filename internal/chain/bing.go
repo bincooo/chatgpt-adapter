@@ -68,7 +68,7 @@ func (c *BingInterceptor) Before(bot *types.Bot, ctx *types.ConversationContext)
 			"author": "bot",
 			"text":   substr,
 		})
-
+		// 这里多次插入相同对话，是为了强调回复
 		messages = append(messages, map[string]string{
 			"author": "user",
 			"text":   ctx.Prompt,
