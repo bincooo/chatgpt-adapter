@@ -172,10 +172,7 @@ func (lmt *Limiter) Run() {
 		lmt.Unlock()
 
 		logrus.Info("[MiaoX] - 正在应答，ID = ", s.conversation.Id, ", Bot = ", s.conversation.Bot)
-		partialResponse := lmt.mgr.Reply(s.conversation, s.response)
-		if partialResponse.Error != nil {
-			s.response <- partialResponse
-		}
+		lmt.mgr.Reply(s.conversation, s.response)
 		time.Sleep(waitTimeout)
 	}
 }
