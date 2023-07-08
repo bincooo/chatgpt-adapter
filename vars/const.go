@@ -2,7 +2,6 @@ package vars
 
 var (
 	BingMaxMessage = 10
-	//Loading        []byte
 )
 
 const (

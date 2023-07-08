@@ -10,6 +10,9 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/sirupsen/logrus"
 	"io"
+	"net/http"
+	"net/url"
+	"os"
 )
 
 type OpenAIAPIBot struct {
@@ -83,7 +86,7 @@ func (bot *OpenAIAPIBot) makeCompletionStream(ctx types.ConversationContext) (st
 		Stream:      true,
 	}
 	if bot.client == nil || bot.token != ctx.Token {
-		bot.makeClient(ctx.Token)
+		bot.makeClient(ctx.Proxy, ctx.Token)
 	}
 	timeout, cancel := context.WithTimeout(context.TODO(), Timeout)
 	defer cancel()
@@ -158,21 +161,20 @@ func NewOpenAIAPIBot() types.Bot {
 	}
 }
 
-func (bot *OpenAIAPIBot) makeClient(token string) {
+func (bot *OpenAIAPIBot) makeClient(proxy string, token string) {
 	oc := openai.DefaultConfig(token)
-	//global := repo.GetGlobal()
-	//if global.Proxy != "" {
-	//	proxy, err := url.Parse(global.Proxy)
-	//	if err != nil {
-	//		logrus.Error(err)
-	//		os.Exit(0)
-	//	}
-	//	oc.HTTPClient = &http.Client{
-	//		Transport: &http.Transport{
-	//			Proxy: http.ProxyURL(proxy),
-	//		},
-	//	}
-	//}
+	if proxy != "" {
+		proxy, err := url.Parse(proxy)
+		if err != nil {
+			logrus.Error(err)
+			os.Exit(0)
+		}
+		oc.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(proxy),
+			},
+		}
+	}
 	bot.token = token
 	bot.client = openai.NewClientWithConfig(oc)
 }

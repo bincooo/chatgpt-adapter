@@ -8,20 +8,21 @@ type PartialResponse struct {
 
 // 会话上下文
 type ConversationContext struct {
-	Id        string
-	Bot       string
-	Prompt    string
-	Token     string
-	Preset    string
-	Format    string
-	AppId     string
-	MaxTokens int
+	Id        string // 唯一Id
+	Bot       string // AI机器人类型
+	Prompt    string // 文本
+	Token     string // 凭证
+	Preset    string // 预设模版
+	Format    string // 消息模板
+	AppId     string // 设备Id（claude/bing？）
+	MaxTokens int    // 最大对话Tokens长度
 
-	BaseURL string
-	Model   string
-	Chain   string
+	BaseURL string // 转发URL
+	Model   string // AI模型类型
+	Chain   string // 拦截处理器链
+	Proxy   string // 本地代理
 
-	Data any
+	Data any // 拓展数据
 }
 
 type Limiter interface {
