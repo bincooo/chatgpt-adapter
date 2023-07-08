@@ -146,8 +146,8 @@ func (gLmt *GroupLimiter) Join(context types.ConversationContext, response chan 
 }
 
 func (gLmt *GroupLimiter) Remove(id string, bot string) {
-	for _, value := range gLmt.kv {
-		value.Remove(id, bot)
+	if lmt, ok := gLmt.kv[id]; ok {
+		lmt.Remove(id, bot)
 	}
 }
 
@@ -172,7 +172,10 @@ func (lmt *Limiter) Run() {
 		lmt.Unlock()
 
 		logrus.Info("[MiaoX] - 正在应答，ID = ", s.conversation.Id, ", Bot = ", s.conversation.Bot)
-		lmt.mgr.Reply(s.conversation, s.response)
+		partialResponse := lmt.mgr.Reply(s.conversation, s.response)
+		if partialResponse.Error != nil {
+			s.response <- partialResponse
+		}
 		time.Sleep(waitTimeout)
 	}
 }

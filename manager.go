@@ -25,18 +25,25 @@ func NewBotManager() types.BotManager {
 
 // 管理器应答消息
 func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, response chan types.PartialResponse) types.PartialResponse {
+	h := func(value types.PartialResponse) types.PartialResponse {
+		if response != nil {
+			response <- value
+		}
+		return value
+	}
+
 	if ctx.Prompt == "" {
-		return types.PartialResponse{Error: errors.New("请输入你的文本内容")}
+		return h(types.PartialResponse{Error: errors.New("请输入你的文本内容"), Status: vars.Closed})
 	}
 
 	if _, ok := mgr.bots[ctx.Bot]; !ok {
 		if err := mgr.makeBot(ctx.Bot); err != nil {
-			return types.PartialResponse{Error: err}
+			return h(types.PartialResponse{Error: err, Status: vars.Closed})
 		}
 	}
 
 	if _, ok := mgr.bots[ctx.Bot]; !ok {
-		return types.PartialResponse{Error: errors.New("未知的AI类型: " + ctx.Bot)}
+		return h(types.PartialResponse{Error: errors.New("未知的AI类型: " + ctx.Bot), Status: vars.Closed})
 	}
 
 	bot := mgr.bots[ctx.Bot]
@@ -49,10 +56,7 @@ func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, response chan 
 		}
 
 		store.DeleteMessages(ctx.Id)
-		if response != nil {
-			response <- types.PartialResponse{Message: result, Status: vars.Closed}
-		}
-		return types.PartialResponse{Message: result, Status: vars.Closed}
+		return h(types.PartialResponse{Message: result, Status: vars.Closed})
 	}
 	return mgr.replyConversation(bot, response, ctx)
 }
@@ -86,10 +90,11 @@ func (mgr *CommonBotManager) makeBot(bot string) error {
 }
 
 func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan types.PartialResponse, ctx types.ConversationContext) types.PartialResponse {
-	h := func(value types.PartialResponse) {
+	h := func(value types.PartialResponse) types.PartialResponse {
 		if response != nil {
 			response <- value
 		}
+		return value
 	}
 
 	h(types.PartialResponse{Status: vars.Begin})
@@ -118,7 +123,7 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan type
 		message += value.Message
 	}
 	mgr.chain.After(&bot, &ctx, message)
-	return types.PartialResponse{Message: message, Error: err, Status: vars.Closed}
+	return h(types.PartialResponse{Message: message, Error: err, Status: vars.Closed})
 }
 
 func (mgr *CommonBotManager) RegChain(name string, inter types.Interceptor) error {
