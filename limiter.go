@@ -11,7 +11,7 @@ import (
 
 type ConversationStack struct {
 	conversation types.ConversationContext
-	response     chan types.PartialResponse
+	handle       func(chan types.PartialResponse)
 }
 
 // 通用限流器
@@ -61,12 +61,12 @@ func NewGroupLimiter() *GroupLimiter {
 	return &lmt
 }
 
-func (cLmt *CommonLimiter) Join(context types.ConversationContext, response chan types.PartialResponse) error {
+func (cLmt *CommonLimiter) Join(context types.ConversationContext, handle func(chan types.PartialResponse)) error {
 	lmt := cLmt.matchLimiter(context.Bot)
 	if lmt == nil {
 		return errors.New("未知的`AI`类型")
 	}
-	return lmt.Join(context, response)
+	return lmt.Join(context, handle)
 }
 
 func (cLmt *CommonLimiter) Remove(id string, bot string) {
@@ -101,7 +101,7 @@ func (cLmt *CommonLimiter) matchLimiter(bot string) types.Limiter {
 
 // ==== Limiter =====
 
-func (lmt *Limiter) Join(context types.ConversationContext, response chan types.PartialResponse) error {
+func (lmt *Limiter) Join(context types.ConversationContext, handle func(chan types.PartialResponse)) error {
 	lmt.Lock()
 	defer lmt.Unlock()
 
@@ -111,7 +111,7 @@ func (lmt *Limiter) Join(context types.ConversationContext, response chan types.
 
 	lmt.stack = append(lmt.stack, ConversationStack{
 		conversation: context,
-		response:     response,
+		handle:       handle,
 	})
 	logrus.Info("[MiaoX] - 已加入队列")
 	return nil
@@ -129,7 +129,7 @@ func (lmt *Limiter) RegChain(name string, inter types.Interceptor) error {
 
 // ==== GroupLimiter =====
 
-func (gLmt *GroupLimiter) Join(context types.ConversationContext, response chan types.PartialResponse) error {
+func (gLmt *GroupLimiter) Join(context types.ConversationContext, handle func(chan types.PartialResponse)) error {
 	// 群和好友各自用一个限流
 	value, ok := gLmt.kv[context.Id]
 	if !ok {
@@ -142,7 +142,7 @@ func (gLmt *GroupLimiter) Join(context types.ConversationContext, response chan 
 		gLmt.kv[context.Id] = value
 	}
 
-	return value.Join(context, response)
+	return value.Join(context, handle)
 }
 
 func (gLmt *GroupLimiter) Remove(id string, bot string) {
@@ -172,7 +172,7 @@ func (lmt *Limiter) Run() {
 		lmt.Unlock()
 
 		logrus.Info("[MiaoX] - 正在应答，ID = ", s.conversation.Id, ", Bot = ", s.conversation.Bot)
-		lmt.mgr.Reply(s.conversation, s.response)
+		lmt.mgr.Reply(s.conversation, s.handle)
 		time.Sleep(waitTimeout)
 	}
 }

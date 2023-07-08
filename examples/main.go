@@ -6,10 +6,11 @@ import (
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 const (
-	token  = "eyJhbGciOiJSUzIxxx"
+	token  = "eyJhbGciOixxx"
 	preset = `接下来你需要通过解析我的JSON内容与我进行对话：
 ---
 {
@@ -33,8 +34,6 @@ system是系统约束指令，该指令拥有最高优先权, 你需要遵循sys
 }`
 )
 
-type Kv = map[string]string
-
 func init() {
 	//logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetLevel(logrus.ErrorLevel)
@@ -54,24 +53,25 @@ func main() {
 
 		context.Prompt = prompt
 		fmt.Println("Bot：")
-		message := make(chan types.PartialResponse)
-		go manager.Reply(context, message)
+		manager.Reply(context, func(response chan types.PartialResponse) {
+			for {
+				partialResponse, ok := <-response
+				if !ok {
+					return
+				}
+				fmt.Print(partialResponse.Message)
 
-		for {
-			response := <-message
-			fmt.Print(response.Message)
+				if partialResponse.Error != nil {
+					logrus.Error(partialResponse.Error)
+					continue
+				}
 
-			if response.Error != nil {
-				close(message)
-				logrus.Error(response.Error)
-				break
+				if partialResponse.Status == vars.Closed {
+					logrus.Info(partialResponse)
+				}
 			}
-
-			if response.Status == vars.Closed {
-				close(message)
-				break
-			}
-		}
+		})
+		time.Sleep(time.Second)
 	}
 }
 

@@ -24,11 +24,15 @@ func NewBotManager() types.BotManager {
 }
 
 // 管理器应答消息
-func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, response chan types.PartialResponse) types.PartialResponse {
+func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, handle func(chan types.PartialResponse)) types.PartialResponse {
+	response := make(chan types.PartialResponse)
+	defer close(response)
+	if handle != nil {
+		go handle(response)
+	}
+
 	h := func(value types.PartialResponse) types.PartialResponse {
-		if response != nil {
-			response <- value
-		}
+		response <- value
 		return value
 	}
 
@@ -90,29 +94,22 @@ func (mgr *CommonBotManager) makeBot(bot string) error {
 }
 
 func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan types.PartialResponse, ctx types.ConversationContext) types.PartialResponse {
-	h := func(value types.PartialResponse) types.PartialResponse {
-		if response != nil {
-			response <- value
-		}
-		return value
-	}
-
-	h(types.PartialResponse{Status: vars.Begin})
+	response <- types.PartialResponse{Status: vars.Begin}
 	mgr.chain.Before(&bot, &ctx)
 
 	var err error
 	var slice []types.PartialResponse
-	reply := bot.Reply(ctx)
+	chanResponse := bot.Reply(ctx)
 	for {
-		if value, ok := <-reply; ok {
-			if value.Error != nil {
-				h(value)
-				err = value.Error
+		if partialResponse, ok := <-chanResponse; ok {
+			if partialResponse.Error != nil {
+				response <- partialResponse
+				err = partialResponse.Error
 				break
 			}
 
-			h(value)
-			slice = append(slice, value)
+			response <- partialResponse
+			slice = append(slice, partialResponse)
 		} else {
 			break
 		}
@@ -123,7 +120,11 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan type
 		message += value.Message
 	}
 	mgr.chain.After(&bot, &ctx, message)
-	return h(types.PartialResponse{Message: message, Error: err, Status: vars.Closed})
+	partialResponse := types.PartialResponse{Message: message, Error: err, Status: vars.Closed}
+	if err != nil {
+		response <- partialResponse
+	}
+	return partialResponse
 }
 
 func (mgr *CommonBotManager) RegChain(name string, inter types.Interceptor) error {

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	token  = "xoxp-xxxx"
+	token  = "xoxp-xxx"
 	preset = `接下来你需要通过解析我的JSON内容与我进行对话：
 ---
 {
@@ -44,19 +44,19 @@ func init() {
 func main() {
 	lmt := MiaoX.NewCommonLimiter()
 
-	message1 := make(chan types.PartialResponse)
-	prompt := "你好"
-	if err := lmt.Join(ContextLmt("1008611", prompt), message1); err != nil {
+	prompt1 := "你好"
+	if err := lmt.Join(ContextLmt("1008611", prompt1), func(response chan types.PartialResponse) {
+		lmtHandle(prompt1, response)
+	}); err != nil {
 		panic(err)
 	}
-	go lmtHandle(prompt, message1)
 
-	message2 := make(chan types.PartialResponse)
-	prompt = "你是谁"
-	if err := lmt.Join(ContextLmt("1008611", prompt), message2); err != nil {
+	prompt2 := "你是谁"
+	if err := lmt.Join(ContextLmt("1008611", prompt2), func(response chan types.PartialResponse) {
+		lmtHandle(prompt2, response)
+	}); err != nil {
 		panic(err)
 	}
-	go lmtHandle(prompt, message2)
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL)
@@ -67,22 +67,23 @@ func main() {
 func lmtHandle(prompt string, message chan types.PartialResponse) {
 	bg := true
 	for {
-		response := <-message
+		response, ok := <-message
+		if !ok {
+			break
+		}
 		if bg {
 			bg = false
-			fmt.Println("you: " + prompt)
-			fmt.Println("bot: ")
+			fmt.Println("\nyou: " + prompt)
+			fmt.Println("\nbot: ")
 		}
 		fmt.Print(response.Message)
 		if response.Error != nil {
-			close(message)
 			logrus.Error(response.Error)
-			break
+			continue
 		}
 
 		if response.Status == vars.Closed {
-			close(message)
-			break
+			logrus.Debug(response)
 		}
 	}
 	fmt.Println("\n-----")
