@@ -46,7 +46,7 @@ type BotManager interface {
 // 机器人
 type Bot interface {
 	Reply(ctx ConversationContext) chan PartialResponse
-	Reset(id string) bool
+	Remove(id string) bool
 }
 
 // 拦截处理器

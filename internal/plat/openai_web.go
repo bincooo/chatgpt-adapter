@@ -8,6 +8,7 @@ import (
 	chat "github.com/bincooo/openai-wapi"
 	"github.com/sirupsen/logrus"
 	"io"
+	"strings"
 )
 
 type OpenAIWebBot struct {
@@ -52,8 +53,16 @@ func (bot *OpenAIWebBot) Reply(ctx types.ConversationContext) chan types.Partial
 	return message
 }
 
-func (bot *OpenAIWebBot) Reset(key string) bool {
-	delete(bot.sessions, key)
+func (bot *OpenAIWebBot) Remove(id string) bool {
+	delete(bot.sessions, id)
+	slice := []string{id}
+	for key, _ := range bot.sessions {
+		if strings.HasPrefix(id+"$", key) {
+			delete(bot.sessions, key)
+			slice = append(slice, key)
+		}
+	}
+	logrus.Info("[MiaoX] - Bot.Remove: ", slice)
 	return true
 }
 

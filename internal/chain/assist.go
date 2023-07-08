@@ -3,6 +3,7 @@ package chain
 import (
 	"github.com/bincooo/MiaoX/internal/store"
 	"github.com/bincooo/MiaoX/types"
+	"github.com/bincooo/MiaoX/utils"
 	"github.com/jinzhu/copier"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -25,15 +26,12 @@ func (c *AssistInterceptor) Before(bot *types.Bot, ctx *types.ConversationContex
 
 		context.Prompt = ctx.Preset
 		message := (*bot).Reply(context)
-		var slice []string
-		for {
-			if value, ok := <-message; ok {
-				slice = append(slice, value.Message)
-			} else {
-				break
-			}
+		partialResponse := utils.MergeFullMessage(message)
+		if partialResponse.Error != nil {
+			logrus.Error(partialResponse.Error)
 		}
 
+		logrus.Info("*** FIRST PRESET RESULT ***\n", partialResponse.Message, "\n*******************")
 		time.Sleep(time.Second)
 		logrus.Info("[MiaoX] - 加载预设完毕")
 	}

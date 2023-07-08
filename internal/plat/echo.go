@@ -23,7 +23,7 @@ func (EchoBot) Reply(ctx types.ConversationContext) chan types.PartialResponse {
 	return message
 }
 
-func (EchoBot) Reset(id string) bool {
+func (EchoBot) Remove(id string) bool {
 	return true
 }
 

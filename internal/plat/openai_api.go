@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
 type OpenAIAPIBot struct {
@@ -68,8 +69,16 @@ func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.Partial
 	return message
 }
 
-func (bot *OpenAIAPIBot) Reset(id string) bool {
+func (bot *OpenAIAPIBot) Remove(id string) bool {
 	delete(bot.sessions, id)
+	slice := []string{id}
+	for key, _ := range bot.sessions {
+		if strings.HasPrefix(id+"$", key) {
+			delete(bot.sessions, key)
+			slice = append(slice, key)
+		}
+	}
+	logrus.Info("[MiaoX] - Bot.Remove: ", slice)
 	return true
 }
 

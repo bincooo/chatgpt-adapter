@@ -131,18 +131,18 @@ func (lmt *Limiter) RegChain(name string, inter types.Interceptor) error {
 
 func (gLmt *GroupLimiter) Join(context types.ConversationContext, handle func(chan types.PartialResponse)) error {
 	// 群和好友各自用一个限流
-	value, ok := gLmt.kv[context.Id]
+	lmt, ok := gLmt.kv[context.Id]
 	if !ok {
-		value = NewLimiter()
+		lmt = NewLimiter()
 		for name, iter := range gLmt.chain {
-			if err := value.RegChain(name, iter); err != nil {
+			if err := lmt.RegChain(name, iter); err != nil {
 				return err
 			}
 		}
-		gLmt.kv[context.Id] = value
+		gLmt.kv[context.Id] = lmt
 	}
 
-	return value.Join(context, handle)
+	return lmt.Join(context, handle)
 }
 
 func (gLmt *GroupLimiter) Remove(id string, bot string) {

@@ -7,6 +7,7 @@ import (
 	"github.com/bincooo/MiaoX/vars"
 	"github.com/bincooo/edge-api"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 type BingBot struct {
@@ -62,8 +63,16 @@ func (bot *BingBot) Reply(ctx types.ConversationContext) chan types.PartialRespo
 	return message
 }
 
-func (bot *BingBot) Reset(key string) bool {
-	delete(bot.sessions, key)
+func (bot *BingBot) Remove(id string) bool {
+	delete(bot.sessions, id)
+	slice := []string{id}
+	for key, _ := range bot.sessions {
+		if strings.HasPrefix(id+"$", key) {
+			delete(bot.sessions, key)
+			slice = append(slice, key)
+		}
+	}
+	logrus.Info("[MiaoX] - Bot.Remove: ", slice)
 	return true
 }
 

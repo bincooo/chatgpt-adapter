@@ -53,7 +53,7 @@ func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, handle func(ch
 	bot := mgr.bots[ctx.Bot]
 	if strings.Contains("|重置|重置会话|重置对话|reset|", "|"+ctx.Prompt+"|") {
 		var result string
-		if bot.Reset(ctx.Id) {
+		if bot.Remove(ctx.Id) {
 			result = "已重置，开始新的对话吧"
 		} else {
 			result = "重置失败"
@@ -73,7 +73,10 @@ func (mgr *CommonBotManager) Add(name string, bot types.Bot) {
 // 删除机器人
 func (mgr *CommonBotManager) Remove(uid string, name string) {
 	store.DeleteMessages(uid)
-	delete(mgr.bots, name)
+	if bot, ok := mgr.bots[name]; ok {
+		bot.Remove(uid)
+	}
+	//delete(mgr.bots, name)
 }
 
 // 构建机器人

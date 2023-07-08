@@ -81,7 +81,12 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 	return message
 }
 
-func (bot *ClaudeBot) Reset(id string) bool {
+func (bot *ClaudeBot) Remove(id string) bool {
 	delete(bot.sessions, id)
+	for key, _ := range bot.sessions {
+		if strings.HasPrefix(id+"$", key) {
+			delete(bot.sessions, key)
+		}
+	}
 	return true
 }

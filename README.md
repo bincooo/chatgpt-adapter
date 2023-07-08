@@ -7,14 +7,39 @@
 
 #### 效果图
 
-ZeroBot for QQ  [【临时项目地址】](https://github.com/bincooo/ZeroBot-Plugin-Playground)
+<details>
+<summary>ZeroBot for QQ </summary>
+<br/>
+<a herf="https://github.com/bincooo/ZeroBot-Plugin-Playground">【临时项目地址】</a>
+<img src="resources/%E6%88%AA%E5%B1%8F2023-07-08%2000.02.13.png"  />
+</details>
 
-![截屏2023-07-08 00.02.13](resources/%E6%88%AA%E5%B1%8F2023-07-08%2000.02.13.png)
+<details>
+<summary>Terminal Example</summary>
+<br/>
+<img src="resources/%E6%88%AA%E5%B1%8F2023-07-08%2000.20.51.png"  />
+</details>
 
-Terminal Example
-
-![截屏2023-07-08 00.20.51](resources/%E6%88%AA%E5%B1%8F2023-07-08%2000.20.51.png)
-
+<details>
+<summary>类似LangChain的效果</summary>
+<br/>
+基础预设：
+<img src="resources/%E6%88%AA%E5%B1%8F2023-07-09%2005.58.49.png" />
+<br/>
+设置执行链：
+<code>
+<pre>
+	lmt := MiaoX.NewCommonLimiter()
+	if err := lmt.RegChain("embellish", &EmbellishInterceptor{}); err != nil {
+		panic(err)
+	}
+</pre>
+</code>
+<img src="resources/%E6%88%AA%E5%B1%8F2023-07-09%2006.03.24.png" />
+<br/>
+效果图：
+<img src="resources/%E6%88%AA%E5%B1%8F2023-07-09%2006.08.03.png" />
+</details>
 
 Tips:
 
