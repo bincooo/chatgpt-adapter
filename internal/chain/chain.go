@@ -30,7 +30,7 @@ func (c *Chain) Set(name string, inter types.Interceptor) {
 	c.chain[name] = inter
 }
 
-func (c *Chain) Before(bot *types.Bot, ctx *types.ConversationContext) {
+func (c *Chain) Before(bot types.Bot, ctx *types.ConversationContext) {
 	chunk := c.chunk(ctx.Chain)
 	if len(chunk) == 0 {
 		return
@@ -47,7 +47,7 @@ func (c *Chain) Before(bot *types.Bot, ctx *types.ConversationContext) {
 	}
 }
 
-func (c *Chain) After(bot *types.Bot, ctx *types.ConversationContext, response string) {
+func (c *Chain) After(bot types.Bot, ctx *types.ConversationContext, response string) {
 	chunk := c.chunk(ctx.Chain)
 	if len(chunk) == 0 {
 		return

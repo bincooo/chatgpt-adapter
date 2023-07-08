@@ -11,7 +11,7 @@ type ReplaceInterceptor struct {
 	types.BaseInterceptor
 }
 
-func (c *ReplaceInterceptor) Before(bot *types.Bot, ctx *types.ConversationContext) bool {
+func (c *ReplaceInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
 	if ctx.Format != "" {
 		ctx.Prompt = replace(ctx.Format, ctx.Prompt)
 	}

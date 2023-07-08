@@ -20,7 +20,7 @@ type CacheInterceptor struct {
 	types.BaseInterceptor
 }
 
-func (c *CacheInterceptor) After(bot *types.Bot, ctx *types.ConversationContext, response string) bool {
+func (c *CacheInterceptor) After(bot types.Bot, ctx *types.ConversationContext, response string) bool {
 	c.cachePreviousMessages(ctx, response)
 	return true
 }

@@ -52,19 +52,19 @@ type Bot interface {
 // 拦截处理器
 type Interceptor interface {
 	// true 继续下一个
-	Before(bot *Bot, ctx *ConversationContext) bool
+	Before(bot Bot, ctx *ConversationContext) bool
 	// true 继续下一个
-	After(bot *Bot, ctx *ConversationContext, response string) bool
+	After(bot Bot, ctx *ConversationContext, response string) bool
 }
 
 // 空实现
 type BaseInterceptor struct {
 }
 
-func (*BaseInterceptor) Before(*Bot, *ConversationContext) bool {
+func (*BaseInterceptor) Before(Bot, *ConversationContext) bool {
 	return true
 }
 
-func (*BaseInterceptor) After(*Bot, *ConversationContext, string) bool {
+func (*BaseInterceptor) After(Bot, *ConversationContext, string) bool {
 	return true
 }

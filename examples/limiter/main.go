@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	token         = "xoxp-5137262897089-5124636131074-5516745311874-9cf013640e30e2f40dc23a817c322992"
+	token         = "xoxp-xxx"
 	presetMessage = `
 CONTEXT
 ---
@@ -80,10 +80,6 @@ func lmtHandle(prompt string, message chan types.PartialResponse) {
 			logrus.Error(response.Error)
 			continue
 		}
-
-		if response.Status == vars.Closed {
-			logrus.Debug(response)
-		}
 	}
 	fmt.Println("\n-----")
 }
@@ -107,7 +103,7 @@ type EmbellishInterceptor struct {
 	types.BaseInterceptor
 }
 
-func (e *EmbellishInterceptor) Before(bot *types.Bot, ctx *types.ConversationContext) bool {
+func (e *EmbellishInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
 	var context types.ConversationContext
 	if err := copier.Copy(&context, ctx); err != nil {
 		logrus.Error(err)
@@ -115,7 +111,7 @@ func (e *EmbellishInterceptor) Before(bot *types.Bot, ctx *types.ConversationCon
 	}
 
 	context.Id = ctx.Id + "$embellish"
-	message := (*bot).Reply(context)
+	message := bot.Reply(context)
 	partialResponse := utils.MergeFullMessage(message)
 	if partialResponse.Error != nil {
 		logrus.Error(partialResponse.Error)

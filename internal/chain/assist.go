@@ -14,7 +14,7 @@ type AssistInterceptor struct {
 	types.BaseInterceptor
 }
 
-func (c *AssistInterceptor) Before(bot *types.Bot, ctx *types.ConversationContext) bool {
+func (c *AssistInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
 	messages := store.GetMessages(ctx.Id)
 	if len(messages) == 0 && ctx.Preset != "" {
 		// 发送预设模版
@@ -25,7 +25,7 @@ func (c *AssistInterceptor) Before(bot *types.Bot, ctx *types.ConversationContex
 		}
 
 		context.Prompt = ctx.Preset
-		message := (*bot).Reply(context)
+		message := bot.Reply(context)
 		partialResponse := utils.MergeFullMessage(message)
 		if partialResponse.Error != nil {
 			logrus.Error(partialResponse.Error)

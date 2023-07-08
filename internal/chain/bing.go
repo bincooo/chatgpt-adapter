@@ -22,7 +22,7 @@ var (
 	}
 )
 
-func (c *BingInterceptor) Before(bot *types.Bot, ctx *types.ConversationContext) bool {
+func (c *BingInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
 	messages := store.GetMessages(ctx.Id)
 	if len(messages) == 0 {
 		return true

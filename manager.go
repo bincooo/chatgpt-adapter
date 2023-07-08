@@ -98,7 +98,7 @@ func (mgr *CommonBotManager) makeBot(bot string) error {
 
 func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan types.PartialResponse, ctx types.ConversationContext) types.PartialResponse {
 	response <- types.PartialResponse{Status: vars.Begin}
-	mgr.chain.Before(&bot, &ctx)
+	mgr.chain.Before(bot, &ctx)
 
 	var err error
 	var slice []types.PartialResponse
@@ -122,7 +122,7 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan type
 	for _, value := range slice {
 		message += value.Message
 	}
-	mgr.chain.After(&bot, &ctx, message)
+	mgr.chain.After(bot, &ctx, message)
 	partialResponse := types.PartialResponse{Message: message, Error: err, Status: vars.Closed}
 	if err != nil {
 		response <- partialResponse
