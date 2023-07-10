@@ -11,7 +11,7 @@ import (
 
 type ConversationStack struct {
 	conversation types.ConversationContext
-	handle       func(chan types.PartialResponse)
+	handle       func(types.PartialResponse)
 }
 
 // 通用限流器
@@ -61,7 +61,7 @@ func NewGroupLimiter() *GroupLimiter {
 	return &lmt
 }
 
-func (cLmt *CommonLimiter) Join(context types.ConversationContext, handle func(chan types.PartialResponse)) error {
+func (cLmt *CommonLimiter) Join(context types.ConversationContext, handle func(types.PartialResponse)) error {
 	lmt := cLmt.matchLimiter(context.Bot)
 	if lmt == nil {
 		return errors.New("未知的`AI`类型")
@@ -101,7 +101,7 @@ func (cLmt *CommonLimiter) matchLimiter(bot string) types.Limiter {
 
 // ==== Limiter =====
 
-func (lmt *Limiter) Join(context types.ConversationContext, handle func(chan types.PartialResponse)) error {
+func (lmt *Limiter) Join(context types.ConversationContext, handle func(types.PartialResponse)) error {
 	lmt.Lock()
 	defer lmt.Unlock()
 
@@ -129,7 +129,7 @@ func (lmt *Limiter) RegChain(name string, inter types.Interceptor) error {
 
 // ==== GroupLimiter =====
 
-func (gLmt *GroupLimiter) Join(context types.ConversationContext, handle func(chan types.PartialResponse)) error {
+func (gLmt *GroupLimiter) Join(context types.ConversationContext, handle func(types.PartialResponse)) error {
 	// 群和好友各自用一个限流
 	lmt, ok := gLmt.kv[context.Id]
 	if !ok {

@@ -42,14 +42,14 @@ func main() {
 		panic(err)
 	}
 	prompt1 := "golang有没有基于数组的数据结构集合实现？"
-	if err := lmt.Join(ContextLmt("1008611", prompt1), func(response chan types.PartialResponse) {
+	if err := lmt.Join(ContextLmt("1008611", prompt1), func(response types.PartialResponse) {
 		lmtHandle(prompt1, response)
 	}); err != nil {
 		panic(err)
 	}
 
 	prompt2 := "摸摸头"
-	if err := lmt.Join(ContextLmt("1008611", prompt2), func(response chan types.PartialResponse) {
+	if err := lmt.Join(ContextLmt("1008611", prompt2), func(response types.PartialResponse) {
 		lmtHandle(prompt2, response)
 	}); err != nil {
 		panic(err)
@@ -63,25 +63,20 @@ func main() {
 	os.Exit(0)
 }
 
-func lmtHandle(prompt string, message chan types.PartialResponse) {
-	bg := true
-	for {
-		response, ok := <-message
-		if !ok {
-			break
-		}
-		if bg {
-			bg = false
-			fmt.Println("\nyou: " + prompt)
-			fmt.Println("\nbot: ")
-		}
-		fmt.Print(response.Message)
-		if response.Error != nil {
-			logrus.Error(response.Error)
-			continue
-		}
+func lmtHandle(prompt string, message types.PartialResponse) {
+	if message.Status == vars.Begin {
+		fmt.Println("\nyou: " + prompt)
+		fmt.Println("\nbot: ")
 	}
-	fmt.Println("\n-----")
+
+	fmt.Print(message.Message)
+	if message.Error != nil {
+		logrus.Error(message.Error)
+	}
+
+	if message.Status == vars.Closed {
+		fmt.Println("\n-----")
+	}
 }
 
 func ContextLmt(id string, prompt string) types.ConversationContext {

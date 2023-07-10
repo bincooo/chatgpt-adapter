@@ -24,16 +24,13 @@ func NewBotManager() types.BotManager {
 }
 
 // 管理器应答消息
-func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, handle func(chan types.PartialResponse)) types.PartialResponse {
-	response := make(chan types.PartialResponse)
-	defer close(response)
-	if handle != nil {
-		go handle(response)
-	}
+func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, handle func(types.PartialResponse)) types.PartialResponse {
 
-	h := func(value types.PartialResponse) types.PartialResponse {
-		response <- value
-		return value
+	h := func(partialResponse types.PartialResponse) types.PartialResponse {
+		if handle != nil {
+			go handle(partialResponse)
+		}
+		return partialResponse
 	}
 
 	if ctx.Prompt == "" {
@@ -62,7 +59,7 @@ func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, handle func(ch
 		store.DeleteMessages(ctx.Id)
 		return h(types.PartialResponse{Message: result, Status: vars.Closed})
 	}
-	return mgr.replyConversation(bot, response, ctx)
+	return mgr.replyConversation(bot, handle, ctx)
 }
 
 // 添加机器人
@@ -96,8 +93,15 @@ func (mgr *CommonBotManager) makeBot(bot string) error {
 	return nil
 }
 
-func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan types.PartialResponse, ctx types.ConversationContext) types.PartialResponse {
-	response <- types.PartialResponse{Status: vars.Begin}
+func (mgr *CommonBotManager) replyConversation(bot types.Bot, handle func(types.PartialResponse), ctx types.ConversationContext) types.PartialResponse {
+	h := func(partialResponse types.PartialResponse) types.PartialResponse {
+		if handle != nil {
+			handle(partialResponse)
+		}
+		return partialResponse
+	}
+
+	h(types.PartialResponse{Status: vars.Begin})
 	mgr.chain.Before(bot, &ctx)
 
 	var err error
@@ -105,13 +109,11 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan type
 	chanResponse := bot.Reply(ctx)
 	for {
 		if partialResponse, ok := <-chanResponse; ok {
+			h(partialResponse)
 			if partialResponse.Error != nil {
-				response <- partialResponse
 				err = partialResponse.Error
 				break
 			}
-
-			response <- partialResponse
 			slice = append(slice, partialResponse)
 		} else {
 			break
@@ -125,7 +127,7 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, response chan type
 	mgr.chain.After(bot, &ctx, message)
 	partialResponse := types.PartialResponse{Message: message, Error: err, Status: vars.Closed}
 	if err != nil {
-		response <- partialResponse
+		h(partialResponse)
 	}
 	return partialResponse
 }

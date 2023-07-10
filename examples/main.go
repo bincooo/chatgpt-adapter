@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	token  = "eyJhbGciOixxx"
+	token  = "eyJhbGcixxx"
 	preset = `接下来你需要通过解析我的JSON内容与我进行对话：
 ---
 {
@@ -53,22 +53,17 @@ func main() {
 
 		context.Prompt = prompt
 		fmt.Println("Bot：")
-		manager.Reply(context, func(response chan types.PartialResponse) {
-			for {
-				partialResponse, ok := <-response
-				if !ok {
-					return
-				}
+		manager.Reply(context, func(partialResponse types.PartialResponse) {
+			if partialResponse.Message != "" {
 				fmt.Print(partialResponse.Message)
+			}
 
-				if partialResponse.Error != nil {
-					logrus.Error(partialResponse.Error)
-					continue
-				}
+			if partialResponse.Error != nil {
+				logrus.Error(partialResponse.Error)
+			}
 
-				if partialResponse.Status == vars.Closed {
-					logrus.Info(partialResponse)
-				}
+			if partialResponse.Status == vars.Closed {
+				return
 			}
 		})
 		time.Sleep(time.Second)
