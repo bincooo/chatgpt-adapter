@@ -10,7 +10,7 @@
 <details>
 <summary>ZeroBot for QQ </summary>
 <br/>
-<a herf="https://github.com/bincooo/ZeroBot-Plugin-Playground">【临时项目地址】</a>
+<a href="https://github.com/bincooo/ZeroBot-Plugin">【魔改ZeroBot-Plugin项目地址】</a>
 <img src="resources/%E6%88%AA%E5%B1%8F2023-07-08%2000.02.13.png"  />
 </details>
 
