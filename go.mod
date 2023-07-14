@@ -3,7 +3,7 @@ module github.com/bincooo/MiaoX
 go 1.20
 
 require (
-	github.com/bincooo/claude-api v1.0.2-0.20230714011355-e1d7ba46d22b
+	github.com/bincooo/claude-api v1.0.2-0.20230714182337-e6542ba55071
 	github.com/bincooo/edge-api v1.0.1-0.20230629173849-d059af6dd8da
 	github.com/bincooo/openai-wapi v1.0.1-0.20230702165611-574549aba951
 	github.com/jinzhu/copier v0.3.5
