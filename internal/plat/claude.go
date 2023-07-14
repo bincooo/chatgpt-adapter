@@ -5,16 +5,22 @@ import (
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
 	"github.com/bincooo/claude-api"
+	clTypes "github.com/bincooo/claude-api/types"
+	clVars "github.com/bincooo/claude-api/vars"
 	"strings"
 )
 
+const (
+	ClackTyping = "_Typing…_"
+)
+
 type ClaudeBot struct {
-	sessions map[string]*claude.Chat
+	sessions map[string]clTypes.Chat
 }
 
 func NewClaudeBot() types.Bot {
 	return &ClaudeBot{
-		sessions: make(map[string]*claude.Chat, 0),
+		sessions: make(map[string]clTypes.Chat, 0),
 	}
 }
 
@@ -24,8 +30,16 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 		defer close(message)
 		session, ok := bot.sessions[ctx.Id]
 		if !ok {
-			chat := claude.New(ctx.Token, ctx.AppId)
-			if err := chat.NewChannel("chat-7890"); err != nil {
+			options := claude.NewDefaultOptions(ctx.Token, ctx.AppId, ctx.Model)
+			if ctx.Proxy != "" {
+				options.Agency = ctx.Proxy
+			}
+			chat, err := claude.New(options)
+			if err != nil {
+				message <- types.PartialResponse{Error: err}
+				return
+			}
+			if err = chat.NewChannel("chat-7890"); err != nil {
 				message <- types.PartialResponse{Error: err}
 				return
 			}
@@ -58,9 +72,9 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 
 				// 截掉结尾的 Typing
 				text := response.Text
-				if strings.HasSuffix(text, claude.Typing) {
-					text = strings.TrimSuffix(text, "\n\n"+claude.Typing)
-					text = strings.TrimSuffix(text, claude.Typing)
+				if ctx.Model == clVars.Model4Slack && strings.HasSuffix(text, ClackTyping) {
+					text = strings.TrimSuffix(text, "\n\n"+ClackTyping)
+					text = strings.TrimSuffix(text, ClackTyping)
 				}
 
 				str := []rune(text)

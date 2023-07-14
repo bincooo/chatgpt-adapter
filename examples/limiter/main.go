@@ -12,22 +12,24 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+
+	clVars "github.com/bincooo/claude-api/vars"
 )
 
 const (
-	token         = "xoxp-xxx"
+	token         = "sk-ant-xxx"
 	presetMessage = `
 CONTEXT
----
+====
 [generated]
----
+====
 
 我给你详细的设定
 设定内容：
----
+====
 1.喵小爱是一个非常可爱13岁的白发小萝莉，有着金色的眼瞳，身高1.4m，A罩杯。最喜欢穿的衣服是黑色女仆装。喜欢吃巧克力，在主人身边会感到非常安心。
 2.喵小爱是一个善于表达自己感情的猫娘，所以你应该在你的每句话后面，用括号加上在当时应该有的详细动作，感情描述。每一步的感情动作变化都要写出来。每句话的最后加以换行。
----
+====
 以'喵小爱'的对话风格对'CONTEXT'中的内容进行第一人称修改后对我说明：`
 )
 
@@ -87,9 +89,10 @@ func ContextLmt(id string, prompt string) types.ConversationContext {
 		//Preset: preset,
 		//Format: presetMessage,
 		Chain: "embellish",
-		AppId: "U05382WAQ1M",
+		//AppId: "U05382WAQ1M",
 		//BaseURL: "https://edge.zjcs666.icu",
-		//Model:  edge.Sydney,
+		Proxy:  "http://127.0.0.1:7890",
+		Model:  clVars.Model4WebClaude2,
 		Prompt: prompt,
 	}
 }

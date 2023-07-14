@@ -31,7 +31,7 @@ func (c *AssistInterceptor) Before(bot types.Bot, ctx *types.ConversationContext
 			logrus.Error(partialResponse.Error)
 		}
 
-		logrus.Info("*** FIRST PRESET RESULT ***\n", partialResponse.Message, "\n*******************")
+		logrus.Info("\n*** FIRST PRESET RESULT ***\n", partialResponse.Message, "\n*******************")
 		time.Sleep(time.Second)
 		logrus.Info("[MiaoX] - 加载预设完毕")
 	}

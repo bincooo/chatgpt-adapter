@@ -28,7 +28,7 @@ func (mgr *CommonBotManager) Reply(ctx types.ConversationContext, handle func(ty
 
 	h := func(partialResponse types.PartialResponse) types.PartialResponse {
 		if handle != nil {
-			go handle(partialResponse)
+			handle(partialResponse)
 		}
 		return partialResponse
 	}
