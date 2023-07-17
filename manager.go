@@ -126,9 +126,9 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, handle func(types.
 	}
 	mgr.chain.After(bot, &ctx, message)
 	partialResponse := types.PartialResponse{Message: message, Error: err, Status: vars.Closed}
-	if err != nil {
-		h(partialResponse)
-	}
+	//if err != nil {
+	//	h(partialResponse)
+	//}
 	return partialResponse
 }
 
