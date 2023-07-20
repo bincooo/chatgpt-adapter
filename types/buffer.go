@@ -1,7 +1,6 @@
-package plat
+package types
 
 import (
-	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
 	"time"
 )
@@ -13,8 +12,8 @@ const (
 
 type CacheBuffer struct {
 	timer    time.Time
-	cache    string
-	complete string
+	Cache    string
+	Complete string
 
 	H func(self *CacheBuffer) error
 
@@ -32,7 +31,7 @@ func (r *CacheBuffer) condition() bool {
 
 	// n秒后消耗消息
 	// 字数太少续n秒
-	if len(r.cache) < cacheMessageL {
+	if len(r.Cache) < cacheMessageL {
 		r.timer = time.Now().Add(cacheWaitTimeout)
 		return false
 	}
@@ -40,12 +39,12 @@ func (r *CacheBuffer) condition() bool {
 	return true
 }
 
-func (r *CacheBuffer) Read() types.PartialResponse {
+func (r *CacheBuffer) Read() PartialResponse {
 	if r.H == nil {
 		panic("Please define handle first.")
 	}
 
-	var partialResponse types.PartialResponse
+	var partialResponse PartialResponse
 	if err := r.H(r); err != nil {
 		partialResponse.Error = err
 		return partialResponse
@@ -55,10 +54,10 @@ func (r *CacheBuffer) Read() types.PartialResponse {
 		return partialResponse
 	}
 
-	if len(r.cache) > 0 {
-		r.complete += r.cache
-		partialResponse.Message = r.cache
-		r.cache = ""
+	if len(r.Cache) > 0 {
+		r.Complete += r.Cache
+		partialResponse.Message = r.Cache
+		r.Cache = ""
 	}
 
 	if r.Closed {

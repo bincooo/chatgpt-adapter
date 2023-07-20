@@ -23,6 +23,8 @@ type ConversationContext struct {
 	Proxy   string // 本地代理
 
 	Data any // 拓展数据
+
+	H func(partialResponse any) func(*CacheBuffer) error // 自定义流处理器
 }
 
 type Limiter interface {

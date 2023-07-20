@@ -33,25 +33,32 @@ func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.Partial
 		}
 		defer stream.Close()
 
-		r := CacheBuffer{
-			H: func(self *CacheBuffer) error {
-				response, err := stream.Recv()
-				if errors.Is(err, io.EOF) {
-					self.Closed = true
+		var r types.CacheBuffer
+
+		if ctx.H != nil {
+			r = types.CacheBuffer{
+				H: ctx.H(stream),
+			}
+		} else {
+			r = types.CacheBuffer{
+				H: func(self *types.CacheBuffer) error {
+					response, err := stream.Recv()
+					if errors.Is(err, io.EOF) {
+						self.Closed = true
+						return nil
+					}
+
+					if err != nil {
+						logrus.Error(err)
+						self.Closed = true
+						return err
+					}
+
+					self.Cache += response.Choices[0].Delta.Content
 					return nil
-				}
-
-				if err != nil {
-					logrus.Error(err)
-					self.Closed = true
-					return err
-				}
-
-				self.cache += response.Choices[0].Delta.Content
-				return nil
-			},
+				},
+			}
 		}
-
 		for {
 			response := r.Read()
 			message <- response
@@ -63,7 +70,7 @@ func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.Partial
 		messages := bot.sessions[ctx.Id]
 		bot.sessions[ctx.Id] = append(messages, openai.ChatCompletionMessage{
 			Role:    openai.ChatMessageRoleAssistant,
-			Content: r.complete,
+			Content: r.Complete,
 		})
 	}()
 	return message

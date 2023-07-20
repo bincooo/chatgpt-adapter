@@ -4,6 +4,7 @@ import (
 	"github.com/bincooo/MiaoX/internal/store"
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
+	"regexp"
 	"strings"
 )
 
@@ -66,11 +67,20 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 				}
 
 				text = strings.ReplaceAll(strings.Join(result, "\n"), "\n\n", "\n")
+
+				re := regexp.MustCompile(`System:[^\n]+`)
+				text = re.ReplaceAllString(text, "")
+
+				re = regexp.MustCompile(`[(]*I apologize,[^\n]+`)
+				text = re.ReplaceAllString(text, "")
+
 				text = strings.ReplaceAll(text, "[End]", "")
+				text = strings.ReplaceAll(text, "[End Chat]", "")
+				text = strings.ReplaceAll(text, "\"\"", "")
 				if !strings.HasPrefix(text, Assistant) {
 					history += Assistant + " " + strings.TrimSpace(text)
 				} else {
-					history += text
+					history += strings.TrimSpace(text)
 				}
 			}
 
@@ -82,7 +92,11 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 					history += text
 				}
 			}
-			history += "\n"
+			history += "\n\n"
+		}
+
+		if history != "" {
+			history = "\n" + history
 		}
 
 		preset := strings.Replace(ctx.Preset, "[history]", history, -1)

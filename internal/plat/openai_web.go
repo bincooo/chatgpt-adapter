@@ -47,7 +47,7 @@ func (bot *OpenAIWebBot) Reply(ctx types.ConversationContext) chan types.Partial
 			return
 		}
 
-		bot.handle(partialResponse, message)
+		bot.handle(ctx, partialResponse, message)
 	}()
 
 	return message
@@ -66,34 +66,42 @@ func (bot *OpenAIWebBot) Remove(id string) bool {
 	return true
 }
 
-func (*OpenAIWebBot) handle(partialResponse chan chat.PartialResponse, message chan types.PartialResponse) {
+func (*OpenAIWebBot) handle(ctx types.ConversationContext, partialResponse chan chat.PartialResponse, message chan types.PartialResponse) {
 	pos := 0
-	r := CacheBuffer{
-		H: func(self *CacheBuffer) error {
-			response, ok := <-partialResponse
-			if !ok {
-				self.Closed = true
-				return nil
-			}
+	var r types.CacheBuffer
 
-			if response.Error != nil {
-				if response.Error == io.EOF {
+	if ctx.H != nil {
+		r = types.CacheBuffer{
+			H: ctx.H(partialResponse),
+		}
+	} else {
+		r = types.CacheBuffer{
+			H: func(self *types.CacheBuffer) error {
+				response, ok := <-partialResponse
+				if !ok {
 					self.Closed = true
 					return nil
 				}
-				return response.Error
-			}
 
-			if response.ResponseError != nil {
-				logrus.Error(response.ResponseError)
-				return errors.New("error")
-			}
+				if response.Error != nil {
+					if response.Error == io.EOF {
+						self.Closed = true
+						return nil
+					}
+					return response.Error
+				}
 
-			str := []rune(response.Message.Content.Parts[0])
-			self.cache += string(str[pos:])
-			pos = len(str)
-			return nil
-		},
+				if response.ResponseError != nil {
+					logrus.Error(response.ResponseError)
+					return errors.New("error")
+				}
+
+				str := []rune(response.Message.Content.Parts[0])
+				self.Cache += string(str[pos:])
+				pos = len(str)
+				return nil
+			},
+		}
 	}
 
 	for {

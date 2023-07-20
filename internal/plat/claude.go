@@ -76,32 +76,40 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 			return
 		}
 
-		pos := 0
-		r := CacheBuffer{
-			H: func(self *CacheBuffer) error {
-				response, ok := <-partialResponse
-				if !ok {
-					self.Closed = true
+		var r types.CacheBuffer
+
+		if ctx.H != nil {
+			r = types.CacheBuffer{
+				H: ctx.H(partialResponse),
+			}
+		} else {
+			pos := 0
+			r = types.CacheBuffer{
+				H: func(self *types.CacheBuffer) error {
+					response, ok := <-partialResponse
+					if !ok {
+						self.Closed = true
+						return nil
+					}
+
+					if response.Error != nil {
+						self.Closed = true
+						return response.Error
+					}
+
+					// 截掉结尾的 Typing
+					text := response.Text
+					if ctx.Model == clVars.Model4Slack && strings.HasSuffix(text, ClackTyping) {
+						text = strings.TrimSuffix(text, "\n\n"+ClackTyping)
+						text = strings.TrimSuffix(text, ClackTyping)
+					}
+
+					str := []rune(text)
+					self.Cache += string(str[pos:])
+					pos = len(str)
 					return nil
-				}
-
-				if response.Error != nil {
-					self.Closed = true
-					return response.Error
-				}
-
-				// 截掉结尾的 Typing
-				text := response.Text
-				if ctx.Model == clVars.Model4Slack && strings.HasSuffix(text, ClackTyping) {
-					text = strings.TrimSuffix(text, "\n\n"+ClackTyping)
-					text = strings.TrimSuffix(text, ClackTyping)
-				}
-
-				str := []rune(text)
-				self.cache += string(str[pos:])
-				pos = len(str)
-				return nil
-			},
+				},
+			}
 		}
 
 		for {

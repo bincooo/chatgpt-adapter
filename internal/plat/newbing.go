@@ -58,7 +58,7 @@ func (bot *BingBot) Reply(ctx types.ConversationContext) chan types.PartialRespo
 			return
 		}
 
-		bot.handle(ctx.Id, partialResponse, message)
+		bot.handle(ctx, partialResponse, message)
 	}()
 	return message
 }
@@ -76,53 +76,60 @@ func (bot *BingBot) Remove(id string) bool {
 	return true
 }
 
-func (bot *BingBot) handle(botId string, partialResponse chan edge.PartialResponse, message chan types.PartialResponse) {
+func (bot *BingBot) handle(ctx types.ConversationContext, partialResponse chan edge.PartialResponse, message chan types.PartialResponse) {
 	pos := 0
-	r := CacheBuffer{
-		H: func(self *CacheBuffer) error {
-			response, ok := <-partialResponse
-			if !ok {
-				self.Closed = true
-				return nil
-			}
+	var r types.CacheBuffer
 
-			if response.Error != nil {
-				logrus.Error(response.Error)
-			}
-
-			if response.Type == 2 {
-				if response.Item.Throttling != nil {
-					vars.BingMaxMessage = response.Item.Throttling.Max
+	if ctx.H != nil {
+		r = types.CacheBuffer{
+			H: ctx.H(partialResponse),
+		}
+	} else {
+		r = types.CacheBuffer{
+			H: func(self *types.CacheBuffer) error {
+				response, ok := <-partialResponse
+				if !ok {
+					self.Closed = true
+					return nil
 				}
 
-				messages := response.Item.Messages
-				if messages == nil {
-					goto label
+				if response.Error != nil {
+					logrus.Error(response.Error)
 				}
 
-				for _, value := range *messages {
-					if value.Type == "Disengaged" {
-						delete(bot.sessions, botId)
-						if response.Text == "" {
-							response.Text = "对不起，我不想继续这个对话。我还在学习中，所以感谢你的理解和耐心。🙏"
+				if response.Type == 2 {
+					if response.Item.Throttling != nil {
+						vars.BingMaxMessage = response.Item.Throttling.Max
+					}
+
+					messages := response.Item.Messages
+					if messages == nil {
+						goto label
+					}
+
+					for _, value := range *messages {
+						if value.Type == "Disengaged" {
+							delete(bot.sessions, ctx.Id)
+							if response.Text == "" {
+								response.Text = "对不起，我不想继续这个对话。我还在学习中，所以感谢你的理解和耐心。🙏"
+							}
 						}
 					}
+
+				label:
 				}
 
-			label:
-			}
-
-			str := []rune(response.Text)
-			length := len(str)
-			if pos >= length {
+				str := []rune(response.Text)
+				length := len(str)
+				if pos >= length {
+					return nil
+				}
+				self.Cache += string(str[pos:])
+				pos = length
 				return nil
-			}
-			self.cache += string(str[pos:])
-			pos = length
-			return nil
-		},
+			},
+		}
 	}
-
 	for {
 		response := r.Read()
 		message <- response
