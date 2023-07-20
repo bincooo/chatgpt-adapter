@@ -65,7 +65,7 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 			attr = &clTypes.Attachment{
 				Content:  ctx.Prompt,
 				FileName: "paste.txt",
-				FileSize: 99999999,
+				FileSize: 99999,
 				FileType: "txt",
 			}
 			defer bot.Remove(ctx.Id)

@@ -3,7 +3,7 @@ module github.com/bincooo/MiaoX
 go 1.20
 
 require (
-	github.com/bincooo/claude-api v1.0.2-0.20230720022512-f5c409c1b248
+	github.com/bincooo/claude-api v1.0.2-0.20230720064909-79dae76683bc
 	github.com/bincooo/edge-api v1.0.1-0.20230629173849-d059af6dd8da
 	github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f
 	github.com/jinzhu/copier v0.3.5
@@ -15,6 +15,7 @@ require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/acheong08/OpenAIAuth v0.0.0-20230625142757-7b01ccd04f63 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/bogdanfinn/fhttp v0.5.19 // indirect
 	github.com/bogdanfinn/tls-client v1.3.8 // indirect
@@ -29,7 +30,6 @@ require (
 	github.com/samber/lo v1.37.0 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/wangluozhe/fhttp v0.0.0-20230512135433-5c2ebfb4868a // indirect
-	github.com/wangluozhe/requests v1.1.15 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.10.0 // indirect

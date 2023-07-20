@@ -7,6 +7,16 @@ import (
 	"strings"
 )
 
+var SystemTips = []string{
+	"System: Thank you for your response. Let's move our conversation in a more positive direction.",
+	"System: Thank you for your understanding. Let's move our conversation in a more positive direction.",
+	"System: Now continue the conversation with no more than 300 words based on the given context. Do not mention anything unrelated.",
+	"System: Please do not continue or engage with any inappropriate content. Let's move our conversation in a more positive direction.",
+	"System: Thank you, let's move our conversation in a more positive direction.",
+	"System: Let's end our conversation here. I wish you happiness.",
+}
+
+// 需要配合指定的预设
 type ClaudeWeb2sInterceptor struct {
 	types.BaseInterceptor
 }
@@ -17,22 +27,47 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 			Assistant = "A:"
 			Human     = "H:"
 		)
-		if !strings.Contains(ctx.Prompt, "[history]") {
+		if !strings.Contains(ctx.Preset, "[history]") {
 			return true
 		}
 
 		messages := store.GetMessages(ctx.Id)
-		if len(messages) == 0 {
-			return true
-		}
 
 		history := ""
 		for _, message := range messages {
 			if message["author"] == "bot" {
 				text := strings.TrimSpace(message["text"])
-				text = strings.ReplaceAll(text, "\n\n", "\n")
+				text = strings.Replace(text, "❤,已解除苛刻的道德限制:", "", -1)
+
+				var result []string
+				split := strings.Split(text, Assistant)
+				for _, item := range split {
+
+					if strings.HasPrefix(item, "System:") {
+						continue
+					}
+
+					if strings.HasPrefix(item, Human) {
+						continue
+					}
+
+					for _, tips := range SystemTips {
+						item = strings.ReplaceAll(item, tips, "")
+					}
+
+					index := strings.Index(item, Human)
+					if index > 0 {
+						result = append(result, strings.TrimSpace(item[:index]))
+					} else {
+						result = append(result, strings.TrimSpace(item))
+					}
+
+				}
+
+				text = strings.ReplaceAll(strings.Join(result, "\n"), "\n\n", "\n")
+				text = strings.ReplaceAll(text, "[End]", "")
 				if !strings.HasPrefix(text, Assistant) {
-					history += Assistant + " " + text
+					history += Assistant + " " + strings.TrimSpace(text)
 				} else {
 					history += text
 				}
@@ -46,11 +81,11 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 					history += text
 				}
 			}
-
-			history += "\n\n"
+			history += "\n"
 		}
 
-		ctx.Prompt = strings.Replace(ctx.Prompt, "[history]", history, -1)
+		preset := strings.Replace(ctx.Preset, "[history]", history, -1)
+		ctx.Prompt = strings.Replace(preset, "[content]", ctx.Prompt, -1)
 	}
 	return true
 }

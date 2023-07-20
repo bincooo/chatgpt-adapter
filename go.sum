@@ -4,12 +4,14 @@ github.com/acheong08/OpenAIAuth v0.0.0-20230625142757-7b01ccd04f63 h1:/dauxvuoqC
 github.com/acheong08/OpenAIAuth v0.0.0-20230625142757-7b01ccd04f63/go.mod h1:ES3Dh9hnbR2mDPlNTagj5e3b4nXECd4tbAjVgxggXEE=
 github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/cCs=
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
-github.com/bincooo/claude-api v1.0.2-0.20230720022512-f5c409c1b248 h1:LfOMp3jkAKwjMaUpmL7R53/Rvcqf/UEe0FpjnggzvqA=
-github.com/bincooo/claude-api v1.0.2-0.20230720022512-f5c409c1b248/go.mod h1:bJF+R2/7nFYyeApoCKrrsbpBIdoSRLdBbJoBDVtf+6s=
+github.com/bincooo/claude-api v1.0.2-0.20230720064909-79dae76683bc h1:obDUykYMR4ZPT8BBN34i4blt3tNZJa/gS31lT86KpdI=
+github.com/bincooo/claude-api v1.0.2-0.20230720064909-79dae76683bc/go.mod h1:IbKsNcLQn2IXLD+/G/GebOaHl6lRNvb4vWAa85l/qp8=
 github.com/bincooo/edge-api v1.0.1-0.20230629173849-d059af6dd8da h1:PXurj/Wy7XsXAUCF/BKy75Kx3DKMwzEA4pkexx8dFmc=
 github.com/bincooo/edge-api v1.0.1-0.20230629173849-d059af6dd8da/go.mod h1:qL+yKuwzgCfV5E5SasYgnuw8+LdMKQl92GNVz5kYfGU=
 github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f h1:/Etg/amI5W0mJcyGQ4efX1hFOsgL33Neop5HssdNvwc=
 github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f/go.mod h1:hb9EoQHYsB8xy/a62qEBNPcNosBu1U6i6N2cgmdJU3E=
+github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=
+github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e/go.mod h1:0WuzYU+4cQL/hVbjoncY5TACMTbD9I+pLCdnPjfItp0=
 github.com/bitly/go-simplejson v0.5.0 h1:6IH+V8/tVMab511d5bn4M7EwGXZf9Hj6i2xSwkNEM+Y=
 github.com/bitly/go-simplejson v0.5.0/go.mod h1:cXHtHw4XUPsvGaxgjIAn8PhEWG9NfngEKAMDJEczWVA=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 h1:DDGfHa7BWjL4YnC6+E63dPcxHo2sUxDIu8g3QgEJdRY=
@@ -56,8 +58,6 @@ github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 h1:YqAladjX7xpA6BM04leX
 github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5/go.mod h1:2JjD2zLQYH5HO74y5+aE3remJQvl6q4Sn6aWA2wD1Ng=
 github.com/wangluozhe/fhttp v0.0.0-20230512135433-5c2ebfb4868a h1:nFqhBDkWfNrI5h8nAOv4orMHi0w3qMrd7GoBFXXZGmc=
 github.com/wangluozhe/fhttp v0.0.0-20230512135433-5c2ebfb4868a/go.mod h1:kAK+x1U0Wmy/htOSEeV31JyFBAVndp/orqVJZTq9FxM=
-github.com/wangluozhe/requests v1.1.15 h1:RTRWAOqG5NPUrcyLfhXyPas1khMXXD3wKE9oWzXtsW0=
-github.com/wangluozhe/requests v1.1.15/go.mod h1:HE1JlDPaLGNE2i85/yta4tkTpyLRFWY9up8vRQQsLO4=
 golang.org/x/crypto v0.9.0 h1:LF6fAI+IutBocDJ2OT0Q1g8plpYljMZ4+lty+dsqw3g=
 golang.org/x/crypto v0.9.0/go.mod h1:yrmDGqONDYtNj3tH8X9dzUun2m2lzPa9ngI6/RUPGR0=
 golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 h1:3MTrJm4PyNL9NBqvYDSj3DHl46qQakyfqfWo4jgfaEM=

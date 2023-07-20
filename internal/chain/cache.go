@@ -18,22 +18,34 @@ var (
 // 缓存对话记录
 type CacheInterceptor struct {
 	types.BaseInterceptor
+	cache map[string]string
 }
 
-func (c *CacheInterceptor) After(bot types.Bot, ctx *types.ConversationContext, response string) bool {
-	c.cachePreviousMessages(ctx, response)
+func (c *CacheInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
+	if c.cache == nil {
+		c.cache = make(map[string]string)
+	}
+	c.cache[ctx.Id] = ctx.Prompt
 	return true
 }
 
-func (c *CacheInterceptor) cachePreviousMessages(ctx *types.ConversationContext, response string) {
+func (c *CacheInterceptor) After(bot types.Bot, ctx *types.ConversationContext, response string) bool {
+	c.cacheAfter(ctx, response)
+	return true
+}
+
+func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response string) {
+	defer delete(c.cache, ctx.Id)
 	if hasIg(ctx.Bot, response) {
 		return
 	}
+
+	messages := store.GetMessages(ctx.Id)
 	if response != "" {
-		messages := store.GetMessages(ctx.Id)
+		prompt := c.cache[ctx.Id]
 		messages = append(messages, map[string]string{
 			"author": "user",
-			"text":   ctx.Prompt,
+			"text":   prompt,
 		})
 		messages = append(messages, map[string]string{
 			"author": "bot",
@@ -51,6 +63,9 @@ func (c *CacheInterceptor) cachePreviousMessages(ctx *types.ConversationContext,
 		if len(messages) > maxMessages*2 {
 			messages = messages[len(messages)-maxMessages*2:]
 		}
+		store.CacheMessages(ctx.Id, messages)
+	} else {
+		messages = messages[:len(messages)-1]
 		store.CacheMessages(ctx.Id, messages)
 	}
 }
