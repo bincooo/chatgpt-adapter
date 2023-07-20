@@ -30,7 +30,11 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 		defer close(message)
 		session, ok := bot.sessions[ctx.Id]
 		if !ok {
-			options := claude.NewDefaultOptions(ctx.Token, ctx.AppId, ctx.Model)
+			model := ctx.Model
+			if model == vars.Model4WebClaude2S {
+				model = clVars.Model4WebClaude2
+			}
+			options := claude.NewDefaultOptions(ctx.Token, ctx.AppId, model)
 			if ctx.Proxy != "" {
 				options.Agency = ctx.Proxy
 			}
@@ -39,9 +43,11 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 				message <- types.PartialResponse{Error: err}
 				return
 			}
-			if err = chat.NewChannel("chat-7890"); err != nil {
-				message <- types.PartialResponse{Error: err}
-				return
+			if ctx.Model == clVars.Model4Slack {
+				if err = chat.NewChannel("chat-7890"); err != nil {
+					message <- types.PartialResponse{Error: err}
+					return
+				}
 			}
 			session = chat
 			bot.sessions[ctx.Id] = session
@@ -50,7 +56,21 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 		timeout, cancel := context.WithTimeout(context.TODO(), Timeout)
 		defer cancel()
 
-		partialResponse, err := session.Reply(timeout, ctx.Prompt)
+		var attr *clTypes.Attachment = nil
+		var prompt = ctx.Prompt
+
+		// S模式，每次创建一个新会话，使用附件方式对话
+		if ctx.Model == vars.Model4WebClaude2S {
+			prompt = ""
+			attr = &clTypes.Attachment{
+				Content:  ctx.Prompt,
+				FileName: "paste.txt",
+				FileSize: 99999999,
+				FileType: "txt",
+			}
+			defer bot.Remove(ctx.Id)
+		}
+		partialResponse, err := session.Reply(timeout, prompt, attr)
 		if err != nil {
 			message <- types.PartialResponse{Error: err}
 			return

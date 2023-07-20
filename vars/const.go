@@ -13,4 +13,6 @@ const (
 	Closed = "closed"
 	Begin  = "begin"
 	Trying = "trying"
+
+	Model4WebClaude2S = "web-claude-2s"
 )

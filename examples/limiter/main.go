@@ -12,8 +12,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-
-	clVars "github.com/bincooo/claude-api/vars"
 )
 
 const (
@@ -92,7 +90,7 @@ func ContextLmt(id string, prompt string) types.ConversationContext {
 		//AppId: "U05382WAQ1M",
 		//BaseURL: "https://edge.zjcs666.icu",
 		Proxy:  "http://127.0.0.1:7890",
-		Model:  clVars.Model4WebClaude2,
+		Model:  vars.Model4WebClaude2S,
 		Prompt: prompt,
 	}
 }
