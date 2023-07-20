@@ -22,7 +22,8 @@ type ClaudeWeb2sInterceptor struct {
 }
 
 func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
-	if ctx.Bot == vars.Claude && ctx.Model == vars.Model4WebClaude2S {
+	if ctx.Bot == vars.Claude {
+		ctx.Model = vars.Model4WebClaude2S
 		const (
 			Assistant = "A:"
 			Human     = "H:"
