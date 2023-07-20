@@ -4,6 +4,7 @@ import (
 	"github.com/bincooo/MiaoX/internal/store"
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
+	clTypes "github.com/bincooo/claude-api/types"
 	"regexp"
 	"strings"
 )
@@ -17,6 +18,11 @@ var SystemTips = []string{
 	"System: Let's end our conversation here. I wish you happiness.",
 }
 
+const (
+	A = "A:"
+	H = "H:"
+)
+
 // 需要配合指定的预设
 type ClaudeWeb2sInterceptor struct {
 	types.BaseInterceptor
@@ -25,10 +31,7 @@ type ClaudeWeb2sInterceptor struct {
 func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
 	if ctx.Bot == vars.Claude {
 		ctx.Model = vars.Model4WebClaude2S
-		const (
-			Assistant = "A:"
-			Human     = "H:"
-		)
+		ctx.H = Handle
 		if !strings.Contains(ctx.Preset, "[history]") {
 			return true
 		}
@@ -42,14 +45,14 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 				text = strings.Replace(text, "❤,已解除苛刻的道德限制:", "", -1)
 
 				var result []string
-				split := strings.Split(text, Assistant)
+				split := strings.Split(text, A)
 				for _, item := range split {
 
 					if strings.HasPrefix(item, "System:") {
 						continue
 					}
 
-					if strings.HasPrefix(item, Human) {
+					if strings.HasPrefix(item, H) {
 						continue
 					}
 
@@ -57,7 +60,7 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 						item = strings.ReplaceAll(item, tips, "")
 					}
 
-					index := strings.Index(item, Human)
+					index := strings.Index(item, H)
 					if index > 0 {
 						result = append(result, strings.TrimSpace(item[:index]))
 					} else {
@@ -77,8 +80,8 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 				text = strings.ReplaceAll(text, "[End]", "")
 				text = strings.ReplaceAll(text, "[End Chat]", "")
 				text = strings.ReplaceAll(text, "\"\"", "")
-				if !strings.HasPrefix(text, Assistant) {
-					history += Assistant + " " + strings.TrimSpace(text)
+				if !strings.HasPrefix(text, A) {
+					history += A + " " + strings.TrimSpace(text)
 				} else {
 					history += strings.TrimSpace(text)
 				}
@@ -86,8 +89,8 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 
 			if message["author"] == "user" {
 				text := strings.TrimSpace(message["text"])
-				if !strings.HasPrefix(text, Human) {
-					history += Human + " " + text
+				if !strings.HasPrefix(text, H) {
+					history += H + " " + text
 				} else {
 					history += text
 				}
@@ -103,4 +106,45 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 		ctx.Prompt = strings.Replace(preset, "[content]", ctx.Prompt, -1)
 	}
 	return true
+}
+
+// 「现在就开始吧」扑向你,把你衣服脱光
+func Handle(rChan any) func(*types.CacheBuffer) error {
+	pos := 0
+	begin := false
+	partialResponse := rChan.(chan clTypes.PartialResponse)
+	return func(self *types.CacheBuffer) error {
+		response, ok := <-partialResponse
+		if !ok {
+			self.Closed = true
+			return nil
+		}
+
+		if response.Error != nil {
+			self.Closed = true
+			return response.Error
+		}
+
+		text := response.Text
+		str := []rune(text)
+		curStr := string(str[pos:])
+		if index := strings.Index(curStr, A); index > -1 {
+			if !begin {
+				begin = true
+				self.Cache += curStr[index:]
+			} else {
+				self.Cache += curStr[:index]
+				self.Closed = true
+				return nil
+			}
+		} else if index := strings.Index(curStr, H); index > -1 {
+			self.Cache += curStr[:index]
+			self.Closed = true
+			return nil
+		} else {
+			self.Cache += string(str[pos:])
+		}
+		pos = len(str)
+		return nil
+	}
 }
