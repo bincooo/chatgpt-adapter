@@ -64,9 +64,6 @@ func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response s
 			messages = messages[len(messages)-maxMessages*2:]
 		}
 		store.CacheMessages(ctx.Id, messages)
-	} else {
-		messages = messages[:len(messages)-1]
-		store.CacheMessages(ctx.Id, messages)
 	}
 }
 
