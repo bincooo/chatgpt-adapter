@@ -47,6 +47,7 @@ func (bot *OpenAIWebBot) Reply(ctx types.ConversationContext) chan types.Partial
 			return
 		}
 
+		logrus.Info("[MiaoX] - Bot.Session: ", session.Session)
 		bot.handle(ctx, partialResponse, message)
 	}()
 

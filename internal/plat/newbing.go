@@ -58,6 +58,7 @@ func (bot *BingBot) Reply(ctx types.ConversationContext) chan types.PartialRespo
 			return
 		}
 
+		logrus.Info("[MiaoX] - Bot.Session: ", session.Session.ConversationId)
 		bot.handle(ctx, partialResponse, message)
 	}()
 	return message
