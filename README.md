@@ -53,6 +53,23 @@ Tips:
 
 ### 待办
 
-> Terminal Cli TODO
+> Terminal Cli TODO <br>
+> 增加了酒馆接口cli
 
 > Socket or http TODO
+
+
+### 编译
+
+平台：
+    `window` 、`linux` 、`darwin` <br>
+示例（macos）：
+```bash
+GOOS=darwin GOARCH=amd64 go build cmd/exec.go
+```
+
+运行：
+```bash
+./exec -h
+./exec --port 8080 --proxy http://127.0.0.1:7890
+```

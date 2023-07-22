@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-const (
-	cacheMessageL    = 200
-	cacheWaitTimeout = 10 * time.Second
+var (
+	CacheMessageL    = 200
+	CacheWaitTimeout = 10 * time.Second
 )
 
 type CacheBuffer struct {
@@ -31,8 +31,8 @@ func (r *CacheBuffer) condition() bool {
 
 	// n秒后消耗消息
 	// 字数太少续n秒
-	if len(r.Cache) < cacheMessageL {
-		r.timer = time.Now().Add(cacheWaitTimeout)
+	if len(r.Cache) < CacheMessageL {
+		r.timer = time.Now().Add(CacheWaitTimeout)
 		return false
 	}
 
