@@ -109,15 +109,15 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 	return true
 }
 
-// 「现在就开始吧」扑向你,把你衣服脱光
 func Handle(rChan any) func(*types.CacheBuffer) error {
 	pos := 0
 	begin := false
-	bIdx := -1
+	beginIndex := -1
 	partialResponse := rChan.(chan clTypes.PartialResponse)
 	return func(self *types.CacheBuffer) error {
 		response, ok := <-partialResponse
 		if !ok {
+			self.Cache = strings.TrimSuffix(self.Cache, A)
 			self.Closed = true
 			return nil
 		}
@@ -129,28 +129,31 @@ func Handle(rChan any) func(*types.CacheBuffer) error {
 
 		text := response.Text
 		str := []rune(text)
-		curStr := string(str[pos:])
 		self.Cache += string(str[pos:])
 		pos = len(str)
 
-		if index := strings.Index(self.Cache, A); index > -1 {
+		mergeMessage := self.Complete + self.Cache
+		if index := strings.Index(mergeMessage, A); index > -1 {
 			if !begin {
 				begin = true
-				self.Cache += curStr[index:]
-				bIdx = index
+				beginIndex = index
 			}
 			//} else {
-			//	self.Cache += curStr[:index]
 			//	self.Closed = true
 			//	return nil
 			//}
+		} else if !begin && len(mergeMessage) > 200 {
+			begin = true
+			beginIndex = pos
 		}
 
 		if begin {
-			if index := strings.Index(self.Cache, H); index > -1 && index > bIdx {
+			if index := strings.Index(mergeMessage, H); index > -1 && index > beginIndex {
+				self.Cache = strings.TrimSuffix(self.Cache, H)
 				self.Closed = true
 				return nil
-			} else if index = strings.Index(self.Cache, S); index > -1 && index > bIdx {
+			} else if index = strings.Index(mergeMessage, S); index > -1 && index > beginIndex {
+				self.Cache = strings.TrimSuffix(self.Cache, S)
 				self.Closed = true
 				return nil
 			}
