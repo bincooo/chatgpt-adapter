@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	token  = "eyJhbGcixxx"
+	token  = "eyJhbGciOixxx"
 	preset = `接下来你需要通过解析我的JSON内容与我进行对话：
 ---
 {

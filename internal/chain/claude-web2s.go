@@ -21,6 +21,7 @@ var SystemTips = []string{
 const (
 	A = "A:"
 	H = "H:"
+	S = "System:"
 )
 
 // 需要配合指定的预设
@@ -112,6 +113,7 @@ func (c *ClaudeWeb2sInterceptor) Before(bot types.Bot, ctx *types.ConversationCo
 func Handle(rChan any) func(*types.CacheBuffer) error {
 	pos := 0
 	begin := false
+	bIdx := -1
 	partialResponse := rChan.(chan clTypes.PartialResponse)
 	return func(self *types.CacheBuffer) error {
 		response, ok := <-partialResponse
@@ -128,23 +130,31 @@ func Handle(rChan any) func(*types.CacheBuffer) error {
 		text := response.Text
 		str := []rune(text)
 		curStr := string(str[pos:])
-		if index := strings.Index(curStr, A); index > -1 {
+		self.Cache += string(str[pos:])
+		pos = len(str)
+
+		if index := strings.Index(self.Cache, A); index > -1 {
 			if !begin {
 				begin = true
 				self.Cache += curStr[index:]
-			} else {
-				self.Cache += curStr[:index]
+				bIdx = index
+			}
+			//} else {
+			//	self.Cache += curStr[:index]
+			//	self.Closed = true
+			//	return nil
+			//}
+		}
+
+		if begin {
+			if index := strings.Index(self.Cache, H); index > -1 && index > bIdx {
+				self.Closed = true
+				return nil
+			} else if index = strings.Index(self.Cache, S); index > -1 && index > bIdx {
 				self.Closed = true
 				return nil
 			}
-		} else if index := strings.Index(curStr, H); index > -1 {
-			self.Cache += curStr[:index]
-			self.Closed = true
-			return nil
-		} else {
-			self.Cache += string(str[pos:])
 		}
-		pos = len(str)
 		return nil
 	}
 }
