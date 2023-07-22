@@ -43,7 +43,7 @@
 
 Tips:
 
-1.Claude for slack 配置以及token获取方式 [点我](https://github.com/Anyc66666666/claude-api)
+1.Claude for slack 配置以及token获取方式 [点我](https://github.com/bincooo/claude-api)
 
 2.Openai-web token获取方式: [登陆](http://chat.openai.com/)openai,  [访问链接](https://chat.openai.com/api/auth/session) 获取
 
