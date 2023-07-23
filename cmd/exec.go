@@ -86,6 +86,12 @@ func complete(ctx *gin.Context) {
 
 	partialResponse := manager.Reply(createConversationContext(token, &r), func(response types.PartialResponse) {
 		if r.Stream {
+			if response.Status == vars.Begin {
+				ctx.Status(200)
+				ctx.Header("Content-Type", "text/event-stream; charset=utf-8")
+				return
+			}
+
 			if response.Error != nil {
 				responseError(ctx, response.Error)
 				return

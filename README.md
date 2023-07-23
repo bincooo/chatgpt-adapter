@@ -62,7 +62,7 @@ Tips:
 ### 编译
 
 平台：
-    `window` 、`linux` 、`darwin` <br>
+    `windows` 、`linux` 、`darwin` <br>
 示例（macos）：
 ```bash
 GOOS=darwin GOARCH=amd64 go build cmd/exec.go
