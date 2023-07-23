@@ -64,9 +64,19 @@ func Exec() {
 func Run(cmd *cobra.Command, args []string) {
 	gin.SetMode(gin.ReleaseMode)
 	route := gin.Default()
+
+	route.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "text/event-stream")
+		c.Writer.Header().Set("Cache-Control", "no-cache")
+		c.Writer.Header().Set("Connection", "keep-alive")
+		//c.Writer.Header().Set("Transfer-Encoding", "chunked")
+		c.Writer.Header().Set("X-Accel-Buffering", "no")
+		c.Next()
+	})
+
 	route.POST("/v1/complete", complete)
 	addr := ":" + strconv.Itoa(port)
-	fmt.Println("Start by http://127.0.0.1" + addr)
+	fmt.Println("Start by http://127.0.0.1" + addr + "/v1")
 	if err := route.Run(addr); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -89,6 +99,7 @@ func complete(ctx *gin.Context) {
 			if response.Status == vars.Begin {
 				ctx.Status(200)
 				ctx.Header("Content-Type", "text/event-stream; charset=utf-8")
+				ctx.Writer.Flush()
 				return
 			}
 
