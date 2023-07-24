@@ -94,7 +94,8 @@ func complete(ctx *gin.Context) {
 
 	fmt.Println("-----------------------请求报文-----------------\n", r, "\n--------------------END-------------------")
 
-	partialResponse := manager.Reply(createConversationContext(token, &r), func(response types.PartialResponse) {
+	IsClose := false
+	partialResponse := manager.Reply(createConversationContext(token, &r, func() bool { return IsClose }), func(response types.PartialResponse) {
 		if r.Stream {
 			if response.Status == vars.Begin {
 				ctx.Status(200)
@@ -109,7 +110,9 @@ func complete(ctx *gin.Context) {
 			}
 
 			if len(response.Message) > 0 {
-				writeString(ctx, response.Message)
+				if !writeString(ctx, response.Message) {
+					IsClose = true
+				}
 			}
 
 			if response.Status == vars.Closed {
@@ -129,62 +132,69 @@ func complete(ctx *gin.Context) {
 	}
 }
 
-func Handle(rChan any) func(*types.CacheBuffer) error {
-	pos := 0
-	begin := false
-	beginIndex := -1
-	partialResponse := rChan.(chan clTypes.PartialResponse)
-	return func(self *types.CacheBuffer) error {
-		response, ok := <-partialResponse
-		if !ok {
-			// 清理一下残留
-			self.Cache = strings.TrimSuffix(self.Cache, A)
-			self.Cache = strings.TrimSuffix(self.Cache, S)
-			self.Closed = true
-			return nil
-		}
-
-		if response.Error != nil {
-			self.Closed = true
-			return response.Error
-		}
-
-		text := response.Text
-		str := []rune(text)
-		self.Cache += string(str[pos:])
-		pos = len(str)
-
-		mergeMessage := self.Complete + self.Cache
-		// 遇到“A:” 或者积累200字就假定是正常输出
-		if index := strings.Index(mergeMessage, A); index > -1 {
-			if !begin {
-				begin = true
-				beginIndex = index
-			}
-
-		} else if !begin && len(mergeMessage) > 200 {
-			begin = true
-			beginIndex = pos
-		}
-
-		if begin {
-			// 遇到“H:”就结束接收
-			if index := strings.Index(mergeMessage, H); index > -1 && index > beginIndex {
-				self.Cache = strings.TrimSuffix(self.Cache, H)
-				self.Closed = true
-				return nil
-			} else if index = strings.Index(mergeMessage, S); index > -1 && index > beginIndex {
-				// 遇到“System:”就结束接收
+func Handle(IsC func() bool) func(rChan any) func(*types.CacheBuffer) error {
+	return func(rChan any) func(*types.CacheBuffer) error {
+		pos := 0
+		begin := false
+		beginIndex := -1
+		partialResponse := rChan.(chan clTypes.PartialResponse)
+		return func(self *types.CacheBuffer) error {
+			response, ok := <-partialResponse
+			if !ok {
+				// 清理一下残留
+				self.Cache = strings.TrimSuffix(self.Cache, A)
 				self.Cache = strings.TrimSuffix(self.Cache, S)
 				self.Closed = true
 				return nil
 			}
+
+			if IsC() {
+				self.Closed = true
+				return nil
+			}
+
+			if response.Error != nil {
+				self.Closed = true
+				return response.Error
+			}
+
+			text := response.Text
+			str := []rune(text)
+			self.Cache += string(str[pos:])
+			pos = len(str)
+
+			mergeMessage := self.Complete + self.Cache
+			// 遇到“A:” 或者积累200字就假定是正常输出
+			if index := strings.Index(mergeMessage, A); index > -1 {
+				if !begin {
+					begin = true
+					beginIndex = index
+				}
+
+			} else if !begin && len(mergeMessage) > 200 {
+				begin = true
+				beginIndex = pos
+			}
+
+			if begin {
+				// 遇到“H:”就结束接收
+				if index := strings.Index(mergeMessage, H); index > -1 && index > beginIndex {
+					self.Cache = strings.TrimSuffix(self.Cache, H)
+					self.Closed = true
+					return nil
+				} else if index = strings.Index(mergeMessage, S); index > -1 && index > beginIndex {
+					// 遇到“System:”就结束接收
+					self.Cache = strings.TrimSuffix(self.Cache, S)
+					self.Closed = true
+					return nil
+				}
+			}
+			return nil
 		}
-		return nil
 	}
 }
 
-func createConversationContext(token string, r *rj) types.ConversationContext {
+func createConversationContext(token string, r *rj, IsC func() bool) types.ConversationContext {
 	return types.ConversationContext{
 		Id:     "claude2",
 		Token:  token,
@@ -192,7 +202,7 @@ func createConversationContext(token string, r *rj) types.ConversationContext {
 		Bot:    vars.Claude,
 		Model:  vars.Model4WebClaude2S,
 		Proxy:  proxy,
-		H:      Handle,
+		H:      Handle(IsC),
 	}
 }
 
@@ -207,11 +217,14 @@ func responseError(ctx *gin.Context, err error) {
 	ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
 }
 
-func writeString(ctx *gin.Context, content string) {
-	if _, err := ctx.Writer.Write([]byte("\n\ndata: {\"completion\": \"" + strings.ReplaceAll(content, "\n", "\\n") + "\"}")); err != nil {
+func writeString(ctx *gin.Context, content string) bool {
+	c := strings.ReplaceAll(strings.ReplaceAll(content, "\n", "\\n"), "\"", "\\\"")
+	if _, err := ctx.Writer.Write([]byte("\n\ndata: {\"completion\": \"" + c + "\"}")); err != nil {
 		fmt.Println("Error: ", err)
+		return false
 	} else {
 		ctx.Writer.Flush()
+		return true
 	}
 }
 
