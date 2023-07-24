@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/bincooo/MiaoX"
 	"github.com/bincooo/MiaoX/types"
@@ -88,14 +89,19 @@ func complete(ctx *gin.Context) {
 
 	token := ctx.Request.Header.Get("X-Api-Key")
 	if err := ctx.BindJSON(&r); err != nil {
-		responseError(ctx, err)
+		responseError(ctx, err, r.Stream)
 		return
 	}
 
 	fmt.Println("-----------------------请求报文-----------------\n", r, "\n--------------------END-------------------")
 
 	IsClose := false
-	partialResponse := manager.Reply(createConversationContext(token, &r, func() bool { return IsClose }), func(response types.PartialResponse) {
+	context, err := createConversationContext(token, &r, func() bool { return IsClose })
+	if err != nil {
+		responseError(ctx, err, r.Stream)
+		return
+	}
+	partialResponse := manager.Reply(*context, func(response types.PartialResponse) {
 		if r.Stream {
 			if response.Status == vars.Begin {
 				ctx.Status(200)
@@ -105,25 +111,36 @@ func complete(ctx *gin.Context) {
 			}
 
 			if response.Error != nil {
-				responseError(ctx, response.Error)
+				responseError(ctx, response.Error, r.Stream)
 				return
 			}
 
 			if len(response.Message) > 0 {
-				if !writeString(ctx, response.Message) {
+				select {
+				case <-ctx.Request.Context().Done():
 					IsClose = true
+				default:
+					if !writeString(ctx, response.Message) {
+						IsClose = true
+					}
 				}
 			}
 
 			if response.Status == vars.Closed {
 				writeDone(ctx)
 			}
+		} else {
+			select {
+			case <-ctx.Request.Context().Done():
+				IsClose = true
+			default:
+			}
 		}
 	})
 
-	if !r.Stream {
+	if !r.Stream && !IsClose {
 		if partialResponse.Error != nil {
-			responseError(ctx, partialResponse.Error)
+			responseError(ctx, partialResponse.Error, r.Stream)
 			return
 		}
 		ctx.JSON(200, gin.H{
@@ -194,27 +211,48 @@ func Handle(IsC func() bool) func(rChan any) func(*types.CacheBuffer) error {
 	}
 }
 
-func createConversationContext(token string, r *rj, IsC func() bool) types.ConversationContext {
-	return types.ConversationContext{
+func createConversationContext(token string, r *rj, IsC func() bool) (*types.ConversationContext, error) {
+	var (
+		bot   string
+		model string
+	)
+	switch r.Model {
+	case "claude-2.0":
+		bot = vars.Claude
+		model = vars.Model4WebClaude2S
+	case "claude-1.0", "claude-1.2", "claude-1.3":
+		bot = vars.Claude
+	default:
+		return nil, errors.New("未知/不支持的模型`" + r.Model + "`")
+	}
+
+	return &types.ConversationContext{
 		Id:     "claude2",
 		Token:  token,
 		Prompt: r.Prompt,
-		Bot:    vars.Claude,
-		Model:  vars.Model4WebClaude2S,
+		Bot:    bot,
+		Model:  model,
 		Proxy:  proxy,
 		H:      Handle(IsC),
-	}
+	}, nil
 }
 
-func responseError(ctx *gin.Context, err error) {
-	marshal, err := json.Marshal(gin.H{
-		"completion": "Error: " + err.Error(),
-	})
-	if err != nil {
+func responseError(ctx *gin.Context, err error, isStream bool) {
+	if isStream {
+		marshal, e := json.Marshal(gin.H{
+			"completion": "Error: " + err.Error(),
+		})
 		fmt.Println("Error: ", err)
-		return
+		if e != nil {
+			fmt.Println("Error: ", e)
+			return
+		}
+		ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
+	} else {
+		ctx.JSON(200, gin.H{
+			"completion": "Error: " + err.Error(),
+		})
 	}
-	ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
 }
 
 func writeString(ctx *gin.Context, content string) bool {
