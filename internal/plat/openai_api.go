@@ -25,8 +25,10 @@ type OpenAIAPIBot struct {
 func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.PartialResponse {
 	var message = make(chan types.PartialResponse)
 	go func() {
+		timeout, cancel := context.WithTimeout(context.TODO(), Timeout)
 		defer close(message)
-		stream, err := bot.makeCompletionStream(ctx)
+		defer cancel()
+		stream, err := bot.makeCompletionStream(timeout, ctx)
 		if err != nil {
 			logrus.Error(err)
 			return
@@ -89,7 +91,7 @@ func (bot *OpenAIAPIBot) Remove(id string) bool {
 	return true
 }
 
-func (bot *OpenAIAPIBot) makeCompletionStream(ctx types.ConversationContext) (stream *openai.ChatCompletionStream, err error) {
+func (bot *OpenAIAPIBot) makeCompletionStream(timeout context.Context, ctx types.ConversationContext) (stream *openai.ChatCompletionStream, err error) {
 	model := ctx.Model
 	if model == "" {
 		model = openai.GPT3Dot5Turbo
@@ -104,8 +106,6 @@ func (bot *OpenAIAPIBot) makeCompletionStream(ctx types.ConversationContext) (st
 	if bot.client == nil || bot.token != ctx.Token {
 		bot.makeClient(ctx.BaseURL, ctx.Proxy, ctx.Token)
 	}
-	timeout, cancel := context.WithTimeout(context.TODO(), Timeout)
-	defer cancel()
 	return bot.client.CreateChatCompletionStream(timeout, request)
 }
 
