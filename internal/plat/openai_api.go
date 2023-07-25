@@ -181,8 +181,7 @@ func (bot *OpenAIAPIBot) makeClient(bu string, proxy string, token string) {
 	oc := openai.DefaultConfig(token)
 	if bu != "" {
 		oc.BaseURL = bu
-	}
-	if proxy != "" {
+	} else if proxy != "" {
 		p, err := url.Parse(proxy)
 		if err != nil {
 			logrus.Error(err)
