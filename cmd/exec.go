@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -37,6 +38,11 @@ type rj struct {
 	TopP          float32  `json:"top_p"`
 	TopK          float32  `json:"top_k"`
 	Stream        bool     `json:"stream"`
+}
+
+type schema struct {
+	TrimP bool `json:"trim-p"`
+	TrimS bool `json:"trim-s"`
 }
 
 func main() {
@@ -215,6 +221,7 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 	var (
 		bot   string
 		model string
+		appId string
 	)
 	switch r.Model {
 	case "claude-2.0":
@@ -222,19 +229,57 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		model = vars.Model4WebClaude2S
 	case "claude-1.0", "claude-1.2", "claude-1.3":
 		bot = vars.Claude
+		split := strings.Split(token, ",")
+		token = split[0]
+		if len(split) > 1 {
+			appId = split[1]
+		} else {
+			return nil, errors.New("请在请求头中提供app-id")
+		}
 	default:
 		return nil, errors.New("未知/不支持的模型`" + r.Model + "`")
 	}
 
+	message, err := trimMessage(r.Prompt)
+	if err != nil {
+		return nil, err
+	}
 	return &types.ConversationContext{
 		Id:     "claude2",
 		Token:  token,
-		Prompt: r.Prompt,
+		Prompt: message,
 		Bot:    bot,
 		Model:  model,
 		Proxy:  proxy,
 		H:      Handle(IsC),
+		AppId:  appId,
 	}, nil
+}
+
+func trimMessage(prompt string) (string, error) {
+	result := prompt
+	compileRegex := regexp.MustCompile(`schema\s?\{[^}]*}`)
+	s := schema{
+		TrimS: true,
+		TrimP: false,
+	}
+
+	matchSlice := compileRegex.FindStringSubmatch(prompt)
+	if len(matchSlice) > 0 {
+		str := matchSlice[0]
+		result = strings.Replace(result, str, "", -1)
+		if err := json.Unmarshal([]byte(strings.TrimSpace(str[6:])), &s); err != nil {
+			return "", err
+		}
+	}
+
+	if s.TrimS {
+		result = strings.TrimSuffix(result, "\n\nAssistant: ")
+	}
+	if s.TrimP {
+		result = strings.TrimPrefix(result, "\n\nHuman: ")
+	}
+	return strings.TrimSpace(result), nil
 }
 
 func responseError(ctx *gin.Context, err error, isStream bool) {
