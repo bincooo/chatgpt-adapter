@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/bincooo/claude-api v1.0.2-0.20230720064909-79dae76683bc
-	github.com/bincooo/edge-api v1.0.1-0.20230725121521-c922aeb5eccb
+	github.com/bincooo/edge-api v1.0.1-0.20230726062045-92a6a15da472
 	github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f
 	github.com/gin-gonic/gin v1.9.1
 	github.com/jinzhu/copier v0.3.5
