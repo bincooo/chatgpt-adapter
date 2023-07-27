@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	token  = "sk-ant-xxx"
+	token  = "auto"
 	preset = ``
 
 	A = "A:"
@@ -65,8 +65,8 @@ func ContextLmt(id string) types.ConversationContext {
 		Bot:    vars.Claude,
 		Token:  token,
 		Preset: preset,
-		Format: "【皮皮虾】: [content]",
-		Chain:  "replace,cache,claude2s",
+		//Format: "【皮皮虾】: [content]",
+		Chain: "replace,cache",
 		//AppId: "U05382WAQ1M",
 		//BaseURL: "https://edge.zjcs666.icu",
 		Proxy: "http://127.0.0.1:7890",

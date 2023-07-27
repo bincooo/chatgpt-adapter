@@ -4,8 +4,8 @@ github.com/acheong08/OpenAIAuth v0.0.0-20230625142757-7b01ccd04f63 h1:/dauxvuoqC
 github.com/acheong08/OpenAIAuth v0.0.0-20230625142757-7b01ccd04f63/go.mod h1:ES3Dh9hnbR2mDPlNTagj5e3b4nXECd4tbAjVgxggXEE=
 github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/cCs=
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
-github.com/bincooo/claude-api v1.0.2-0.20230720064909-79dae76683bc h1:obDUykYMR4ZPT8BBN34i4blt3tNZJa/gS31lT86KpdI=
-github.com/bincooo/claude-api v1.0.2-0.20230720064909-79dae76683bc/go.mod h1:IbKsNcLQn2IXLD+/G/GebOaHl6lRNvb4vWAa85l/qp8=
+github.com/bincooo/claude-api v1.0.2-0.20230727005909-b2cfbfa0d502 h1:1zG45xksr5tgSlk9b0zyHWBprO0Pnz7KlANgLr2iAGk=
+github.com/bincooo/claude-api v1.0.2-0.20230727005909-b2cfbfa0d502/go.mod h1:Y5eC1FaJvhWaTg3uLhwiFPvvRh3zRkqbV7z9yMEVGm8=
 github.com/bincooo/edge-api v1.0.1-0.20230726062045-92a6a15da472 h1:WZVSb+peRjGkdF3meNQwojWtish4Y8hWF01OSznuZk8=
 github.com/bincooo/edge-api v1.0.1-0.20230726062045-92a6a15da472/go.mod h1:qL+yKuwzgCfV5E5SasYgnuw8+LdMKQl92GNVz5kYfGU=
 github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f h1:/Etg/amI5W0mJcyGQ4efX1hFOsgL33Neop5HssdNvwc=
@@ -60,6 +60,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/jinzhu/copier v0.3.5 h1:GlvfUwHk62RokgqVNvYsku0TATCF7bAHVwEXoBh3iJg=
 github.com/jinzhu/copier v0.3.5/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
+github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
+github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/klauspost/compress v1.15.15 h1:EF27CXIuDsYJ6mmvtBRlEuB2UVOqHG1tAXgZ7yIO+lw=
