@@ -29,3 +29,11 @@ func GetMessages(uid string) []Kv {
 	}
 	return make([]Kv, 0)
 }
+
+func AddMessage(uid string, messages Kv) {
+	CacheMessages(uid, append(GetMessages(uid), messages))
+}
+
+func AddMessages(uid string, messages []Kv) {
+	CacheMessages(uid, append(GetMessages(uid), messages...))
+}

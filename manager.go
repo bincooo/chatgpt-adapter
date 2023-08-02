@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/bincooo/MiaoX/internal/chain"
 	"github.com/bincooo/MiaoX/internal/plat"
-	"github.com/bincooo/MiaoX/internal/store"
+	"github.com/bincooo/MiaoX/store"
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
 	"github.com/sirupsen/logrus"

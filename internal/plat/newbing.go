@@ -2,7 +2,7 @@ package plat
 
 import (
 	"context"
-	"github.com/bincooo/MiaoX/internal/store"
+	"github.com/bincooo/MiaoX/store"
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
 	"github.com/bincooo/edge-api"
