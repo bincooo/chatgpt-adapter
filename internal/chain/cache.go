@@ -43,7 +43,7 @@ func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response s
 
 	messages := store.GetMessages(ctx.Id)
 	if response != "" {
-		prompt := response
+		prompt := ctx.Prompt
 		if ctx.Bot == vars.Claude && ctx.Model == clVars.Model4WebClaude2 {
 			prompt = c.cache[ctx.Id]
 		}
