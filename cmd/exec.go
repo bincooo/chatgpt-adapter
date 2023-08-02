@@ -8,12 +8,15 @@ import (
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
 	clTypes "github.com/bincooo/claude-api/types"
+	"github.com/bincooo/claude-api/util"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -21,12 +24,16 @@ var (
 	manager = MiaoX.NewBotManager()
 	proxy   string
 	port    int
+
+	globalToken string
+	muLock      sync.Mutex
 )
 
 const (
-	H = "H:"
-	A = "A:"
-	S = "System:"
+	H    = "H:"
+	A    = "A:"
+	S    = "System:"
+	HARM = "I apologize, but I will not provide any responses that violate Anthropic's Acceptable Use Policy or could promote harm."
 )
 
 type rj struct {
@@ -41,12 +48,24 @@ type rj struct {
 }
 
 type schema struct {
-	TrimP bool `json:"trim-p"`
-	TrimS bool `json:"trim-s"`
+	TrimP bool `json:"trimP"` // 去掉头部Human
+	TrimS bool `json:"trimS"` // 去掉尾部Assistant
+	BoH   bool `json:"boH"`   // 响应截断H
+	BoS   bool `json:"boS"`   // 响应截断System
 }
 
 func main() {
+	_ = godotenv.Load()
+	globalToken = loadEnvVar("CACHE_KEY", "")
 	Exec()
+}
+
+func loadEnvVar(key, defaultValue string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		value = defaultValue
+	}
+	return value
 }
 
 func Exec() {
@@ -99,8 +118,6 @@ func complete(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println("-----------------------请求报文-----------------\n", r, "\n--------------------END-------------------")
-
 	IsClose := false
 	context, err := createConversationContext(token, &r, func() bool { return IsClose })
 	if err != nil {
@@ -149,13 +166,23 @@ func complete(ctx *gin.Context) {
 			responseError(ctx, partialResponse.Error, r.Stream)
 			return
 		}
+
 		ctx.JSON(200, gin.H{
 			"completion": partialResponse.Message,
 		})
 	}
+
+	// 检查大黄标
+	if token == "auto" && context.Model == vars.Model4WebClaude2S {
+		if strings.Contains(partialResponse.Message, HARM) {
+			// manager.Remove(context.Id, context.Bot)
+			globalToken = ""
+			fmt.Println("检测到大黄标（harm），下次请求将刷新cookie !")
+		}
+	}
 }
 
-func Handle(IsC func() bool) func(rChan any) func(*types.CacheBuffer) error {
+func Handle(IsC func() bool, boH bool, boS bool) func(rChan any) func(*types.CacheBuffer) error {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		pos := 0
 		begin := false
@@ -192,22 +219,31 @@ func Handle(IsC func() bool) func(rChan any) func(*types.CacheBuffer) error {
 				if !begin {
 					begin = true
 					beginIndex = index
+					fmt.Println("---------\n", "1 输出中...")
 				}
 
 			} else if !begin && len(mergeMessage) > 200 {
 				begin = true
-				beginIndex = pos
+				beginIndex = len(mergeMessage)
+				fmt.Println("---------\n", "2 输出中...")
 			}
 
 			if begin {
 				// 遇到“H:”就结束接收
-				if index := strings.Index(mergeMessage, H); index > -1 && index > beginIndex {
-					self.Cache = strings.TrimSuffix(self.Cache, H)
+				if index := strings.Index(mergeMessage, H); boH && index > -1 && index > beginIndex {
+					fmt.Println("---------\n", "遇到H:终止响应")
+					if idx := strings.Index(self.Cache, H); idx >= 0 {
+						self.Cache = self.Cache[:idx]
+					}
 					self.Closed = true
 					return nil
-				} else if index = strings.Index(mergeMessage, S); index > -1 && index > beginIndex {
-					// 遇到“System:”就结束接收
-					self.Cache = strings.TrimSuffix(self.Cache, S)
+				}
+				// 遇到“System:”就结束接收
+				if index := strings.Index(mergeMessage, S); boS && index > -1 && index > beginIndex {
+					fmt.Println("---------\n", "遇到System:终止响应")
+					if idx := strings.Index(self.Cache, S); idx >= 0 {
+						self.Cache = self.Cache[:idx]
+					}
 					self.Closed = true
 					return nil
 				}
@@ -240,10 +276,30 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		return nil, errors.New("未知/不支持的模型`" + r.Model + "`")
 	}
 
-	message, err := trimMessage(r.Prompt)
+	message, s, err := trimMessage(r.Prompt)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("-----------------------请求报文-----------------\n", message, "\n--------------------END-------------------")
+	fmt.Println("Schema: ", s)
+	if token == "auto" && globalToken == "" {
+		muLock.Lock()
+		defer muLock.Unlock()
+		if globalToken == "" {
+			globalToken, err = util.Login(proxy)
+			if err != nil {
+				fmt.Println("生成token失败： ", err)
+				return nil, err
+			}
+			fmt.Println("生成token： " + globalToken)
+			cacheKey(globalToken)
+		}
+	}
+
+	if token == "auto" && globalToken != "" {
+		token = globalToken
+	}
+
 	return &types.ConversationContext{
 		Id:     "claude2",
 		Token:  token,
@@ -251,17 +307,20 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		Bot:    bot,
 		Model:  model,
 		Proxy:  proxy,
-		H:      Handle(IsC),
+		H:      Handle(IsC, s.BoH, s.BoS),
 		AppId:  appId,
 	}, nil
 }
 
-func trimMessage(prompt string) (string, error) {
+func trimMessage(prompt string) (string, schema, error) {
 	result := prompt
+	// ====  Schema匹配 =======
 	compileRegex := regexp.MustCompile(`schema\s?\{[^}]*}`)
 	s := schema{
 		TrimS: true,
-		TrimP: false,
+		TrimP: true,
+		BoH:   true,
+		BoS:   false,
 	}
 
 	matchSlice := compileRegex.FindStringSubmatch(prompt)
@@ -269,9 +328,15 @@ func trimMessage(prompt string) (string, error) {
 		str := matchSlice[0]
 		result = strings.Replace(result, str, "", -1)
 		if err := json.Unmarshal([]byte(strings.TrimSpace(str[6:])), &s); err != nil {
-			return "", err
+			return "", s, err
 		}
 	}
+	// =========================
+
+	// ==== I apologize,[^\n]+ 道歉匹配 ======
+	compileRegex = regexp.MustCompile(`I apologize[^\n]+`)
+	result = compileRegex.ReplaceAllString(result, "")
+	// =========================
 
 	if s.TrimS {
 		result = strings.TrimSuffix(result, "\n\nAssistant: ")
@@ -279,7 +344,10 @@ func trimMessage(prompt string) (string, error) {
 	if s.TrimP {
 		result = strings.TrimPrefix(result, "\n\nHuman: ")
 	}
-	return strings.TrimSpace(result), nil
+
+	result = strings.ReplaceAll(result, "A: ", "\nAssistant: ")
+	result = strings.ReplaceAll(result, "H: ", "\nHuman: ")
+	return strings.TrimSpace(result), s, nil
 }
 
 func responseError(ctx *gin.Context, err error, isStream bool) {
@@ -313,6 +381,27 @@ func writeString(ctx *gin.Context, content string) bool {
 
 func writeDone(ctx *gin.Context) {
 	if _, err := ctx.Writer.Write([]byte("\n\ndata: [DONE]")); err != nil {
+		fmt.Println("Error: ", err)
+	}
+}
+
+// 缓存Key
+func cacheKey(key string) {
+	bytes, err := os.ReadFile(".env")
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
+	tmp := string(bytes)
+	compileRegex := regexp.MustCompile(`CACHE_KEY\s*=[^\n]*`)
+	matchSlice := compileRegex.FindStringSubmatch(tmp)
+	if len(matchSlice) > 0 {
+		str := matchSlice[0]
+		tmp = strings.Replace(tmp, str, "CACHE_KEY=\""+key+"\"", -1)
+	} else {
+		tmp += "\nCACHE_KEY=\"" + key + "\""
+	}
+	err = os.WriteFile(".env", []byte(tmp), 0664)
+	if err != nil {
 		fmt.Println("Error: ", err)
 	}
 }

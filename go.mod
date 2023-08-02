@@ -3,11 +3,12 @@ module github.com/bincooo/MiaoX
 go 1.20
 
 require (
-	github.com/bincooo/claude-api v1.0.2-0.20230727005909-b2cfbfa0d502
-	github.com/bincooo/edge-api v1.0.1-0.20230726062045-92a6a15da472
+	github.com/bincooo/claude-api v1.0.2-0.20230727104755-ba43c385827b
+	github.com/bincooo/edge-api v1.0.1-0.20230802114429-540584b80e1b
 	github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f
 	github.com/gin-gonic/gin v1.9.1
 	github.com/jinzhu/copier v0.3.5
+	github.com/joho/godotenv v1.5.1
 	github.com/sashabaranov/go-openai v1.12.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
@@ -34,7 +35,6 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
