@@ -4,6 +4,7 @@ import (
 	"github.com/bincooo/MiaoX/store"
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
+	clVars "github.com/bincooo/claude-api/vars"
 	"strings"
 )
 
@@ -42,7 +43,11 @@ func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response s
 
 	messages := store.GetMessages(ctx.Id)
 	if response != "" {
-		prompt := c.cache[ctx.Id]
+		prompt := response
+		if ctx.Bot == vars.Claude && ctx.Model == clVars.Model4WebClaude2 {
+			prompt = c.cache[ctx.Id]
+		}
+
 		messages = append(messages, map[string]string{
 			"author": "user",
 			"text":   prompt,
