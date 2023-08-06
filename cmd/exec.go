@@ -247,7 +247,7 @@ func Handle(IsC func() bool, boH bool, boS bool) func(rChan any) func(*types.Cac
 			}
 
 			if begin {
-				fmt.Println("message: ", mergeMessage)
+				// fmt.Println("message: ", mergeMessage)
 				// 遇到“H:”就结束接收
 				if index := strings.Index(mergeMessage, H); boH && index > -1 && index > beginIndex {
 					fmt.Println("---------\n", "遇到H:终止响应")
