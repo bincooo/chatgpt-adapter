@@ -56,21 +56,23 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 		timeout, cancel := context.WithTimeout(context.TODO(), Timeout)
 		defer cancel()
 
-		var attr *clTypes.Attachment = nil
+		var attrs []clTypes.Attachment = nil
 		var prompt = ctx.Prompt
 
 		// S模式，每次创建一个新会话，使用附件方式对话
 		if ctx.Model == vars.Model4WebClaude2S {
 			prompt = ""
-			attr = &clTypes.Attachment{
-				Content:  ctx.Prompt,
-				FileName: "paste.txt",
-				FileSize: 99999,
-				FileType: "txt",
+			attrs = []clTypes.Attachment{
+				{
+					Content:  ctx.Prompt,
+					FileName: "paste.txt",
+					FileSize: 99999,
+					FileType: "txt",
+				},
 			}
 			defer bot.Remove(ctx.Id)
 		}
-		partialResponse, err := session.Reply(timeout, prompt, attr)
+		partialResponse, err := session.Reply(timeout, prompt, attrs)
 		if err != nil {
 			message <- types.PartialResponse{Error: err}
 			return
