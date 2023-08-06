@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bincooo/MiaoX"
+	"github.com/bincooo/MiaoX/internal/plat"
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
 	clTypes "github.com/bincooo/claude-api/types"
@@ -73,6 +74,7 @@ func loadEnvVar(key, defaultValue string) string {
 func Exec() {
 	types.CacheWaitTimeout = 1500 * time.Millisecond
 	types.CacheMessageL = 20
+	plat.Timeout = 3 * time.Minute // 3分钟超时，怎么的也够了吧
 
 	var rootCmd = &cobra.Command{
 		Use:   "MiaoX",
@@ -419,7 +421,7 @@ func cacheKey(key string) {
 		fmt.Println("Error: ", err)
 	}
 	tmp := string(bytes)
-	compileRegex := regexp.MustCompile(`CACHE_KEY\s*=[^\n]*`)
+	compileRegex := regexp.MustCompile(`^CACHE_KEY\s*=[^\n]*`)
 	matchSlice := compileRegex.FindStringSubmatch(tmp)
 	if len(matchSlice) > 0 {
 		str := matchSlice[0]

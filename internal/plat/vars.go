@@ -2,6 +2,6 @@ package plat
 
 import "time"
 
-const (
+var (
 	Timeout = 2 * time.Minute
 )
