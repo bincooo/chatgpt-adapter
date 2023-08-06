@@ -24,6 +24,8 @@ var (
 	manager = MiaoX.NewBotManager()
 	proxy   string
 	port    int
+	gen     bool
+	count   int
 
 	globalToken string
 	muLock      sync.Mutex
@@ -81,6 +83,8 @@ func Exec() {
 
 	rootCmd.Flags().StringVarP(&proxy, "proxy", "P", "", "本地代理")
 	rootCmd.Flags().IntVarP(&port, "port", "p", 8080, "服务端口")
+	rootCmd.Flags().BoolVarP(&gen, "gen", "g", false, "生成sessionKey")
+	rootCmd.Flags().IntVarP(&count, "count", "c", 1, "生成sessionKey数量")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -88,6 +92,10 @@ func Exec() {
 }
 
 func Run(cmd *cobra.Command, args []string) {
+	if gen {
+		genSessionKeys()
+		return
+	}
 	gin.SetMode(gin.ReleaseMode)
 	route := gin.Default()
 
@@ -106,6 +114,16 @@ func Run(cmd *cobra.Command, args []string) {
 	if err := route.Run(addr); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func genSessionKeys() {
+	for i := 0; i < count; i++ {
+		token, err := util.Login(proxy)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("sessionKey=" + token)
 	}
 }
 
@@ -229,6 +247,7 @@ func Handle(IsC func() bool, boH bool, boS bool) func(rChan any) func(*types.Cac
 			}
 
 			if begin {
+				fmt.Println("message: ", mergeMessage)
 				// 遇到“H:”就结束接收
 				if index := strings.Index(mergeMessage, H); boH && index > -1 && index > beginIndex {
 					fmt.Println("---------\n", "遇到H:终止响应")
