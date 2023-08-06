@@ -4,8 +4,8 @@ github.com/acheong08/OpenAIAuth v0.0.0-20230625142757-7b01ccd04f63 h1:/dauxvuoqC
 github.com/acheong08/OpenAIAuth v0.0.0-20230625142757-7b01ccd04f63/go.mod h1:ES3Dh9hnbR2mDPlNTagj5e3b4nXECd4tbAjVgxggXEE=
 github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/cCs=
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
-github.com/bincooo/claude-api v1.0.2-0.20230806143814-1b0eff0e35c5 h1:udkjssXN0sm/geI95lwP8HyqPXBsuVGtZX9qx9+grWU=
-github.com/bincooo/claude-api v1.0.2-0.20230806143814-1b0eff0e35c5/go.mod h1:Y5eC1FaJvhWaTg3uLhwiFPvvRh3zRkqbV7z9yMEVGm8=
+github.com/bincooo/claude-api v1.0.2-0.20230806175856-a87a56fb3786 h1:XmPJRK6BpbGPGflakQjDqrUORCQQPxeP3z8M0l3pp9w=
+github.com/bincooo/claude-api v1.0.2-0.20230806175856-a87a56fb3786/go.mod h1:qoD2FHwGq2+Ohl5xi+jFFYjAGxP0V1ImeIg6R05uqPQ=
 github.com/bincooo/edge-api v1.0.1-0.20230802114429-540584b80e1b h1:/9/MuneMKzVbh2+pSGUduV2Iwjm7r5y+syom8BcTtMI=
 github.com/bincooo/edge-api v1.0.1-0.20230802114429-540584b80e1b/go.mod h1:qL+yKuwzgCfV5E5SasYgnuw8+LdMKQl92GNVz5kYfGU=
 github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f h1:/Etg/amI5W0mJcyGQ4efX1hFOsgL33Neop5HssdNvwc=

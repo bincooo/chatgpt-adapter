@@ -406,6 +406,14 @@ func writeDone(ctx *gin.Context) {
 
 // 缓存Key
 func cacheKey(key string) {
+	// 文件不存在...   就创建吧
+	if _, err := os.Lstat(".env"); os.IsNotExist(err) {
+		if _, e := os.Create(".env"); e != nil {
+			fmt.Println("Error: ", e)
+			return
+		}
+	}
+
 	bytes, err := os.ReadFile(".env")
 	if err != nil {
 		fmt.Println("Error: ", err)
@@ -417,7 +425,11 @@ func cacheKey(key string) {
 		str := matchSlice[0]
 		tmp = strings.Replace(tmp, str, "CACHE_KEY=\""+key+"\"", -1)
 	} else {
-		tmp += "\nCACHE_KEY=\"" + key + "\""
+		delimiter := ""
+		if len(tmp) > 0 && !strings.HasSuffix(tmp, "\n") {
+			delimiter = "\n"
+		}
+		tmp += delimiter + "CACHE_KEY=\"" + key + "\""
 	}
 	err = os.WriteFile(".env", []byte(tmp), 0664)
 	if err != nil {
