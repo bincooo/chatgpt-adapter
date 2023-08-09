@@ -27,6 +27,7 @@ var (
 	port    int
 	gen     bool
 	count   int
+	bu      string
 
 	globalToken string
 	muLock      sync.Mutex
@@ -72,8 +73,8 @@ func loadEnvVar(key, defaultValue string) string {
 }
 
 func Exec() {
-	types.CacheWaitTimeout = 1500 * time.Millisecond
-	types.CacheMessageL = 20
+	types.CacheWaitTimeout = time.Second
+	types.CacheMessageL = 10
 	plat.Timeout = 3 * time.Minute // 3分钟超时，怎么的也够了吧
 
 	var rootCmd = &cobra.Command{
@@ -87,6 +88,12 @@ func Exec() {
 	rootCmd.Flags().IntVarP(&port, "port", "p", 8080, "服务端口")
 	rootCmd.Flags().BoolVarP(&gen, "gen", "g", false, "生成sessionKey")
 	rootCmd.Flags().IntVarP(&count, "count", "c", 1, "生成sessionKey数量")
+	rootCmd.Flags().StringVarP(&bu, "base-url", "b", "", "第三方转发接口")
+
+	//if bu == "" {
+	//	bu = "https://chat.claudeai.ai/api"
+	//}
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -121,7 +128,7 @@ func Run(cmd *cobra.Command, args []string) {
 
 func genSessionKeys() {
 	for i := 0; i < count; i++ {
-		token, err := util.Login(proxy)
+		token, err := util.LoginFor(bu, proxy)
 		if err != nil {
 			panic(err)
 		}
@@ -202,7 +209,7 @@ func complete(ctx *gin.Context) {
 	}
 }
 
-func Handle(IsC func() bool, boH bool, boS bool) func(rChan any) func(*types.CacheBuffer) error {
+func Handle(model string, IsC func() bool, boH bool, boS bool) func(rChan any) func(*types.CacheBuffer) error {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		pos := 0
 		begin := false
@@ -228,10 +235,14 @@ func Handle(IsC func() bool, boH bool, boS bool) func(rChan any) func(*types.Cac
 				return response.Error
 			}
 
-			text := response.Text
-			str := []rune(text)
-			self.Cache += string(str[pos:])
-			pos = len(str)
+			if model != vars.Model4WebClaude2S {
+				text := response.Text
+				str := []rune(text)
+				self.Cache += string(str[pos:])
+				pos = len(str)
+			} else {
+				self.Cache += response.Text
+			}
 
 			mergeMessage := self.Complete + self.Cache
 			// 遇到“A:” 或者积累200字就假定是正常输出
@@ -307,7 +318,7 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		muLock.Lock()
 		defer muLock.Unlock()
 		if globalToken == "" {
-			globalToken, err = util.Login(proxy)
+			globalToken, err = util.LoginFor(bu, proxy)
 			if err != nil {
 				fmt.Println("生成token失败： ", err)
 				return nil, err
@@ -322,14 +333,15 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 	}
 
 	return &types.ConversationContext{
-		Id:     "claude2",
-		Token:  token,
-		Prompt: message,
-		Bot:    bot,
-		Model:  model,
-		Proxy:  proxy,
-		H:      Handle(IsC, s.BoH, s.BoS),
-		AppId:  appId,
+		Id:      "claude2",
+		Token:   token,
+		Prompt:  message,
+		Bot:     bot,
+		Model:   model,
+		Proxy:   proxy,
+		H:       Handle(model, IsC, s.BoH, s.BoS),
+		AppId:   appId,
+		BaseURL: bu,
 	}, nil
 }
 
@@ -391,7 +403,7 @@ func responseError(ctx *gin.Context, err error, isStream bool) {
 
 func writeString(ctx *gin.Context, content string) bool {
 	c := strings.ReplaceAll(strings.ReplaceAll(content, "\n", "\\n"), "\"", "\\\"")
-	if _, err := ctx.Writer.Write([]byte("\n\ndata: {\"completion\": \"" + c + "\"}")); err != nil {
+	if _, err := ctx.Writer.Write([]byte("data: {\"completion\": \"" + c + "\"}\n\n")); err != nil {
 		fmt.Println("Error: ", err)
 		return false
 	} else {
@@ -401,7 +413,7 @@ func writeString(ctx *gin.Context, content string) bool {
 }
 
 func writeDone(ctx *gin.Context) {
-	if _, err := ctx.Writer.Write([]byte("\n\ndata: [DONE]")); err != nil {
+	if _, err := ctx.Writer.Write([]byte("data: [DONE]")); err != nil {
 		fmt.Println("Error: ", err)
 	}
 }

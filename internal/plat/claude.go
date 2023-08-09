@@ -35,9 +35,8 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 				model = clVars.Model4WebClaude2
 			}
 			options := claude.NewDefaultOptions(ctx.Token, ctx.AppId, model)
-			if ctx.Proxy != "" {
-				options.Agency = ctx.Proxy
-			}
+			options.BaseURL = ctx.BaseURL
+			options.Agency = ctx.Proxy
 			chat, err := claude.New(options)
 			if err != nil {
 				message <- types.PartialResponse{Error: err}
@@ -106,10 +105,15 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 						text = strings.TrimSuffix(text, ClackTyping)
 					}
 
-					str := []rune(text)
-					self.Cache += string(str[pos:])
-					pos = len(str)
-					return nil
+					if ctx.Model == clVars.Model4Slack {
+						str := []rune(text)
+						self.Cache += string(str[pos:])
+						pos = len(str)
+						return nil
+					} else {
+						self.Cache += text
+						return nil
+					}
 				},
 			}
 		}
