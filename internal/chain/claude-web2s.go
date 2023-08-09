@@ -5,6 +5,7 @@ import (
 	"github.com/bincooo/MiaoX/types"
 	"github.com/bincooo/MiaoX/vars"
 	clTypes "github.com/bincooo/claude-api/types"
+	"github.com/sirupsen/logrus"
 	"regexp"
 	"strings"
 )
@@ -133,27 +134,37 @@ func Handle(rChan any) func(*types.CacheBuffer) error {
 		pos = len(str)
 
 		mergeMessage := self.Complete + self.Cache
+		// 遇到“A:” 或者积累200字就假定是正常输出
 		if index := strings.Index(mergeMessage, A); index > -1 {
 			if !begin {
 				begin = true
 				beginIndex = index
+				logrus.Debug("---------\n", "1 输出中...")
 			}
-			//} else {
-			//	self.Closed = true
-			//	return nil
-			//}
+
 		} else if !begin && len(mergeMessage) > 200 {
 			begin = true
-			beginIndex = pos
+			beginIndex = len(mergeMessage)
+			logrus.Debug("---------\n", "2 输出中...")
 		}
 
 		if begin {
+			// fmt.Println("message: ", mergeMessage)
+			// 遇到“H:”就结束接收
 			if index := strings.Index(mergeMessage, H); index > -1 && index > beginIndex {
-				self.Cache = strings.TrimSuffix(self.Cache, H)
+				logrus.Debug("---------\n", "遇到H:终止响应")
+				if idx := strings.Index(self.Cache, H); idx >= 0 {
+					self.Cache = self.Cache[:idx]
+				}
 				self.Closed = true
 				return nil
-			} else if index = strings.Index(mergeMessage, S); index > -1 && index > beginIndex {
-				self.Cache = strings.TrimSuffix(self.Cache, S)
+			}
+			// 遇到“System:”就结束接收
+			if index := strings.Index(mergeMessage, S); index > -1 && index > beginIndex {
+				logrus.Debug("---------\n", "遇到System:终止响应")
+				if idx := strings.Index(self.Cache, S); idx >= 0 {
+					self.Cache = self.Cache[:idx]
+				}
 				self.Closed = true
 				return nil
 			}
