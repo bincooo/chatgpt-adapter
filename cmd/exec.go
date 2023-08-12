@@ -28,6 +28,7 @@ var (
 	gen     bool
 	count   int
 	bu      string
+	suffix  string
 
 	globalToken string
 	muLock      sync.Mutex
@@ -89,7 +90,7 @@ func Exec() {
 	rootCmd.Flags().BoolVarP(&gen, "gen", "g", false, "生成sessionKey")
 	rootCmd.Flags().IntVarP(&count, "count", "c", 1, "生成sessionKey数量")
 	rootCmd.Flags().StringVarP(&bu, "base-url", "b", "", "第三方转发接口")
-
+	rootCmd.Flags().StringVarP(&suffix, "suffix", "s", "", "指定内置的邮箱后缀，如不指定随机选取:\n\t"+strings.Join(util.EmailSuffix, "\n\t"))
 	//if bu == "" {
 	//	bu = "https://chat.claudeai.ai/api"
 	//}
@@ -101,6 +102,11 @@ func Exec() {
 }
 
 func Run(cmd *cobra.Command, args []string) {
+	if suffix != "" && !Contains(util.EmailSuffix, suffix) {
+		fmt.Println("请选择以下的邮箱后缀:\n\t" + strings.Join(util.EmailSuffix, "\n\t"))
+		os.Exit(1)
+	}
+
 	if gen {
 		genSessionKeys()
 		return
@@ -128,9 +134,10 @@ func Run(cmd *cobra.Command, args []string) {
 
 func genSessionKeys() {
 	for i := 0; i < count; i++ {
-		token, err := util.LoginFor(bu, proxy)
+		token, err := util.LoginFor(bu, suffix, proxy)
 		if err != nil {
-			panic(err)
+			fmt.Println("Error: ", err.Error())
+			os.Exit(1)
 		}
 		fmt.Println("sessionKey=" + token)
 	}
@@ -161,6 +168,14 @@ func complete(ctx *gin.Context) {
 			}
 
 			if response.Error != nil {
+				var e *clTypes.Claude2Error
+				ok := errors.As(response.Error, &e)
+				if ok && token == "auto" {
+					if e.ErrorType.Message == "Account in read-only mode" {
+						globalToken = ""
+					}
+				}
+
 				responseError(ctx, response.Error, r.Stream)
 				return
 			}
@@ -318,7 +333,7 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		muLock.Lock()
 		defer muLock.Unlock()
 		if globalToken == "" {
-			globalToken, err = util.LoginFor(bu, proxy)
+			globalToken, err = util.LoginFor(bu, suffix, proxy)
 			if err != nil {
 				fmt.Println("生成token失败： ", err)
 				return nil, err
@@ -433,10 +448,13 @@ func cacheKey(key string) {
 		fmt.Println("Error: ", err)
 	}
 	tmp := string(bytes)
-	compileRegex := regexp.MustCompile(`^CACHE_KEY\s*=[^\n]*`)
+	compileRegex := regexp.MustCompile(`(\n|^)CACHE_KEY\s*=[^\n]*`)
 	matchSlice := compileRegex.FindStringSubmatch(tmp)
 	if len(matchSlice) > 0 {
 		str := matchSlice[0]
+		if strings.HasPrefix(str, "\n") {
+			str = str[1:]
+		}
 		tmp = strings.Replace(tmp, str, "CACHE_KEY=\""+key+"\"", -1)
 	} else {
 		delimiter := ""
@@ -449,4 +467,27 @@ func cacheKey(key string) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
+}
+
+func Contains[T comparable](slice []T, t T) bool {
+	if len(slice) == 0 {
+		return false
+	}
+
+	return ContainFor(slice, func(item T) bool {
+		return item == t
+	})
+}
+
+func ContainFor[T comparable](slice []T, condition func(item T) bool) bool {
+	if len(slice) == 0 {
+		return false
+	}
+
+	for idx := 0; idx < len(slice); idx++ {
+		if condition(slice[idx]) {
+			return true
+		}
+	}
+	return false
 }
