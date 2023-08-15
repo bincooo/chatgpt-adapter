@@ -57,6 +57,7 @@ type schema struct {
 	TrimS bool `json:"trimS"` // 去掉尾部Assistant
 	BoH   bool `json:"boH"`   // 响应截断H
 	BoS   bool `json:"boS"`   // 响应截断System
+	Debug bool `json:"debug"` // 开启调试
 }
 
 func main() {
@@ -81,16 +82,21 @@ func Exec() {
 	var rootCmd = &cobra.Command{
 		Use:   "MiaoX",
 		Short: "MiaoX控制台工具",
-		Long:  "MiaoX是集成了多款AI接口的控制台工具",
+		Long:  "MiaoX是集成了多款AI接口的控制台工具\n  > 目前仅实现claude2.0 web接口\n  > 请在github star本项目获取最新版本: \nhttps://github.com/bincooo/MiaoX\nhttps://github.com/bincooo/claude-api",
 		Run:   Run,
+	}
+
+	var esStr []string
+	for _, bytes := range util.ES {
+		esStr = append(esStr, string(bytes))
 	}
 
 	rootCmd.Flags().StringVarP(&proxy, "proxy", "P", "", "本地代理")
 	rootCmd.Flags().IntVarP(&port, "port", "p", 8080, "服务端口")
 	rootCmd.Flags().BoolVarP(&gen, "gen", "g", false, "生成sessionKey")
 	rootCmd.Flags().IntVarP(&count, "count", "c", 1, "生成sessionKey数量")
-	rootCmd.Flags().StringVarP(&bu, "base-url", "b", "", "第三方转发接口")
-	rootCmd.Flags().StringVarP(&suffix, "suffix", "s", "", "指定内置的邮箱后缀，如不指定随机选取:\n\t"+strings.Join(util.EmailSuffix, "\n\t"))
+	rootCmd.Flags().StringVarP(&bu, "base-url", "b", "", "第三方转发接口, 默认为官方: https://claude.ai/api")
+	rootCmd.Flags().StringVarP(&suffix, "suffix", "s", "", "指定内置的邮箱后缀，如不指定随机选取:\n\t"+strings.Join(esStr, "\n\t"))
 	//if bu == "" {
 	//	bu = "https://chat.claudeai.ai/api"
 	//}
@@ -102,8 +108,13 @@ func Exec() {
 }
 
 func Run(cmd *cobra.Command, args []string) {
-	if suffix != "" && !Contains(util.EmailSuffix, suffix) {
-		fmt.Println("请选择以下的邮箱后缀:\n\t" + strings.Join(util.EmailSuffix, "\n\t"))
+	var esStr []string
+	for _, bytes := range util.ES {
+		esStr = append(esStr, string(bytes))
+	}
+
+	if suffix != "" && !Contains(esStr, suffix) {
+		fmt.Println("请选择以下的邮箱后缀:\n\t" + strings.Join(esStr, "\n\t"))
 		os.Exit(1)
 	}
 
@@ -224,7 +235,7 @@ func complete(ctx *gin.Context) {
 	}
 }
 
-func Handle(model string, IsC func() bool, boH bool, boS bool) func(rChan any) func(*types.CacheBuffer) error {
+func Handle(model string, IsC func() bool, boH, boS, debug bool) func(rChan any) func(*types.CacheBuffer) error {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		pos := 0
 		begin := false
@@ -247,6 +258,9 @@ func Handle(model string, IsC func() bool, boH bool, boS bool) func(rChan any) f
 
 			if response.Error != nil {
 				self.Closed = true
+				if debug {
+					fmt.Println("[debug]: ", response.Error)
+				}
 				return response.Error
 			}
 
@@ -260,6 +274,14 @@ func Handle(model string, IsC func() bool, boH bool, boS bool) func(rChan any) f
 			}
 
 			mergeMessage := self.Complete + self.Cache
+			if debug {
+				fmt.Println(
+					"-------------- stream ----------------\n[debug]: ",
+					mergeMessage,
+					"\n------- cache ------\n",
+					self.Cache,
+					"\n--------------------------------------")
+			}
 			// 遇到“A:” 或者积累200字就假定是正常输出
 			if index := strings.Index(mergeMessage, A); index > -1 {
 				if !begin {
@@ -275,20 +297,25 @@ func Handle(model string, IsC func() bool, boH bool, boS bool) func(rChan any) f
 			}
 
 			if begin {
-				// fmt.Println("message: ", mergeMessage)
+				if debug {
+					fmt.Println(
+						"-------------- H: S: ----------------\n[debug]: {H:"+strconv.Itoa(strings.LastIndex(mergeMessage, H))+"}, ",
+						"{S:"+strconv.Itoa(strings.LastIndex(mergeMessage, S))+"}",
+						"\n--------------------------------------")
+				}
 				// 遇到“H:”就结束接收
-				if index := strings.Index(mergeMessage, H); boH && index > -1 && index > beginIndex {
+				if index := strings.LastIndex(mergeMessage, H); boH && index > -1 && index > beginIndex {
 					fmt.Println("---------\n", "遇到H:终止响应")
-					if idx := strings.Index(self.Cache, H); idx >= 0 {
+					if idx := strings.LastIndex(self.Cache, H); idx >= 0 {
 						self.Cache = self.Cache[:idx]
 					}
 					self.Closed = true
 					return nil
 				}
 				// 遇到“System:”就结束接收
-				if index := strings.Index(mergeMessage, S); boS && index > -1 && index > beginIndex {
+				if index := strings.LastIndex(mergeMessage, S); boS && index > -1 && index > beginIndex {
 					fmt.Println("---------\n", "遇到System:终止响应")
-					if idx := strings.Index(self.Cache, S); idx >= 0 {
+					if idx := strings.LastIndex(self.Cache, S); idx >= 0 {
 						self.Cache = self.Cache[:idx]
 					}
 					self.Closed = true
@@ -354,7 +381,7 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		Bot:     bot,
 		Model:   model,
 		Proxy:   proxy,
-		H:       Handle(model, IsC, s.BoH, s.BoS),
+		H:       Handle(model, IsC, s.BoH, s.BoS, s.Debug),
 		AppId:   appId,
 		BaseURL: bu,
 	}, nil
@@ -369,6 +396,7 @@ func trimMessage(prompt string) (string, schema, error) {
 		TrimP: true,
 		BoH:   true,
 		BoS:   false,
+		Debug: false,
 	}
 
 	matchSlice := compileRegex.FindStringSubmatch(prompt)
