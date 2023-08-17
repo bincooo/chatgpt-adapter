@@ -32,7 +32,9 @@ func (r *CacheBuffer) condition() bool {
 	// n秒后消耗消息
 	// 字数太少续n秒
 	if len(r.Cache) < CacheMessageL {
-		r.timer = time.Now().Add(CacheWaitTimeout)
+		if CacheWaitTimeout > 0 {
+			r.timer = time.Now().Add(CacheWaitTimeout)
+		}
 		return false
 	}
 

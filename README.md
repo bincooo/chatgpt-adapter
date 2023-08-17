@@ -66,6 +66,8 @@ Tips:
 示例（macos）：
 ```bash
 GOOS=darwin GOARCH=amd64 go build cmd/exec.go
+// arm64
+GOARM=7 GOOS=linux GOARCH=arm64 go build cmd/exec.go
 ```
 
 运行：

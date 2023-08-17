@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
+	"math/rand"
 	"os"
 	"regexp"
 	"strconv"
@@ -32,6 +33,17 @@ var (
 
 	globalToken string
 	muLock      sync.Mutex
+	Piles       = []string{
+		"Claude2.0 is so good.",
+		"never lie, cheat or steal. always smile a fair deal.",
+		"like tree, like fruit.",
+		"East, west, home is best.",
+		"原神，启动！",
+		"德玛西亚万岁。",
+		"薛定谔的寄。",
+		"折戟成沙丶丿",
+		"提无示效。",
+	}
 )
 
 const (
@@ -39,6 +51,8 @@ const (
 	A    = "A:"
 	S    = "System:"
 	HARM = "I apologize, but I will not provide any responses that violate Anthropic's Acceptable Use Policy or could promote harm."
+
+	PileSize = 50000
 )
 
 type rj struct {
@@ -58,6 +72,7 @@ type schema struct {
 	BoH   bool `json:"boH"`   // 响应截断H
 	BoS   bool `json:"boS"`   // 响应截断System
 	Debug bool `json:"debug"` // 开启调试
+	Pile  bool `json:"pile"`  // 堆积肥料
 }
 
 func main() {
@@ -75,8 +90,8 @@ func loadEnvVar(key, defaultValue string) string {
 }
 
 func Exec() {
-	types.CacheWaitTimeout = time.Second
-	types.CacheMessageL = 10
+	types.CacheWaitTimeout = 0
+	types.CacheMessageL = 14
 	plat.Timeout = 3 * time.Minute // 3分钟超时，怎么的也够了吧
 
 	var rootCmd = &cobra.Command{
@@ -173,7 +188,8 @@ func complete(ctx *gin.Context) {
 		if r.Stream {
 			if response.Status == vars.Begin {
 				ctx.Status(200)
-				ctx.Header("Content-Type", "text/event-stream; charset=utf-8")
+				ctx.Header("Accept", "*/*")
+				ctx.Header("Content-Type", "text/event-stream")
 				ctx.Writer.Flush()
 				return
 			}
@@ -181,13 +197,14 @@ func complete(ctx *gin.Context) {
 			if response.Error != nil {
 				var e *clTypes.Claude2Error
 				ok := errors.As(response.Error, &e)
+				err = response.Error
 				if ok && token == "auto" {
-					if e.ErrorType.Message == "Account in read-only mode" {
-						globalToken = ""
+					if msg := handleError(e); msg != "" {
+						err = errors.New(msg)
 					}
 				}
 
-				responseError(ctx, response.Error, r.Stream)
+				responseError(ctx, err, r.Stream)
 				return
 			}
 
@@ -233,6 +250,18 @@ func complete(ctx *gin.Context) {
 			fmt.Println("检测到大黄标（harm），下次请求将刷新cookie !")
 		}
 	}
+}
+
+func handleError(err *clTypes.Claude2Error) (msg string) {
+	if err.ErrorType.Message == "Account in read-only mode" {
+		globalToken = ""
+		msg = "检测到账户被锁定，请尝试重新生成文本"
+	}
+	if err.ErrorType.Message == "rate_limit_error" {
+		globalToken = ""
+		msg = "检测到账户被限流，请尝试重新生成文本"
+	}
+	return msg
 }
 
 func Handle(model string, IsC func() bool, boH, boS, debug bool) func(rChan any) func(*types.CacheBuffer) error {
@@ -396,6 +425,7 @@ func trimMessage(prompt string) (string, schema, error) {
 		TrimP: true,
 		BoH:   true,
 		BoS:   false,
+		Pile:  true,
 		Debug: false,
 	}
 
@@ -423,7 +453,21 @@ func trimMessage(prompt string) (string, schema, error) {
 
 	result = strings.ReplaceAll(result, "A: ", "\nAssistant: ")
 	result = strings.ReplaceAll(result, "H: ", "\nHuman: ")
-	return strings.TrimSpace(result), s, nil
+
+	// 填充肥料
+	if s.Pile {
+		pile := Piles[rand.Intn(len(Piles))]
+		c := (PileSize - len(result)) / len(pile)
+		padding := ""
+		for idx := 0; idx < c; idx++ {
+			padding += pile
+		}
+
+		if padding != "" {
+			result = padding + "\n\n\n" + strings.TrimSpace(result)
+		}
+	}
+	return result, s, nil
 }
 
 func responseError(ctx *gin.Context, err error, isStream bool) {

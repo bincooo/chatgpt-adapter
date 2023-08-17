@@ -65,7 +65,7 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 				{
 					Content:  ctx.Prompt,
 					FileName: "paste.txt",
-					FileSize: 99999,
+					FileSize: len(ctx.Prompt),
 					FileType: "txt",
 				},
 			}
