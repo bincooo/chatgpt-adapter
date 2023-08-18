@@ -13,6 +13,7 @@ import (
 	"github.com/bincooo/requests"
 	"github.com/bincooo/requests/url"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"math/rand"
@@ -432,12 +433,15 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		bot   string
 		model string
 		appId string
+		id    string
 	)
 	switch r.Model {
 	case "claude-2.0", "claude-2":
+		id = "claude-" + uuid.NewString()
 		bot = vars.Claude
 		model = vars.Model4WebClaude2S
 	case "claude-1.0", "claude-1.2", "claude-1.3":
+		id = "claude-slack"
 		bot = vars.Claude
 		split := strings.Split(token, ",")
 		token = split[0]
@@ -475,7 +479,7 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 	}
 
 	return &types.ConversationContext{
-		Id:      "claude2",
+		Id:      id,
 		Token:   token,
 		Prompt:  message,
 		Bot:     bot,
