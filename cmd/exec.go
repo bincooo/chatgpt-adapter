@@ -10,6 +10,8 @@ import (
 	"github.com/bincooo/MiaoX/vars"
 	clTypes "github.com/bincooo/claude-api/types"
 	"github.com/bincooo/claude-api/util"
+	"github.com/bincooo/requests"
+	"github.com/bincooo/requests/url"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
@@ -23,13 +25,15 @@ import (
 )
 
 var (
-	manager = MiaoX.NewBotManager()
-	proxy   string
-	port    int
-	gen     bool
-	count   int
-	bu      string
-	suffix  string
+	manager        = MiaoX.NewBotManager()
+	proxy          string
+	port           int
+	gen            bool
+	count          int
+	bu             string
+	suffix         string
+	globalPile     string
+	globalPileSize int
 
 	globalToken string
 	muLock      sync.Mutex
@@ -51,8 +55,6 @@ const (
 	A    = "A:"
 	S    = "System:"
 	HARM = "I apologize, but I will not provide any responses that violate Anthropic's Acceptable Use Policy or could promote harm."
-
-	PileSize = 50000
 )
 
 type rj struct {
@@ -78,6 +80,8 @@ type schema struct {
 func main() {
 	_ = godotenv.Load()
 	globalToken = loadEnvVar("CACHE_KEY", "")
+	globalPile = loadEnvVar("PILE", "")
+	globalPileSize = loadEnvInt("PILE_SIZE", 50000)
 	Exec()
 }
 
@@ -87,6 +91,19 @@ func loadEnvVar(key, defaultValue string) string {
 		value = defaultValue
 	}
 	return value
+}
+
+func loadEnvInt(key string, defaultValue int) int {
+	value, exists := os.LookupEnv(key)
+	if !exists || value == "" {
+		return defaultValue
+	}
+	result, err := strconv.Atoi(value)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+	return result
 }
 
 func Exec() {
@@ -112,9 +129,6 @@ func Exec() {
 	rootCmd.Flags().IntVarP(&count, "count", "c", 1, "生成sessionKey数量")
 	rootCmd.Flags().StringVarP(&bu, "base-url", "b", "", "第三方转发接口, 默认为官方: https://claude.ai/api")
 	rootCmd.Flags().StringVarP(&suffix, "suffix", "s", "", "指定内置的邮箱后缀，如不指定随机选取:\n\t"+strings.Join(esStr, "\n\t"))
-	//if bu == "" {
-	//	bu = "https://chat.claudeai.ai/api"
-	//}
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -126,6 +140,15 @@ func Run(cmd *cobra.Command, args []string) {
 	var esStr []string
 	for _, bytes := range util.ES {
 		esStr = append(esStr, string(bytes))
+	}
+
+	//if bu == "" {
+	//	bu = "https://chat.claudeai.ai/api"
+	//}
+
+	// 检查网络可用性
+	if proxy != "" {
+		checkNetwork()
 	}
 
 	if suffix != "" && !Contains(esStr, suffix) {
@@ -144,7 +167,7 @@ func Run(cmd *cobra.Command, args []string) {
 		c.Writer.Header().Set("Content-Type", "text/event-stream")
 		c.Writer.Header().Set("Cache-Control", "no-cache")
 		c.Writer.Header().Set("Connection", "keep-alive")
-		//c.Writer.Header().Set("Transfer-Encoding", "chunked")
+		c.Writer.Header().Set("Transfer-Encoding", "chunked")
 		c.Writer.Header().Set("X-Accel-Buffering", "no")
 		c.Next()
 	})
@@ -155,6 +178,45 @@ func Run(cmd *cobra.Command, args []string) {
 	if err := route.Run(addr); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func checkNetwork() {
+	req := url.NewRequest()
+	req.Timeout = 5 * time.Second
+	req.Proxies = proxy
+	req.AllowRedirects = false
+	response, err := requests.Get("https://claude.ai/login", req)
+	if err != nil {
+		fmt.Println("🚫🚫🚫 网络不通，请检查你的代理 🚫🚫🚫")
+		os.Exit(1)
+	}
+	if response.StatusCode == 200 {
+		fmt.Println("🎉🎉🎉 Network success! 🎉🎉🎉")
+		req = url.NewRequest()
+		req.Timeout = 5 * time.Second
+		req.Proxies = proxy
+		req.Headers = url.NewHeaders()
+		response, err = requests.Get("https://iphw.in0.cc/ip.php", req)
+		if err == nil {
+			compileRegex := regexp.MustCompile(`\d+\.\d+\.\d+\.\d+`)
+			ip := compileRegex.FindStringSubmatch(response.Text)
+			if len(ip) > 0 {
+				country := ""
+				response, err = requests.Get("http://opendata.baidu.com/api.php?query="+ip[0]+"&co=&resource_id=6006&oe=utf8", nil)
+				if err == nil {
+					obj, e := response.Json()
+					if e == nil {
+						if status, ok := obj["status"].(string); ok && status == "0" {
+							country = obj["data"].([]interface{})[0].(map[string]interface{})["location"].(string)
+						}
+					}
+				}
+				fmt.Println("当前IP地址: " + ip[0] + ", " + country)
+			}
+		}
+	} else {
+		fmt.Println("🚫🚫🚫 网络不通，请检查你的代理 🚫🚫🚫")
 	}
 }
 
@@ -177,7 +239,8 @@ func complete(ctx *gin.Context) {
 		responseError(ctx, err, r.Stream)
 		return
 	}
-
+	retry := 2
+replyLabel:
 	IsClose := false
 	context, err := createConversationContext(token, &r, func() bool { return IsClose })
 	if err != nil {
@@ -240,6 +303,14 @@ func complete(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"completion": partialResponse.Message,
 		})
+	}
+
+	// 没有任何返回，重试
+	if partialResponse.Message == "" {
+		retry--
+		if retry > 0 {
+			goto replyLabel
+		}
 	}
 
 	// 检查大黄标
@@ -363,7 +434,7 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		appId string
 	)
 	switch r.Model {
-	case "claude-2.0":
+	case "claude-2.0", "claude-2":
 		bot = vars.Claude
 		model = vars.Model4WebClaude2S
 	case "claude-1.0", "claude-1.2", "claude-1.3":
@@ -451,13 +522,16 @@ func trimMessage(prompt string) (string, schema, error) {
 		result = strings.TrimPrefix(result, "\n\nHuman: ")
 	}
 
-	result = strings.ReplaceAll(result, "A: ", "\nAssistant: ")
-	result = strings.ReplaceAll(result, "H: ", "\nHuman: ")
+	result = strings.ReplaceAll(result, "A:", "\nAssistant:")
+	result = strings.ReplaceAll(result, "H:", "\nHuman:")
 
 	// 填充肥料
 	if s.Pile {
-		pile := Piles[rand.Intn(len(Piles))]
-		c := (PileSize - len(result)) / len(pile)
+		pile := globalPile
+		if globalPile == "" {
+			pile = Piles[rand.Intn(len(Piles))]
+		}
+		c := (globalPileSize - len(result)) / len(pile)
 		padding := ""
 		for idx := 0; idx < c; idx++ {
 			padding += pile
@@ -471,19 +545,30 @@ func trimMessage(prompt string) (string, schema, error) {
 }
 
 func responseError(ctx *gin.Context, err error, isStream bool) {
+	errMsg := err.Error()
+	if strings.Contains(errMsg, "https://www.linshiyouxiang.net/") {
+		errMsg = "邮箱注册失败，请检查网络是否可访问: https://www.linshiyouxiang.net"
+	} else if strings.Contains(errMsg, "Account in read-only mode") {
+		errMsg = "账户已被锁定，请尝试更换"
+	} else if strings.Contains(errMsg, "rate_limit_error") {
+		errMsg = "账户已被限流，请稍后重试或尝试更换账号"
+	} else if strings.Contains(errMsg, "connection refused") {
+		errMsg = "网络连接失败，请检查您的网络是否通畅、代理是否正常"
+	} else {
+		errMsg += "\n\n请尝试重新生成文本，若多次尝试无效请检查代理是否正常或者更换账号"
+	}
+
 	if isStream {
 		marshal, e := json.Marshal(gin.H{
-			"completion": "Error: " + err.Error(),
+			"completion": "Error: " + errMsg,
 		})
-		fmt.Println("Error: ", err)
 		if e != nil {
-			fmt.Println("Error: ", e)
 			return
 		}
 		ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
 	} else {
 		ctx.JSON(200, gin.H{
-			"completion": "Error: " + err.Error(),
+			"completion": "Error: " + errMsg,
 		})
 	}
 }
