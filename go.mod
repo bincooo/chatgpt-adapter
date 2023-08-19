@@ -3,22 +3,26 @@ module github.com/bincooo/MiaoX
 go 1.20
 
 require (
+	github.com/BurntSushi/toml v1.0.0
 	github.com/bincooo/claude-api v1.0.2-0.20230817231523-0b87338d9381
 	github.com/bincooo/edge-api v1.0.1-0.20230802114429-540584b80e1b
 	github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f
+	github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e
 	github.com/gin-gonic/gin v1.9.1
+	github.com/google/uuid v1.3.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/joho/godotenv v1.5.1
+	github.com/nicksnyder/go-i18n/v2 v2.2.1
 	github.com/sashabaranov/go-openai v1.12.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
+	golang.org/x/text v0.9.0
 )
 
 require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/acheong08/OpenAIAuth v0.0.0-20230625142757-7b01ccd04f63 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
-	github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/bogdanfinn/fhttp v0.5.19 // indirect
 	github.com/bogdanfinn/tls-client v1.3.8 // indirect
@@ -33,7 +37,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.14.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
@@ -57,7 +60,6 @@ require (
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

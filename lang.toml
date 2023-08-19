@@ -1,0 +1,63 @@
+[SUFFIX]
+zh = "请选择以下的邮箱后缀"
+en = "Please select the mailbox suffix below"
+
+[IP]
+zh = "当前IP地址"
+en = "Current IP address"
+
+[NETWORK_DISCONNECTED]
+zh = "网络不通，请检查你的代理"
+en = "The network is disconnected, please check your agent"
+
+[HARM]
+zh = "检测到大黄标（harm），下次请求将刷新cookie !"
+en = "Rhubarb label (harm) detected, cookie will be refreshed on next request !"
+
+[ACCOUNT_LOCKED]
+zh = "检测到账户被锁定，请尝试重新生成文本"
+en = "You have detected that your account is locked. Try regenerating the text"
+
+[ACCOUNT_LIMITED]
+zh = "检测到账户被限流，请尝试重新生成文本"
+en = "Detected that the account is limited, please try to regenerate the text"
+
+[H]
+zh = "遇到H:终止响应"
+en = "Terminates response when `H:` is encountered"
+
+[S]
+zh = "遇到System:终止响应"
+en = "Terminates response when `System:` is encountered"
+
+[UNKNOWN_MODEL]
+zh = "未知/不支持的模型"
+en = "Unknown/unsupported model"
+
+[FAILED_GENERATE_SESSION_KEY]
+zh = "生成`sessionKey`失败"
+en = "Failed to generate 'sessionKey'"
+
+[GENERATE_SESSION_KEY]
+zh = "生成`sessionKey`"
+en = "Generate `sessionKey`"
+
+[REGISTRATION_FAILED]
+zh = "邮箱注册失败，请检查网络是否可访问: https://www.linshiyouxiang.net"
+en = "Registration failed, please check whether the network is accessible: https://www.linshiyouxiang.net"
+
+[ERROR_ACCOUNT_LOCKED]
+zh = "账户已被锁定，请尝试更换"
+en = "Your account has been locked, please try to replace it"
+
+[ERROR_ACCOUNT_LIMITED]
+zh = "账户已被限流，请稍后重试或尝试更换账号"
+en = "Your account has been blocked. Please try again later or change your account"
+
+[ERROR_NETWORK]
+zh = "网络连接失败，请检查您的网络是否通畅、代理是否正常"
+en = "The network connection fails. Please check whether the network is normal and the proxy is normal"
+
+[ERROR_OTHER]
+zh = "请尝试重新生成文本，若多次尝试无效请检查代理是否正常或者更换账号。"
+en = "Try to generate the text again. If repeated attempts fail, check whether the agent is normal or change the account."

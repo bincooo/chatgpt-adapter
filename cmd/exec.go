@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"github.com/bincooo/MiaoX"
 	"github.com/bincooo/MiaoX/internal/plat"
 	"github.com/bincooo/MiaoX/types"
@@ -15,7 +16,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/spf13/cobra"
+	"golang.org/x/text/language"
 	"math/rand"
 	"os"
 	"regexp"
@@ -35,6 +38,7 @@ var (
 	suffix         string
 	globalPile     string
 	globalPileSize int
+	i18nT          string
 
 	globalToken string
 	muLock      sync.Mutex
@@ -49,6 +53,9 @@ var (
 		"折戟成沙丶丿",
 		"提无示效。",
 	}
+
+	i18nKit   = i18n.NewBundle(language.Und)
+	localizes *i18n.Localizer
 )
 
 const (
@@ -56,6 +63,8 @@ const (
 	A    = "A:"
 	S    = "System:"
 	HARM = "I apologize, but I will not provide any responses that violate Anthropic's Acceptable Use Policy or could promote harm."
+
+	VERSION = "v1.0.7"
 )
 
 type rj struct {
@@ -113,10 +122,11 @@ func Exec() {
 	plat.Timeout = 3 * time.Minute // 3分钟超时，怎么的也够了吧
 
 	var rootCmd = &cobra.Command{
-		Use:   "MiaoX",
-		Short: "MiaoX控制台工具",
-		Long:  "MiaoX是集成了多款AI接口的控制台工具\n  > 目前仅实现claude2.0 web接口\n  > 请在github star本项目获取最新版本: \nhttps://github.com/bincooo/MiaoX\nhttps://github.com/bincooo/claude-api",
-		Run:   Run,
+		Use:     "MiaoX",
+		Short:   "MiaoX控制台工具",
+		Long:    "MiaoX是集成了多款AI接口的控制台工具\n  > 目前仅实现claude2.0 web接口\n  > 请在github star本项目获取最新版本: \nhttps://github.com/bincooo/MiaoX\nhttps://github.com/bincooo/claude-api",
+		Run:     Run,
+		Version: VERSION,
 	}
 
 	var esStr []string
@@ -124,12 +134,13 @@ func Exec() {
 		esStr = append(esStr, string(bytes))
 	}
 
-	rootCmd.Flags().StringVarP(&proxy, "proxy", "P", "", "本地代理")
-	rootCmd.Flags().IntVarP(&port, "port", "p", 8080, "服务端口")
+	rootCmd.Flags().StringVarP(&proxy, "proxy", "P", "", "本地代理 proxy network")
+	rootCmd.Flags().IntVarP(&port, "port", "p", 8080, "服务端口 service port")
 	rootCmd.Flags().BoolVarP(&gen, "gen", "g", false, "生成sessionKey")
-	rootCmd.Flags().IntVarP(&count, "count", "c", 1, "生成sessionKey数量")
-	rootCmd.Flags().StringVarP(&bu, "base-url", "b", "", "第三方转发接口, 默认为官方: https://claude.ai/api")
-	rootCmd.Flags().StringVarP(&suffix, "suffix", "s", "", "指定内置的邮箱后缀，如不指定随机选取:\n\t"+strings.Join(esStr, "\n\t"))
+	rootCmd.Flags().IntVarP(&count, "count", "c", 1, "生成sessionKey数量 generate count")
+	rootCmd.Flags().StringVarP(&bu, "base-url", "b", "", "第三方转发接口, 默认为官方 (Third party forwarding interface): https://claude.ai/api")
+	rootCmd.Flags().StringVarP(&suffix, "suffix", "s", "", "指定内置的邮箱后缀，如不指定随机选取 (Specifies the built-in mailbox suffix):\n\t"+strings.Join(esStr, "\n\t"))
+	rootCmd.Flags().StringVarP(&i18nT, "i18n", "i", "zh", "国际化 (internationalization): zh, en")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -138,6 +149,15 @@ func Exec() {
 }
 
 func Run(cmd *cobra.Command, args []string) {
+	i18nKit.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+	i18nKit.MustLoadMessageFile("lang.toml")
+	switch i18nT {
+	case "en":
+	default:
+		i18nT = "zh"
+	}
+	localizes = i18n.NewLocalizer(i18nKit, i18nT)
+
 	var esStr []string
 	for _, bytes := range util.ES {
 		esStr = append(esStr, string(bytes))
@@ -153,7 +173,7 @@ func Run(cmd *cobra.Command, args []string) {
 	}
 
 	if suffix != "" && !Contains(esStr, suffix) {
-		fmt.Println("请选择以下的邮箱后缀:\n\t" + strings.Join(esStr, "\n\t"))
+		fmt.Println(I18n("SUFFIX", i18nT) + ":\n\t" + strings.Join(esStr, "\n\t"))
 		os.Exit(1)
 	}
 
@@ -182,17 +202,19 @@ func Run(cmd *cobra.Command, args []string) {
 	}
 }
 
+func I18n(key string, lang string) string {
+	return localizes.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: key + "." + lang,
+	})
+}
+
 func checkNetwork() {
 	req := url.NewRequest()
 	req.Timeout = 5 * time.Second
 	req.Proxies = proxy
 	req.AllowRedirects = false
 	response, err := requests.Get("https://claude.ai/login", req)
-	if err != nil {
-		fmt.Println("🚫🚫🚫 网络不通，请检查你的代理 🚫🚫🚫")
-		os.Exit(1)
-	}
-	if response.StatusCode == 200 {
+	if err == nil && response.StatusCode == 200 {
 		fmt.Println("🎉🎉🎉 Network success! 🎉🎉🎉")
 		req = url.NewRequest()
 		req.Timeout = 5 * time.Second
@@ -213,11 +235,12 @@ func checkNetwork() {
 						}
 					}
 				}
-				fmt.Println("当前IP地址: " + ip[0] + ", " + country)
+
+				fmt.Println(I18n("IP", i18nT) + ": " + ip[0] + ", " + country)
 			}
 		}
 	} else {
-		fmt.Println("🚫🚫🚫 网络不通，请检查你的代理 🚫🚫🚫")
+		fmt.Println("🚫🚫🚫 " + I18n("NETWORK_DISCONNECTED", i18nT) + " 🚫🚫🚫")
 	}
 }
 
@@ -319,7 +342,7 @@ replyLabel:
 		if strings.Contains(partialResponse.Message, HARM) {
 			// manager.Remove(context.Id, context.Bot)
 			globalToken = ""
-			fmt.Println("检测到大黄标（harm），下次请求将刷新cookie !")
+			fmt.Println(I18n("HARM", i18nT))
 		}
 	}
 }
@@ -327,11 +350,11 @@ replyLabel:
 func handleError(err *clTypes.Claude2Error) (msg string) {
 	if err.ErrorType.Message == "Account in read-only mode" {
 		globalToken = ""
-		msg = "检测到账户被锁定，请尝试重新生成文本"
+		msg = I18n("ACCOUNT_LOCKED", i18nT)
 	}
 	if err.ErrorType.Message == "rate_limit_error" {
 		globalToken = ""
-		msg = "检测到账户被限流，请尝试重新生成文本"
+		msg = I18n("ACCOUNT_LIMITED", i18nT)
 	}
 	return msg
 }
@@ -388,13 +411,13 @@ func Handle(model string, IsC func() bool, boH, boS, debug bool) func(rChan any)
 				if !begin {
 					begin = true
 					beginIndex = index
-					fmt.Println("---------\n", "1 输出中...")
+					fmt.Println("---------\n", "1 Output...")
 				}
 
 			} else if !begin && len(mergeMessage) > 200 {
 				begin = true
 				beginIndex = len(mergeMessage)
-				fmt.Println("---------\n", "2 输出中...")
+				fmt.Println("---------\n", "2 Output...")
 			}
 
 			if begin {
@@ -406,7 +429,7 @@ func Handle(model string, IsC func() bool, boH, boS, debug bool) func(rChan any)
 				}
 				// 遇到“H:”就结束接收
 				if index := strings.LastIndex(mergeMessage, H); boH && index > -1 && index > beginIndex {
-					fmt.Println("---------\n", "遇到H:终止响应")
+					fmt.Println("---------\n", I18n("H", i18nT))
 					if idx := strings.LastIndex(self.Cache, H); idx >= 0 {
 						self.Cache = self.Cache[:idx]
 					}
@@ -415,7 +438,7 @@ func Handle(model string, IsC func() bool, boH, boS, debug bool) func(rChan any)
 				}
 				// 遇到“System:”就结束接收
 				if index := strings.LastIndex(mergeMessage, S); boS && index > -1 && index > beginIndex {
-					fmt.Println("---------\n", "遇到System:终止响应")
+					fmt.Println("---------\n", I18n("S", i18nT))
 					if idx := strings.LastIndex(self.Cache, S); idx >= 0 {
 						self.Cache = self.Cache[:idx]
 					}
@@ -451,14 +474,14 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 			return nil, errors.New("请在请求头中提供app-id")
 		}
 	default:
-		return nil, errors.New("未知/不支持的模型`" + r.Model + "`")
+		return nil, errors.New(I18n("UNKNOWN_MODEL", i18nT) + "`" + r.Model + "`")
 	}
 
 	message, s, err := trimMessage(r.Prompt)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("-----------------------请求报文-----------------\n", message, "\n--------------------END-------------------")
+	fmt.Println("-----------------------Response-----------------\n", message, "\n--------------------END-------------------")
 	fmt.Println("Schema: ", s)
 	if token == "auto" && globalToken == "" {
 		muLock.Lock()
@@ -466,10 +489,10 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		if globalToken == "" {
 			globalToken, err = util.LoginFor(bu, suffix, proxy)
 			if err != nil {
-				fmt.Println("生成token失败： ", err)
+				fmt.Println(I18n("FAILED_GENERATE_SESSION_KEY", i18nT)+"： ", err)
 				return nil, err
 			}
-			fmt.Println("生成token： " + globalToken)
+			fmt.Println(I18n("GENERATE_SESSION_KEY", i18nT) + "： " + globalToken)
 			cacheKey(globalToken)
 		}
 	}
@@ -551,15 +574,15 @@ func trimMessage(prompt string) (string, schema, error) {
 func responseError(ctx *gin.Context, err error, isStream bool) {
 	errMsg := err.Error()
 	if strings.Contains(errMsg, "https://www.linshiyouxiang.net/") {
-		errMsg = "邮箱注册失败，请检查网络是否可访问: https://www.linshiyouxiang.net"
+		errMsg = I18n("REGISTRATION_FAILED", i18nT)
 	} else if strings.Contains(errMsg, "Account in read-only mode") {
-		errMsg = "账户已被锁定，请尝试更换"
+		errMsg = I18n("ERROR_ACCOUNT_LOCKED", i18nT)
 	} else if strings.Contains(errMsg, "rate_limit_error") {
-		errMsg = "账户已被限流，请稍后重试或尝试更换账号"
+		errMsg = I18n("ERROR_ACCOUNT_LIMITED", i18nT)
 	} else if strings.Contains(errMsg, "connection refused") {
-		errMsg = "网络连接失败，请检查您的网络是否通畅、代理是否正常"
+		errMsg = I18n("ERROR_NETWORK", i18nT)
 	} else {
-		errMsg += "\n\n请尝试重新生成文本，若多次尝试无效请检查代理是否正常或者更换账号"
+		errMsg += "\n\n" + I18n("ERROR_OTHER", i18nT)
 	}
 
 	if isStream {
