@@ -263,8 +263,7 @@ func complete(ctx *gin.Context) {
 		responseError(ctx, err, r.Stream)
 		return
 	}
-	retry := 2
-replyLabel:
+
 	IsClose := false
 	context, err := createConversationContext(token, &r, func() bool { return IsClose })
 	if err != nil {
@@ -327,14 +326,6 @@ replyLabel:
 		ctx.JSON(200, gin.H{
 			"completion": partialResponse.Message,
 		})
-	}
-
-	// 没有任何返回，重试
-	if partialResponse.Message == "" {
-		retry--
-		if retry > 0 {
-			goto replyLabel
-		}
 	}
 
 	// 检查大黄标
