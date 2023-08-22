@@ -246,12 +246,12 @@ func checkNetwork() {
 
 func genSessionKeys() {
 	for i := 0; i < count; i++ {
-		token, err := util.LoginFor(bu, suffix, proxy)
+		email, token, err := util.LoginFor(bu, suffix, proxy)
 		if err != nil {
-			fmt.Println("Error: ", err.Error())
+			fmt.Println("Error: ", email, err.Error())
 			os.Exit(1)
 		}
-		fmt.Println("sessionKey=" + token)
+		fmt.Println("email=" + email + "; sessionKey=" + token)
 	}
 }
 
@@ -487,12 +487,13 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		muLock.Lock()
 		defer muLock.Unlock()
 		if globalToken == "" {
-			globalToken, err = util.LoginFor(bu, suffix, proxy)
+			var email string
+			email, globalToken, err = util.LoginFor(bu, suffix, proxy)
 			if err != nil {
-				fmt.Println(I18n("FAILED_GENERATE_SESSION_KEY", i18nT)+"： ", err)
+				fmt.Println(I18n("FAILED_GENERATE_SESSION_KEY", i18nT)+"： email ---"+email, err)
 				return nil, err
 			}
-			fmt.Println(I18n("GENERATE_SESSION_KEY", i18nT) + "： " + globalToken)
+			fmt.Println(I18n("GENERATE_SESSION_KEY", i18nT) + "： email --- " + email + ", sessionKey --- " + globalToken)
 			cacheKey(globalToken)
 		}
 	}
