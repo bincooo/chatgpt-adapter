@@ -79,19 +79,20 @@ type rj struct {
 }
 
 type schema struct {
-	TrimP bool `json:"trimP"` // 去掉头部Human
-	TrimS bool `json:"trimS"` // 去掉尾部Assistant
-	BoH   bool `json:"boH"`   // 响应截断H
-	BoS   bool `json:"boS"`   // 响应截断System
-	Debug bool `json:"debug"` // 开启调试
-	Pile  bool `json:"pile"`  // 堆积肥料
+	Debug     bool `json:"debug"`     // 开启调试
+	TrimP     bool `json:"trimP"`     // 去掉头部Human
+	TrimS     bool `json:"trimS"`     // 去掉尾部Assistant
+	BoH       bool `json:"boH"`       // 响应截断H
+	BoS       bool `json:"boS"`       // 响应截断System
+	Pile      bool `json:"pile"`      // 堆积肥料
+	FullColon bool `json:"fullColon"` // 全角冒号
 }
 
 func main() {
 	_ = godotenv.Load()
 	globalToken = loadEnvVar("CACHE_KEY", "")
 	globalPile = loadEnvVar("PILE", "")
-	globalPileSize = loadEnvInt("PILE_SIZE", 50000)
+	globalPileSize = loadEnvInt("PILE_SIZE", 35000)
 	Exec()
 }
 
@@ -511,12 +512,13 @@ func trimMessage(prompt string) (string, schema, error) {
 	// ====  Schema匹配 =======
 	compileRegex := regexp.MustCompile(`schema\s?\{[^}]*}`)
 	s := schema{
-		TrimS: true,
-		TrimP: true,
-		BoH:   true,
-		BoS:   false,
-		Pile:  true,
-		Debug: false,
+		TrimS:     true,
+		TrimP:     true,
+		BoH:       true,
+		BoS:       false,
+		Pile:      true,
+		FullColon: true,
+		Debug:     false,
 	}
 
 	matchSlice := compileRegex.FindStringSubmatch(prompt)
@@ -543,6 +545,10 @@ func trimMessage(prompt string) (string, schema, error) {
 
 	result = strings.ReplaceAll(result, "A:", "\nAssistant:")
 	result = strings.ReplaceAll(result, "H:", "\nHuman:")
+	if s.FullColon {
+		result = strings.ReplaceAll(result, "Assistant:", "Assistant：")
+		result = strings.ReplaceAll(result, "Human:", "Human：")
+	}
 
 	// 填充肥料
 	if s.Pile {
@@ -568,11 +574,16 @@ func responseError(ctx *gin.Context, err error, isStream bool) {
 	if strings.Contains(errMsg, "https://www.linshiyouxiang.net/") {
 		errMsg = I18n("REGISTRATION_FAILED", i18nT)
 	} else if strings.Contains(errMsg, "Account in read-only mode") {
+		globalToken = ""
 		errMsg = I18n("ERROR_ACCOUNT_LOCKED", i18nT)
 	} else if strings.Contains(errMsg, "rate_limit_error") {
+		globalToken = ""
 		errMsg = I18n("ERROR_ACCOUNT_LIMITED", i18nT)
 	} else if strings.Contains(errMsg, "connection refused") {
 		errMsg = I18n("ERROR_NETWORK", i18nT)
+	} else if strings.Contains(errMsg, "Account has not completed verification") {
+		globalToken = ""
+		errMsg = I18n("ACCOUNT_SMS_VERIFICATION", i18nT)
 	} else {
 		errMsg += "\n\n" + I18n("ERROR_OTHER", i18nT)
 	}

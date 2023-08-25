@@ -61,3 +61,7 @@ en = "The network connection fails. Please check whether the network is normal a
 [ERROR_OTHER]
 zh = "请尝试重新生成文本，若多次尝试无效请检查代理是否正常或者更换账号。"
 en = "Try to generate the text again. If repeated attempts fail, check whether the agent is normal or change the account."
+
+[ACCOUNT_SMS_VERIFICATION]
+zh = "账号需要手机号验证"
+en = "Account has not completed verification"
