@@ -3,7 +3,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "/.*.go",
+      "src": "/.*(.go|.mod|.sum)",
       "use": "@vercel/go"
     }
   ],
