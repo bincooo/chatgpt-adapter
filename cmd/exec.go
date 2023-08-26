@@ -68,14 +68,14 @@ const (
 )
 
 type rj struct {
-	Prompt        string   `json:"prompt"`
-	Model         string   `json:"model"`
-	MaxTokens     int      `json:"max_tokens_to_sample"`
-	StopSequences []string `json:"stop_sequences"`
-	Temperature   float32  `json:"temperature"`
-	TopP          float32  `json:"top_p"`
-	TopK          float32  `json:"top_k"`
-	Stream        bool     `json:"stream"`
+	Prompt        string              `json:"prompt"`
+	Messages      []map[string]string `json:"messages"`
+	Model         string              `json:"model"`
+	MaxTokens     int                 `json:"max_tokens_to_sample"`
+	StopSequences []string            `json:"stop_sequences"`
+	Temperature   float32             `json:"temperature"`
+	Stream        bool                `json:"stream"`
+	IsCompletions bool                `json:"-"`
 }
 
 type schema struct {
@@ -194,7 +194,9 @@ func Run(cmd *cobra.Command, args []string) {
 		c.Next()
 	})
 
+	route.GET("/v1/models", models)
 	route.POST("/v1/complete", complete)
+	route.POST("/v1/chat/completions", completions)
 	addr := ":" + strconv.Itoa(port)
 	fmt.Println("Start by http://127.0.0.1" + addr + "/v1")
 	if err := route.Run(addr); err != nil {
@@ -256,19 +258,28 @@ func genSessionKeys() {
 	}
 }
 
+func models(ctx *gin.Context) {
+	ctx.JSON(200, gin.H{
+		"data": []gin.H{
+			{"id": "claude-1.0"},
+			{"id": "claude-2.0"},
+		},
+	})
+}
+
 func complete(ctx *gin.Context) {
 	var r rj
 
 	token := ctx.Request.Header.Get("X-Api-Key")
 	if err := ctx.BindJSON(&r); err != nil {
-		responseError(ctx, err, r.Stream)
+		responseError(ctx, err, r.Stream, false)
 		return
 	}
 
 	IsClose := false
 	context, err := createConversationContext(token, &r, func() bool { return IsClose })
 	if err != nil {
-		responseError(ctx, err, r.Stream)
+		responseError(ctx, err, r.Stream, false)
 		return
 	}
 	partialResponse := manager.Reply(*context, func(response types.PartialResponse) {
@@ -291,7 +302,7 @@ func complete(ctx *gin.Context) {
 					}
 				}
 
-				responseError(ctx, err, r.Stream)
+				responseError(ctx, err, r.Stream, false)
 				return
 			}
 
@@ -300,14 +311,14 @@ func complete(ctx *gin.Context) {
 				case <-ctx.Request.Context().Done():
 					IsClose = true
 				default:
-					if !writeString(ctx, response.Message) {
+					if !writeString(ctx, response.Message, r.IsCompletions) {
 						IsClose = true
 					}
 				}
 			}
 
 			if response.Status == vars.Closed {
-				writeDone(ctx)
+				writeDone(ctx, r.IsCompletions)
 			}
 		} else {
 			select {
@@ -320,13 +331,96 @@ func complete(ctx *gin.Context) {
 
 	if !r.Stream && !IsClose {
 		if partialResponse.Error != nil {
-			responseError(ctx, partialResponse.Error, r.Stream)
+			responseError(ctx, partialResponse.Error, r.Stream, r.IsCompletions)
 			return
 		}
 
-		ctx.JSON(200, gin.H{
-			"completion": partialResponse.Message,
-		})
+		ctx.JSON(200, buildCompletion(r.IsCompletions, partialResponse.Message))
+	}
+
+	// 检查大黄标
+	if token == "auto" && context.Model == vars.Model4WebClaude2S {
+		if strings.Contains(partialResponse.Message, HARM) {
+			// manager.Remove(context.Id, context.Bot)
+			globalToken = ""
+			fmt.Println(I18n("HARM", i18nT))
+		}
+	}
+}
+
+func completions(ctx *gin.Context) {
+	var r rj
+	r.IsCompletions = true
+
+	token := ctx.Request.Header.Get("X-Api-Key")
+	if token == "" {
+		token = strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
+	}
+	if err := ctx.BindJSON(&r); err != nil {
+		responseError(ctx, err, r.Stream, r.IsCompletions)
+		return
+	}
+
+	IsClose := false
+	context, err := createConversationContext(token, &r, func() bool { return IsClose })
+	if err != nil {
+		responseError(ctx, err, r.Stream, r.IsCompletions)
+		return
+	}
+	partialResponse := manager.Reply(*context, func(response types.PartialResponse) {
+		if r.Stream {
+			if response.Status == vars.Begin {
+				ctx.Status(200)
+				ctx.Header("Accept", "*/*")
+				ctx.Header("Content-Type", "text/event-stream")
+				ctx.Writer.Flush()
+				return
+			}
+
+			if response.Error != nil {
+				var e *clTypes.Claude2Error
+				ok := errors.As(response.Error, &e)
+				err = response.Error
+				if ok && token == "auto" {
+					if msg := handleError(e); msg != "" {
+						err = errors.New(msg)
+					}
+				}
+
+				responseError(ctx, err, r.Stream, r.IsCompletions)
+				return
+			}
+
+			if len(response.Message) > 0 {
+				select {
+				case <-ctx.Request.Context().Done():
+					IsClose = true
+				default:
+					if !writeString(ctx, response.Message, r.IsCompletions) {
+						IsClose = true
+					}
+				}
+			}
+
+			if response.Status == vars.Closed {
+				writeDone(ctx, r.IsCompletions)
+			}
+		} else {
+			select {
+			case <-ctx.Request.Context().Done():
+				IsClose = true
+			default:
+			}
+		}
+	})
+
+	if !r.Stream && !IsClose {
+		if partialResponse.Error != nil {
+			responseError(ctx, partialResponse.Error, r.Stream, r.IsCompletions)
+			return
+		}
+
+		ctx.JSON(200, buildCompletion(r.IsCompletions, partialResponse.Message))
 	}
 
 	// 检查大黄标
@@ -449,6 +543,7 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		model string
 		appId string
 		id    string
+		chain string
 	)
 	switch r.Model {
 	case "claude-2.0", "claude-2":
@@ -463,13 +558,13 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		if len(split) > 1 {
 			appId = split[1]
 		} else {
-			return nil, errors.New("请在请求头中提供app-id")
+			return nil, errors.New("请在请求头中提供appId")
 		}
 	default:
 		return nil, errors.New(I18n("UNKNOWN_MODEL", i18nT) + "`" + r.Model + "`")
 	}
 
-	message, s, err := trimMessage(r.Prompt)
+	message, s, err := trimMessage(r)
 	if err != nil {
 		return nil, err
 	}
@@ -504,11 +599,24 @@ func createConversationContext(token string, r *rj, IsC func() bool) (*types.Con
 		H:       Handle(model, IsC, s.BoH, s.BoS, s.Debug),
 		AppId:   appId,
 		BaseURL: bu,
+		Chain:   chain,
 	}, nil
 }
 
-func trimMessage(prompt string) (string, schema, error) {
-	result := prompt
+func trimMessage(r *rj) (string, schema, error) {
+	result := r.Prompt
+	if (r.Model == "claude-1.0" || r.Model == "claude-2.0") && len(r.Messages) > 0 {
+		for _, message := range r.Messages {
+			switch message["role"] {
+			case "assistant":
+				result += "Assistant: " + message["content"] + "\n\n"
+			case "user":
+				result += "Human: " + message["content"] + "\n\n"
+			default:
+				result += message["content"] + "\n\n"
+			}
+		}
+	}
 	// ====  Schema匹配 =======
 	compileRegex := regexp.MustCompile(`schema\s?\{[^}]*}`)
 	s := schema{
@@ -521,7 +629,7 @@ func trimMessage(prompt string) (string, schema, error) {
 		Debug:     false,
 	}
 
-	matchSlice := compileRegex.FindStringSubmatch(prompt)
+	matchSlice := compileRegex.FindStringSubmatch(r.Prompt)
 	if len(matchSlice) > 0 {
 		str := matchSlice[0]
 		result = strings.Replace(result, str, "", -1)
@@ -551,7 +659,7 @@ func trimMessage(prompt string) (string, schema, error) {
 	}
 
 	// 填充肥料
-	if s.Pile {
+	if s.Pile && (r.Model == "claude-2.0" || r.Model == "claude-2") {
 		pile := globalPile
 		if globalPile == "" {
 			pile = Piles[rand.Intn(len(Piles))]
@@ -569,7 +677,7 @@ func trimMessage(prompt string) (string, schema, error) {
 	return result, s, nil
 }
 
-func responseError(ctx *gin.Context, err error, isStream bool) {
+func responseError(ctx *gin.Context, err error, isStream bool, isCompletions bool) {
 	errMsg := err.Error()
 	if strings.Contains(errMsg, "https://www.linshiyouxiang.net/") {
 		errMsg = I18n("REGISTRATION_FAILED", i18nT)
@@ -589,23 +697,25 @@ func responseError(ctx *gin.Context, err error, isStream bool) {
 	}
 
 	if isStream {
-		marshal, e := json.Marshal(gin.H{
-			"completion": "Error: " + errMsg,
-		})
+		marshal, e := json.Marshal(buildCompletion(isCompletions, "Error: "+errMsg))
 		if e != nil {
 			return
 		}
 		ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
 	} else {
-		ctx.JSON(200, gin.H{
-			"completion": "Error: " + errMsg,
-		})
+		ctx.JSON(200, buildCompletion(isCompletions, "Error: "+errMsg))
 	}
 }
 
-func writeString(ctx *gin.Context, content string) bool {
-	c := strings.ReplaceAll(strings.ReplaceAll(content, "\n", "\\n"), "\"", "\\\"")
-	if _, err := ctx.Writer.Write([]byte("data: {\"completion\": \"" + c + "\"}\n\n")); err != nil {
+func writeString(ctx *gin.Context, content string, isCompletions bool) bool {
+	// c := strings.ReplaceAll(strings.ReplaceAll(content, "\n", "\\n"), "\"", "\\\"")
+	completion := buildCompletion(isCompletions, content)
+	marshal, err := json.Marshal(completion)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return false
+	}
+	if _, err = ctx.Writer.Write([]byte("data: " + string(marshal) + "\n\n")); err != nil {
 		fmt.Println("Error: ", err)
 		return false
 	} else {
@@ -614,10 +724,38 @@ func writeString(ctx *gin.Context, content string) bool {
 	}
 }
 
-func writeDone(ctx *gin.Context) {
+func writeDone(ctx *gin.Context, isCompletions bool) {
+	// 结尾img标签会被吞？？多加几个换行试试
+	var completion string
+	if isCompletions {
+		completion = "data: {\"choices\": [ \"text\": \"\\n\\n\" ]}\n\n"
+	} else {
+		completion = "data: {\"completion\": \"\\n\\n\"}\n\n"
+	}
+	if _, err := ctx.Writer.Write([]byte(completion)); err != nil {
+		fmt.Println("Error: ", err)
+	}
 	if _, err := ctx.Writer.Write([]byte("data: [DONE]")); err != nil {
 		fmt.Println("Error: ", err)
 	}
+}
+
+func buildCompletion(isCompletions bool, message string) gin.H {
+	var completion gin.H
+	if isCompletions {
+		completion = gin.H{
+			"choices": []gin.H{
+				{
+					"message": gin.H{"content": message},
+				},
+			},
+		}
+	} else {
+		completion = gin.H{
+			"completion": message,
+		}
+	}
+	return completion
 }
 
 // 缓存Key

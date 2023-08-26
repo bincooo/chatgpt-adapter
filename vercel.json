@@ -1,0 +1,16 @@
+{
+  "name": "MiaoX",
+  "version": 2,
+  "builds": [
+    {
+      "src": "/cmd/{exec}.go",
+      "use": "@vercel/go"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/.*",
+      "dest": "/cmd/exec.go"
+    }
+  ]
+}
