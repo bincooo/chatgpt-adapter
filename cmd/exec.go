@@ -164,10 +164,6 @@ func Run(cmd *cobra.Command, args []string) {
 		esStr = append(esStr, string(bytes))
 	}
 
-	//if bu == "" {
-	//	bu = "https://chat.claudeai.ai/api"
-	//}
-
 	// 检查网络可用性
 	if proxy != "" {
 		checkNetwork()
@@ -196,6 +192,7 @@ func Run(cmd *cobra.Command, args []string) {
 
 	route.GET("/v1/models", models)
 	route.POST("/v1/complete", complete)
+	route.POST("/risu/v1/complete", completions)
 	route.POST("/v1/chat/completions", completions)
 	addr := ":" + strconv.Itoa(port)
 	fmt.Println("Start by http://127.0.0.1" + addr + "/v1")
@@ -272,14 +269,14 @@ func complete(ctx *gin.Context) {
 
 	token := ctx.Request.Header.Get("X-Api-Key")
 	if err := ctx.BindJSON(&r); err != nil {
-		responseError(ctx, err, r.Stream, false)
+		responseError(ctx, err, r.Stream, false, token)
 		return
 	}
 
 	IsClose := false
 	context, err := createConversationContext(token, &r, func() bool { return IsClose })
 	if err != nil {
-		responseError(ctx, err, r.Stream, false)
+		responseError(ctx, err, r.Stream, false, token)
 		return
 	}
 	partialResponse := manager.Reply(*context, func(response types.PartialResponse) {
@@ -302,7 +299,7 @@ func complete(ctx *gin.Context) {
 					}
 				}
 
-				responseError(ctx, err, r.Stream, false)
+				responseError(ctx, err, r.Stream, false, token)
 				return
 			}
 
@@ -331,7 +328,7 @@ func complete(ctx *gin.Context) {
 
 	if !r.Stream && !IsClose {
 		if partialResponse.Error != nil {
-			responseError(ctx, partialResponse.Error, r.Stream, r.IsCompletions)
+			responseError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token)
 			return
 		}
 
@@ -357,14 +354,14 @@ func completions(ctx *gin.Context) {
 		token = strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
 	}
 	if err := ctx.BindJSON(&r); err != nil {
-		responseError(ctx, err, r.Stream, r.IsCompletions)
+		responseError(ctx, err, r.Stream, r.IsCompletions, token)
 		return
 	}
 
 	IsClose := false
 	context, err := createConversationContext(token, &r, func() bool { return IsClose })
 	if err != nil {
-		responseError(ctx, err, r.Stream, r.IsCompletions)
+		responseError(ctx, err, r.Stream, r.IsCompletions, token)
 		return
 	}
 	partialResponse := manager.Reply(*context, func(response types.PartialResponse) {
@@ -387,7 +384,7 @@ func completions(ctx *gin.Context) {
 					}
 				}
 
-				responseError(ctx, err, r.Stream, r.IsCompletions)
+				responseError(ctx, err, r.Stream, r.IsCompletions, token)
 				return
 			}
 
@@ -416,7 +413,7 @@ func completions(ctx *gin.Context) {
 
 	if !r.Stream && !IsClose {
 		if partialResponse.Error != nil {
-			responseError(ctx, partialResponse.Error, r.Stream, r.IsCompletions)
+			responseError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token)
 			return
 		}
 
@@ -677,20 +674,24 @@ func trimMessage(r *rj) (string, schema, error) {
 	return result, s, nil
 }
 
-func responseError(ctx *gin.Context, err error, isStream bool, isCompletions bool) {
+func responseError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string) {
 	errMsg := err.Error()
+	if strings.Contains(errMsg, "failed to fetch the `organizationId`") {
+		cleanToken(token)
+	}
+
 	if strings.Contains(errMsg, "https://www.linshiyouxiang.net/") {
 		errMsg = I18n("REGISTRATION_FAILED", i18nT)
 	} else if strings.Contains(errMsg, "Account in read-only mode") {
-		globalToken = ""
+		cleanToken(token)
 		errMsg = I18n("ERROR_ACCOUNT_LOCKED", i18nT)
 	} else if strings.Contains(errMsg, "rate_limit_error") {
-		globalToken = ""
+		cleanToken(token)
 		errMsg = I18n("ERROR_ACCOUNT_LIMITED", i18nT)
 	} else if strings.Contains(errMsg, "connection refused") {
 		errMsg = I18n("ERROR_NETWORK", i18nT)
 	} else if strings.Contains(errMsg, "Account has not completed verification") {
-		globalToken = ""
+		cleanToken(token)
 		errMsg = I18n("ACCOUNT_SMS_VERIFICATION", i18nT)
 	} else {
 		errMsg += "\n\n" + I18n("ERROR_OTHER", i18nT)
@@ -704,6 +705,12 @@ func responseError(ctx *gin.Context, err error, isStream bool, isCompletions boo
 		ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
 	} else {
 		ctx.JSON(200, buildCompletion(isCompletions, "Error: "+errMsg))
+	}
+}
+
+func cleanToken(token string) {
+	if token == "auto" {
+		globalToken = ""
 	}
 }
 
