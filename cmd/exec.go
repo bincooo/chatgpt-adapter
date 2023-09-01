@@ -391,20 +391,24 @@ func completions(ctx *gin.Context) {
 			if len(response.Message) > 0 {
 				select {
 				case <-ctx.Request.Context().Done():
+					fmt.Println("Warning: 请求已被SillTavern关闭（Context.Done）")
 					IsClose = true
 				default:
 					if !writeString(ctx, response.Message, r.IsCompletions) {
+						fmt.Println("Warning: 请求已被SillTavern关闭（writeString）")
 						IsClose = true
 					}
 				}
 			}
 
 			if response.Status == vars.Closed {
+				fmt.Println("--- 请求结束，Claude连接关闭 ---")
 				writeDone(ctx, r.IsCompletions)
 			}
 		} else {
 			select {
 			case <-ctx.Request.Context().Done():
+				fmt.Println("Warning: 请求已被SillTavern关闭")
 				IsClose = true
 			default:
 			}
@@ -676,7 +680,8 @@ func trimMessage(r *rj) (string, schema, error) {
 
 func responseError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string) {
 	errMsg := err.Error()
-	if strings.Contains(errMsg, "failed to fetch the `organizationId`") {
+	if strings.Contains(errMsg, "failed to fetch the `organizationId`") ||
+		strings.Contains(errMsg, "failed to fetch the `conversationId`") {
 		cleanToken(token)
 	}
 
