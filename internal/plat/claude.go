@@ -7,12 +7,25 @@ import (
 	"github.com/bincooo/claude-api"
 	clTypes "github.com/bincooo/claude-api/types"
 	clVars "github.com/bincooo/claude-api/vars"
+	"os"
 	"strings"
 )
 
 const (
 	ClackTyping = "_Typing…_"
 )
+
+var (
+	deleteHistory = loadEnvBool("DELETE_HISTORY", false)
+)
+
+func loadEnvBool(key string, defaultValue bool) bool {
+	value, exists := os.LookupEnv(key)
+	if !exists || value == "" {
+		return defaultValue
+	}
+	return strings.TrimSpace(strings.ToLower(value)) == "true"
+}
 
 type ClaudeBot struct {
 	sessions map[string]clTypes.Chat
@@ -130,9 +143,17 @@ func (bot *ClaudeBot) Reply(ctx types.ConversationContext) chan types.PartialRes
 }
 
 func (bot *ClaudeBot) Remove(id string) bool {
-	delete(bot.sessions, id)
-	for key, _ := range bot.sessions {
+	if session, ok := bot.sessions[id]; ok {
+		if deleteHistory {
+			go session.Delete()
+		}
+		delete(bot.sessions, id)
+	}
+	for key, se := range bot.sessions {
 		if strings.HasPrefix(id+"$", key) {
+			if deleteHistory {
+				go se.Delete()
+			}
 			delete(bot.sessions, key)
 		}
 	}
