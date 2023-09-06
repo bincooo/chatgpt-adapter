@@ -42,10 +42,6 @@ en = "Failed to generate 'sessionKey'"
 zh = "生成`sessionKey`"
 en = "Generate `sessionKey`"
 
-[REGISTRATION_FAILED]
-zh = "邮箱注册失败，请检查网络是否可访问: https://www.linshiyouxiang.net"
-en = "Registration failed, please check whether the network is accessible: https://www.linshiyouxiang.net"
-
 [ERROR_ACCOUNT_LOCKED]
 zh = "账户已被锁定，请尝试更换"
 en = "Your account has been locked, please try to replace it"

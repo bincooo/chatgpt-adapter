@@ -40,7 +40,7 @@ func init() {
 }
 
 func main() {
-	manager := MiaoX.NewBotManager()
+	manager := AutoAI.NewBotManager()
 	context := Context()
 	for {
 		fmt.Println("\n\nUser：")

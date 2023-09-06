@@ -37,7 +37,7 @@ func init() {
 }
 
 func main() {
-	lmt := MiaoX.NewCommonLimiter()
+	lmt := AutoAI.NewCommonLimiter()
 	if err := lmt.RegChain("embellish", &EmbellishInterceptor{}); err != nil {
 		panic(err)
 	}
