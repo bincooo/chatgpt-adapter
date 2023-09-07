@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
 	"github.com/bincooo/claude-api/util"
@@ -155,7 +156,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 	if err != nil {
 		return nil, err
 	}
-	logrus.Info("-----------------------Response-----------------\n", message, "\n--------------------END-------------------")
+	fmt.Println("-----------------------Response-----------------\n", message, "\n--------------------END-------------------")
 	logrus.Info("Schema: ", s)
 	if token == "auto" && cmdvars.GlobalToken == "" {
 		muLock.Lock()

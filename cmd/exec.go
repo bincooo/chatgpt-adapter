@@ -40,7 +40,7 @@ func main() {
 func Exec() {
 	types.CacheWaitTimeout = 0
 	types.CacheMessageL = 14
-	plat.Timeout = 3 * time.Minute // 3分钟超时，怎么的也够了吧
+	plat.Timeout = 5 * time.Minute // 5分钟超时，怎么的也够了吧
 
 	var rootCmd = &cobra.Command{
 		Use:     "MiaoX",
@@ -173,7 +173,7 @@ func completions(ctx *gin.Context) {
 	case "claude-1.0", "claude-1.2", "claude-1.3":
 		cmdutil.DoClaudeComplete(ctx, token, &r)
 	case "BingAI":
-		cmdutil.DoBingAIComplete(ctx, &r)
+		cmdutil.DoBingAIComplete(ctx, token, &r)
 	default:
 		cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, true)
 	}

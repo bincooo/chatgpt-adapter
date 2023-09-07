@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	cmdtypes "github.com/bincooo/AutoAI/cmd/types"
 	cmdvars "github.com/bincooo/AutoAI/cmd/vars"
 	"github.com/bincooo/AutoAI/store"
@@ -19,9 +20,12 @@ func init() {
 	bingAIToken = LoadEnvVar("BING_TOKEN", "")
 }
 
-func DoBingAIComplete(ctx *gin.Context, r *cmdtypes.RequestDTO) {
+func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	//IsClose := false
-	context, err := createBingAIConversation(r, bingAIToken)
+	if token == "" || token == "auto" {
+		token = bingAIToken
+	}
+	context, err := createBingAIConversation(r, token)
 	if err != nil {
 		ResponseError(ctx, err.Error(), r.Stream, r.IsCompletions)
 		return
@@ -103,7 +107,7 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.Conv
 			if content == "[Start a new Chat]" {
 				continue
 			}
-			temp += "\n" + content
+			temp += "\n\n" + content
 			continue
 		}
 
@@ -134,12 +138,22 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.Conv
 		author = role
 		temp = item["content"]
 		if idx == len(r.Messages)-1 {
+			_author := ""
+			if author == "system" || author == "user" {
+				_author = "user"
+			} else {
+				_author = "bot"
+			}
+			if l := len(messages); l > 0 && messages[l-1]["author"] == _author {
+				messages[l-1]["text"] += "\n\n" + temp
+				continue
+			}
 			idx++
 			goto label
 		}
 	}
 
-	for idx := len(messages) - 1; idx >= 0; idx++ {
+	for idx := len(messages) - 1; idx >= 0; idx-- {
 		item := messages[idx]
 		if item["author"] == "user" {
 			message = item["text"]
@@ -148,10 +162,10 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.Conv
 		}
 	}
 
+	description := ""
 	if l := len(messages); l > vars.BingMaxMessage-2 {
 		mergeMessages := messages[0 : l-(vars.BingMaxMessage-4)]
 
-		description := ""
 		for _, item := range mergeMessages {
 			switch item["author"] {
 			case "user":
@@ -180,6 +194,22 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.Conv
 	if message == "" {
 		message = "continue"
 	}
+
+	ms := messages
+	if len(description) > 0 {
+		ms = messages[1:]
+	}
+
+	fmt.Println("-----------------------Response-----------------\n",
+		"-----------------------「 预设区 」-----------------------\n",
+		preset,
+		"\n\n\n-----------------------「 history.md 」-----------------------\n",
+		description,
+		"\n\n\n-----------------------「 对话记录 」-----------------------\n",
+		ms,
+		"\n\n\n-----------------------「 当前对话 」-----------------------\n",
+		message,
+		"\n--------------------END-------------------")
 	return &types.ConversationContext{
 		Id:      id,
 		Token:   token,
