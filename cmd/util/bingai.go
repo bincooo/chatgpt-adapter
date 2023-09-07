@@ -8,6 +8,7 @@ import (
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 var (
@@ -75,11 +76,11 @@ func DoBingAIComplete(ctx *gin.Context, r *cmdtypes.RequestDTO) {
 
 func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.ConversationContext, error) {
 	var (
-		id      = "BingAISydney"
+		id      = "BingAI-" + uuid.NewString()
 		bot     string
 		model   string
 		appId   string
-		chain   string = "bing"
+		chain   string
 		message string
 		preset  string
 	)
