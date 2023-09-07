@@ -4,8 +4,9 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.0.0
+	github.com/bincooo/MiaoX v1.0.11
 	github.com/bincooo/claude-api v1.0.2-0.20230902083839-15b67d72b01e
-	github.com/bincooo/edge-api v1.0.1-0.20230802114429-540584b80e1b
+	github.com/bincooo/edge-api v1.0.1-0.20230907115547-637b19ee15c6
 	github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f
 	github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e
 	github.com/gin-gonic/gin v1.9.1
@@ -23,7 +24,6 @@ require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/acheong08/OpenAIAuth v0.0.0-20230625142757-7b01ccd04f63 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
-	github.com/bincooo/MiaoX v1.0.11 // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/bogdanfinn/fhttp v0.5.19 // indirect
 	github.com/bogdanfinn/tls-client v1.3.8 // indirect
