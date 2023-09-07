@@ -3,7 +3,7 @@ package util
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bincooo/MiaoX/cmd/vars"
+	"github.com/bincooo/AutoAI/cmd/vars"
 	"github.com/bincooo/requests"
 	"github.com/bincooo/requests/url"
 	"github.com/gin-gonic/gin"

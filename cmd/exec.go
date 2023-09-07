@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/bincooo/MiaoX/internal/plat"
-	"github.com/bincooo/MiaoX/types"
+	"github.com/bincooo/AutoAI/internal/plat"
+	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/claude-api/util"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	cmdtypes "github.com/bincooo/MiaoX/cmd/types"
-	cmdutil "github.com/bincooo/MiaoX/cmd/util"
-	cmdvars "github.com/bincooo/MiaoX/cmd/vars"
+	cmdtypes "github.com/bincooo/AutoAI/cmd/types"
+	cmdutil "github.com/bincooo/AutoAI/cmd/util"
+	cmdvars "github.com/bincooo/AutoAI/cmd/vars"
 )
 
 var (

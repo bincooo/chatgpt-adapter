@@ -3,8 +3,8 @@ package plat
 import (
 	"context"
 	"errors"
-	"github.com/bincooo/MiaoX/types"
-	"github.com/bincooo/MiaoX/vars"
+	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/vars"
 	chat "github.com/bincooo/openai-wapi"
 	"github.com/sirupsen/logrus"
 	"io"

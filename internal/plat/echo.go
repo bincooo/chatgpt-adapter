@@ -1,7 +1,7 @@
 package plat
 
 import (
-	"github.com/bincooo/MiaoX/types"
+	"github.com/bincooo/AutoAI/types"
 	"strconv"
 	"time"
 )

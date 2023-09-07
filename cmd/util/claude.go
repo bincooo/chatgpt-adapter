@@ -3,8 +3,8 @@ package util
 import (
 	"encoding/json"
 	"errors"
-	"github.com/bincooo/MiaoX/types"
-	"github.com/bincooo/MiaoX/vars"
+	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/vars"
 	"github.com/bincooo/claude-api/util"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -15,8 +15,8 @@ import (
 	"strings"
 	"sync"
 
-	cmdtypes "github.com/bincooo/MiaoX/cmd/types"
-	cmdvars "github.com/bincooo/MiaoX/cmd/vars"
+	cmdtypes "github.com/bincooo/AutoAI/cmd/types"
+	cmdvars "github.com/bincooo/AutoAI/cmd/vars"
 	clTypes "github.com/bincooo/claude-api/types"
 )
 

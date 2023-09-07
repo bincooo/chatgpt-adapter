@@ -2,8 +2,8 @@ package AutoAI
 
 import (
 	"errors"
-	"github.com/bincooo/MiaoX/types"
-	"github.com/bincooo/MiaoX/vars"
+	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/vars"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"time"

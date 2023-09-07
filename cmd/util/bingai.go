@@ -2,11 +2,11 @@ package util
 
 import (
 	"errors"
-	cmdtypes "github.com/bincooo/MiaoX/cmd/types"
-	cmdvars "github.com/bincooo/MiaoX/cmd/vars"
-	"github.com/bincooo/MiaoX/store"
-	"github.com/bincooo/MiaoX/types"
-	"github.com/bincooo/MiaoX/vars"
+	cmdtypes "github.com/bincooo/AutoAI/cmd/types"
+	cmdvars "github.com/bincooo/AutoAI/cmd/vars"
+	"github.com/bincooo/AutoAI/store"
+	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/vars"
 	"github.com/gin-gonic/gin"
 )
 

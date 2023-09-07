@@ -2,8 +2,8 @@ package plat
 
 import (
 	"context"
-	"github.com/bincooo/MiaoX/types"
-	"github.com/bincooo/MiaoX/vars"
+	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/vars"
 	"github.com/bincooo/claude-api"
 	clTypes "github.com/bincooo/claude-api/types"
 	clVars "github.com/bincooo/claude-api/vars"

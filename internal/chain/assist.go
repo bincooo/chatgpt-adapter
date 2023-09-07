@@ -1,9 +1,9 @@
 package chain
 
 import (
-	"github.com/bincooo/MiaoX/store"
-	"github.com/bincooo/MiaoX/types"
-	"github.com/bincooo/MiaoX/utils"
+	"github.com/bincooo/AutoAI/store"
+	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/utils"
 	"github.com/jinzhu/copier"
 	"github.com/sirupsen/logrus"
 	"time"

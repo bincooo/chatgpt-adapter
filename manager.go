@@ -2,11 +2,11 @@ package AutoAI
 
 import (
 	"errors"
-	"github.com/bincooo/MiaoX/internal/chain"
-	"github.com/bincooo/MiaoX/internal/plat"
-	"github.com/bincooo/MiaoX/store"
-	"github.com/bincooo/MiaoX/types"
-	"github.com/bincooo/MiaoX/vars"
+	"github.com/bincooo/AutoAI/internal/chain"
+	"github.com/bincooo/AutoAI/internal/plat"
+	"github.com/bincooo/AutoAI/store"
+	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/vars"
 	"github.com/sirupsen/logrus"
 	"strings"
 )

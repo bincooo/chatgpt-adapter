@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/bincooo/MiaoX/vars"
+	"github.com/bincooo/AutoAI/vars"
 	"time"
 )
 

@@ -2,7 +2,7 @@ package vars
 
 import (
 	"github.com/BurntSushi/toml"
-	AutoAI "github.com/bincooo/MiaoX"
+	AutoAI "github.com/bincooo/AutoAI"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 )

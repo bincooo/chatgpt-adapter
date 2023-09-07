@@ -1,9 +1,9 @@
 package chain
 
 import (
-	"github.com/bincooo/MiaoX/store"
-	"github.com/bincooo/MiaoX/types"
-	"github.com/bincooo/MiaoX/vars"
+	"github.com/bincooo/AutoAI/store"
+	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/vars"
 	"strings"
 )
 
