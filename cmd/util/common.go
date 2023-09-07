@@ -53,7 +53,7 @@ func WriteDone(ctx *gin.Context, isCompletions bool) {
 	// 结尾img标签会被吞？？多加几个换行试试
 	var completion string
 	if isCompletions {
-		completion = "data: {\"choices\": [ { \"message\": \"content\": \"\\n\\n\" } ]}\n\n"
+		completion = "data: {\"choices\": [ { \"message\": {\"content\": \"\\n\\n\"} } ]}\n\n"
 	} else {
 		completion = "data: {\"completion\": \"\\n\\n\"}\n\n"
 	}

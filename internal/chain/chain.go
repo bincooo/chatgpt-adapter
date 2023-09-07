@@ -11,7 +11,6 @@ type Chain struct {
 
 func New() *Chain {
 	return &Chain{map[string]types.Interceptor{
-		"bing":    &BingInterceptor{},
 		"cache":   &CacheInterceptor{},
 		"assist":  &AssistInterceptor{},
 		"replace": &ReplaceInterceptor{},

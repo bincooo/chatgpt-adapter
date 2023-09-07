@@ -151,6 +151,8 @@ func complete(ctx *gin.Context) {
 	case "claude-2.0", "claude-2":
 	case "claude-1.0", "claude-1.2", "claude-1.3":
 		cmdutil.DoClaudeComplete(ctx, token, &r)
+	default:
+		cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, false)
 	}
 }
 
@@ -170,5 +172,9 @@ func completions(ctx *gin.Context) {
 	case "claude-2.0", "claude-2":
 	case "claude-1.0", "claude-1.2", "claude-1.3":
 		cmdutil.DoClaudeComplete(ctx, token, &r)
+	case "BingAI":
+		cmdutil.DoBingAIComplete(ctx, &r)
+	default:
+		cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, true)
 	}
 }

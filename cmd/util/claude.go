@@ -54,7 +54,7 @@ type schema struct {
 
 func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	IsClose := false
-	context, err := createConversationContext(token, r, func() bool { return IsClose })
+	context, err := createClaudeConversation(token, r, func() bool { return IsClose })
 	if err != nil {
 		responseClaudeError(ctx, err, r.Stream, false, token)
 		return
@@ -124,7 +124,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	}
 }
 
-func createConversationContext(token string, r *cmdtypes.RequestDTO, IsC func() bool) (*types.ConversationContext, error) {
+func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() bool) (*types.ConversationContext, error) {
 	var (
 		bot   string
 		model string
@@ -183,7 +183,7 @@ func createConversationContext(token string, r *cmdtypes.RequestDTO, IsC func() 
 		Bot:     bot,
 		Model:   model,
 		Proxy:   cmdvars.Proxy,
-		H:       Handle(model, IsC, s.BoH, s.BoS, s.Debug),
+		H:       claudeHandle(model, IsC, s.BoH, s.BoS, s.Debug),
 		AppId:   appId,
 		BaseURL: cmdvars.Bu,
 		Chain:   chain,
@@ -264,7 +264,7 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	return result, s, nil
 }
 
-func Handle(model string, IsC func() bool, boH, boS, debug bool) func(rChan any) func(*types.CacheBuffer) error {
+func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) func(rChan any) func(*types.CacheBuffer) error {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		pos := 0
 		begin := false
