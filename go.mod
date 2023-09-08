@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/bincooo/MiaoX v1.0.11
 	github.com/bincooo/claude-api v1.0.2-0.20230902083839-15b67d72b01e
-	github.com/bincooo/edge-api v1.0.1-0.20230907115547-637b19ee15c6
+	github.com/bincooo/edge-api v1.0.1-0.20230908021143-a4f8f6b5edeb
 	github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f
 	github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e
 	github.com/gin-gonic/gin v1.9.1

@@ -141,15 +141,15 @@ func models(ctx *gin.Context) {
 
 func complete(ctx *gin.Context) {
 	var r cmdtypes.RequestDTO
-
+	r.IsCompletions = false
 	token := ctx.Request.Header.Get("X-Api-Key")
 	if err := ctx.BindJSON(&r); err != nil {
 		cmdutil.ResponseError(ctx, err.Error(), r.Stream, false)
 		return
 	}
 	switch r.Model {
-	case "claude-2.0", "claude-2":
-	case "claude-1.0", "claude-1.2", "claude-1.3":
+	case "claude-2.0", "claude-2",
+		"claude-1.0", "claude-1.2", "claude-1.3":
 		cmdutil.DoClaudeComplete(ctx, token, &r)
 	default:
 		cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, false)
@@ -169,8 +169,8 @@ func completions(ctx *gin.Context) {
 		return
 	}
 	switch r.Model {
-	case "claude-2.0", "claude-2":
-	case "claude-1.0", "claude-1.2", "claude-1.3":
+	case "claude-2.0", "claude-2",
+		"claude-1.0", "claude-1.2", "claude-1.3":
 		cmdutil.DoClaudeComplete(ctx, token, &r)
 	case "BingAI":
 		cmdutil.DoBingAIComplete(ctx, token, &r)

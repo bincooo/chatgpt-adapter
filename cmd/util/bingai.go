@@ -8,16 +8,20 @@ import (
 	"github.com/bincooo/AutoAI/store"
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
+	"github.com/bincooo/edge-api/util"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"strings"
 )
 
 var (
+	bingBaseURL = ""
 	bingAIToken = ""
 )
 
 func init() {
 	bingAIToken = LoadEnvVar("BING_TOKEN", "")
+	bingBaseURL = LoadEnvVar("BING_BASE_URL", "")
 }
 
 func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
@@ -27,13 +31,13 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	}
 	context, err := createBingAIConversation(r, token)
 	if err != nil {
-		ResponseError(ctx, err.Error(), r.Stream, r.IsCompletions)
+		responseBingAIError(ctx, err, r.Stream, r.IsCompletions, token)
 		return
 	}
 	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
 		if r.Stream {
 			if response.Error != nil {
-				ResponseError(ctx, response.Error.Error(), r.Stream, r.IsCompletions)
+				responseBingAIError(ctx, response.Error, r.Stream, r.IsCompletions, token)
 				return
 			}
 
@@ -69,7 +73,7 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	})
 	if !r.Stream {
 		if partialResponse.Error != nil {
-			ResponseError(ctx, partialResponse.Error.Error(), r.Stream, r.IsCompletions)
+			responseBingAIError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token)
 			return
 		}
 
@@ -219,7 +223,27 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.Conv
 		Model:   model,
 		Proxy:   cmdvars.Proxy,
 		AppId:   appId,
-		BaseURL: "https://edge.zjcs666.icu",
+		BaseURL: bingBaseURL,
 		Chain:   chain,
 	}, nil
+}
+
+func responseBingAIError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string) {
+	errMsg := err.Error()
+	if strings.Contains(errMsg, "User needs to solve CAPTCHA to continue") {
+		errMsg = "用户需要人机验证...  已尝试自动验证，若重新生成文本无效请手动验证。"
+		if strings.Contains(token, "_U=") {
+			split := strings.Split(token, ";")
+			for _, item := range split {
+				if strings.Contains(item, "_U=") {
+					token = strings.TrimSpace(strings.ReplaceAll(item, "_U=", ""))
+					break
+				}
+			}
+		}
+		if e := util.SolveCaptcha(token); e != nil {
+			errMsg += "\n\n" + e.Error()
+		}
+	}
+	ResponseError(ctx, errMsg, isStream, isCompletions)
 }

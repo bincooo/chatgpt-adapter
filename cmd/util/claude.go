@@ -57,7 +57,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	IsClose := false
 	context, err := createClaudeConversation(token, r, func() bool { return IsClose })
 	if err != nil {
-		responseClaudeError(ctx, err, r.Stream, false, token)
+		responseClaudeError(ctx, err, r.Stream, r.IsCompletions, token)
 		return
 	}
 	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
@@ -80,7 +80,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 					}
 				}
 
-				responseClaudeError(ctx, err, r.Stream, false, token)
+				responseClaudeError(ctx, err, r.Stream, r.IsCompletions, token)
 				return
 			}
 
