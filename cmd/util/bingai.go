@@ -149,7 +149,12 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.Conv
 				_author = "bot"
 			}
 			if l := len(messages); l > 0 && messages[l-1]["author"] == _author {
-				messages[l-1]["text"] += "\n\n" + temp
+				if strings.Contains(temp, "<rule>") {
+					messages[l-1]["text"] = temp + "\n\n" + messages[l-1]["text"]
+				} else {
+					messages[l-1]["text"] += "\n\n" + temp
+				}
+
 				continue
 			}
 			idx++

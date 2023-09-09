@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/bincooo/MiaoX"
-	"github.com/bincooo/MiaoX/types"
-	"github.com/bincooo/MiaoX/vars"
+	"github.com/bincooo/AutoAI"
+	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/vars"
 	"github.com/sirupsen/logrus"
 	"time"
 )
