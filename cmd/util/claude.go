@@ -58,12 +58,12 @@ type schema struct {
 
 func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	IsClose := false
-	context, err := createClaudeConversation(token, r, func() bool { return IsClose })
+	cctx, err := createClaudeConversation(token, r, func() bool { return IsClose })
 	if err != nil {
 		responseClaudeError(ctx, err, r.Stream, r.IsCompletions, token)
 		return
 	}
-	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
+	partialResponse := cmdvars.Manager.Reply(*cctx, func(response types.PartialResponse) {
 		if r.Stream {
 			if response.Status == vars.Begin {
 				ctx.Status(200)
@@ -120,7 +120,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	}
 
 	// 检查大黄标
-	if token == "auto" && context.Model == vars.Model4WebClaude2S {
+	if token == "auto" && cctx.Model == vars.Model4WebClaude2S {
 		if strings.Contains(partialResponse.Message, HARM) {
 			cmdvars.GlobalToken = ""
 			logrus.Warn(cmdvars.I18n("HARM"))

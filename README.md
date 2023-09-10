@@ -124,6 +124,20 @@ tips：
 
 New: 
 
+（2023-09-11）已适配open ai api请求格式，可接入到基于opanai的任何app或者web
+<details>
+<summary>BingAI/Claude2接入到chatgpt-next-web</summary>
+<img src="resources/%E6%88%AA%E5%B1%8F2023-09-11%2005.01.49.png"  />
+<img src="resources/%E6%88%AA%E5%B1%8F2023-09-11%2005.03.52.png"  />
+</details>
+
+<details>
+<summary>Claude2接入到RisuAI</summary>
+<img src="resources/%E6%88%AA%E5%B1%8F2023-09-11%2005.24.59.png"  />
+<img src="resources/%E6%88%AA%E5%B1%8F2023-09-11%2005.25.07.png"  />
+</details>
+
+
 （2023-08-18）废料填充， 默认开启。提供自定义废料文本。添加代理自检
 
 ```tex

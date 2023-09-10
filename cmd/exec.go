@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -107,6 +108,8 @@ func Run(*cobra.Command, []string) {
 		c.Next()
 	})
 
+	route.Use(crosHandler())
+
 	route.GET("/v1/models", models)
 	route.POST("/v1/complete", complete)
 	route.POST("/v1/chat/completions", completions)
@@ -115,6 +118,26 @@ func Run(*cobra.Command, []string) {
 	if err := route.Run(addr); err != nil {
 		logrus.Error(err)
 		os.Exit(1)
+	}
+}
+
+func crosHandler() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		method := context.Request.Method
+		context.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		context.Header("Access-Control-Allow-Origin", "*") // 设置允许访问所有域
+		context.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE,UPDATE")
+		context.Header("Access-Control-Allow-Headers", "*")
+		context.Header("Access-Control-Expose-Headers", "*")
+		context.Header("Access-Control-Max-Age", "172800")
+		context.Header("Access-Control-Allow-Credentials", "false")
+		context.Set("content-type", "application/json")
+
+		if method == "OPTIONS" {
+			context.JSON(http.StatusOK, gin.H{"code": 200, "data": "Options Request!"})
+		}
+		//处理请求
+		context.Next()
 	}
 }
 
@@ -158,6 +181,7 @@ func complete(ctx *gin.Context) {
 		cmdutil.ResponseError(ctx, err.Error(), r.Stream, false)
 		return
 	}
+
 	switch r.Model {
 	case "claude-2.0", "claude-2",
 		"claude-1.0", "claude-1.2", "claude-1.3":

@@ -101,66 +101,7 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.Conv
 	}
 
 	var messages []store.Kv
-	temp := ""
-	author := ""
-
-	for idx, item := range r.Messages {
-		role := item["role"]
-		if author == role {
-			content := item["content"]
-			if content == "[Start a new Chat]" {
-				continue
-			}
-			temp += "\n\n" + content
-			continue
-		}
-
-	label:
-		if temp != "" {
-			switch author {
-			case "system":
-				if len(messages) == 0 {
-					preset = temp
-					author = role
-					temp = item["content"]
-					continue
-				}
-				fallthrough
-			case "user":
-				messages = append(messages, store.Kv{
-					"author": "user",
-					"text":   temp,
-				})
-			case "assistant":
-				messages = append(messages, store.Kv{
-					"author": "bot",
-					"text":   temp,
-				})
-			}
-		}
-
-		author = role
-		temp = item["content"]
-		if idx == len(r.Messages)-1 {
-			_author := ""
-			if author == "system" || author == "user" {
-				_author = "user"
-			} else {
-				_author = "bot"
-			}
-			if l := len(messages); l > 0 && messages[l-1]["author"] == _author {
-				if strings.Contains(temp, "<rule>") {
-					messages[l-1]["text"] = temp + "\n\n" + messages[l-1]["text"]
-				} else {
-					messages[l-1]["text"] += "\n\n" + temp
-				}
-
-				continue
-			}
-			idx++
-			goto label
-		}
-	}
+	messages, preset = bingAIMessageConversion(r)
 
 	for idx := len(messages) - 1; idx >= 0; idx-- {
 		item := messages[idx]
@@ -231,6 +172,83 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.Conv
 		BaseURL: bingBaseURL,
 		Chain:   chain,
 	}, nil
+}
+
+func bingAIMessageConversion(r *cmdtypes.RequestDTO) ([]store.Kv, string) {
+	var messages []store.Kv
+	var preset string
+	temp := ""
+	author := ""
+
+	// 遍历归类
+	for _, item := range r.Messages {
+		role := item["role"]
+		if author == role {
+			content := item["content"]
+			if content == "[Start a new Chat]" {
+				continue
+			}
+			temp += "\n\n" + content
+			continue
+		}
+
+		if temp != "" {
+			switch author {
+			case "system":
+				if len(messages) == 0 {
+					preset = temp
+					author = role
+					temp = item["content"]
+					continue
+				}
+				fallthrough
+			case "user":
+				messages = append(messages, store.Kv{
+					"author": "user",
+					"text":   temp,
+				})
+			case "assistant":
+				messages = append(messages, store.Kv{
+					"author": "bot",
+					"text":   temp,
+				})
+			}
+		}
+
+		author = role
+		temp = item["content"]
+	}
+
+	// 最后一次循环的文本
+	if temp != "" {
+		_author := ""
+		if author == "system" || author == "user" {
+			_author = "user"
+		} else {
+			_author = "bot"
+		}
+		if l := len(messages); l > 0 && messages[l-1]["author"] == _author {
+			if strings.Contains(temp, "<rule>") { // 特殊标记特殊处理
+				messages[l-1]["text"] = temp + "\n\n" + messages[l-1]["text"]
+			} else {
+				messages[l-1]["text"] += "\n\n" + temp
+			}
+		} else {
+			switch _author {
+			case "user":
+				messages = append(messages, store.Kv{
+					"author": "user",
+					"text":   temp,
+				})
+			case "bot":
+				messages = append(messages, store.Kv{
+					"author": "bot",
+					"text":   temp,
+				})
+			}
+		}
+	}
+	return messages, preset
 }
 
 func responseBingAIError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string) {

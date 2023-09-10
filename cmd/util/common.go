@@ -15,6 +15,13 @@ import (
 	"time"
 )
 
+const (
+	// 回车
+	Enter = "\u000A"
+	// 双引号
+	DQM = "\u0022"
+)
+
 func CleanToken(token string) {
 	if token == "auto" {
 		vars.GlobalToken = ""
@@ -53,9 +60,9 @@ func WriteDone(ctx *gin.Context, isCompletions bool) {
 	// 结尾img标签会被吞？？多加几个换行试试
 	var completion string
 	if isCompletions {
-		completion = "data: {\"choices\": [ { \"message\": {\"content\": \"\\n\\n\"} } ]}\n\n"
+		completion = "data: {\"choices\": [ { \"message\": {\"content\": \"" + Enter + Enter + "\"} } ]}\n\n"
 	} else {
-		completion = "data: {\"completion\": \"\\n\\n\"}\n\n"
+		completion = "data: {\"completion\": \"" + Enter + Enter + "\"}\n\n"
 	}
 	if _, err := ctx.Writer.Write([]byte(completion)); err != nil {
 		logrus.Error(err)
@@ -67,11 +74,16 @@ func WriteDone(ctx *gin.Context, isCompletions bool) {
 
 func BuildCompletion(isCompletions bool, message string) gin.H {
 	var completion gin.H
+	message = strings.ReplaceAll(message, "\n", Enter)
+	message = strings.ReplaceAll(message, "\"", DQM)
 	if isCompletions {
+		content := gin.H{"content": message}
 		completion = gin.H{
 			"choices": []gin.H{
 				{
-					"message": gin.H{"content": message},
+					"role":    "assistant",
+					"message": content,
+					"delta":   content,
 				},
 			},
 		}
