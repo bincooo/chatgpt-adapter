@@ -1,11 +1,13 @@
 package util
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
+	"github.com/bincooo/claude-api"
 	"github.com/bincooo/claude-api/util"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -18,7 +20,8 @@ import (
 
 	cmdtypes "github.com/bincooo/AutoAI/cmd/types"
 	cmdvars "github.com/bincooo/AutoAI/cmd/vars"
-	clTypes "github.com/bincooo/claude-api/types"
+	cltypes "github.com/bincooo/claude-api/types"
+	clvars "github.com/bincooo/claude-api/vars"
 )
 
 var (
@@ -71,7 +74,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 			}
 
 			if response.Error != nil {
-				var e *clTypes.Claude2Error
+				var e *cltypes.Claude2Error
 				ok := errors.As(response.Error, &e)
 				err = response.Error
 				if ok && token == "auto" {
@@ -162,13 +165,24 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 		muLock.Lock()
 		defer muLock.Unlock()
 		if cmdvars.GlobalToken == "" {
+			var cnt = 2 // 重试次数
+		label:
 			var email string
 			email, cmdvars.GlobalToken, err = util.LoginFor(cmdvars.Bu, cmdvars.Suffix, cmdvars.Proxy)
 			if err != nil {
 				logrus.Error(cmdvars.I18n("FAILED_GENERATE_SESSION_KEY")+"： email ---"+email, err)
 				return nil, err
 			}
-			logrus.Info(cmdvars.I18n("GENERATE_SESSION_KEY") + "： email --- " + email + ", sessionKey --- " + cmdvars.GlobalToken)
+
+			err = ClaudeTestMessage(token)
+			if err != nil {
+				// logrus.Error("Error: ", email, err)
+				if cnt > 0 {
+					cnt--
+					goto label
+				}
+			}
+			logrus.Info(cmdvars.I18n("GENERATE_SESSION_KEY") + "：available -- " + strconv.FormatBool(err == nil) + " email --- " + email + ", sessionKey --- " + cmdvars.GlobalToken)
 			CacheKey("CACHE_KEY", cmdvars.GlobalToken)
 		}
 	}
@@ -270,7 +284,7 @@ func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) func(rCha
 		pos := 0
 		begin := false
 		beginIndex := -1
-		partialResponse := rChan.(chan clTypes.PartialResponse)
+		partialResponse := rChan.(chan cltypes.PartialResponse)
 		return func(self *types.CacheBuffer) error {
 			response, ok := <-partialResponse
 			if !ok {
@@ -305,7 +319,7 @@ func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) func(rCha
 
 			mergeMessage := self.Complete + self.Cache
 			if debug {
-				logrus.Info(
+				fmt.Println(
 					"-------------- stream ----------------\n[debug]: ",
 					mergeMessage,
 					"\n------- cache ------\n",
@@ -328,7 +342,7 @@ func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) func(rCha
 
 			if begin {
 				if debug {
-					logrus.Info(
+					fmt.Println(
 						"-------------- H: S: ----------------\n[debug]: {H:"+strconv.Itoa(strings.LastIndex(mergeMessage, H))+"}, ",
 						"{S:"+strconv.Itoa(strings.LastIndex(mergeMessage, S))+"}",
 						"\n--------------------------------------")
@@ -357,7 +371,7 @@ func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) func(rCha
 	}
 }
 
-func handleClaudeError(err *clTypes.Claude2Error) (msg string) {
+func handleClaudeError(err *cltypes.Claude2Error) (msg string) {
 	if err.ErrorType.Message == "Account in read-only mode" {
 		cmdvars.GlobalToken = ""
 		msg = cmdvars.I18n("ACCOUNT_LOCKED")
@@ -392,4 +406,29 @@ func responseClaudeError(ctx *gin.Context, err error, isStream bool, isCompletio
 	}
 
 	ResponseError(ctx, errMsg, isStream, isCompletions)
+}
+
+func ClaudeTestMessage(token string) error {
+	options := claude.NewDefaultOptions(token, "", clvars.Model4WebClaude2)
+	options.Agency = cmdvars.Proxy
+	chat, err := claude.New(options)
+	if err != nil {
+		return err
+	}
+	prompt := "I say ping, You say pong"
+	partialResponse, err := chat.Reply(context.Background(), prompt, nil)
+	if err != nil {
+		return err
+	}
+	defer chat.Delete()
+	for {
+		message, ok := <-partialResponse
+		if !ok {
+			return nil
+		}
+
+		if message.Error != nil {
+			return message.Error
+		}
+	}
 }

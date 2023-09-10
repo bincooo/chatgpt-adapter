@@ -120,12 +120,23 @@ func Run(*cobra.Command, []string) {
 
 func genSessionKeys() {
 	for i := 0; i < count; i++ {
+		// <meta http-equiv="refresh" content="0;url=/onboarding"/>
+		var cnt = 2 // 重试次数
+	label:
 		email, token, err := util.LoginFor(cmdvars.Bu, cmdvars.Suffix, cmdvars.Proxy)
 		if err != nil {
 			logrus.Error("Error: ", email, err)
 			os.Exit(1)
 		}
-		fmt.Println("email=" + email + "; sessionKey=" + token)
+		err = cmdutil.ClaudeTestMessage(token)
+		if err != nil {
+			// logrus.Error("Error: ", email, err)
+			if cnt > 0 {
+				cnt--
+				goto label
+			}
+		}
+		fmt.Println("available=" + strconv.FormatBool(err == nil) + "; email=" + email + "; sessionKey=" + token)
 	}
 }
 

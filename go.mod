@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.0.0
-	github.com/bincooo/MiaoX v1.0.11
 	github.com/bincooo/claude-api v1.0.2-0.20230909194304-b2c2bba60b23
 	github.com/bincooo/edge-api v1.0.1-0.20230908021143-a4f8f6b5edeb
 	github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f
