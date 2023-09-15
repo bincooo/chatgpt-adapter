@@ -125,6 +125,13 @@ tips：
 New: 
 
 （2023-09-11）已适配open ai api请求格式，可接入到基于opanai的任何app或者web
+收罗了一些别人搭建好的：
+
+https://dongsiqie-bing.hf.space
+
+https://sydney.vcanbb.chat
+
+
 <details>
 <summary>BingAI/Claude2接入到chatgpt-next-web</summary>
 <img src="resources/%E6%88%AA%E5%B1%8F2023-09-11%2005.01.49.png"  />
