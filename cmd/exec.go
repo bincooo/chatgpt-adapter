@@ -148,8 +148,9 @@ func genSessionKeys() {
 	label:
 		email, token, err := util.LoginFor(cmdvars.Bu, cmdvars.Suffix, cmdvars.Proxy)
 		if err != nil {
-			logrus.Error("Error: ", email, err)
-			os.Exit(1)
+			logrus.Error("Error: ", email, " ", err)
+			continue
+			// os.Exit(1)
 		}
 		err = cmdutil.ClaudeTestMessage(token)
 		if err != nil {

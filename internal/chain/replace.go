@@ -11,12 +11,12 @@ type ReplaceInterceptor struct {
 	types.BaseInterceptor
 }
 
-func (c *ReplaceInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
+func (c *ReplaceInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) (bool, error) {
 	if ctx.Format != "" {
 		ctx.Prompt = replace(ctx.Format, ctx.Prompt)
 	}
 	ctx.Prompt = replace(ctx.Prompt, "")
-	return true
+	return true, nil
 }
 
 func replace(source string, content string) string {

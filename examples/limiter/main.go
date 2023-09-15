@@ -99,11 +99,11 @@ type EmbellishInterceptor struct {
 	types.BaseInterceptor
 }
 
-func (e *EmbellishInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
+func (e *EmbellishInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) (bool, error) {
 	var context types.ConversationContext
 	if err := copier.Copy(&context, ctx); err != nil {
 		logrus.Error(err)
-		return true
+		return false, err
 	}
 
 	context.Id = ctx.Id + "$embellish"
@@ -111,12 +111,12 @@ func (e *EmbellishInterceptor) Before(bot types.Bot, ctx *types.ConversationCont
 	partialResponse := utils.MergeFullMessage(message)
 	if partialResponse.Error != nil {
 		logrus.Error(partialResponse.Error)
-		return true
+		return false, partialResponse.Error
 	}
 
 	fmt.Println("*** Generated ***")
 	fmt.Println(partialResponse.Message)
 	fmt.Println("*****************")
 	ctx.Prompt = strings.Replace(presetMessage, "[generated]", partialResponse.Message, -1)
-	return true
+	return true, nil
 }

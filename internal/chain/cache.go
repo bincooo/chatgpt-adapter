@@ -21,17 +21,17 @@ type CacheInterceptor struct {
 	cache map[string]string
 }
 
-func (c *CacheInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
+func (c *CacheInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) (bool, error) {
 	if c.cache == nil {
 		c.cache = make(map[string]string)
 	}
 	c.cache[ctx.Id] = ctx.Prompt
-	return true
+	return true, nil
 }
 
-func (c *CacheInterceptor) After(bot types.Bot, ctx *types.ConversationContext, response string) bool {
+func (c *CacheInterceptor) After(bot types.Bot, ctx *types.ConversationContext, response string) (bool, error) {
 	c.cacheAfter(ctx, response)
-	return true
+	return true, nil
 }
 
 func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response string) {

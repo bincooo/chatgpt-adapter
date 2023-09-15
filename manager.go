@@ -102,9 +102,11 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, handle func(types.
 	}
 
 	h(types.PartialResponse{Status: vars.Begin})
-	mgr.chain.Before(bot, &ctx)
+	err := mgr.chain.Before(bot, &ctx)
+	if err != nil {
+		return h(types.PartialResponse{Status: vars.Closed, Error: err})
+	}
 
-	var err error
 	var slice []types.PartialResponse
 	chanResponse := bot.Reply(ctx)
 	for {
@@ -124,12 +126,12 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, handle func(types.
 	for _, value := range slice {
 		message += value.Message
 	}
-	mgr.chain.After(bot, &ctx, message)
-	partialResponse := types.PartialResponse{Message: message, Error: err, Status: vars.Closed}
-	//if err != nil {
-	//	h(partialResponse)
-	//}
-	return partialResponse
+	err = mgr.chain.After(bot, &ctx, message)
+	if err != nil {
+		return h(types.PartialResponse{Status: vars.Closed, Error: err})
+	}
+
+	return types.PartialResponse{Message: message, Error: err, Status: vars.Closed}
 }
 
 func (mgr *CommonBotManager) RegChain(name string, inter types.Interceptor) error {

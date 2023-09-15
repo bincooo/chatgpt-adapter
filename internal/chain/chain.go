@@ -29,10 +29,10 @@ func (c *Chain) Set(name string, inter types.Interceptor) {
 	c.chain[name] = inter
 }
 
-func (c *Chain) Before(bot types.Bot, ctx *types.ConversationContext) {
+func (c *Chain) Before(bot types.Bot, ctx *types.ConversationContext) error {
 	chunk := c.chunk(ctx.Chain)
 	if len(chunk) == 0 {
-		return
+		return nil
 	}
 
 	for _, key := range chunk {
@@ -40,16 +40,22 @@ func (c *Chain) Before(bot types.Bot, ctx *types.ConversationContext) {
 		if !ok {
 			continue
 		}
-		if !filter.Before(bot, ctx) {
-			return
+		result, err := filter.Before(bot, ctx)
+		if err != nil {
+			return err
+		}
+		if !result {
+			return nil
 		}
 	}
+
+	return nil
 }
 
-func (c *Chain) After(bot types.Bot, ctx *types.ConversationContext, response string) {
+func (c *Chain) After(bot types.Bot, ctx *types.ConversationContext, response string) error {
 	chunk := c.chunk(ctx.Chain)
 	if len(chunk) == 0 {
-		return
+		return nil
 	}
 
 	for _, key := range chunk {
@@ -57,10 +63,16 @@ func (c *Chain) After(bot types.Bot, ctx *types.ConversationContext, response st
 		if !ok {
 			continue
 		}
-		if !filter.After(bot, ctx, response) {
-			return
+		result, err := filter.After(bot, ctx, response)
+		if err != nil {
+			return err
+		}
+		if !result {
+			return nil
 		}
 	}
+
+	return nil
 }
 
 func (c *Chain) chunk(chin string) []string {

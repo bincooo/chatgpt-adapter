@@ -170,7 +170,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 			var email string
 			email, cmdvars.GlobalToken, err = util.LoginFor(cmdvars.Bu, cmdvars.Suffix, cmdvars.Proxy)
 			if err != nil {
-				logrus.Error(cmdvars.I18n("FAILED_GENERATE_SESSION_KEY")+"： email ---"+email, err)
+				logrus.Error(cmdvars.I18n("FAILED_GENERATE_SESSION_KEY")+"： email --- "+email, err)
 				return nil, err
 			}
 

@@ -27,12 +27,12 @@ func (bot *BingBot) Reply(ctx types.ConversationContext) chan types.PartialRespo
 		session, ok := bot.sessions[ctx.Id]
 		if !ok {
 			chat, err := edge.New(ctx.Token, ctx.BaseURL)
-			chat.Model = ctx.Model
-			chat.TraceId = ctx.AppId
 			if err != nil {
 				message <- types.PartialResponse{Error: err}
 				return
 			}
+			chat.Model = ctx.Model
+			chat.TraceId = ctx.AppId
 			session = chat
 			bot.sessions[ctx.Id] = session
 		}

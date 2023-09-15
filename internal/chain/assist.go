@@ -14,14 +14,13 @@ type AssistInterceptor struct {
 	types.BaseInterceptor
 }
 
-func (c *AssistInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) bool {
+func (c *AssistInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) (bool, error) {
 	messages := store.GetMessages(ctx.Id)
 	if len(messages) == 0 && ctx.Preset != "" {
 		// 发送预设模版
 		var context types.ConversationContext
 		if err := copier.Copy(&context, ctx); err != nil {
-			logrus.Error(err)
-			return true
+			return false, err
 		}
 
 		context.Prompt = ctx.Preset
@@ -29,11 +28,12 @@ func (c *AssistInterceptor) Before(bot types.Bot, ctx *types.ConversationContext
 		partialResponse := utils.MergeFullMessage(message)
 		if partialResponse.Error != nil {
 			logrus.Error(partialResponse.Error)
+			return false, partialResponse.Error
 		}
 
 		logrus.Info("\n*** FIRST PRESET RESULT ***\n", partialResponse.Message, "\n*******************")
 		time.Sleep(time.Second)
 		logrus.Info("[MiaoX] - 加载预设完毕")
 	}
-	return true
+	return true, nil
 }
