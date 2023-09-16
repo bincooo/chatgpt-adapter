@@ -120,9 +120,9 @@ func (bot *OpenAIAPIBot) completionMessage(ctx types.ConversationContext) []open
 		Content: ctx.Prompt,
 	})
 
-	// 缓存30条记录
-	if size := len(messages); size > 30 {
-		messages = messages[size-30:]
+	// 缓存500条记录
+	if size := len(messages); size > 500 {
+		messages = messages[size-500:]
 	}
 	bot.sessions[ctx.Id] = messages
 
