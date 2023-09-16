@@ -56,11 +56,12 @@ type schema struct {
 	FullColon bool `json:"fullColon"` // 全角冒号
 }
 
-func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
+func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd bool) {
 	IsClose := false
+	prepare(ctx, r)
 	cctx, err := createClaudeConversation(token, r, func() bool { return IsClose })
 	if err != nil {
-		responseClaudeError(ctx, err, r.Stream, r.IsCompletions, token)
+		responseClaudeError(ctx, err, r.Stream, r.IsCompletions, token, wd)
 		return
 	}
 	partialResponse := cmdvars.Manager.Reply(*cctx, func(response types.PartialResponse) {
@@ -83,7 +84,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 					}
 				}
 
-				responseClaudeError(ctx, err, r.Stream, r.IsCompletions, token)
+				responseClaudeError(ctx, err, r.Stream, r.IsCompletions, token, wd)
 				return
 			}
 
@@ -98,7 +99,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 				}
 			}
 
-			if response.Status == vars.Closed {
+			if response.Status == vars.Closed && wd {
 				WriteDone(ctx, r.IsCompletions)
 			}
 		} else {
@@ -112,7 +113,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 
 	if !r.Stream && !IsClose {
 		if partialResponse.Error != nil {
-			responseClaudeError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token)
+			responseClaudeError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token, wd)
 			return
 		}
 
@@ -383,7 +384,7 @@ func handleClaudeError(err *cltypes.Claude2Error) (msg string) {
 	return msg
 }
 
-func responseClaudeError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string) {
+func responseClaudeError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string, wd bool) {
 	errMsg := err.Error()
 	if strings.Contains(errMsg, "failed to fetch the `organizationId`") ||
 		strings.Contains(errMsg, "failed to fetch the `conversationId`") {
@@ -405,7 +406,7 @@ func responseClaudeError(ctx *gin.Context, err error, isStream bool, isCompletio
 		errMsg += "\n\n" + cmdvars.I18n("ERROR_OTHER")
 	}
 
-	ResponseError(ctx, errMsg, isStream, isCompletions)
+	ResponseError(ctx, errMsg, isStream, isCompletions, wd)
 }
 
 func ClaudeTestMessage(token string) error {

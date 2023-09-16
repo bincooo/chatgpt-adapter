@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+	cmdtypes "github.com/bincooo/AutoAI/cmd/types"
 	"github.com/bincooo/AutoAI/cmd/vars"
 	"github.com/bincooo/requests"
 	"github.com/bincooo/requests/url"
@@ -28,13 +29,102 @@ func CleanToken(token string) {
 	}
 }
 
-func ResponseError(ctx *gin.Context, err string, isStream bool, isCompletions bool) {
+// dify的LocalAI请求数据切割成适配的上下文
+func prepare(ctx *gin.Context, r *cmdtypes.RequestDTO) {
+	// isDify
+	if ctx.Request.RequestURI == "/dify/v1/chat/completions" && len(r.Messages) > 0 {
+		handle := func(val string) map[string]string {
+			val = strings.TrimSpace(val)
+			if strings.HasPrefix(val, "Assistant:") {
+				return map[string]string{
+					"role":    "assistant",
+					"content": strings.TrimPrefix(val, "Assistant:"),
+				}
+			}
+			if strings.HasPrefix(val, "System:") {
+				return map[string]string{
+					"role":    "system",
+					"content": strings.TrimPrefix(val, "System:"),
+				}
+			}
+			return map[string]string{
+				"role":    "user",
+				"content": strings.TrimPrefix(val, "Human:"),
+			}
+		}
+
+		content := r.Messages[0]["content"]
+		content = strings.ReplaceAll(content, "<histories></histories>", "")
+		content = strings.TrimSuffix(content, "\nAssistant: ")
+
+		content = strings.ReplaceAll(content, "<histories>", "<|[1]|><histories>")
+		contents := strings.Split(content, "<|[1]|>")
+		temp := contents
+		contents = []string{}
+		for _, human := range temp {
+			if human == "" {
+				continue
+			}
+			histories := strings.Split(human, "</histories>")
+			contents = append(contents, histories...)
+		}
+
+		messages := make([]map[string]string, 0)
+		for _, item := range contents {
+			if item == "Assistant: " || item == "Here is the chat histories between human and assistant, inside <histories></histories> XML tags." {
+				continue
+			}
+			if strings.HasPrefix(item, "<histories>") {
+				item = strings.TrimPrefix(item, "<histories>")
+				item = strings.TrimSuffix(item, "</histories>")
+
+				item = strings.ReplaceAll(item, "\nHuman:", "<|[1]|>\nHuman:")
+				humans := strings.Split(item, "<|[1]|>\n")
+				temp = humans
+				humans = []string{}
+				for _, human := range temp {
+					if human == "" {
+						continue
+					}
+					human = strings.ReplaceAll(human, "\nAssistant:", "<|[1]|>\nAssistant:")
+					assistants := strings.Split(human, "<|[1]|>\n")
+					humans = append(humans, assistants...)
+				}
+				temp = humans
+				humans = []string{}
+				for _, human := range temp {
+					if human == "" {
+						continue
+					}
+					human = strings.ReplaceAll(human, "\nSystem:", "<|[1]|>\nSystem:")
+					systems := strings.Split(human, "<|[1]|>\n")
+					humans = append(humans, systems...)
+				}
+				for _, human := range humans {
+					if human == "" {
+						continue
+					}
+					messages = append(messages, handle(human))
+				}
+				continue
+			}
+			messages = append(messages, handle(item))
+		}
+		r.Messages = messages
+	}
+}
+
+func ResponseError(ctx *gin.Context, err string, isStream bool, isCompletions bool, wd bool) {
 	if isStream {
 		marshal, e := json.Marshal(BuildCompletion(isCompletions, "Error: "+err))
 		if e != nil {
 			return
 		}
-		ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
+		if wd {
+			ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
+		} else {
+			ctx.String(200, "data: %s", string(marshal))
+		}
 	} else {
 		ctx.JSON(200, BuildCompletion(isCompletions, "Error: "+err))
 	}
@@ -60,7 +150,7 @@ func WriteDone(ctx *gin.Context, isCompletions bool) {
 	// 结尾img标签会被吞？？多加几个换行试试
 	var completion string
 	if isCompletions {
-		completion = "data: {\"choices\": [ { \"message\": {\"content\": \"" + Enter + Enter + "\"} } ]}\n\n"
+		completion = "data: {\"choices\": [ { \"message\": {\"role\":\"assistant\", \"content\": \"" + Enter + Enter + "\"} } ]}\n\n"
 	} else {
 		completion = "data: {\"completion\": \"" + Enter + Enter + "\"}\n\n"
 	}
@@ -77,11 +167,10 @@ func BuildCompletion(isCompletions bool, message string) gin.H {
 	message = strings.ReplaceAll(message, "\n", Enter)
 	message = strings.ReplaceAll(message, "\"", DQM)
 	if isCompletions {
-		content := gin.H{"content": message}
+		content := gin.H{"content": message, "role": "assistant"}
 		completion = gin.H{
 			"choices": []gin.H{
 				{
-					"role":    "assistant",
 					"message": content,
 					"delta":   content,
 				},

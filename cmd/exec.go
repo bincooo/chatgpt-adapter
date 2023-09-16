@@ -112,7 +112,8 @@ func Run(*cobra.Command, []string) {
 
 	route.GET("/v1/models", models)
 	route.POST("/v1/complete", complete)
-	route.POST("/v1/chat/completions", completions)
+	route.POST("/v1/chat/completions", completions(true))
+	route.POST("/dify/v1/chat/completions", completions(false))
 	addr := ":" + strconv.Itoa(port)
 	logrus.Info("Start by http://127.0.0.1" + addr + "/v1")
 	if err := route.Run(addr); err != nil {
@@ -179,38 +180,43 @@ func complete(ctx *gin.Context) {
 	r.IsCompletions = false
 	token := ctx.Request.Header.Get("X-Api-Key")
 	if err := ctx.BindJSON(&r); err != nil {
-		cmdutil.ResponseError(ctx, err.Error(), r.Stream, false)
+		cmdutil.ResponseError(ctx, err.Error(), r.Stream, r.IsCompletions, true)
 		return
 	}
 
 	switch r.Model {
 	case "claude-2.0", "claude-2",
 		"claude-1.0", "claude-1.2", "claude-1.3":
-		cmdutil.DoClaudeComplete(ctx, token, &r)
+		cmdutil.DoClaudeComplete(ctx, token, &r, true)
 	default:
-		cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, false)
+		cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, r.IsCompletions, true)
 	}
 }
 
-func completions(ctx *gin.Context) {
-	var r cmdtypes.RequestDTO
-	r.IsCompletions = true
+func completions(padding bool) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		var r cmdtypes.RequestDTO
+		r.IsCompletions = true
 
-	token := ctx.Request.Header.Get("X-Api-Key")
-	if token == "" {
-		token = strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
-	}
-	if err := ctx.BindJSON(&r); err != nil {
-		cmdutil.ResponseError(ctx, err.Error(), r.Stream, r.IsCompletions)
-		return
-	}
-	switch r.Model {
-	case "claude-2.0", "claude-2",
-		"claude-1.0", "claude-1.2", "claude-1.3":
-		cmdutil.DoClaudeComplete(ctx, token, &r)
-	case "BingAI":
-		cmdutil.DoBingAIComplete(ctx, token, &r)
-	default:
-		cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, true)
+		token := ctx.Request.Header.Get("X-Api-Key")
+		if token == "" {
+			token = strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
+		}
+		if err := ctx.BindJSON(&r); err != nil {
+			cmdutil.ResponseError(ctx, err.Error(), r.Stream, r.IsCompletions, padding)
+			return
+		}
+		if token == "1" {
+			token = "auto"
+		}
+		switch r.Model {
+		case "claude-2.0", "claude-2",
+			"claude-1.0", "claude-1.2", "claude-1.3":
+			cmdutil.DoClaudeComplete(ctx, token, &r, padding)
+		case "BingAI":
+			cmdutil.DoBingAIComplete(ctx, token, &r, padding)
+		default:
+			cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, r.IsCompletions, padding)
+		}
 	}
 }

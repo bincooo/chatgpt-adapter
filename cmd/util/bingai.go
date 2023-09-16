@@ -24,20 +24,21 @@ func init() {
 	bingBaseURL = LoadEnvVar("BING_BASE_URL", "")
 }
 
-func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
+func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd bool) {
 	//IsClose := false
 	if token == "" || token == "auto" {
 		token = bingAIToken
 	}
+	prepare(ctx, r)
 	context, err := createBingAIConversation(r, token)
 	if err != nil {
-		responseBingAIError(ctx, err, r.Stream, r.IsCompletions, token)
+		responseBingAIError(ctx, err, r.Stream, r.IsCompletions, token, wd)
 		return
 	}
 	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
 		if r.Stream {
 			if response.Error != nil {
-				responseBingAIError(ctx, response.Error, r.Stream, r.IsCompletions, token)
+				responseBingAIError(ctx, response.Error, r.Stream, r.IsCompletions, token, wd)
 				return
 			}
 
@@ -60,7 +61,7 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 				}
 			}
 
-			if response.Status == vars.Closed {
+			if response.Status == vars.Closed && wd {
 				WriteDone(ctx, r.IsCompletions)
 			}
 		} else {
@@ -73,7 +74,7 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	})
 	if !r.Stream {
 		if partialResponse.Error != nil {
-			responseBingAIError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token)
+			responseBingAIError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token, wd)
 			return
 		}
 
@@ -251,7 +252,7 @@ func bingAIMessageConversion(r *cmdtypes.RequestDTO) ([]store.Kv, string) {
 	return messages, preset
 }
 
-func responseBingAIError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string) {
+func responseBingAIError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string, wd bool) {
 	errMsg := err.Error()
 	if strings.Contains(errMsg, "User needs to solve CAPTCHA to continue") {
 		errMsg = "用户需要人机验证...  已尝试自动验证，若重新生成文本无效请手动验证。"
@@ -268,5 +269,5 @@ func responseBingAIError(ctx *gin.Context, err error, isStream bool, isCompletio
 			errMsg += "\n\n" + e.Error()
 		}
 	}
-	ResponseError(ctx, errMsg, isStream, isCompletions)
+	ResponseError(ctx, errMsg, isStream, isCompletions, wd)
 }
