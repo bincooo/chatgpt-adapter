@@ -90,7 +90,7 @@ func (cLmt *CommonLimiter) RegChain(name string, inter types.Interceptor) error 
 
 func (cLmt *CommonLimiter) matchLimiter(bot string) types.Limiter {
 	switch bot {
-	case vars.OpenAIAPI, vars.Claude, vars.Bing:
+	case vars.OpenAIAPI, vars.Claude, vars.Bing, vars.Dify:
 		return cLmt.gLmt
 	case vars.OpenAIWeb:
 		return cLmt.lmt
