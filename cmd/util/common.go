@@ -38,18 +38,18 @@ func prepare(ctx *gin.Context, r *cmdtypes.RequestDTO) {
 			if strings.HasPrefix(val, "Assistant:") {
 				return map[string]string{
 					"role":    "assistant",
-					"content": strings.TrimPrefix(val, "Assistant:"),
+					"content": strings.TrimSpace(strings.TrimPrefix(val, "Assistant:")),
 				}
 			}
 			if strings.HasPrefix(val, "System:") {
 				return map[string]string{
 					"role":    "system",
-					"content": strings.TrimPrefix(val, "System:"),
+					"content": strings.TrimSpace(strings.TrimPrefix(val, "System:")),
 				}
 			}
 			return map[string]string{
 				"role":    "user",
-				"content": strings.TrimPrefix(val, "Human:"),
+				"content": strings.TrimSpace(strings.TrimPrefix(val, "Human:")),
 			}
 		}
 
@@ -69,6 +69,39 @@ func prepare(ctx *gin.Context, r *cmdtypes.RequestDTO) {
 			contents = append(contents, histories...)
 		}
 
+		splitHandle := func(item string) []map[string]string {
+			messages := make([]map[string]string, 0)
+			item = strings.ReplaceAll(item, "\nHuman:", "<|[1]|>\nHuman:")
+			humans := strings.Split(item, "<|[1]|>\n")
+			temp = humans
+			humans = []string{}
+			for _, human := range temp {
+				if human == "" {
+					continue
+				}
+				human = strings.ReplaceAll(human, "\nAssistant:", "<|[1]|>\nAssistant:")
+				assistants := strings.Split(human, "<|[1]|>\n")
+				humans = append(humans, assistants...)
+			}
+			temp = humans
+			humans = []string{}
+			for _, human := range temp {
+				if human == "" {
+					continue
+				}
+				human = strings.ReplaceAll(human, "\nSystem:", "<|[1]|>\nSystem:")
+				systems := strings.Split(human, "<|[1]|>\n")
+				humans = append(humans, systems...)
+			}
+			for _, human := range humans {
+				if human == "" {
+					continue
+				}
+				messages = append(messages, handle(human))
+			}
+			return messages
+		}
+
 		messages := make([]map[string]string, 0)
 		for _, item := range contents {
 			if item == "Assistant: " || item == "Here is the chat histories between human and assistant, inside <histories></histories> XML tags." {
@@ -77,38 +110,10 @@ func prepare(ctx *gin.Context, r *cmdtypes.RequestDTO) {
 			if strings.HasPrefix(item, "<histories>") {
 				item = strings.TrimPrefix(item, "<histories>")
 				item = strings.TrimSuffix(item, "</histories>")
-
-				item = strings.ReplaceAll(item, "\nHuman:", "<|[1]|>\nHuman:")
-				humans := strings.Split(item, "<|[1]|>\n")
-				temp = humans
-				humans = []string{}
-				for _, human := range temp {
-					if human == "" {
-						continue
-					}
-					human = strings.ReplaceAll(human, "\nAssistant:", "<|[1]|>\nAssistant:")
-					assistants := strings.Split(human, "<|[1]|>\n")
-					humans = append(humans, assistants...)
-				}
-				temp = humans
-				humans = []string{}
-				for _, human := range temp {
-					if human == "" {
-						continue
-					}
-					human = strings.ReplaceAll(human, "\nSystem:", "<|[1]|>\nSystem:")
-					systems := strings.Split(human, "<|[1]|>\n")
-					humans = append(humans, systems...)
-				}
-				for _, human := range humans {
-					if human == "" {
-						continue
-					}
-					messages = append(messages, handle(human))
-				}
+				messages = append(messages, splitHandle(item)...)
 				continue
 			}
-			messages = append(messages, handle(item))
+			messages = append(messages, splitHandle(item)...)
 		}
 		r.Messages = messages
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/bincooo/AutoAI/internal/plat"
 	"github.com/bincooo/AutoAI/types"
@@ -209,6 +210,17 @@ func completions(padding bool) func(ctx *gin.Context) {
 		if token == "1" {
 			token = "auto"
 		}
+
+		if !padding && len(r.Messages) == 1 {
+			content := r.Messages[0]["content"]
+			if content == "ping" {
+				completion := cmdutil.BuildCompletion(r.IsCompletions, "pong")
+				marshal, _ := json.Marshal(completion)
+				_, _ = ctx.Writer.Write(marshal)
+				return
+			}
+		}
+
 		switch r.Model {
 		case "claude-2.0", "claude-2",
 			"claude-1.0", "claude-1.2", "claude-1.3":

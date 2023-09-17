@@ -11,6 +11,7 @@ import (
 	"github.com/bincooo/edge-api/util"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -55,6 +56,7 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 				case <-ctx.Request.Context().Done():
 					//IsClose = true
 				default:
+					logrus.Info(response.Message)
 					if !WriteString(ctx, response.Message, r.IsCompletions) {
 						//IsClose = true
 					}
