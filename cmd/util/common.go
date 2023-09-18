@@ -120,6 +120,7 @@ func prepare(ctx *gin.Context, r *cmdtypes.RequestDTO) {
 }
 
 func ResponseError(ctx *gin.Context, err string, isStream bool, isCompletions bool, wd bool) {
+	logrus.Error(err)
 	if isStream {
 		marshal, e := json.Marshal(BuildCompletion(isCompletions, "Error: "+err))
 		if e != nil {

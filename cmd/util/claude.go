@@ -58,6 +58,7 @@ type schema struct {
 
 func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd bool) {
 	IsClose := false
+	fmt.Println("TOKEN_KEY: " + token)
 	prepare(ctx, r)
 	cctx, err := createClaudeConversation(token, r, func() bool { return IsClose })
 	if err != nil {

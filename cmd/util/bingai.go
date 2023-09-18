@@ -30,6 +30,7 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 	if token == "" || token == "auto" {
 		token = bingAIToken
 	}
+	fmt.Println("TOKEN_KEY: " + token)
 	prepare(ctx, r)
 	context, err := createBingAIConversation(r, token)
 	if err != nil {

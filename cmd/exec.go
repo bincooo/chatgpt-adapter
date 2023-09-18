@@ -47,7 +47,7 @@ func Exec() {
 	var rootCmd = &cobra.Command{
 		Use:     "MiaoX",
 		Short:   "MiaoX控制台工具",
-		Long:    "MiaoX是集成了多款AI接口的控制台工具\n  > 请在github star本项目获取最新版本: \nhttps://github.com/bincooo/MiaoX\nhttps://github.com/bincooo/claude-api",
+		Long:    "MiaoX是集成了多款AI接口的控制台工具\n  > 请在github star本项目获取最新版本: \nhttps://github.com/bincooo/AutoAI\nhttps://github.com/bincooo/claude-api",
 		Run:     Run,
 		Version: VERSION,
 	}
@@ -110,7 +110,7 @@ func Run(*cobra.Command, []string) {
 	})
 
 	route.Use(crosHandler())
-
+	route.GET("", index)
 	route.GET("/v1/models", models)
 	route.POST("/v1/complete", complete)
 	route.POST("/v1/chat/completions", completions(true))
@@ -164,6 +164,10 @@ func genSessionKeys() {
 		}
 		fmt.Println("available=" + strconv.FormatBool(err == nil) + "; email=" + email + "; sessionKey=" + token)
 	}
+}
+
+func index(ctx *gin.Context) {
+	ctx.String(200, "Start by http[s]://"+ctx.Request.Host+"/v1\n\nversion: "+VERSION+"\nproject: github.com/bincooo/AutoAI")
 }
 
 func models(ctx *gin.Context) {
