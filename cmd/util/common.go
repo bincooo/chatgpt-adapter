@@ -23,6 +23,12 @@ const (
 	DQM = "\u0022"
 )
 
+type encoded string
+
+func (e encoded) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.QuoteToASCII(string(e))), nil
+}
+
 func CleanToken(token string) {
 	if token == "auto" {
 		vars.GlobalToken = ""
@@ -170,10 +176,8 @@ func WriteDone(ctx *gin.Context, isCompletions bool) {
 
 func BuildCompletion(isCompletions bool, message string) gin.H {
 	var completion gin.H
-	message = strings.ReplaceAll(message, "\n", Enter)
-	message = strings.ReplaceAll(message, "\"", DQM)
 	if isCompletions {
-		content := gin.H{"content": message, "role": "assistant"}
+		content := gin.H{"content": encoded(message), "role": "assistant"}
 		completion = gin.H{
 			"choices": []gin.H{
 				{
@@ -184,7 +188,7 @@ func BuildCompletion(isCompletions bool, message string) gin.H {
 		}
 	} else {
 		completion = gin.H{
-			"completion": message,
+			"completion": encoded(message),
 		}
 	}
 	return completion
