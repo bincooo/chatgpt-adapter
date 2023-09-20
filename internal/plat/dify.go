@@ -5,7 +5,9 @@ import (
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
 	"github.com/bincooo/dify-sdk-go"
+	"github.com/sirupsen/logrus"
 	"io"
+	"strings"
 )
 
 type DifyBot struct {
@@ -59,6 +61,15 @@ func (bot *DifyBot) Reply(ctx types.ConversationContext) chan types.PartialRespo
 }
 
 func (bot *DifyBot) Remove(id string) bool {
+	delete(bot.sessions, id)
+	slice := []string{id}
+	for key, _ := range bot.sessions {
+		if strings.HasPrefix(id+"$", key) {
+			delete(bot.sessions, key)
+			slice = append(slice, key)
+		}
+	}
+	logrus.Info("[MiaoX] - Bot.Remove: ", slice)
 	return true
 }
 
