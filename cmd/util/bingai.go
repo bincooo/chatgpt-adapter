@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"regexp"
 	"strings"
 )
 
@@ -59,6 +60,7 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 					IsClose = true
 				default:
 					logrus.Info(response.Message)
+					response.Message = bingAIFilter(response.Message)
 					if !WriteString(ctx, response.Message, r.IsCompletions) {
 						IsClose = true
 					}
@@ -86,6 +88,27 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 		ctx.JSON(200, BuildCompletion(r.IsCompletions, partialResponse.Message))
 	}
 	store.DeleteMessages(context.Id)
+}
+
+// 消息过滤
+func bingAIFilter(message string) string {
+	// 清理 [1]、[2] 标签
+	regexCompile, err := regexp.Compile(`\[\w]`)
+	if err != nil {
+		logrus.Warn(err)
+		return message
+	}
+	message = regexCompile.ReplaceAllString(message, "")
+
+	// 清理 [^1^]、[^2^] 标签
+	regexCompile, err = regexp.Compile(`\[\^\w\^]`)
+	if err != nil {
+		logrus.Warn(err)
+		return message
+	}
+	message = regexCompile.ReplaceAllString(message, "")
+
+	return message
 }
 
 func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() bool) (*types.ConversationContext, error) {
@@ -177,11 +200,11 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() b
 		AppId:   appId,
 		BaseURL: bingBaseURL,
 		Chain:   chain,
-		H:       handle(Isc),
+		H:       bingAIHandle(Isc),
 	}, nil
 }
 
-func handle(Isc func() bool) types.CustomCacheHandler {
+func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		pos := 0
 		return func(self *types.CacheBuffer) error {
