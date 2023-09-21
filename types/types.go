@@ -27,6 +27,8 @@ type ConversationContext struct {
 	H func(partialResponse any) func(*CacheBuffer) error // 自定义流处理器
 }
 
+type CustomCacheHandler = func(partialResponse any) func(*CacheBuffer) error
+
 type Limiter interface {
 	Join(ctx ConversationContext, handle func(response PartialResponse)) error
 	Remove(id string, bot string)

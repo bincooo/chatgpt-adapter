@@ -8,6 +8,7 @@ import (
 	"github.com/bincooo/AutoAI/store"
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
+	"github.com/bincooo/edge-api"
 	"github.com/bincooo/edge-api/util"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -26,13 +27,13 @@ func init() {
 }
 
 func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd bool) {
-	//IsClose := false
+	IsClose := false
 	if token == "" || token == "auto" {
 		token = bingAIToken
 	}
 	fmt.Println("TOKEN_KEY: " + token)
 	prepare(ctx, r)
-	context, err := createBingAIConversation(r, token)
+	context, err := createBingAIConversation(r, token, func() bool { return IsClose })
 	if err != nil {
 		responseBingAIError(ctx, err, r.Stream, r.IsCompletions, token, wd)
 		return
@@ -55,22 +56,23 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 			if len(response.Message) > 0 {
 				select {
 				case <-ctx.Request.Context().Done():
-					//IsClose = true
+					IsClose = true
 				default:
 					logrus.Info(response.Message)
 					if !WriteString(ctx, response.Message, r.IsCompletions) {
-						//IsClose = true
+						IsClose = true
 					}
 				}
 			}
 
 			if response.Status == vars.Closed && wd {
 				WriteDone(ctx, r.IsCompletions)
+				IsClose = true
 			}
 		} else {
 			select {
 			case <-ctx.Request.Context().Done():
-				//IsClose = true
+				IsClose = true
 			default:
 			}
 		}
@@ -86,7 +88,7 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 	store.DeleteMessages(context.Id)
 }
 
-func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.ConversationContext, error) {
+func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() bool) (*types.ConversationContext, error) {
 	var (
 		id      = "BingAI-" + uuid.NewString()
 		bot     string
@@ -175,7 +177,63 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string) (*types.Conv
 		AppId:   appId,
 		BaseURL: bingBaseURL,
 		Chain:   chain,
+		H:       handle(Isc),
 	}, nil
+}
+
+func handle(Isc func() bool) types.CustomCacheHandler {
+	return func(rChan any) func(*types.CacheBuffer) error {
+		pos := 0
+		return func(self *types.CacheBuffer) error {
+			partialResponse := rChan.(chan edge.PartialResponse)
+			response, ok := <-partialResponse
+			if !ok {
+				self.Closed = true
+				return nil
+			}
+
+			if response.Error != nil {
+				logrus.Error(response.Error)
+				return response.Error
+			}
+
+			if Isc() {
+				self.Closed = true
+				return nil
+			}
+
+			if response.Type == 2 {
+				if response.Item.Throttling != nil {
+					vars.BingMaxMessage = response.Item.Throttling.Max
+				}
+
+				messages := response.Item.Messages
+				if messages == nil {
+					goto label
+				}
+
+				for _, value := range *messages {
+					if value.Type == "Disengaged" {
+						// delete(bot.sessions, ctx.Id)
+						if response.Text == "" {
+							response.Text = "对不起，我不想继续这个对话。我还在学习中，所以感谢你的理解和耐心。🙏"
+						}
+					}
+				}
+
+			label:
+			}
+
+			str := []rune(response.Text)
+			length := len(str)
+			if pos >= length {
+				return nil
+			}
+			self.Cache += string(str[pos:])
+			pos = length
+			return nil
+		}
+	}
 }
 
 func bingAIMessageConversion(r *cmdtypes.RequestDTO) ([]store.Kv, string) {

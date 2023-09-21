@@ -281,7 +281,7 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	return result, s, nil
 }
 
-func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) func(rChan any) func(*types.CacheBuffer) error {
+func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		pos := 0
 		begin := false
