@@ -1,14 +1,12 @@
 package util
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bincooo/AutoAI/cmd/util/pool"
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
-	"github.com/bincooo/claude-api"
-	"github.com/bincooo/claude-api/util"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -21,7 +19,6 @@ import (
 	cmdtypes "github.com/bincooo/AutoAI/cmd/types"
 	cmdvars "github.com/bincooo/AutoAI/cmd/vars"
 	cltypes "github.com/bincooo/claude-api/types"
-	clvars "github.com/bincooo/claude-api/vars"
 )
 
 var (
@@ -162,30 +159,24 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 		return nil, err
 	}
 	fmt.Println("-----------------------Response-----------------\n", message, "\n--------------------END-------------------")
-	logrus.Info("Schema: ", s)
+	marshal, _ := json.Marshal(s)
+	logrus.Info("Schema: ", string(marshal))
 	if token == "auto" && cmdvars.GlobalToken == "" {
-		muLock.Lock()
-		defer muLock.Unlock()
-		if cmdvars.GlobalToken == "" {
-			var cnt = 2 // 重试次数
-		label:
-			var email string
-			email, cmdvars.GlobalToken, err = util.LoginFor(cmdvars.Bu, cmdvars.Suffix, cmdvars.Proxy)
+		if cmdvars.EnablePool { // 使用池的方式
+			cmdvars.GlobalToken, err = pool.GetKey()
 			if err != nil {
-				logrus.Error(cmdvars.I18n("FAILED_GENERATE_SESSION_KEY")+"： email --- "+email, err)
 				return nil, err
 			}
 
-			err = ClaudeTestMessage(token)
-			if err != nil {
-				// logrus.Error("Error: ", email, err)
-				if cnt > 0 {
-					cnt--
-					goto label
-				}
+		} else {
+			muLock.Lock()
+			defer muLock.Unlock()
+			if cmdvars.GlobalToken == "" {
+				var email string
+				email, cmdvars.GlobalToken, err = pool.GenerateSessionKey()
+				logrus.Info(cmdvars.I18n("GENERATE_SESSION_KEY") + "：available -- " + strconv.FormatBool(err == nil) + " email --- " + email + ", sessionKey --- " + cmdvars.GlobalToken)
+				pool.CacheKey("CACHE_KEY", cmdvars.GlobalToken)
 			}
-			logrus.Info(cmdvars.I18n("GENERATE_SESSION_KEY") + "：available -- " + strconv.FormatBool(err == nil) + " email --- " + email + ", sessionKey --- " + cmdvars.GlobalToken)
-			CacheKey("CACHE_KEY", cmdvars.GlobalToken)
 		}
 	}
 
@@ -408,29 +399,4 @@ func responseClaudeError(ctx *gin.Context, err error, isStream bool, isCompletio
 	}
 
 	ResponseError(ctx, errMsg, isStream, isCompletions, wd)
-}
-
-func ClaudeTestMessage(token string) error {
-	options := claude.NewDefaultOptions(token, "", clvars.Model4WebClaude2)
-	options.Agency = cmdvars.Proxy
-	chat, err := claude.New(options)
-	if err != nil {
-		return err
-	}
-	prompt := "I say ping, You say pong"
-	partialResponse, err := chat.Reply(context.Background(), prompt, nil)
-	if err != nil {
-		return err
-	}
-	defer chat.Delete()
-	for {
-		message, ok := <-partialResponse
-		if !ok {
-			return nil
-		}
-
-		if message.Error != nil {
-			return message.Error
-		}
-	}
 }

@@ -44,9 +44,6 @@ func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response s
 	messages := store.GetMessages(ctx.Id)
 	if response != "" {
 		prompt := c.cache[ctx.Id]
-		//if ctx.Bot != vars.Claude || ctx.Model != clVars.Model4WebClaude2 {
-		//	prompt = ctx.Prompt
-		//}
 
 		messages = append(messages, map[string]string{
 			"author": "user",

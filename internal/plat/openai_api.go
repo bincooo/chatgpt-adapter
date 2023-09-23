@@ -55,7 +55,9 @@ func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.Partial
 						self.Closed = true
 						return err
 					}
-
+					if len(response.Choices) == 0 {
+						return nil
+					}
 					self.Cache += response.Choices[0].Delta.Content
 					return nil
 				},

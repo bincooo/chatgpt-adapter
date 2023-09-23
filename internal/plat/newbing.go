@@ -96,6 +96,7 @@ func (bot *BingBot) handle(ctx types.ConversationContext, partialResponse chan e
 
 				if response.Error != nil {
 					logrus.Error(response.Error)
+					self.Closed = true
 					return response.Error
 				}
 

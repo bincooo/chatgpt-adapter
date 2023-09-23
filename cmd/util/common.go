@@ -13,7 +13,6 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -130,42 +129,6 @@ func ContainFor[T comparable](slice []T, condition func(item T) bool) bool {
 		}
 	}
 	return false
-}
-
-// 缓存CACHE_KEY
-func CacheKey(key, value string) {
-	// 文件不存在...   就创建吧
-	if _, err := os.Lstat(".env"); os.IsNotExist(err) {
-		if _, e := os.Create(".env"); e != nil {
-			fmt.Println("Error: ", e)
-			return
-		}
-	}
-
-	bytes, err := os.ReadFile(".env")
-	if err != nil {
-		fmt.Println("Error: ", err)
-	}
-	tmp := string(bytes)
-	compileRegex := regexp.MustCompile(`(\n|^)` + key + `\s*=[^\n]*`)
-	matchSlice := compileRegex.FindStringSubmatch(tmp)
-	if len(matchSlice) > 0 {
-		str := matchSlice[0]
-		if strings.HasPrefix(str, "\n") {
-			str = str[1:]
-		}
-		tmp = strings.Replace(tmp, str, key+"=\""+value+"\"", -1)
-	} else {
-		delimiter := ""
-		if len(tmp) > 0 && !strings.HasSuffix(tmp, "\n") {
-			delimiter = "\n"
-		}
-		tmp += delimiter + key + "=\"" + value + "\""
-	}
-	err = os.WriteFile(".env", []byte(tmp), 0664)
-	if err != nil {
-		fmt.Println("Error: ", err)
-	}
 }
 
 func TestNetwork(proxy string) {

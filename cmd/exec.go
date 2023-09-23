@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bincooo/AutoAI/cmd/util/pool"
 	"github.com/bincooo/AutoAI/internal/plat"
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/claude-api/util"
@@ -154,7 +155,7 @@ func genSessionKeys() {
 			continue
 			// os.Exit(1)
 		}
-		err = cmdutil.ClaudeTestMessage(token)
+		err = pool.TestMessage(token)
 		if err != nil {
 			// logrus.Error("Error: ", email, err)
 			if cnt > 0 {
