@@ -115,7 +115,7 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, handle func(types.
 		if partialResponse, ok := <-chanResponse; ok {
 			h(partialResponse)
 			if partialResponse.Error != nil {
-				return h(partialResponse)
+				return partialResponse
 			}
 			slice = append(slice, partialResponse)
 		} else {

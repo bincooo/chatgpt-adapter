@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.3.2
-	github.com/bincooo/claude-api v1.0.3-0.20230922175803-2c4b4bc1de48
+	github.com/bincooo/claude-api v1.0.3-0.20230924172829-449a6a50ba86
 	github.com/bincooo/dify-sdk-go v0.0.0-20230921133309-1203dccbe917
 	github.com/bincooo/edge-api v1.0.1-0.20230917124402-3fc415e5b4b3
 	github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f
