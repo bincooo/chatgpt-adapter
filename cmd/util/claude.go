@@ -206,7 +206,12 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 			case "assistant":
 				result += "Assistant: " + message["content"] + "\n\n"
 			case "user":
-				result += "Human: " + message["content"] + "\n\n"
+				content := message["content"]
+				if strings.HasPrefix(content, "System:") {
+					result += strings.TrimSpace(message["content"][7:]) + "\n\n"
+				} else {
+					result += "Human: " + message["content"] + "\n\n"
+				}
 			default:
 				result += message["content"] + "\n\n"
 			}
@@ -249,6 +254,7 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	result = strings.ReplaceAll(result, "A:", "\nAssistant:")
 	result = strings.ReplaceAll(result, "H:", "\nHuman:")
 	if s.FullColon {
+		// result = strings.ReplaceAll(result, "System:", "System：")
 		result = strings.ReplaceAll(result, "Assistant:", "Assistant：")
 		result = strings.ReplaceAll(result, "Human:", "Human：")
 	}

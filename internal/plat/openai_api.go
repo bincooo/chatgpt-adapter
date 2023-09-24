@@ -31,6 +31,7 @@ func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.Partial
 		stream, err := bot.makeCompletionStream(timeout, ctx)
 		if err != nil {
 			logrus.Error(err)
+			message <- types.PartialResponse{Status: vars.Closed, Error: err}
 			return
 		}
 		defer stream.Close()

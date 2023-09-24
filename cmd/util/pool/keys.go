@@ -131,8 +131,20 @@ func getLocalKey() (string, error) {
 func getSmailKey() (string, error) {
 	l := len(keys)
 	var err error
+
 	mu.Lock()
 	defer mu.Unlock()
+
+	if currIndex > -1 {
+		key := keys[currIndex]
+		if err = TestMessage(key.Token); err != nil {
+			key.IsDie = true
+			key.Error = err
+		} else {
+			return key.Token, nil
+		}
+	}
+
 	for index := 0; index < l; index++ {
 		currIndex++
 		if currIndex >= l {
