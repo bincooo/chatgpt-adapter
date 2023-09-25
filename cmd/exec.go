@@ -224,7 +224,7 @@ func completions(padding bool) func(ctx *gin.Context) {
 
 		var ok bool
 		if token, ok = validate(token); !ok {
-			cmdutil.ResponseError(ctx, "鉴权失败", r.Stream, r.IsCompletions, true)
+			cmdutil.ResponseError(ctx, "鉴权失败", r.Stream, r.IsCompletions, padding)
 			return
 		}
 
