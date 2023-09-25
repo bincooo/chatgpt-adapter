@@ -57,9 +57,18 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 	IsClose := false
 	fmt.Println("TOKEN_KEY: " + token)
 	prepare(ctx, r)
+	// 重试次数
+	retry := 2
+
+label:
 	cctx, err := createClaudeConversation(token, r, func() bool { return IsClose })
 	if err != nil {
-		responseClaudeError(ctx, err, r.Stream, r.IsCompletions, token, wd)
+		errorMessage := catchClaudeHandleError(err, token)
+		if retry > 0 {
+			retry--
+			goto label
+		}
+		ResponseError(ctx, errorMessage, r.Stream, r.IsCompletions, wd)
 		return
 	}
 	partialResponse := cmdvars.Manager.Reply(*cctx, func(response types.PartialResponse) {
@@ -82,7 +91,12 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 					}
 				}
 
-				responseClaudeError(ctx, err, r.Stream, r.IsCompletions, token, wd)
+				errorMessage := catchClaudeHandleError(err, token)
+				if retry > 0 {
+					retry--
+				} else {
+					ResponseError(ctx, errorMessage, r.Stream, r.IsCompletions, wd)
+				}
 				return
 			}
 
@@ -111,11 +125,19 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 
 	if !r.Stream && !IsClose {
 		if partialResponse.Error != nil {
-			responseClaudeError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token, wd)
+			errorMessage := catchClaudeHandleError(partialResponse.Error, token)
+			if retry > 0 {
+				goto label
+			}
+			ResponseError(ctx, errorMessage, r.Stream, r.IsCompletions, wd)
 			return
 		}
 
 		ctx.JSON(200, BuildCompletion(r.IsCompletions, partialResponse.Message))
+	}
+
+	if partialResponse.Error != nil && retry > 0 {
+		goto label
 	}
 
 	// 检查大黄标
@@ -382,7 +404,8 @@ func handleClaudeError(err *cltypes.Claude2Error) (msg string) {
 	return msg
 }
 
-func responseClaudeError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string, wd bool) {
+// claude异常处理（清理Token）
+func catchClaudeHandleError(err error, token string) string {
 	errMsg := err.Error()
 	if strings.Contains(errMsg, "failed to fetch the `organizationId`") ||
 		strings.Contains(errMsg, "failed to fetch the `conversationId`") {
@@ -403,6 +426,6 @@ func responseClaudeError(ctx *gin.Context, err error, isStream bool, isCompletio
 	} else {
 		errMsg += "\n\n" + cmdvars.I18n("ERROR_OTHER")
 	}
-
-	ResponseError(ctx, errMsg, isStream, isCompletions, wd)
+	return errMsg
+	// ResponseError(ctx, errMsg, isStream, isCompletions, wd)
 }

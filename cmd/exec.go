@@ -37,6 +37,7 @@ func main() {
 	cmdvars.GlobalPile = cmdutil.LoadEnvVar("PILE", "")
 	cmdvars.GlobalPileSize = cmdutil.LoadEnvInt("PILE_SIZE", 35000)
 	cmdvars.GlobalToken = util.LoadEnvVar("CACHE_KEY", "")
+	cmdvars.AutoPwd = util.LoadEnvVar("PWD", "")
 	Exec()
 }
 
@@ -185,6 +186,11 @@ func complete(ctx *gin.Context) {
 	var r cmdtypes.RequestDTO
 	r.IsCompletions = false
 	token := ctx.Request.Header.Get("X-Api-Key")
+	var ok bool
+	if token, ok = validate(token); !ok {
+		cmdutil.ResponseError(ctx, "鉴权失败", r.Stream, r.IsCompletions, true)
+		return
+	}
 	if err := ctx.BindJSON(&r); err != nil {
 		cmdutil.ResponseError(ctx, err.Error(), r.Stream, r.IsCompletions, true)
 		return
@@ -213,7 +219,13 @@ func completions(padding bool) func(ctx *gin.Context) {
 			return
 		}
 		if token == "1" {
-			token = "auto"
+			token = "auto" + "#" + cmdvars.AutoPwd
+		}
+
+		var ok bool
+		if token, ok = validate(token); !ok {
+			cmdutil.ResponseError(ctx, "鉴权失败", r.Stream, r.IsCompletions, true)
+			return
 		}
 
 		if !padding && len(r.Messages) == 1 {
@@ -236,4 +248,15 @@ func completions(padding bool) func(ctx *gin.Context) {
 			cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, r.IsCompletions, padding)
 		}
 	}
+}
+
+func validate(token string) (string, bool) {
+	if cmdvars.AutoPwd == "" {
+		return token, true
+	}
+	pwd := "#" + cmdvars.AutoPwd
+	if token != "" && strings.Contains(token, pwd) {
+		return strings.Replace(token, pwd, "", -1), true
+	}
+	return token, false
 }

@@ -20,6 +20,7 @@ var (
 	GlobalPile     string
 	GlobalPileSize int
 	GlobalToken    string
+	AutoPwd        string
 
 	Bu     string
 	Suffix string
