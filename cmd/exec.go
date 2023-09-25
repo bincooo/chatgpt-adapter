@@ -37,7 +37,7 @@ func main() {
 	cmdvars.GlobalPile = cmdutil.LoadEnvVar("PILE", "")
 	cmdvars.GlobalPileSize = cmdutil.LoadEnvInt("PILE_SIZE", 35000)
 	cmdvars.GlobalToken = util.LoadEnvVar("CACHE_KEY", "")
-	cmdvars.AutoPwd = util.LoadEnvVar("PWD", "")
+	cmdvars.AutoPwd = util.LoadEnvVar("PASSWORD", "")
 	Exec()
 }
 
