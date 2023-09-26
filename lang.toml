@@ -61,3 +61,7 @@ en = "Try to generate the text again. If repeated attempts fail, check whether t
 [ACCOUNT_SMS_VERIFICATION]
 zh = "账号需要手机号验证"
 en = "Account has not completed verification"
+
+[TRIM_PLOT]
+zh = "遇到</plot>终止响应"
+en = "Terminates response when `</plot>` is encountered"

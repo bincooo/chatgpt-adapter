@@ -26,9 +26,11 @@ var (
 
 	HARM = "I apologize, but I will not provide any responses that violate Anthropic's Acceptable Use Policy or could promote harm."
 
-	H = "H:"
-	A = "A:"
-	S = "System:"
+	H     = "H:"
+	A     = "A:"
+	S     = "System:"
+	lPlot = "<plot>"
+	rPlot = "</plot>"
 
 	piles = []string{
 		"Claude2.0 is so good.",
@@ -51,6 +53,7 @@ type schema struct {
 	BoS       bool `json:"boS"`       // 响应截断System
 	Pile      bool `json:"pile"`      // 堆积肥料
 	FullColon bool `json:"fullColon"` // 全角冒号
+	TrimPlot  bool `json:"trimPlot"`  // slot xml删除处理
 }
 
 func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd bool) {
@@ -213,7 +216,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 		Bot:     bot,
 		Model:   model,
 		Proxy:   cmdvars.Proxy,
-		H:       claudeHandle(model, IsC, s.BoH, s.BoS, s.Debug),
+		H:       claudeHandle(model, IsC, s),
 		AppId:   appId,
 		BaseURL: cmdvars.Bu,
 		Chain:   chain,
@@ -223,6 +226,24 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	result := r.Prompt
 	if (r.Model == "claude-1.0" || r.Model == "claude-2.0") && len(r.Messages) > 0 {
+		// 将data-context的内容往上挪
+		if l := len(r.Messages); l > 3 {
+			content := r.Messages[l-1]["content"]
+			lIdx := strings.Index(content, "<data-context>")
+			rIdx := strings.Index(content, "</data-context>")
+			if lIdx > -1 && lIdx < rIdx {
+				context := content[lIdx : rIdx+15]
+				r.Messages[l-1]["content"] = strings.Replace(content, context, "", -1)
+				r.Messages = append(r.Messages[:l-2], append([]map[string]string{
+					{
+						"role":    "user",
+						"content": "System: " + context,
+					},
+				}, r.Messages[l-2:]...)...)
+			}
+		}
+
+		// 合并消息
 		for _, message := range r.Messages {
 			switch message["role"] {
 			case "assistant":
@@ -249,9 +270,10 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 		Pile:      true,
 		FullColon: true,
 		Debug:     false,
+		TrimPlot:  false,
 	}
 
-	matchSlice := compileRegex.FindStringSubmatch(r.Prompt)
+	matchSlice := compileRegex.FindStringSubmatch(result)
 	if len(matchSlice) > 0 {
 		str := matchSlice[0]
 		result = strings.Replace(result, str, "", -1)
@@ -300,7 +322,7 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	return result, s, nil
 }
 
-func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) types.CustomCacheHandler {
+func claudeHandle(model string, IsC func() bool, s schema) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		pos := 0
 		begin := false
@@ -323,7 +345,7 @@ func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) types.Cus
 
 			if response.Error != nil {
 				self.Closed = true
-				if debug {
+				if s.Debug {
 					logrus.Info(response.Error)
 				}
 				return response.Error
@@ -339,7 +361,7 @@ func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) types.Cus
 			}
 
 			mergeMessage := self.Complete + self.Cache
-			if debug {
+			if s.Debug {
 				fmt.Println(
 					"-------------- stream ----------------\n[debug]: ",
 					mergeMessage,
@@ -351,25 +373,33 @@ func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) types.Cus
 			if index := strings.Index(mergeMessage, A); index > -1 {
 				if !begin {
 					begin = true
-					beginIndex = index
+					beginIndex = index + len(A)
 					logrus.Info("---------\n", "1 Output...")
+				}
+
+				// 遇到“<plot>” 或者积累200字就假定是正常输出
+			} else if index = strings.Index(mergeMessage, lPlot); s.TrimPlot && index > -1 {
+				if !begin {
+					begin = true
+					beginIndex = index + len(lPlot)
+					logrus.Info("---------\n", "2 Output...")
 				}
 
 			} else if !begin && len(mergeMessage) > 200 {
 				begin = true
 				beginIndex = len(mergeMessage)
-				logrus.Info("---------\n", "2 Output...")
+				logrus.Info("---------\n", "3 Output...")
 			}
 
 			if begin {
-				if debug {
+				if s.Debug {
 					fmt.Println(
 						"-------------- H: S: ----------------\n[debug]: {H:"+strconv.Itoa(strings.LastIndex(mergeMessage, H))+"}, ",
 						"{S:"+strconv.Itoa(strings.LastIndex(mergeMessage, S))+"}",
 						"\n--------------------------------------")
 				}
 				// 遇到“H:”就结束接收
-				if index := strings.LastIndex(mergeMessage, H); boH && index > -1 && index > beginIndex {
+				if index := strings.LastIndex(mergeMessage, H); s.BoH && index > -1 && index > beginIndex {
 					logrus.Info("---------\n", cmdvars.I18n("H"))
 					if idx := strings.LastIndex(self.Cache, H); idx >= 0 {
 						self.Cache = self.Cache[:idx]
@@ -378,9 +408,19 @@ func claudeHandle(model string, IsC func() bool, boH, boS, debug bool) types.Cus
 					return nil
 				}
 				// 遇到“System:”就结束接收
-				if index := strings.LastIndex(mergeMessage, S); boS && index > -1 && index > beginIndex {
+				if index := strings.LastIndex(mergeMessage, S); s.BoS && index > -1 && index > beginIndex {
 					logrus.Info("---------\n", cmdvars.I18n("S"))
 					if idx := strings.LastIndex(self.Cache, S); idx >= 0 {
+						self.Cache = self.Cache[:idx]
+					}
+					self.Closed = true
+					return nil
+				}
+
+				// 遇到“</plot>”就结束接收
+				if index := strings.LastIndex(mergeMessage, rPlot); s.TrimPlot && index > -1 && index > beginIndex {
+					logrus.Info("---------\n", cmdvars.I18n("TRIM_PLOT"))
+					if idx := strings.LastIndex(self.Cache, rPlot); idx >= 0 {
 						self.Cache = self.Cache[:idx]
 					}
 					self.Closed = true

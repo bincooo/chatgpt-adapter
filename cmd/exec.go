@@ -219,7 +219,11 @@ func completions(padding bool) func(ctx *gin.Context) {
 			return
 		}
 		if token == "1" {
-			token = "auto" + "#" + cmdvars.AutoPwd
+			if cmdvars.AutoPwd != "" {
+				token = "auto" + "#" + cmdvars.AutoPwd
+			} else {
+				token = "auto"
+			}
 		}
 
 		var ok bool
