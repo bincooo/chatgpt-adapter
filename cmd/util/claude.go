@@ -247,16 +247,19 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 		for _, message := range r.Messages {
 			switch message["role"] {
 			case "assistant":
-				result += "Assistant: " + message["content"] + "\n\n"
+				result += "Assistant: " + strings.TrimSpace(message["content"]) + "\n\n"
 			case "user":
-				content := message["content"]
+				content := strings.TrimSpace(message["content"])
+				if content == "" {
+					continue
+				}
 				if strings.HasPrefix(content, "System:") {
 					result += strings.TrimSpace(message["content"][7:]) + "\n\n"
 				} else {
 					result += "Human: " + message["content"] + "\n\n"
 				}
 			default:
-				result += message["content"] + "\n\n"
+				result += strings.TrimSpace(message["content"]) + "\n\n"
 			}
 		}
 	}
