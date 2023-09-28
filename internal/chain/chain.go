@@ -11,8 +11,7 @@ type Chain struct {
 
 func New() *Chain {
 	return &Chain{map[string]types.Interceptor{
-		"cache":   &CacheInterceptor{},
-		"replace": &ReplaceInterceptor{},
+		"cache": &CacheInterceptor{},
 	}}
 }
 

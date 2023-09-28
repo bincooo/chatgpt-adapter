@@ -64,7 +64,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 	retry := 2
 
 label:
-	cctx, err := createClaudeConversation(token, r, func() bool { return IsClose })
+	cctx, s, err := createClaudeConversation(token, r, func() bool { return IsClose })
 	if err != nil {
 		errorMessage := catchClaudeHandleError(err, token)
 		if retry > 0 {
@@ -108,8 +108,10 @@ label:
 				case <-ctx.Request.Context().Done():
 					IsClose = true
 				default:
-					if !WriteString(ctx, response.Message, r.IsCompletions) {
-						IsClose = true
+					if message := claudeResponseFilter(response.Message, s); message != "" {
+						if !WriteString(ctx, message, r.IsCompletions) {
+							IsClose = true
+						}
 					}
 				}
 			}
@@ -152,7 +154,20 @@ label:
 	}
 }
 
-func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() bool) (*types.ConversationContext, error) {
+// 过滤claude字符
+func claudeResponseFilter(response string, s schema) string {
+	if response == "" {
+		return response
+	}
+	// 删除<plot>标签
+	if s.TrimPlot {
+		response = strings.ReplaceAll(response, lPlot, "")
+		response = strings.ReplaceAll(response, rPlot, "")
+	}
+	return response
+}
+
+func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() bool) (*types.ConversationContext, schema, error) {
 	var (
 		bot   string
 		model string
@@ -173,15 +188,15 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 		if len(split) > 1 {
 			appId = split[1]
 		} else {
-			return nil, errors.New("请在请求头中提供appId")
+			return nil, schema{}, errors.New("请在请求头中提供appId")
 		}
 	default:
-		return nil, errors.New(cmdvars.I18n("UNKNOWN_MODEL") + "`" + r.Model + "`")
+		return nil, schema{}, errors.New(cmdvars.I18n("UNKNOWN_MODEL") + "`" + r.Model + "`")
 	}
 
 	message, s, err := trimClaudeMessage(r)
 	if err != nil {
-		return nil, err
+		return nil, s, err
 	}
 	fmt.Println("-----------------------Response-----------------\n", message, "\n--------------------END-------------------")
 	marshal, _ := json.Marshal(s)
@@ -190,7 +205,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 		if cmdvars.EnablePool { // 使用池的方式
 			cmdvars.GlobalToken, err = pool.GetKey()
 			if err != nil {
-				return nil, err
+				return nil, s, err
 			}
 
 		} else {
@@ -220,7 +235,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 		AppId:   appId,
 		BaseURL: cmdvars.Bu,
 		Chain:   chain,
-	}, nil
+	}, s, nil
 }
 
 func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
@@ -378,14 +393,6 @@ func claudeHandle(model string, IsC func() bool, s schema) types.CustomCacheHand
 					begin = true
 					beginIndex = index + len(A)
 					logrus.Info("---------\n", "1 Output...")
-				}
-
-				// 遇到“<plot>” 或者积累200字就假定是正常输出
-			} else if index = strings.Index(mergeMessage, lPlot); s.TrimPlot && index > -1 {
-				if !begin {
-					begin = true
-					beginIndex = index + len(lPlot)
-					logrus.Info("---------\n", "2 Output...")
 				}
 
 			} else if !begin && len(mergeMessage) > 200 {
