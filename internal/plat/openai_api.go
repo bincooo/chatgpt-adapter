@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/bincooo/AutoAI/store"
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
 	wapi "github.com/bincooo/openai-wapi"
@@ -13,13 +14,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 )
 
 type OpenAIAPIBot struct {
-	token    string
-	client   *openai.Client
-	sessions map[string][]openai.ChatCompletionMessage
+	token  string
+	client *openai.Client
+	// sessions map[string][]openai.ChatCompletionMessage
 }
 
 func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.PartialResponse {
@@ -72,25 +72,25 @@ func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.Partial
 			}
 		}
 
-		messages := bot.sessions[ctx.Id]
-		bot.sessions[ctx.Id] = append(messages, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleAssistant,
-			Content: r.Complete,
-		})
+		//messages := bot.sessions[ctx.Id]
+		//bot.sessions[ctx.Id] = append(messages, openai.ChatCompletionMessage{
+		//	Role:    openai.ChatMessageRoleAssistant,
+		//	Content: r.Complete,
+		//})
 	}()
 	return message
 }
 
 func (bot *OpenAIAPIBot) Remove(id string) bool {
-	delete(bot.sessions, id)
-	slice := []string{id}
-	for key, _ := range bot.sessions {
-		if strings.HasPrefix(id+"$", key) {
-			delete(bot.sessions, key)
-			slice = append(slice, key)
-		}
-	}
-	logrus.Info("[MiaoX] - Bot.Remove: ", slice)
+	// delete(bot.sessions, id)
+	//slice := []string{id}
+	//for key, _ := range bot.sessions {
+	//	if strings.HasPrefix(id+"$", key) {
+	//		delete(bot.sessions, key)
+	//		slice = append(slice, key)
+	//	}
+	//}
+	logrus.Info("[MiaoX] - Bot.Remove: ")
 	return true
 }
 
@@ -113,21 +113,28 @@ func (bot *OpenAIAPIBot) makeCompletionStream(timeout context.Context, ctx types
 }
 
 func (bot *OpenAIAPIBot) completionMessage(ctx types.ConversationContext) []openai.ChatCompletionMessage {
-	messages, ok := bot.sessions[ctx.Id]
-	if !ok {
-		messages = make([]openai.ChatCompletionMessage, 0)
-	}
+	//messages, ok := bot.sessions[ctx.Id]
+	//if !ok {
+	//	messages = make([]openai.ChatCompletionMessage, 0)
+	//}
 
+	messages := make([]openai.ChatCompletionMessage, 0)
+	for _, message := range store.GetMessages(ctx.Id) {
+		messages = append(messages, openai.ChatCompletionMessage{
+			Role:    kv[message["author"]],
+			Content: message["text"],
+		})
+	}
 	messages = append(messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: ctx.Prompt,
 	})
 
 	// 缓存500条记录
-	if size := len(messages); size > 500 {
-		messages = messages[size-500:]
-	}
-	bot.sessions[ctx.Id] = messages
+	//if size := len(messages); size > 500 {
+	//	messages = messages[size-500:]
+	//}
+	// bot.sessions[ctx.Id] = messages
 
 	// 计算tokens
 	var tokens = 0
@@ -176,7 +183,7 @@ func (bot *OpenAIAPIBot) completionMessage(ctx types.ConversationContext) []open
 
 func NewOpenAIAPIBot() types.Bot {
 	return &OpenAIAPIBot{
-		sessions: map[string][]openai.ChatCompletionMessage{},
+		//sessions: map[string][]openai.ChatCompletionMessage{},
 	}
 }
 

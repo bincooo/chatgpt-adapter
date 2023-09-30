@@ -223,7 +223,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 	if token == "auto" && cmdvars.GlobalToken != "" {
 		token = cmdvars.GlobalToken
 	}
-
+	fmt.Println("TOKEN_KEY: " + token)
 	return &types.ConversationContext{
 		Id:      id,
 		Token:   token,

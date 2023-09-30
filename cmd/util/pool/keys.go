@@ -53,8 +53,13 @@ func init() {
 			keys = append(keys, &Key{ctoken, false, nil})
 		}
 		go func() {
+			time.Sleep(3 * time.Second)
 			for {
 				mu.Lock()
+				if cmdvars.Gen {
+					mu.Unlock()
+					return
+				}
 				// 删除
 				if len(keys) > 0 {
 					for index, key := range keys {

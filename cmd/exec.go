@@ -24,7 +24,6 @@ import (
 
 var (
 	port  int
-	gen   bool
 	count int
 )
 
@@ -61,7 +60,7 @@ func Exec() {
 
 	rootCmd.Flags().StringVarP(&cmdvars.Proxy, "proxy", "P", "", "本地代理 proxy network")
 	rootCmd.Flags().IntVarP(&port, "port", "p", 8080, "服务端口 service port")
-	rootCmd.Flags().BoolVarP(&gen, "gen", "g", false, "生成sessionKey")
+	rootCmd.Flags().BoolVarP(&cmdvars.Gen, "gen", "g", false, "生成sessionKey")
 	rootCmd.Flags().IntVarP(&count, "count", "c", 1, "生成sessionKey数量 generate count")
 	rootCmd.Flags().StringVarP(&cmdvars.Bu, "base-url", "b", "", "第三方转发接口, 默认为官方 (Third party forwarding interface): https://claude.ai/api")
 	rootCmd.Flags().StringVarP(&cmdvars.Suffix, "suffix", "s", "", "指定内置的邮箱后缀，如不指定随机选取 (Specifies the built-in mailbox suffix):\n\t"+strings.Join(esStr, "\n\t"))
@@ -95,7 +94,7 @@ func Run(*cobra.Command, []string) {
 		os.Exit(1)
 	}
 
-	if gen {
+	if cmdvars.Gen {
 		genSessionKeys()
 		return
 	}
@@ -234,11 +233,17 @@ func completions(padding bool) func(ctx *gin.Context) {
 
 		if !padding && len(r.Messages) == 1 {
 			content := r.Messages[0]["content"]
-			if content == "ping" {
-				completion := cmdutil.BuildCompletion(r.IsCompletions, "pong")
-				marshal, _ := json.Marshal(completion)
-				_, _ = ctx.Writer.Write(marshal)
-				return
+			kv := map[string]string{
+				"ping": "pong",
+				"hi":   "hi",
+			}
+			for k, v := range kv {
+				if content == k {
+					completion := cmdutil.BuildCompletion(r.IsCompletions, v)
+					marshal, _ := json.Marshal(completion)
+					_, _ = ctx.Writer.Write(marshal)
+					return
+				}
 			}
 		}
 

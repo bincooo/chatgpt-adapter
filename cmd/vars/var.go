@@ -26,6 +26,7 @@ var (
 	Suffix string
 
 	EnablePool bool
+	Gen        bool
 )
 
 func init() {
