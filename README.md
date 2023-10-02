@@ -127,6 +127,8 @@ New:
 （2023-09-11）已适配open ai api请求格式，可接入到基于opanai的任何app或者web
 收罗了一些别人搭建好的：
 
+https://nbing.eu.org
+
 https://dongsiqie-bing.hf.space
 
 https://sydney.vcanbb.chat
