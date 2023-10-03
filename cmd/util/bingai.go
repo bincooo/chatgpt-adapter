@@ -29,20 +29,34 @@ func init() {
 
 func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd bool) {
 	IsClose := false
+	IsDone := false
 	if token == "" || token == "auto" {
 		token = bingAIToken
 	}
 	fmt.Println("TOKEN_KEY: " + token)
 	prepare(ctx, r)
+	// 重试次数
+	retry := 2
+
+label:
 	context, err := createBingAIConversation(r, token, func() bool { return IsClose })
 	if err != nil {
+		if retry > 0 {
+			retry--
+			goto label
+		}
 		responseBingAIError(ctx, err, r.Stream, r.IsCompletions, token, wd)
 		return
 	}
 	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
 		if r.Stream {
 			if response.Error != nil {
-				responseBingAIError(ctx, response.Error, r.Stream, r.IsCompletions, token, wd)
+				IsClose = true
+				if retry > 0 {
+					retry--
+				} else {
+					responseBingAIError(ctx, response.Error, r.Stream, r.IsCompletions, token, wd)
+				}
 				return
 			}
 
@@ -58,11 +72,13 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 				select {
 				case <-ctx.Request.Context().Done():
 					IsClose = true
+					IsDone = true
 				default:
 					logrus.Info(response.Message)
 					response.Message = bingAIFilter(response.Message)
 					if !WriteString(ctx, response.Message, r.IsCompletions) {
 						IsClose = true
+						IsDone = true
 					}
 				}
 			}
@@ -75,18 +91,27 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 			select {
 			case <-ctx.Request.Context().Done():
 				IsClose = true
+				IsDone = true
 			default:
 			}
 		}
 	})
 	if !r.Stream {
 		if partialResponse.Error != nil {
+			if !IsDone && retry > 0 {
+				goto label
+			}
 			responseBingAIError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token, wd)
 			return
 		}
 
 		ctx.JSON(200, BuildCompletion(r.IsCompletions, partialResponse.Message))
 	}
+
+	if !IsDone && partialResponse.Error != nil && retry > 0 {
+		goto label
+	}
+
 	store.DeleteMessages(context.Id)
 }
 
@@ -264,6 +289,9 @@ func bingAIMessageConversion(r *cmdtypes.RequestDTO) ([]store.Kv, string) {
 	var preset string
 	temp := ""
 	author := ""
+
+	// 将repository的内容往上挪
+	repositoryXmlHandle(r)
 
 	// 遍历归类
 	for _, item := range r.Messages {

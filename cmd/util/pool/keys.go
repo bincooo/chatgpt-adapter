@@ -43,6 +43,7 @@ func init() {
 		for _, key := range split {
 			keys = append(keys, &Key{strings.TrimSpace(key), false, nil})
 			IsLocal = true
+			cmdvars.EnablePool = true
 		}
 	}
 

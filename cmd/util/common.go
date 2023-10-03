@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -34,6 +35,52 @@ func prepare(ctx *gin.Context, r *cmdtypes.RequestDTO) {
 	// isDify
 	if ctx.Request.RequestURI == "/dify/v1/chat/completions" && len(r.Messages) > 0 {
 		dify.ConvertMessages(r)
+	}
+}
+
+// 将repository的内容往上挪
+func repositoryXmlHandle(r *cmdtypes.RequestDTO) {
+	if l := len(r.Messages); l > 2 {
+		pos := 2 // 1次
+		// 最多上挪3次对话
+		if l > 4 {
+			pos = 4 // 2次
+		}
+		if l > 6 {
+			pos = 6 // 3次
+		}
+
+		var slice []string
+		for {
+			content := r.Messages[l-1]["content"]
+			lIdx := strings.Index(content, "<repository>")
+			rIdx := strings.Index(content, "</repository>")
+			if lIdx < 0 {
+				break
+			}
+			if lIdx < rIdx {
+				context := content[lIdx : rIdx+13]
+				r.Messages[l-1]["content"] = strings.Replace(content, context, "", -1)
+				slice = append(slice, context)
+			}
+		}
+
+		if sl := len(slice); sl > 0 {
+			if sl > 1 {
+				for idx, context := range slice {
+					idxStr := strconv.Itoa(idx + 1)
+					context = strings.Replace(context, "<repository>", "<repository-"+idxStr+">", -1)
+					context = strings.Replace(context, "</repository>", "</repository-"+idxStr+">", -1)
+				}
+			}
+
+			r.Messages = append(r.Messages[:l-pos], append([]map[string]string{
+				{
+					"role":    "user",
+					"content": "System: " + strings.Join(slice, "\n\n"),
+				},
+			}, r.Messages[l-pos:]...)...)
+		}
 	}
 }
 

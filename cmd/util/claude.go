@@ -58,6 +58,7 @@ type schema struct {
 
 func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd bool) {
 	IsClose := false
+	IsDone := false
 	fmt.Println("TOKEN_KEY: " + token)
 	prepare(ctx, r)
 	// 重试次数
@@ -85,6 +86,7 @@ label:
 			}
 
 			if response.Error != nil {
+				IsClose = true
 				var e *cltypes.Claude2Error
 				ok := errors.As(response.Error, &e)
 				err = response.Error
@@ -107,10 +109,12 @@ label:
 				select {
 				case <-ctx.Request.Context().Done():
 					IsClose = true
+					IsDone = true
 				default:
 					if message := claudeResponseFilter(response.Message, s); message != "" {
 						if !WriteString(ctx, message, r.IsCompletions) {
 							IsClose = true
+							IsDone = true
 						}
 					}
 				}
@@ -123,6 +127,7 @@ label:
 			select {
 			case <-ctx.Request.Context().Done():
 				IsClose = true
+				IsDone = true
 			default:
 			}
 		}
@@ -131,7 +136,7 @@ label:
 	if !r.Stream && !IsClose {
 		if partialResponse.Error != nil {
 			errorMessage := catchClaudeHandleError(partialResponse.Error, token)
-			if retry > 0 {
+			if !IsDone && retry > 0 {
 				goto label
 			}
 			ResponseError(ctx, errorMessage, r.Stream, r.IsCompletions, wd)
@@ -141,7 +146,7 @@ label:
 		ctx.JSON(200, BuildCompletion(r.IsCompletions, partialResponse.Message))
 	}
 
-	if partialResponse.Error != nil && retry > 0 {
+	if !IsDone && partialResponse.Error != nil && retry > 0 {
 		goto label
 	}
 
@@ -241,22 +246,8 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	result := r.Prompt
 	if (r.Model == "claude-1.0" || r.Model == "claude-2.0") && len(r.Messages) > 0 {
-		// 将data-context的内容往上挪
-		if l := len(r.Messages); l > 3 {
-			content := r.Messages[l-1]["content"]
-			lIdx := strings.Index(content, "<data-context>")
-			rIdx := strings.Index(content, "</data-context>")
-			if lIdx > -1 && lIdx < rIdx {
-				context := content[lIdx : rIdx+15]
-				r.Messages[l-1]["content"] = strings.Replace(content, context, "", -1)
-				r.Messages = append(r.Messages[:l-2], append([]map[string]string{
-					{
-						"role":    "user",
-						"content": "System: " + context,
-					},
-				}, r.Messages[l-2:]...)...)
-			}
-		}
+		// 将repository的内容往上挪
+		repositoryXmlHandle(r)
 
 		// 合并消息
 		for _, message := range r.Messages {
