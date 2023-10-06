@@ -75,7 +75,6 @@ label:
 					IsDone = true
 				default:
 					logrus.Info(response.Message)
-					response.Message = bingAIFilter(response.Message)
 					if !WriteString(ctx, response.Message, r.IsCompletions) {
 						IsClose = true
 						IsDone = true
@@ -113,27 +112,6 @@ label:
 	}
 
 	store.DeleteMessages(context.Id)
-}
-
-// 消息过滤
-func bingAIFilter(message string) string {
-	// 清理 [1]、[2] 标签
-	regexCompile, err := regexp.Compile(`\[\w]`)
-	if err != nil {
-		logrus.Warn(err)
-		return message
-	}
-	message = regexCompile.ReplaceAllString(message, "")
-
-	// 清理 [^1^]、[^2^] 标签
-	regexCompile, err = regexp.Compile(`\[\^\w\^]`)
-	if err != nil {
-		logrus.Warn(err)
-		return message
-	}
-	message = regexCompile.ReplaceAllString(message, "")
-
-	return message
 }
 
 func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() bool) (*types.ConversationContext, error) {
@@ -231,6 +209,74 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() b
 
 func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
+		matchers := GlobalMatchers()
+		// 清理 [1]、[2] 标签
+		// 清理 [^1^]、[^2^] 标签
+		// 清理 [^1^ 标签
+		matchers = append(matchers, &StringMatcher{
+			Find: "[",
+			H: func(index int, content string) (state int, result string) {
+				r := []rune(content)
+				eIndex := len(r) - 1
+				if index+5 > eIndex {
+					return MAT_MATCHING, ""
+				}
+				regexCompile := regexp.MustCompile(`\[\w]`)
+				content = regexCompile.ReplaceAllString(content, "")
+				regexCompile = regexp.MustCompile(`\[\^\w\^]`)
+				content = regexCompile.ReplaceAllString(content, "")
+				regexCompile = regexp.MustCompile(`\[\^\w\^`)
+				content = regexCompile.ReplaceAllString(content, "")
+				return MAT_MATCHED, content
+			},
+		})
+
+		// (^1^) (^1^ (^1^^ 标签
+		matchers = append(matchers, &StringMatcher{
+			Find: "(",
+			H: func(index int, content string) (state int, result string) {
+				r := []rune(content)
+				eIndex := len(r) - 1
+				if index+5 > eIndex {
+					return MAT_MATCHING, ""
+				}
+				regexCompile := regexp.MustCompile(`\(\^\w\^\)`)
+				content = regexCompile.ReplaceAllString(content, "")
+				regexCompile = regexp.MustCompile(`\(\^\w\^\^`)
+				content = regexCompile.ReplaceAllString(content, "")
+				regexCompile = regexp.MustCompile(`\(\^\w\^`)
+				content = regexCompile.ReplaceAllString(content, "")
+				return MAT_MATCHED, content
+			},
+		})
+
+		// ^2^) ^2^]
+		matchers = append(matchers, &StringMatcher{
+			Find: "^",
+			H: func(index int, content string) (state int, result string) {
+				r := []rune(content)
+				eIndex := len(r) - 1
+				if index+4 > eIndex {
+					return MAT_MATCHING, ""
+				}
+				regexCompile := regexp.MustCompile(`\^\w\^\)`)
+				content = regexCompile.ReplaceAllString(content, "")
+				regexCompile = regexp.MustCompile(`\^\w\^]`)
+				content = regexCompile.ReplaceAllString(content, "")
+				return MAT_MATCHED, content
+			},
+		})
+
+		// 1)： 2)：
+		matchers = append(matchers, &StringMatcher{
+			Find: ")：",
+			H: func(index int, content string) (state int, result string) {
+				regexCompile := regexp.MustCompile(`\w\)：`)
+				content = regexCompile.ReplaceAllString(content, "：")
+				return MAT_MATCHED, content
+			},
+		})
+
 		pos := 0
 		return func(self *types.CacheBuffer) error {
 			partialResponse := rChan.(chan edge.PartialResponse)
@@ -277,8 +323,28 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 			if pos >= length {
 				return nil
 			}
-			self.Cache += string(str[pos:])
+
+			rawText := string(str[pos:])
 			pos = length
+			if rawText == "" {
+				return nil
+			}
+
+			for _, mat := range matchers {
+				state, result := mat.match(rawText)
+				if state == MAT_DEFAULT {
+					continue
+				}
+				if state == MAT_MATCHING {
+					return nil
+				}
+				if state == MAT_MATCHED {
+					rawText = result
+					break
+				}
+			}
+
+			self.Cache += rawText
 			return nil
 		}
 	}

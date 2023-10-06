@@ -20,6 +20,9 @@ func MergeFullMessage(message chan types.PartialResponse) types.PartialResponse 
 			break
 		}
 	}
+	if partialResponse.Error != nil {
+		return partialResponse
+	}
 	if len(slice) > 0 {
 		partialResponse.Message = strings.Join(slice, "")
 	}

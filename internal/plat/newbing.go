@@ -31,8 +31,10 @@ func (bot *BingBot) Reply(ctx types.ConversationContext) chan types.PartialRespo
 				message <- types.PartialResponse{Error: err}
 				return
 			}
+
 			chat.Model = ctx.Model
 			chat.TraceId = ctx.AppId
+			chat.Proxy = ctx.Proxy
 			session = chat
 			bot.sessions[ctx.Id] = session
 		}

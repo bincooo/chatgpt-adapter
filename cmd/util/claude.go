@@ -65,7 +65,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 	retry := 2
 
 label:
-	cctx, s, err := createClaudeConversation(token, r, func() bool { return IsClose })
+	cctx, err := createClaudeConversation(token, r, func() bool { return IsClose })
 	if err != nil {
 		errorMessage := catchClaudeHandleError(err, token)
 		if retry > 0 {
@@ -106,16 +106,15 @@ label:
 			}
 
 			if len(response.Message) > 0 {
+				logrus.Info(response.Message)
 				select {
 				case <-ctx.Request.Context().Done():
 					IsClose = true
 					IsDone = true
 				default:
-					if message := claudeResponseFilter(response.Message, s); message != "" {
-						if !WriteString(ctx, message, r.IsCompletions) {
-							IsClose = true
-							IsDone = true
-						}
+					if !WriteString(ctx, response.Message, r.IsCompletions) {
+						IsClose = true
+						IsDone = true
 					}
 				}
 			}
@@ -160,19 +159,32 @@ label:
 }
 
 // 过滤claude字符
-func claudeResponseFilter(response string, s schema) string {
+func claudeResponseFilter(response string, s schema, matchers []*StringMatcher) string {
 	if response == "" {
 		return response
 	}
 	// 删除<plot>标签
-	if s.TrimPlot {
-		response = strings.ReplaceAll(response, lPlot, "")
-		response = strings.ReplaceAll(response, rPlot, "")
+	//if s.TrimPlot {
+	//	response = strings.ReplaceAll(response, lPlot, "")
+	//	response = strings.ReplaceAll(response, rPlot, "")
+	//}
+
+	for _, mat := range matchers {
+		state, result := mat.match(response)
+		if state == MAT_DEFAULT {
+			continue
+		}
+		if state == MAT_MATCHING {
+			return ""
+		}
+		if state == MAT_MATCHED {
+			return result
+		}
 	}
 	return response
 }
 
-func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() bool) (*types.ConversationContext, schema, error) {
+func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() bool) (*types.ConversationContext, error) {
 	var (
 		bot   string
 		model string
@@ -193,24 +205,24 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 		if len(split) > 1 {
 			appId = split[1]
 		} else {
-			return nil, schema{}, errors.New("请在请求头中提供appId")
+			return nil, errors.New("请在请求头中提供appId")
 		}
 	default:
-		return nil, schema{}, errors.New(cmdvars.I18n("UNKNOWN_MODEL") + "`" + r.Model + "`")
+		return nil, errors.New(cmdvars.I18n("UNKNOWN_MODEL") + "`" + r.Model + "`")
 	}
 
 	message, s, err := trimClaudeMessage(r)
 	if err != nil {
-		return nil, s, err
+		return nil, err
 	}
 	fmt.Println("-----------------------Response-----------------\n", message, "\n--------------------END-------------------")
 	marshal, _ := json.Marshal(s)
-	logrus.Info("Schema: ", string(marshal))
+	fmt.Println("Schema: " + string(marshal))
 	if token == "auto" && cmdvars.GlobalToken == "" {
 		if cmdvars.EnablePool { // 使用池的方式
 			cmdvars.GlobalToken, err = pool.GetKey()
 			if err != nil {
-				return nil, s, err
+				return nil, err
 			}
 
 		} else {
@@ -236,11 +248,11 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 		Bot:     bot,
 		Model:   model,
 		Proxy:   cmdvars.Proxy,
-		H:       claudeHandle(model, IsC, s),
+		H:       claudeHandle(model, IsC),
 		AppId:   appId,
 		BaseURL: cmdvars.Bu,
 		Chain:   chain,
-	}, s, nil
+	}, nil
 }
 
 func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
@@ -331,18 +343,41 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	return result, s, nil
 }
 
-func claudeHandle(model string, IsC func() bool, s schema) types.CustomCacheHandler {
+func claudeHandle(model string, IsC func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
+		needClose := false
+		matchers := GlobalMatchers()
+		// 遇到`A:`符号剔除
+		matchers = append(matchers, &StringMatcher{
+			Find: A,
+			H: func(i int, content string) (state int, result string) {
+				return MAT_MATCHED, strings.Replace(content, A, "", -1)
+			},
+		})
+		// 遇到`H:`符号结束输出
+		matchers = append(matchers, &StringMatcher{
+			Find: H,
+			H: func(i int, content string) (state int, result string) {
+				needClose = true
+				logrus.Info("---------\n", cmdvars.I18n("H"))
+				return MAT_MATCHED, strings.Replace(content, H, "", -1)
+			},
+		})
+		// 遇到`System:`符号结束输出
+		matchers = append(matchers, &StringMatcher{
+			Find: S,
+			H: func(i int, content string) (state int, result string) {
+				needClose = true
+				logrus.Info("---------\n", cmdvars.I18n("S"))
+				return MAT_MATCHED, strings.Replace(content, S, "", -1)
+			},
+		})
+
 		pos := 0
-		begin := false
-		beginIndex := -1
 		partialResponse := rChan.(chan cltypes.PartialResponse)
 		return func(self *types.CacheBuffer) error {
 			response, ok := <-partialResponse
 			if !ok {
-				// 清理一下残留
-				self.Cache = strings.TrimSuffix(self.Cache, A)
-				self.Cache = strings.TrimSuffix(self.Cache, S)
 				self.Closed = true
 				return nil
 			}
@@ -352,82 +387,44 @@ func claudeHandle(model string, IsC func() bool, s schema) types.CustomCacheHand
 				return nil
 			}
 
+			if needClose {
+				self.Closed = true
+				return nil
+			}
+
 			if response.Error != nil {
 				self.Closed = true
-				if s.Debug {
-					logrus.Info(response.Error)
-				}
 				return response.Error
 			}
 
+			var rawText string
 			if model != vars.Model4WebClaude2S {
 				text := response.Text
 				str := []rune(text)
-				self.Cache += string(str[pos:])
+				rawText = string(str[pos:])
 				pos = len(str)
 			} else {
-				self.Cache += response.Text
+				rawText = response.Text
 			}
 
-			mergeMessage := self.Complete + self.Cache
-			if s.Debug {
-				fmt.Println(
-					"-------------- stream ----------------\n[debug]: ",
-					mergeMessage,
-					"\n------- cache ------\n",
-					self.Cache,
-					"\n--------------------------------------")
+			if rawText == "" {
+				return nil
 			}
-			// 遇到“A:” 或者积累200字就假定是正常输出
-			if index := strings.Index(mergeMessage, A); index > -1 {
-				if !begin {
-					begin = true
-					beginIndex = index + len(A)
-					logrus.Info("---------\n", "1 Output...")
+			for _, mat := range matchers {
+				state, result := mat.match(self.Cache)
+				if state == MAT_DEFAULT {
+					continue
 				}
-
-			} else if !begin && len(mergeMessage) > 200 {
-				begin = true
-				beginIndex = len(mergeMessage)
-				logrus.Info("---------\n", "3 Output...")
-			}
-
-			if begin {
-				if s.Debug {
-					fmt.Println(
-						"-------------- H: S: ----------------\n[debug]: {H:"+strconv.Itoa(strings.LastIndex(mergeMessage, H))+"}, ",
-						"{S:"+strconv.Itoa(strings.LastIndex(mergeMessage, S))+"}",
-						"\n--------------------------------------")
-				}
-				// 遇到“H:”就结束接收
-				if index := strings.LastIndex(mergeMessage, H); s.BoH && index > -1 && index > beginIndex {
-					logrus.Info("---------\n", cmdvars.I18n("H"))
-					if idx := strings.LastIndex(self.Cache, H); idx >= 0 {
-						self.Cache = self.Cache[:idx]
-					}
-					self.Closed = true
+				if state == MAT_MATCHING {
 					return nil
 				}
-				// 遇到“System:”就结束接收
-				if index := strings.LastIndex(mergeMessage, S); s.BoS && index > -1 && index > beginIndex {
-					logrus.Info("---------\n", cmdvars.I18n("S"))
-					if idx := strings.LastIndex(self.Cache, S); idx >= 0 {
-						self.Cache = self.Cache[:idx]
-					}
-					self.Closed = true
-					return nil
-				}
-
-				// 遇到“</plot>”就结束接收
-				if index := strings.LastIndex(mergeMessage, rPlot); s.TrimPlot && index > -1 && index > beginIndex {
-					logrus.Info("---------\n", cmdvars.I18n("TRIM_PLOT"))
-					if idx := strings.LastIndex(self.Cache, rPlot); idx >= 0 {
-						self.Cache = self.Cache[:idx]
-					}
-					self.Closed = true
-					return nil
+				if state == MAT_MATCHED {
+					rawText = result
+					break
 				}
 			}
+
+			self.Cache += rawText
 			return nil
 		}
 	}
