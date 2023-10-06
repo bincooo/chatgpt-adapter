@@ -38,8 +38,17 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 	// 重试次数
 	retry := 2
 
+	var context *types.ConversationContext
 label:
-	context, err := createBingAIConversation(r, token, func() bool { return IsClose })
+	if IsDone {
+		if context != nil {
+			store.DeleteMessages(context.Id)
+		}
+		return
+	}
+
+	var err error
+	context, err = createBingAIConversation(r, token, func() bool { return IsClose })
 	if err != nil {
 		if retry > 0 {
 			retry--
@@ -48,11 +57,13 @@ label:
 		responseBingAIError(ctx, err, r.Stream, r.IsCompletions, token, wd)
 		return
 	}
+
 	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
 		if r.Stream {
 			if response.Error != nil {
 				IsClose = true
 				if retry > 0 {
+					err = response.Error
 					retry--
 				} else {
 					responseBingAIError(ctx, response.Error, r.Stream, r.IsCompletions, token, wd)
@@ -95,6 +106,7 @@ label:
 			}
 		}
 	})
+
 	if !r.Stream {
 		if partialResponse.Error != nil {
 			if !IsDone && retry > 0 {
@@ -110,7 +122,6 @@ label:
 	if !IsDone && partialResponse.Error != nil && retry > 0 {
 		goto label
 	}
-
 	store.DeleteMessages(context.Id)
 }
 
@@ -263,16 +274,6 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 				content = regexCompile.ReplaceAllString(content, "")
 				regexCompile = regexp.MustCompile(`\^\w\^]`)
 				content = regexCompile.ReplaceAllString(content, "")
-				return MAT_MATCHED, content
-			},
-		})
-
-		// 1)： 2)：
-		matchers = append(matchers, &StringMatcher{
-			Find: ")：",
-			H: func(index int, content string) (state int, result string) {
-				regexCompile := regexp.MustCompile(`\w\)：`)
-				content = regexCompile.ReplaceAllString(content, "：")
 				return MAT_MATCHED, content
 			},
 		})

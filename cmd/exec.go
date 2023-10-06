@@ -263,9 +263,12 @@ func validate(token string) (string, bool) {
 	if cmdvars.AutoPwd == "" {
 		return token, true
 	}
-	pwd := "#" + cmdvars.AutoPwd
-	if token != "" && strings.Contains(token, pwd) {
-		return strings.Replace(token, pwd, "", -1), true
+	if token != "" {
+		slice := strings.Split(token, "#")
+		if cmdutil.Contains(slice, cmdvars.AutoPwd) {
+			slice = cmdutil.Remove(slice, cmdvars.AutoPwd)
+			return strings.Join(slice, "#"), true
+		}
 	}
 	return token, false
 }

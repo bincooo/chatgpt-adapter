@@ -64,8 +64,17 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 	// 重试次数
 	retry := 2
 
+	var err error
+	var context *types.ConversationContext
 label:
-	cctx, err := createClaudeConversation(token, r, func() bool { return IsClose })
+	if IsDone {
+		if err != nil {
+			_ = catchClaudeHandleError(err, token)
+		}
+		return
+	}
+
+	context, err = createClaudeConversation(token, r, func() bool { return IsClose })
 	if err != nil {
 		errorMessage := catchClaudeHandleError(err, token)
 		if retry > 0 {
@@ -75,7 +84,7 @@ label:
 		ResponseError(ctx, errorMessage, r.Stream, r.IsCompletions, wd)
 		return
 	}
-	partialResponse := cmdvars.Manager.Reply(*cctx, func(response types.PartialResponse) {
+	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
 		if r.Stream {
 			if response.Status == vars.Begin {
 				ctx.Status(200)
@@ -150,38 +159,12 @@ label:
 	}
 
 	// 检查大黄标
-	if token == "auto" && cctx.Model == vars.Model4WebClaude2S {
+	if token == "auto" && context.Model == vars.Model4WebClaude2S {
 		if strings.Contains(partialResponse.Message, HARM) {
 			cmdvars.GlobalToken = ""
 			logrus.Warn(cmdvars.I18n("HARM"))
 		}
 	}
-}
-
-// 过滤claude字符
-func claudeResponseFilter(response string, s schema, matchers []*StringMatcher) string {
-	if response == "" {
-		return response
-	}
-	// 删除<plot>标签
-	//if s.TrimPlot {
-	//	response = strings.ReplaceAll(response, lPlot, "")
-	//	response = strings.ReplaceAll(response, rPlot, "")
-	//}
-
-	for _, mat := range matchers {
-		state, result := mat.match(response)
-		if state == MAT_DEFAULT {
-			continue
-		}
-		if state == MAT_MATCHING {
-			return ""
-		}
-		if state == MAT_MATCHED {
-			return result
-		}
-	}
-	return response
 }
 
 func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() bool) (*types.ConversationContext, error) {

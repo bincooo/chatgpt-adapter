@@ -228,12 +228,29 @@ func BuildCompletion(isCompletions bool, message string) gin.H {
 	return completion
 }
 
-// 判断切片是否包含子元素
-func Contains[T comparable](slice []T, t T) bool {
+func Remove[T comparable](slice []T, t T) []T {
+	return RemoveFor(slice, func(item T) bool {
+		return item == t
+	})
+}
+
+// 自定义条件删除元素
+func RemoveFor[T comparable](slice []T, condition func(item T) bool) []T {
 	if len(slice) == 0 {
-		return false
+		return slice
 	}
 
+	for idx, item := range slice {
+		if condition(item) {
+			slice = append(slice[:idx], slice[idx+1:]...)
+			break
+		}
+	}
+	return slice
+}
+
+// 判断切片是否包含子元素
+func Contains[T comparable](slice []T, t T) bool {
 	return ContainFor(slice, func(item T) bool {
 		return item == t
 	})
