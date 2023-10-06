@@ -359,6 +359,7 @@ func claudeHandle(model string, IsC func() bool) types.CustomCacheHandler {
 		return func(self *types.CacheBuffer) error {
 			response, ok := <-partialResponse
 			if !ok {
+				self.Cache += utils.ExecMatchers(matchers, "\n      ")
 				self.Closed = true
 				return nil
 			}

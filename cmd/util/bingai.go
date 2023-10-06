@@ -287,6 +287,7 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 			partialResponse := rChan.(chan edge.PartialResponse)
 			response, ok := <-partialResponse
 			if !ok {
+				self.Cache += utils.ExecMatchers(matchers, "\n      ")
 				self.Closed = true
 				return nil
 			}
