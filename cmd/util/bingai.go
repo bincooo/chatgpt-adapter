@@ -7,6 +7,7 @@ import (
 	cmdvars "github.com/bincooo/AutoAI/cmd/vars"
 	"github.com/bincooo/AutoAI/store"
 	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/utils"
 	"github.com/bincooo/AutoAI/vars"
 	"github.com/bincooo/edge-api"
 	"github.com/bincooo/edge-api/util"
@@ -85,7 +86,6 @@ label:
 					IsClose = true
 					IsDone = true
 				default:
-					logrus.Info(response.Message)
 					if !WriteString(ctx, response.Message, r.IsCompletions) {
 						IsClose = true
 						IsDone = true
@@ -220,61 +220,65 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() b
 
 func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
-		matchers := GlobalMatchers()
+		//matchers := make([]*StringMatcher, 0)
+		matchers := utils.GlobalMatchers()
 		// 清理 [1]、[2] 标签
 		// 清理 [^1^]、[^2^] 标签
 		// 清理 [^1^ 标签
-		matchers = append(matchers, &StringMatcher{
+		matchers = append(matchers, &types.StringMatcher{
 			Find: "[",
 			H: func(index int, content string) (state int, result string) {
+				logrus.Warn("Find: [  / ", content)
 				r := []rune(content)
 				eIndex := len(r) - 1
 				if index+5 > eIndex {
-					return MAT_MATCHING, ""
+					return types.MAT_MATCHING, ""
 				}
-				regexCompile := regexp.MustCompile(`\[\w]`)
+				regexCompile := regexp.MustCompile(`\[\d]`)
 				content = regexCompile.ReplaceAllString(content, "")
-				regexCompile = regexp.MustCompile(`\[\^\w\^]`)
+				regexCompile = regexp.MustCompile(`\[\^\d\^]`)
 				content = regexCompile.ReplaceAllString(content, "")
-				regexCompile = regexp.MustCompile(`\[\^\w\^`)
+				regexCompile = regexp.MustCompile(`\[\^\d\^`)
 				content = regexCompile.ReplaceAllString(content, "")
-				return MAT_MATCHED, content
+				return types.MAT_MATCHED, content
 			},
 		})
 
 		// (^1^) (^1^ (^1^^ 标签
-		matchers = append(matchers, &StringMatcher{
+		matchers = append(matchers, &types.StringMatcher{
 			Find: "(",
 			H: func(index int, content string) (state int, result string) {
+				logrus.Warn("Find: (  / ", content)
 				r := []rune(content)
 				eIndex := len(r) - 1
 				if index+5 > eIndex {
-					return MAT_MATCHING, ""
+					return types.MAT_MATCHING, ""
 				}
-				regexCompile := regexp.MustCompile(`\(\^\w\^\)`)
+				regexCompile := regexp.MustCompile(`\(\^\d\^\)`)
 				content = regexCompile.ReplaceAllString(content, "")
-				regexCompile = regexp.MustCompile(`\(\^\w\^\^`)
+				regexCompile = regexp.MustCompile(`\(\^\d\^\^`)
 				content = regexCompile.ReplaceAllString(content, "")
-				regexCompile = regexp.MustCompile(`\(\^\w\^`)
+				regexCompile = regexp.MustCompile(`\(\^\d\^`)
 				content = regexCompile.ReplaceAllString(content, "")
-				return MAT_MATCHED, content
+				return types.MAT_MATCHED, content
 			},
 		})
 
 		// ^2^) ^2^]
-		matchers = append(matchers, &StringMatcher{
+		matchers = append(matchers, &types.StringMatcher{
 			Find: "^",
 			H: func(index int, content string) (state int, result string) {
+				logrus.Warn("Find: ^  / ", content)
 				r := []rune(content)
 				eIndex := len(r) - 1
 				if index+4 > eIndex {
-					return MAT_MATCHING, ""
+					return types.MAT_MATCHING, ""
 				}
-				regexCompile := regexp.MustCompile(`\^\w\^\)`)
+				regexCompile := regexp.MustCompile(`\^\d\^\)`)
 				content = regexCompile.ReplaceAllString(content, "")
-				regexCompile = regexp.MustCompile(`\^\w\^]`)
+				regexCompile = regexp.MustCompile(`\^\d\^]`)
 				content = regexCompile.ReplaceAllString(content, "")
-				return MAT_MATCHED, content
+				return types.MAT_MATCHED, content
 			},
 		})
 
@@ -331,21 +335,8 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 				return nil
 			}
 
-			for _, mat := range matchers {
-				state, result := mat.match(rawText)
-				if state == MAT_DEFAULT {
-					continue
-				}
-				if state == MAT_MATCHING {
-					return nil
-				}
-				if state == MAT_MATCHED {
-					rawText = result
-					break
-				}
-			}
-
-			self.Cache += rawText
+			logrus.Info("rawText ----", rawText)
+			self.Cache += utils.ExecMatchers(matchers, rawText)
 			return nil
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/bincooo/AutoAI/cmd/util/pool"
 	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/utils"
 	"github.com/bincooo/AutoAI/vars"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -113,7 +114,6 @@ label:
 			}
 
 			if len(response.Message) > 0 {
-				logrus.Info(response.Message)
 				select {
 				case <-ctx.Request.Context().Done():
 					IsClose = true
@@ -327,30 +327,30 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 func claudeHandle(model string, IsC func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		needClose := false
-		matchers := GlobalMatchers()
+		matchers := utils.GlobalMatchers()
 		// 遇到`A:`符号剔除
-		matchers = append(matchers, &StringMatcher{
+		matchers = append(matchers, &types.StringMatcher{
 			Find: A,
 			H: func(i int, content string) (state int, result string) {
-				return MAT_MATCHED, strings.Replace(content, A, "", -1)
+				return types.MAT_MATCHED, strings.Replace(content, A, "", -1)
 			},
 		})
 		// 遇到`H:`符号结束输出
-		matchers = append(matchers, &StringMatcher{
+		matchers = append(matchers, &types.StringMatcher{
 			Find: H,
 			H: func(i int, content string) (state int, result string) {
 				needClose = true
 				logrus.Info("---------\n", cmdvars.I18n("H"))
-				return MAT_MATCHED, strings.Replace(content, H, "", -1)
+				return types.MAT_MATCHED, strings.Replace(content, H, "", -1)
 			},
 		})
 		// 遇到`System:`符号结束输出
-		matchers = append(matchers, &StringMatcher{
+		matchers = append(matchers, &types.StringMatcher{
 			Find: S,
 			H: func(i int, content string) (state int, result string) {
 				needClose = true
 				logrus.Info("---------\n", cmdvars.I18n("S"))
-				return MAT_MATCHED, strings.Replace(content, S, "", -1)
+				return types.MAT_MATCHED, strings.Replace(content, S, "", -1)
 			},
 		})
 
@@ -391,21 +391,9 @@ func claudeHandle(model string, IsC func() bool) types.CustomCacheHandler {
 			if rawText == "" {
 				return nil
 			}
-			for _, mat := range matchers {
-				state, result := mat.match(self.Cache)
-				if state == MAT_DEFAULT {
-					continue
-				}
-				if state == MAT_MATCHING {
-					return nil
-				}
-				if state == MAT_MATCHED {
-					rawText = result
-					break
-				}
-			}
 
-			self.Cache += rawText
+			logrus.Info("rawText ----", rawText)
+			self.Cache += utils.ExecMatchers(matchers, rawText)
 			return nil
 		}
 	}

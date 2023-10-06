@@ -1,5 +1,7 @@
 package types
 
+import "strings"
+
 type PartialResponse struct {
 	Status  string
 	Message string
@@ -53,7 +55,7 @@ type Bot interface {
 	Remove(id string) bool
 }
 
-// 拦截处理器
+// 拦截处理器，预处理用户输入以及bot输出
 type Interceptor interface {
 	// true 继续下一个
 	Before(bot Bot, ctx *ConversationContext) (bool, error)
@@ -71,4 +73,101 @@ func (*BaseInterceptor) Before(Bot, *ConversationContext) (bool, error) {
 
 func (*BaseInterceptor) After(Bot, *ConversationContext, string) (bool, error) {
 	return true, nil
+}
+
+// =============
+
+const (
+	MAT_DEFAULT int = iota
+	MAT_MATCHING
+	MAT_MATCHED
+)
+
+// 符号匹配器，匹配常量符号并流式处理
+type SymbolMatcher interface {
+	Match(content string) (state int, result string)
+}
+
+// 字符串符号适配器
+type StringMatcher struct {
+	cache string
+	Find  string
+	H     func(index int, content string) (state int, result string)
+}
+
+func (mat *StringMatcher) Match(content string) (state int, result string) {
+	if mat.Find == "" {
+		panic("`StringMatcher::Find` is empty")
+	}
+
+	content = mat.cache + content
+
+	f := []rune(mat.Find)
+	r := []rune(content)
+
+	pos := 0
+	idx := -1
+
+	index := 0
+	state = MAT_DEFAULT
+
+	for index = range r {
+		var fCh rune
+		if len(f) <= pos {
+			state = MAT_MATCHED
+			if mat.H != nil {
+				break
+			}
+			continue
+		}
+		fCh = f[pos]
+		if fCh != r[index] {
+			pos = 0
+			idx = -1
+			state = MAT_DEFAULT
+			continue
+		}
+		if idx == -1 || idx == index-1 {
+			pos++
+			idx = index
+			state = MAT_MATCHING
+			continue
+		}
+	}
+
+	if state == MAT_DEFAULT {
+		mat.cache = ""
+		result = content
+		return
+	}
+
+	if state == MAT_MATCHING {
+		mat.cache = content
+		if strings.HasSuffix(content, mat.Find) {
+			state = MAT_MATCHED
+		} else {
+			result = ""
+			return
+		}
+	}
+
+	if state == MAT_MATCHED {
+		if mat.H != nil {
+			state, result = mat.H(index, content)
+			if state == MAT_MATCHED {
+				mat.cache = ""
+				return
+			}
+			if state == MAT_MATCHING {
+				mat.cache = content
+				return state, ""
+			}
+			return state, content
+		} else {
+			result = content
+			mat.cache = ""
+		}
+	}
+
+	return
 }
