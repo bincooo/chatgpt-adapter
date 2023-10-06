@@ -4,14 +4,30 @@ import (
 	"context"
 	"github.com/bincooo/AutoAI/store"
 	"github.com/bincooo/AutoAI/types"
+	"github.com/bincooo/AutoAI/utils"
 	"github.com/bincooo/AutoAI/vars"
 	"github.com/bincooo/edge-api"
+	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"strings"
 )
 
+var (
+	KievAuth = ""
+	RwBf     = ""
+)
+
 type BingBot struct {
 	sessions map[string]*edge.Chat
+}
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		logrus.Error(err)
+	}
+	KievAuth = utils.LoadEnvVar("BING_KievAuth", KievAuth)
+	RwBf = utils.LoadEnvVar("BING_RwBf", RwBf)
 }
 
 func NewBingBot() types.Bot {
@@ -31,6 +47,9 @@ func (bot *BingBot) Reply(ctx types.ConversationContext) chan types.PartialRespo
 				message <- types.PartialResponse{Error: err}
 				return
 			}
+
+			chat.RwBf = RwBf
+			chat.KievRPSSecAuth = KievAuth
 
 			chat.Model = ctx.Model
 			chat.TraceId = ctx.AppId

@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
+	"os"
 	"strings"
 )
 
@@ -28,4 +29,12 @@ func MergeFullMessage(message chan types.PartialResponse) types.PartialResponse 
 	}
 	partialResponse.Status = vars.Closed
 	return partialResponse
+}
+
+func LoadEnvVar(key, defaultValue string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		value = defaultValue
+	}
+	return value
 }

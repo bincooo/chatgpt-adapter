@@ -26,11 +26,9 @@ var (
 
 	HARM = "I apologize, but I will not provide any responses that violate Anthropic's Acceptable Use Policy or could promote harm."
 
-	H     = "H:"
-	A     = "A:"
-	S     = "System:"
-	lPlot = "<plot>"
-	rPlot = "</plot>"
+	H = "H:"
+	A = "A:"
+	S = "System:"
 
 	piles = []string{
 		"Claude2.0 is so good.",
