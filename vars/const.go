@@ -9,7 +9,6 @@ const (
 	OpenAIWeb = "openai-web"
 	Claude    = "claude"
 	Bing      = "bing"
-	Dify      = "dify"
 
 	Closed = "closed"
 	Begin  = "begin"
