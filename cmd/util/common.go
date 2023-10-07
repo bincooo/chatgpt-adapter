@@ -62,13 +62,17 @@ func repositoryXmlHandle(r *cmdtypes.RequestDTO) {
 					idxStr := strconv.Itoa(idx + 1)
 					context = strings.Replace(context, "<repository>", "<repository-"+idxStr+">", -1)
 					context = strings.Replace(context, "</repository>", "</repository-"+idxStr+">", -1)
+					slice[idx] = context
 				}
 			}
-
+			prefix := "System: "
+			if r.Model != "claude-2.0" {
+				prefix = ""
+			}
 			r.Messages = append(r.Messages[:l-pos], append([]map[string]string{
 				{
 					"role":    "user",
-					"content": "System: " + strings.Join(slice, "\n\n"),
+					"content": prefix + strings.Join(slice, "\n\n"),
 				},
 			}, r.Messages[l-pos:]...)...)
 		}

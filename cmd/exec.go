@@ -102,7 +102,7 @@ func Run(*cobra.Command, []string) {
 	route := gin.Default()
 
 	route.Use(func(c *gin.Context) {
-		if path := c.FullPath(); path[:4] == "/v1/" && path != "/v1/models" {
+		if path := c.FullPath(); len(path) >= 4 && path[:4] == "/v1/" && path != "/v1/models" {
 			c.Writer.Header().Set("Content-Type", "text/event-stream")
 			c.Writer.Header().Set("Cache-Control", "no-cache")
 			c.Writer.Header().Set("Connection", "keep-alive")
