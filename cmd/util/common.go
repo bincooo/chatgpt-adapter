@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	cmdtypes "github.com/bincooo/AutoAI/cmd/types"
-	"github.com/bincooo/AutoAI/cmd/util/dify"
 	"github.com/bincooo/AutoAI/cmd/vars"
 	"github.com/bincooo/requests"
 	"github.com/bincooo/requests/url"
@@ -27,14 +26,6 @@ const (
 func CleanToken(token string) {
 	if token == "auto" {
 		vars.GlobalToken = ""
-	}
-}
-
-// dify的LocalAI请求数据切割成适配的上下文
-func prepare(ctx *gin.Context, r *cmdtypes.RequestDTO) {
-	// isDify
-	if ctx.Request.RequestURI == "/dify/v1/chat/completions" && len(r.Messages) > 0 {
-		dify.ConvertMessages(r)
 	}
 }
 
@@ -101,7 +92,7 @@ func ResponseError(ctx *gin.Context, err string, isStream bool, isCompletions bo
 	}
 }
 
-func WriteString(ctx *gin.Context, content string, isCompletions bool) bool {
+func SSEString(ctx *gin.Context, content string, isCompletions bool) bool {
 	completion := BuildCompletion(isCompletions, content)
 	marshal, err := json.Marshal(completion)
 	if err != nil {
@@ -117,7 +108,7 @@ func WriteString(ctx *gin.Context, content string, isCompletions bool) bool {
 	}
 }
 
-func WriteDone(ctx *gin.Context, isCompletions bool) {
+func SSEDone(ctx *gin.Context, isCompletions bool) {
 	// 结尾img标签会被吞？？多加几个换行试试
 	var completion string
 	if isCompletions {

@@ -59,7 +59,7 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 	IsClose := false
 	IsDone := false
 	fmt.Println("TOKEN_KEY: " + token)
-	prepare(ctx, r)
+
 	// 重试次数
 	retry := 2
 
@@ -119,7 +119,7 @@ label:
 					IsClose = true
 					IsDone = true
 				default:
-					if !WriteString(ctx, response.Message, r.IsCompletions) {
+					if !SSEString(ctx, response.Message, r.IsCompletions) {
 						IsClose = true
 						IsDone = true
 					}
@@ -127,7 +127,7 @@ label:
 			}
 
 			if response.Status == vars.Closed && wd {
-				WriteDone(ctx, r.IsCompletions)
+				SSEDone(ctx, r.IsCompletions)
 			}
 		} else {
 			select {
@@ -165,6 +165,7 @@ label:
 	}
 }
 
+// 构建claude-2.0上下文
 func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() bool) (*types.ConversationContext, error) {
 	var (
 		bot   string
@@ -236,6 +237,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 	}, nil
 }
 
+// 过滤与预处理claude-2.0的对话内容
 func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	result := r.Prompt
 	if (r.Model == "claude-1.0" || r.Model == "claude-2.0") && len(r.Messages) > 0 {
@@ -324,6 +326,7 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	return result, s, nil
 }
 
+// claude-2.0 stream 流读取数据转换处理
 func claudeHandle(model string, IsC func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		needClose := false
@@ -414,26 +417,25 @@ func handleClaudeError(err *cltypes.Claude2Error) (msg string) {
 
 // claude异常处理（清理Token）
 func catchClaudeHandleError(err error, token string) string {
-	errMsg := err.Error()
-	if strings.Contains(errMsg, "failed to fetch the `organizationId`") ||
-		strings.Contains(errMsg, "failed to fetch the `conversationId`") {
+	errMessage := err.Error()
+	if strings.Contains(errMessage, "failed to fetch the `organizationId`") ||
+		strings.Contains(errMessage, "failed to fetch the `conversationId`") {
 		CleanToken(token)
 	}
 
-	if strings.Contains(errMsg, "Account in read-only mode") {
+	if strings.Contains(errMessage, "Account in read-only mode") {
 		CleanToken(token)
-		errMsg = cmdvars.I18n("ERROR_ACCOUNT_LOCKED")
-	} else if strings.Contains(errMsg, "rate_limit_error") {
+		errMessage = cmdvars.I18n("ERROR_ACCOUNT_LOCKED")
+	} else if strings.Contains(errMessage, "rate_limit_error") {
 		CleanToken(token)
-		errMsg = cmdvars.I18n("ERROR_ACCOUNT_LIMITED")
-	} else if strings.Contains(errMsg, "connection refused") {
-		errMsg = cmdvars.I18n("ERROR_NETWORK")
-	} else if strings.Contains(errMsg, "Account has not completed verification") {
+		errMessage = cmdvars.I18n("ERROR_ACCOUNT_LIMITED")
+	} else if strings.Contains(errMessage, "connection refused") {
+		errMessage = cmdvars.I18n("ERROR_NETWORK")
+	} else if strings.Contains(errMessage, "Account has not completed verification") {
 		CleanToken(token)
-		errMsg = cmdvars.I18n("ACCOUNT_SMS_VERIFICATION")
+		errMessage = cmdvars.I18n("ACCOUNT_SMS_VERIFICATION")
 	} else {
-		errMsg += "\n\n" + cmdvars.I18n("ERROR_OTHER")
+		errMessage += "\n\n" + cmdvars.I18n("ERROR_OTHER")
 	}
-	return errMsg
-	// ResponseError(ctx, errMsg, isStream, isCompletions, wd)
+	return errMessage
 }

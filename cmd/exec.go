@@ -102,20 +102,22 @@ func Run(*cobra.Command, []string) {
 	route := gin.Default()
 
 	route.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Content-Type", "text/event-stream")
-		c.Writer.Header().Set("Cache-Control", "no-cache")
-		c.Writer.Header().Set("Connection", "keep-alive")
-		c.Writer.Header().Set("Transfer-Encoding", "chunked")
-		c.Writer.Header().Set("X-Accel-Buffering", "no")
+		if path := c.FullPath(); path[:4] == "/v1/" && path != "/v1/models" {
+			c.Writer.Header().Set("Content-Type", "text/event-stream")
+			c.Writer.Header().Set("Cache-Control", "no-cache")
+			c.Writer.Header().Set("Connection", "keep-alive")
+			c.Writer.Header().Set("Transfer-Encoding", "chunked")
+			c.Writer.Header().Set("X-Accel-Buffering", "no")
+		}
 		c.Next()
 	})
 
 	route.Use(crosHandler())
 	route.GET("", index)
-	route.GET("/v1/models", models)
+	route.Any("/v1/models", models)
 	route.POST("/v1/complete", complete)
 	route.POST("/v1/chat/completions", completions(true))
-	route.POST("/dify/v1/chat/completions", completions(false))
+
 	addr := ":" + strconv.Itoa(port)
 	logrus.Info("Start by http://127.0.0.1" + addr + "/v1")
 	if err := route.Run(addr); err != nil {

@@ -35,7 +35,7 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd
 		token = bingAIToken
 	}
 	fmt.Println("TOKEN_KEY: " + token)
-	prepare(ctx, r)
+
 	// 重试次数
 	retry := 2
 
@@ -86,7 +86,7 @@ label:
 					IsClose = true
 					IsDone = true
 				default:
-					if !WriteString(ctx, response.Message, r.IsCompletions) {
+					if !SSEString(ctx, response.Message, r.IsCompletions) {
 						IsClose = true
 						IsDone = true
 					}
@@ -94,7 +94,7 @@ label:
 			}
 
 			if response.Status == vars.Closed && wd {
-				WriteDone(ctx, r.IsCompletions)
+				SSEDone(ctx, r.IsCompletions)
 				IsClose = true
 			}
 		} else {
@@ -125,6 +125,7 @@ label:
 	store.DeleteMessages(context.Id)
 }
 
+// 构建BingAI的上下文
 func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() bool) (*types.ConversationContext, error) {
 	var (
 		id      = "BingAI-" + uuid.NewString()
@@ -218,6 +219,7 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() b
 	}, nil
 }
 
+// BingAI stream 流读取数据转换处理
 func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		//matchers := make([]*StringMatcher, 0)
@@ -343,6 +345,7 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 	}
 }
 
+// openai对接格式转换成BingAI接受格式
 func bingAIMessageConversion(r *cmdtypes.RequestDTO) ([]store.Kv, string) {
 	var messages []store.Kv
 	var preset string

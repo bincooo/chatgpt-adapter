@@ -23,8 +23,8 @@ const (
 
 var (
 	keys      []*Key // session池
-	currIndex int    = -1
-	IsLocal          = false
+	currIndex = -1
+	IsLocal   = false
 	mu        sync.Mutex
 )
 
