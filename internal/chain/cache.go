@@ -5,6 +5,8 @@ import (
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
 	"strings"
+
+	"github.com/bincooo/edge-api/util"
 )
 
 var (
@@ -25,6 +27,15 @@ type CacheInterceptor struct {
 func (c *CacheInterceptor) Before(bot types.Bot, ctx *types.ConversationContext) (bool, error) {
 	if c.cache == nil {
 		c.cache = make(map[string]string)
+	}
+	image, result := util.ParseImage(ctx.Prompt)
+	if image != "" {
+		blob, err := util.UploadImage(ctx.BaseURL, ctx.Proxy, image)
+		if err != nil {
+			return false, err
+		}
+		result = "{blob:" + blob.BlobId + "#" + blob.ProcessedBlobId + "}\n" + result
+		ctx.Prompt = result
 	}
 	c.cache[ctx.Id] = ctx.Prompt
 	return true, nil
