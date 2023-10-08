@@ -4,6 +4,7 @@ import (
 	"github.com/bincooo/AutoAI/store"
 	"github.com/bincooo/AutoAI/types"
 	"github.com/bincooo/AutoAI/vars"
+	"github.com/sirupsen/logrus"
 	"strings"
 
 	"github.com/bincooo/edge-api/util"
@@ -30,8 +31,13 @@ func (c *CacheInterceptor) Before(bot types.Bot, ctx *types.ConversationContext)
 	}
 	image, result := util.ParseImage(ctx.Prompt)
 	if image != "" {
-		blob, err := util.UploadImage(ctx.BaseURL, ctx.Proxy, image)
+		burl := ctx.BaseURL
+		if ctx.Bot != vars.Bing {
+			burl = "https://www.bing.com"
+		}
+		blob, err := util.UploadImage(burl, ctx.Proxy, image)
 		if err != nil {
+			logrus.Error(err)
 			return false, err
 		}
 		result = "{blob:" + blob.BlobId + "#" + blob.ProcessedBlobId + "}\n" + result
