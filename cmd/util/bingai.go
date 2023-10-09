@@ -29,8 +29,8 @@ func init() {
 }
 
 func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
-	IsClose := false
-	IsDone := false
+	isClose := false
+	isDone := false
 	if token == "" || token == "auto" {
 		token = bingAIToken
 	}
@@ -41,7 +41,7 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 
 	var context *types.ConversationContext
 label:
-	if IsDone {
+	if isClose {
 		if context != nil {
 			store.DeleteMessages(context.Id)
 		}
@@ -49,7 +49,7 @@ label:
 	}
 
 	var err error
-	context, err = createBingAIConversation(r, token, func() bool { return IsClose })
+	context, err = createBingAIConversation(r, token, func() bool { return isClose })
 	if err != nil {
 		if retry > 0 {
 			retry--
@@ -62,7 +62,7 @@ label:
 	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
 		if r.Stream {
 			if response.Error != nil {
-				IsClose = true
+				isClose = true
 				if retry > 0 {
 					err = response.Error
 					retry--
@@ -83,32 +83,32 @@ label:
 			if len(response.Message) > 0 {
 				select {
 				case <-ctx.Request.Context().Done():
-					IsClose = true
-					IsDone = true
+					isClose = true
+					isClose = true
 				default:
 					if !SSEString(ctx, response.Message) {
-						IsClose = true
-						IsDone = true
+						isClose = true
+						isDone = true
 					}
 				}
 			}
 
 			if response.Status == vars.Closed {
 				SSEEnd(ctx)
-				IsClose = true
+				isClose = true
 			}
 		} else {
 			select {
 			case <-ctx.Request.Context().Done():
-				IsClose = true
-				IsDone = true
+				isClose = true
+				isDone = true
 			default:
 			}
 		}
 	})
 
 	if partialResponse.Error != nil {
-		if !IsDone && retry > 0 {
+		if !isDone && retry > 0 {
 			goto label
 		}
 		responseBingAIError(ctx, partialResponse.Error, r.Stream, token)
@@ -123,7 +123,7 @@ label:
 }
 
 // 构建BingAI的上下文
-func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() bool) (*types.ConversationContext, error) {
+func createBingAIConversation(r *cmdtypes.RequestDTO, token string, IsClose func() bool) (*types.ConversationContext, error) {
 	var (
 		id      = "BingAI-" + uuid.NewString()
 		bot     string
@@ -215,12 +215,12 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() b
 		AppId:   appId,
 		BaseURL: bingBaseURL,
 		Chain:   chain,
-		H:       bingAIHandle(Isc),
+		H:       bingAIHandle(IsClose),
 	}, nil
 }
 
 // BingAI stream 流读取数据转换处理
-func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
+func bingAIHandle(IsClose func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		//matchers := make([]*StringMatcher, 0)
 		matchers := utils.GlobalMatchers()
@@ -296,7 +296,7 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 				return response.Error
 			}
 
-			if Isc() {
+			if IsClose() {
 				self.Closed = true
 				return nil
 			}

@@ -32,6 +32,7 @@ const (
 )
 
 func main() {
+	panic("oh!")
 	_ = godotenv.Load()
 	cmdvars.GlobalPadding = cmdutil.LoadEnvVar("PADDING", "")
 	cmdvars.GlobalPaddingSize = cmdutil.LoadEnvInt("PADDING_SIZE", 35000)

@@ -1,6 +1,2 @@
 .env
-exec
-mac-exec
-linux-exec
-linux-exec-arm64
-win-exec.exe
+/bin/

@@ -55,8 +55,8 @@ type schema struct {
 }
 
 func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
-	IsClose := false
-	IsDone := false
+	isClose := false
+	isDone := false
 	fmt.Println("TOKEN_KEY: " + token)
 
 	// 重试次数
@@ -65,14 +65,14 @@ func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	var err error
 	var context *types.ConversationContext
 label:
-	if IsDone {
+	if isDone {
 		if err != nil {
 			_ = catchClaudeHandleError(err, token)
 		}
 		return
 	}
 
-	context, err = createClaudeConversation(token, r, func() bool { return IsClose })
+	context, err = createClaudeConversation(token, r, func() bool { return isClose })
 	if err != nil {
 		errorMessage := catchClaudeHandleError(err, token)
 		if retry > 0 {
@@ -93,7 +93,7 @@ label:
 			}
 
 			if response.Error != nil {
-				IsClose = true
+				isClose = true
 				var e *cltypes.Claude2Error
 				ok := errors.As(response.Error, &e)
 				err = response.Error
@@ -115,12 +115,12 @@ label:
 			if len(response.Message) > 0 {
 				select {
 				case <-ctx.Request.Context().Done():
-					IsClose = true
-					IsDone = true
+					isClose = true
+					isDone = true
 				default:
 					if !SSEString(ctx, response.Message) {
-						IsClose = true
-						IsDone = true
+						isClose = true
+						isDone = true
 					}
 				}
 			}
@@ -131,17 +131,17 @@ label:
 		} else {
 			select {
 			case <-ctx.Request.Context().Done():
-				IsClose = true
-				IsDone = true
+				isClose = true
+				isDone = true
 			default:
 			}
 		}
 	})
 
-	if !r.Stream && !IsClose {
+	if !r.Stream && !isClose {
 		if partialResponse.Error != nil {
 			errorMessage := catchClaudeHandleError(partialResponse.Error, token)
-			if !IsDone && retry > 0 {
+			if !isDone && retry > 0 {
 				goto label
 			}
 			ResponseError(ctx, errorMessage, r.Stream)
@@ -151,7 +151,7 @@ label:
 		ctx.JSON(200, BuildCompletion(partialResponse.Message))
 	}
 
-	if !IsDone && partialResponse.Error != nil && retry > 0 {
+	if !isDone && partialResponse.Error != nil && retry > 0 {
 		goto label
 	}
 
@@ -165,7 +165,7 @@ label:
 }
 
 // 构建claude-2.0上下文
-func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() bool) (*types.ConversationContext, error) {
+func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsClose func() bool) (*types.ConversationContext, error) {
 	var (
 		bot   string
 		model string
@@ -229,7 +229,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 		Bot:     bot,
 		Model:   model,
 		Proxy:   cmdvars.Proxy,
-		H:       claudeHandle(model, IsC),
+		H:       claudeHandle(model, IsClose),
 		AppId:   appId,
 		BaseURL: cmdvars.Bu,
 		Chain:   chain,
@@ -324,7 +324,7 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 }
 
 // claude-2.0 stream 流读取数据转换处理
-func claudeHandle(model string, IsC func() bool) types.CustomCacheHandler {
+func claudeHandle(model string, IsClose func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		needClose := false
 		matchers := utils.GlobalMatchers()
@@ -364,7 +364,7 @@ func claudeHandle(model string, IsC func() bool) types.CustomCacheHandler {
 				return nil
 			}
 
-			if IsC() {
+			if IsClose() {
 				self.Closed = true
 				return nil
 			}
