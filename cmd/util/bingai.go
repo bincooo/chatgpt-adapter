@@ -28,7 +28,7 @@ func init() {
 	bingBaseURL = LoadEnvVar("BING_BASE_URL", "")
 }
 
-func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd bool) {
+func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	IsClose := false
 	IsDone := false
 	if token == "" || token == "auto" {
@@ -55,7 +55,7 @@ label:
 			retry--
 			goto label
 		}
-		responseBingAIError(ctx, err, r.Stream, r.IsCompletions, token, wd)
+		responseBingAIError(ctx, err, r.Stream, token)
 		return
 	}
 
@@ -67,7 +67,7 @@ label:
 					err = response.Error
 					retry--
 				} else {
-					responseBingAIError(ctx, response.Error, r.Stream, r.IsCompletions, token, wd)
+					responseBingAIError(ctx, response.Error, r.Stream, token)
 				}
 				return
 			}
@@ -86,15 +86,15 @@ label:
 					IsClose = true
 					IsDone = true
 				default:
-					if !SSEString(ctx, response.Message, r.IsCompletions) {
+					if !SSEString(ctx, response.Message) {
 						IsClose = true
 						IsDone = true
 					}
 				}
 			}
 
-			if response.Status == vars.Closed && wd {
-				SSEDone(ctx, r.IsCompletions)
+			if response.Status == vars.Closed {
+				SSEEnd(ctx)
 				IsClose = true
 			}
 		} else {
@@ -107,21 +107,18 @@ label:
 		}
 	})
 
-	if !r.Stream {
-		if partialResponse.Error != nil {
-			if !IsDone && retry > 0 {
-				goto label
-			}
-			responseBingAIError(ctx, partialResponse.Error, r.Stream, r.IsCompletions, token, wd)
-			return
+	if partialResponse.Error != nil {
+		if !IsDone && retry > 0 {
+			goto label
 		}
-
-		ctx.JSON(200, BuildCompletion(r.IsCompletions, partialResponse.Message))
+		responseBingAIError(ctx, partialResponse.Error, r.Stream, token)
+		return
 	}
 
-	if !IsDone && partialResponse.Error != nil && retry > 0 {
-		goto label
+	if !r.Stream {
+		ctx.JSON(200, BuildCompletion(partialResponse.Message))
 	}
+
 	store.DeleteMessages(context.Id)
 }
 
@@ -204,6 +201,9 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string, Isc func() b
 		"\n\n\n-----------------------「 当前对话 」-----------------------\n",
 		message,
 		"\n--------------------END-------------------")
+	if token == "" {
+		token = strings.ReplaceAll(uuid.NewString(), "-", "")
+	}
 	return &types.ConversationContext{
 		Id:      id,
 		Token:   token,
@@ -230,7 +230,6 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 		matchers = append(matchers, &types.StringMatcher{
 			Find: "[",
 			H: func(index int, content string) (state int, result string) {
-				logrus.Warn("Find: [  / ", content)
 				r := []rune(content)
 				eIndex := len(r) - 1
 				if index+5 > eIndex {
@@ -250,7 +249,6 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 		matchers = append(matchers, &types.StringMatcher{
 			Find: "(",
 			H: func(index int, content string) (state int, result string) {
-				logrus.Warn("Find: (  / ", content)
 				r := []rune(content)
 				eIndex := len(r) - 1
 				if index+5 > eIndex {
@@ -270,7 +268,6 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 		matchers = append(matchers, &types.StringMatcher{
 			Find: "^",
 			H: func(index int, content string) (state int, result string) {
-				logrus.Warn("Find: ^  / ", content)
 				r := []rune(content)
 				eIndex := len(r) - 1
 				if index+4 > eIndex {
@@ -338,7 +335,7 @@ func bingAIHandle(Isc func() bool) types.CustomCacheHandler {
 				return nil
 			}
 
-			logrus.Info("rawText ----", rawText)
+			logrus.Info("rawText ---- ", rawText)
 			self.Cache += utils.ExecMatchers(matchers, rawText)
 			return nil
 		}
@@ -426,7 +423,7 @@ func bingAIMessageConversion(r *cmdtypes.RequestDTO) ([]store.Kv, string) {
 	return messages, preset
 }
 
-func responseBingAIError(ctx *gin.Context, err error, isStream bool, isCompletions bool, token string, wd bool) {
+func responseBingAIError(ctx *gin.Context, err error, isStream bool, token string) {
 	errMsg := err.Error()
 	if strings.Contains(errMsg, "User needs to solve CAPTCHA to continue") {
 		errMsg = "用户需要人机验证...  已尝试自动验证，若重新生成文本无效请手动验证。"
@@ -443,5 +440,5 @@ func responseBingAIError(ctx *gin.Context, err error, isStream bool, isCompletio
 			errMsg += "\n\n" + e.Error()
 		}
 	}
-	ResponseError(ctx, errMsg, isStream, isCompletions, wd)
+	ResponseError(ctx, errMsg, isStream)
 }

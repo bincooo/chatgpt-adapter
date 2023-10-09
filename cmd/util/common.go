@@ -79,25 +79,21 @@ func repositoryXmlHandle(r *cmdtypes.RequestDTO) {
 	}
 }
 
-func ResponseError(ctx *gin.Context, err string, isStream bool, isCompletions bool, wd bool) {
+func ResponseError(ctx *gin.Context, err string, isStream bool) {
 	logrus.Error(err)
 	if isStream {
-		marshal, e := json.Marshal(BuildCompletion(isCompletions, "Error: "+err))
+		marshal, e := json.Marshal(BuildCompletion("Error: " + err))
 		if e != nil {
 			return
 		}
-		if wd {
-			ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
-		} else {
-			ctx.String(200, "data: %s", string(marshal))
-		}
+		ctx.String(200, "data: %s\n\ndata: [DONE]", string(marshal))
 	} else {
-		ctx.JSON(200, BuildCompletion(isCompletions, "Error: "+err))
+		ctx.JSON(200, BuildCompletion("Error: "+err))
 	}
 }
 
-func SSEString(ctx *gin.Context, content string, isCompletions bool) bool {
-	completion := BuildCompletion(isCompletions, content)
+func SSEString(ctx *gin.Context, content string) bool {
+	completion := BuildCompletion(content)
 	marshal, err := json.Marshal(completion)
 	if err != nil {
 		logrus.Error(err)
@@ -112,15 +108,10 @@ func SSEString(ctx *gin.Context, content string, isCompletions bool) bool {
 	}
 }
 
-func SSEDone(ctx *gin.Context, isCompletions bool) {
+func SSEEnd(ctx *gin.Context) {
 	// 结尾img标签会被吞？？多加几个换行试试
-	var completion string
-	if isCompletions {
-		completion = "data: {\"choices\": [ { \"message\": {\"role\":\"assistant\", \"content\": \"" + Enter + Enter + "\"} } ]}\n\n"
-	} else {
-		completion = "data: {\"completion\": \"" + Enter + Enter + "\"}\n\n"
-	}
-	if _, err := ctx.Writer.Write([]byte(completion)); err != nil {
+	marshal, _ := json.Marshal(BuildCompletion("\n\n"))
+	if _, err := ctx.Writer.Write(append([]byte("data: "), marshal...)); err != nil {
 		logrus.Error(err)
 	}
 	if _, err := ctx.Writer.Write([]byte("data: [DONE]")); err != nil {
@@ -128,22 +119,16 @@ func SSEDone(ctx *gin.Context, isCompletions bool) {
 	}
 }
 
-func BuildCompletion(isCompletions bool, message string) gin.H {
+func BuildCompletion(message string) gin.H {
 	var completion gin.H
-	if isCompletions {
-		content := gin.H{"content": message, "role": "assistant"}
-		completion = gin.H{
-			"choices": []gin.H{
-				{
-					"message": content,
-					"delta":   content,
-				},
+	content := gin.H{"content": message, "role": "assistant"}
+	completion = gin.H{
+		"choices": []gin.H{
+			{
+				"message": content,
+				"delta":   content,
 			},
-		}
-	} else {
-		completion = gin.H{
-			"completion": message,
-		}
+		},
 	}
 	return completion
 }

@@ -33,8 +33,8 @@ const (
 
 func main() {
 	_ = godotenv.Load()
-	cmdvars.GlobalPile = cmdutil.LoadEnvVar("PILE", "")
-	cmdvars.GlobalPileSize = cmdutil.LoadEnvInt("PILE_SIZE", 35000)
+	cmdvars.GlobalPadding = cmdutil.LoadEnvVar("PADDING", "")
+	cmdvars.GlobalPaddingSize = cmdutil.LoadEnvInt("PADDING_SIZE", 35000)
 	cmdvars.GlobalToken = util.LoadEnvVar("CACHE_KEY", "")
 	cmdvars.AutoPwd = util.LoadEnvVar("PASSWORD", "")
 	Exec()
@@ -115,8 +115,7 @@ func Run(*cobra.Command, []string) {
 	route.Use(crosHandler())
 	route.GET("", index)
 	route.Any("/v1/models", models)
-	route.POST("/v1/complete", complete)
-	route.POST("/v1/chat/completions", completions(true))
+	route.POST("/v1/chat/completions", completions)
 
 	addr := ":" + strconv.Itoa(port)
 	logrus.Info("Start by http://127.0.0.1" + addr + "/v1")
@@ -148,14 +147,12 @@ func crosHandler() gin.HandlerFunc {
 
 func genSessionKeys() {
 	for i := 0; i < count; i++ {
-		// <meta http-equiv="refresh" content="0;url=/onboarding"/>
 		var cnt = 2 // 重试次数
 	label:
 		email, token, err := util.LoginFor(cmdvars.Bu, cmdvars.Suffix, cmdvars.Proxy)
 		if err != nil {
 			logrus.Error("Error: ", email, " ", err)
 			continue
-			// os.Exit(1)
 		}
 		err = pool.TestMessage(token)
 		if err != nil {
@@ -183,81 +180,48 @@ func models(ctx *gin.Context) {
 	})
 }
 
-func complete(ctx *gin.Context) {
+func completions(ctx *gin.Context) {
 	var r cmdtypes.RequestDTO
-	r.IsCompletions = false
+
 	token := ctx.Request.Header.Get("X-Api-Key")
-	var ok bool
-	if token, ok = validate(token); !ok {
-		cmdutil.ResponseError(ctx, "鉴权失败", r.Stream, r.IsCompletions, true)
-		return
+	if token == "" {
+		token = strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
 	}
 	if err := ctx.BindJSON(&r); err != nil {
-		cmdutil.ResponseError(ctx, err.Error(), r.Stream, r.IsCompletions, true)
+		cmdutil.ResponseError(ctx, err.Error(), r.Stream)
 		return
+	}
+
+	var ok bool
+	if token, ok = validate(token); !ok {
+		cmdutil.ResponseError(ctx, "鉴权失败", r.Stream)
+		return
+	}
+
+	if len(r.Messages) == 1 {
+		content := r.Messages[0]["content"]
+		kv := map[string]string{
+			"ping": "pong",
+			"Hi":   "Hi",
+		}
+		for k, v := range kv {
+			if content == k {
+				completion := cmdutil.BuildCompletion(v)
+				marshal, _ := json.Marshal(completion)
+				_, _ = ctx.Writer.Write(marshal)
+				return
+			}
+		}
 	}
 
 	switch r.Model {
 	case "claude-2.0", "claude-2",
 		"claude-1.0", "claude-1.2", "claude-1.3":
-		cmdutil.DoClaudeComplete(ctx, token, &r, true)
+		cmdutil.DoClaudeComplete(ctx, token, &r)
+	case "BingAI":
+		cmdutil.DoBingAIComplete(ctx, token, &r)
 	default:
-		cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, r.IsCompletions, true)
-	}
-}
-
-func completions(padding bool) func(ctx *gin.Context) {
-	return func(ctx *gin.Context) {
-		var r cmdtypes.RequestDTO
-		r.IsCompletions = true
-
-		token := ctx.Request.Header.Get("X-Api-Key")
-		if token == "" {
-			token = strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
-		}
-		if err := ctx.BindJSON(&r); err != nil {
-			cmdutil.ResponseError(ctx, err.Error(), r.Stream, r.IsCompletions, padding)
-			return
-		}
-		if token == "1" {
-			if cmdvars.AutoPwd != "" {
-				token = "auto" + "#" + cmdvars.AutoPwd
-			} else {
-				token = "auto"
-			}
-		}
-
-		var ok bool
-		if token, ok = validate(token); !ok {
-			cmdutil.ResponseError(ctx, "鉴权失败", r.Stream, r.IsCompletions, padding)
-			return
-		}
-
-		if !padding && len(r.Messages) == 1 {
-			content := r.Messages[0]["content"]
-			kv := map[string]string{
-				"ping": "pong",
-				"hi":   "hi",
-			}
-			for k, v := range kv {
-				if content == k {
-					completion := cmdutil.BuildCompletion(r.IsCompletions, v)
-					marshal, _ := json.Marshal(completion)
-					_, _ = ctx.Writer.Write(marshal)
-					return
-				}
-			}
-		}
-
-		switch r.Model {
-		case "claude-2.0", "claude-2",
-			"claude-1.0", "claude-1.2", "claude-1.3":
-			cmdutil.DoClaudeComplete(ctx, token, &r, padding)
-		case "BingAI":
-			cmdutil.DoBingAIComplete(ctx, token, &r, padding)
-		default:
-			cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream, r.IsCompletions, padding)
-		}
+		cmdutil.ResponseError(ctx, "未知的AI类型：`"+r.Model+"`", r.Stream)
 	}
 }
 

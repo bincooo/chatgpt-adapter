@@ -36,26 +36,25 @@ var (
 		"never lie, cheat or steal. always smile a fair deal.",
 		"like tree, like fruit.",
 		"East, west, home is best.",
-		"原神，启动！",
-		"德玛西亚万岁。",
-		"薛定谔的寄。",
-		"折戟成沙丶丿",
-		"提无示效。",
+		"Original God, activate!",
+		"Long live Demacia.",
+		"Schrodinger's damage.",
+		"zhe+ji+chen+sha.+",
+		"Invalid message.",
 	}
 )
 
 type schema struct {
-	Debug     bool `json:"debug"`     // 开启调试
-	TrimP     bool `json:"trimP"`     // 去掉头部Human
-	TrimS     bool `json:"trimS"`     // 去掉尾部Assistant
-	BoH       bool `json:"boH"`       // 响应截断H
-	BoS       bool `json:"boS"`       // 响应截断System
-	Pile      bool `json:"pile"`      // 堆积肥料
-	FullColon bool `json:"fullColon"` // 全角冒号
-	TrimPlot  bool `json:"trimPlot"`  // slot xml删除处理
+	TrimHuman     bool `json:"trimHuman"`     // 去掉头部Human
+	TrimAssistant bool `json:"trimAssistant"` // 去掉尾部Assistant
+	BoH           bool `json:"boH"`           // 响应截断H
+	BoS           bool `json:"boS"`           // 响应截断System
+	Padding       bool `json:"padding"`       // 堆积肥料
+	FullColon     bool `json:"fullColon"`     // 全角冒号
+	//TrimPlot      bool `json:"trimPlot"`      // slot xml删除处理
 }
 
-func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO, wd bool) {
+func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	IsClose := false
 	IsDone := false
 	fmt.Println("TOKEN_KEY: " + token)
@@ -80,7 +79,7 @@ label:
 			retry--
 			goto label
 		}
-		ResponseError(ctx, errorMessage, r.Stream, r.IsCompletions, wd)
+		ResponseError(ctx, errorMessage, r.Stream)
 		return
 	}
 	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
@@ -108,7 +107,7 @@ label:
 				if retry > 0 {
 					retry--
 				} else {
-					ResponseError(ctx, errorMessage, r.Stream, r.IsCompletions, wd)
+					ResponseError(ctx, errorMessage, r.Stream)
 				}
 				return
 			}
@@ -119,15 +118,15 @@ label:
 					IsClose = true
 					IsDone = true
 				default:
-					if !SSEString(ctx, response.Message, r.IsCompletions) {
+					if !SSEString(ctx, response.Message) {
 						IsClose = true
 						IsDone = true
 					}
 				}
 			}
 
-			if response.Status == vars.Closed && wd {
-				SSEDone(ctx, r.IsCompletions)
+			if response.Status == vars.Closed {
+				SSEEnd(ctx)
 			}
 		} else {
 			select {
@@ -145,11 +144,11 @@ label:
 			if !IsDone && retry > 0 {
 				goto label
 			}
-			ResponseError(ctx, errorMessage, r.Stream, r.IsCompletions, wd)
+			ResponseError(ctx, errorMessage, r.Stream)
 			return
 		}
 
-		ctx.JSON(200, BuildCompletion(r.IsCompletions, partialResponse.Message))
+		ctx.JSON(200, BuildCompletion(partialResponse.Message))
 	}
 
 	if !IsDone && partialResponse.Error != nil && retry > 0 {
@@ -239,7 +238,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsC func() b
 
 // 过滤与预处理claude-2.0的对话内容
 func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
-	result := r.Prompt
+	result := ""
 	if (r.Model == "claude-1.0" || r.Model == "claude-2.0") && len(r.Messages) > 0 {
 		// 将repository的内容往上挪
 		repositoryXmlHandle(r)
@@ -267,14 +266,13 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	// ====  Schema匹配 =======
 	compileRegex := regexp.MustCompile(`schema\s?\{[^}]*}`)
 	s := schema{
-		TrimS:     true,
-		TrimP:     true,
-		BoH:       true,
-		BoS:       false,
-		Pile:      true,
-		FullColon: true,
-		Debug:     false,
-		TrimPlot:  false,
+		TrimAssistant: true,
+		TrimHuman:     true,
+		BoH:           true,
+		BoS:           false,
+		Padding:       true,
+		FullColon:     true,
+		//TrimPlot:      false,
 	}
 
 	matchSlice := compileRegex.FindStringSubmatch(result)
@@ -292,35 +290,34 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	result = compileRegex.ReplaceAllString(result, "")
 	// =========================
 
-	if s.TrimS {
+	if s.TrimAssistant {
 		result = strings.TrimSuffix(result, "\n\nAssistant: ")
 	}
-	if s.TrimP {
+	if s.TrimHuman {
 		result = strings.TrimPrefix(result, "\n\nHuman: ")
 	}
 
 	result = strings.ReplaceAll(result, "A:", "\nAssistant:")
 	result = strings.ReplaceAll(result, "H:", "\nHuman:")
 	if s.FullColon {
-		// result = strings.ReplaceAll(result, "System:", "System：")
 		result = strings.ReplaceAll(result, "Assistant:", "Assistant：")
 		result = strings.ReplaceAll(result, "Human:", "Human：")
 	}
 
 	// 填充肥料
-	if s.Pile && (r.Model == "claude-2.0" || r.Model == "claude-2") {
-		pile := cmdvars.GlobalPile
-		if cmdvars.GlobalPile == "" {
-			pile = piles[rand.Intn(len(piles))]
+	if s.Padding && (r.Model == "claude-2.0" || r.Model == "claude-2") {
+		gPadding := cmdvars.GlobalPadding
+		if gPadding == "" {
+			gPadding = piles[rand.Intn(len(piles))]
 		}
-		c := (cmdvars.GlobalPileSize - len(result)) / len(pile)
-		padding := ""
+		c := (cmdvars.GlobalPaddingSize - len(result)) / len(gPadding)
+		cachePadding := ""
 		for idx := 0; idx < c; idx++ {
-			padding += pile
+			cachePadding += gPadding
 		}
 
-		if padding != "" {
-			result = padding + "\n\n\n" + strings.TrimSpace(result)
+		if cachePadding != "" {
+			result = cachePadding + "\n\n\n" + strings.TrimSpace(result)
 		}
 	}
 	return result, s, nil
@@ -396,7 +393,7 @@ func claudeHandle(model string, IsC func() bool) types.CustomCacheHandler {
 				return nil
 			}
 
-			logrus.Info("rawText ----", rawText)
+			logrus.Info("rawText ---- ", rawText)
 			self.Cache += utils.ExecMatchers(matchers, rawText)
 			return nil
 		}

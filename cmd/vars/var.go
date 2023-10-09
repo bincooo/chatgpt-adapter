@@ -17,10 +17,10 @@ var (
 	Proxy string
 	I18nT string
 
-	GlobalPile     string
-	GlobalPileSize int
-	GlobalToken    string
-	AutoPwd        string
+	GlobalPadding     string
+	GlobalPaddingSize int
+	GlobalToken       string
+	AutoPwd           string
 
 	Bu     string
 	Suffix string
