@@ -58,6 +58,10 @@ func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response s
 		return
 	}
 
+	if strings.Contains(response, "Error:") {
+		return
+	}
+
 	messages := store.GetMessages(ctx.Id)
 	if response != "" {
 		prompt := c.cache[ctx.Id]
@@ -76,43 +80,48 @@ func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response s
 		}
 
 		if ctx.Bot == vars.Bing {
-			maxMessages := vars.BingMaxMessage - 1
-			if ctx.Preset != "" {
-				maxMessages--
-			}
-
-			// 将多出来的对话转换成文件内容
-			description := ""
-			if l := len(messages); l > maxMessages*2 {
-				mergeMessages := messages[:l-maxMessages*2]
-				for _, item := range mergeMessages {
-					switch item["author"] {
-					case "user":
-						description += "Human：" + item["text"] + "\n\n"
-					case "bot":
-						description += "Assistant：" + item["text"] + "\n\n"
-					}
-				}
-
-				latelyMessages := messages[l-maxMessages*2:]
-				latelyMessages[0]["text"] = "请改为从此页面回答。\n[使用此页面的对话作为我们之前的对话记录进行后续交流]\n\n" + latelyMessages[0]["text"]
-				//messages = messages[len(messages)-maxMessages*2:]
-				messages = append([]store.Kv{
-					{
-						"author":      "user",
-						"description": description,
-						"contextType": "WebPage",
-						"messageType": "Context",
-						"sourceName":  "history.md",
-						"sourceUrl":   "file:///Users/admin/Desktop/history.md",
-						"privacy":     "Internal",
-					},
-				}, latelyMessages...)
-			}
+			messages = handleBingMessages(ctx, messages)
 		}
 
 		store.CacheMessages(ctx.Id, messages)
 	}
+}
+
+func handleBingMessages(ctx *types.ConversationContext, messages []store.Kv) []store.Kv {
+	maxMessages := vars.BingMaxMessage - 1
+	if ctx.Preset != "" {
+		maxMessages--
+	}
+
+	// 将多出来的对话转换成文件内容
+	description := ""
+	if l := len(messages); l > maxMessages*2 {
+		mergeMessages := messages[:l-maxMessages*2]
+		for _, item := range mergeMessages {
+			switch item["author"] {
+			case "user":
+				description += "Human：" + item["text"] + "\n\n"
+			case "bot":
+				description += "Assistant：" + item["text"] + "\n\n"
+			}
+		}
+
+		latelyMessages := messages[l-maxMessages*2:]
+		latelyMessages[0]["text"] = "请改为从此页面回答。\n[使用此页面的对话作为我们之前的对话记录进行后续交流]\n\n" + latelyMessages[0]["text"]
+		//messages = messages[len(messages)-maxMessages*2:]
+		messages = append([]store.Kv{
+			{
+				"author":      "user",
+				"description": description,
+				"contextType": "WebPage",
+				"messageType": "Context",
+				"sourceName":  "history.md",
+				"sourceUrl":   "file:///Users/admin/Desktop/history.md",
+				"privacy":     "Internal",
+			},
+		}, latelyMessages...)
+	}
+	return messages
 }
 
 func hasIg(bot string, response string) bool {
