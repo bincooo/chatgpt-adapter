@@ -229,7 +229,7 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsClose func
 		Bot:     bot,
 		Model:   model,
 		Proxy:   cmdvars.Proxy,
-		H:       claudeHandle(model, IsClose),
+		H:       claudeHandle(model, s, IsClose),
 		AppId:   appId,
 		BaseURL: cmdvars.Bu,
 		Chain:   chain,
@@ -304,7 +304,7 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 		result = strings.ReplaceAll(result, "Human:", "Human：")
 	}
 
-	// 填充肥料
+	// 填充废料
 	if s.Padding && (r.Model == "claude-2.0" || r.Model == "claude-2") {
 		gPadding := cmdvars.GlobalPadding
 		if gPadding == "" {
@@ -324,7 +324,7 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 }
 
 // claude-2.0 stream 流读取数据转换处理
-func claudeHandle(model string, IsClose func() bool) types.CustomCacheHandler {
+func claudeHandle(model string, s schema, IsClose func() bool) types.CustomCacheHandler {
 	return func(rChan any) func(*types.CacheBuffer) error {
 		needClose := false
 		matchers := utils.GlobalMatchers()
@@ -336,23 +336,27 @@ func claudeHandle(model string, IsClose func() bool) types.CustomCacheHandler {
 			},
 		})
 		// 遇到`H:`符号结束输出
-		matchers = append(matchers, &types.StringMatcher{
-			Find: H,
-			H: func(i int, content string) (state int, result string) {
-				needClose = true
-				logrus.Info("---------\n", cmdvars.I18n("H"))
-				return types.MAT_MATCHED, strings.Replace(content, H, "", -1)
-			},
-		})
+		if s.BoH {
+			matchers = append(matchers, &types.StringMatcher{
+				Find: H,
+				H: func(i int, content string) (state int, result string) {
+					needClose = true
+					logrus.Info("---------\n", cmdvars.I18n("H"))
+					return types.MAT_MATCHED, strings.Replace(content, H, "", -1)
+				},
+			})
+		}
 		// 遇到`System:`符号结束输出
-		matchers = append(matchers, &types.StringMatcher{
-			Find: S,
-			H: func(i int, content string) (state int, result string) {
-				needClose = true
-				logrus.Info("---------\n", cmdvars.I18n("S"))
-				return types.MAT_MATCHED, strings.Replace(content, S, "", -1)
-			},
-		})
+		if s.BoS {
+			matchers = append(matchers, &types.StringMatcher{
+				Find: S,
+				H: func(i int, content string) (state int, result string) {
+					needClose = true
+					logrus.Info("---------\n", cmdvars.I18n("S"))
+					return types.MAT_MATCHED, strings.Replace(content, S, "", -1)
+				},
+			})
+		}
 
 		pos := 0
 		partialResponse := rChan.(chan cltypes.PartialResponse)
