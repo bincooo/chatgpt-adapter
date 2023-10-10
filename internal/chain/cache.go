@@ -43,7 +43,13 @@ func (c *CacheInterceptor) Before(bot types.Bot, ctx *types.ConversationContext)
 		result = "{blob:" + blob.BlobId + "#" + blob.ProcessedBlobId + "}\n" + result
 		ctx.Prompt = result
 	}
-	c.cache[ctx.Id] = ctx.Prompt
+	lIdx := strings.Index(ctx.Prompt, "<i>")
+	rIdx := strings.Index(ctx.Prompt, "</i>")
+	if lIdx >= 0 && rIdx > lIdx {
+		c.cache[ctx.Id] = ctx.Prompt[:lIdx] + ctx.Prompt[rIdx+4:]
+	} else {
+		c.cache[ctx.Id] = ctx.Prompt
+	}
 	return true, nil
 }
 
