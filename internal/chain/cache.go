@@ -47,6 +47,8 @@ func (c *CacheInterceptor) Before(bot types.Bot, ctx *types.ConversationContext)
 	rIdx := strings.Index(ctx.Prompt, "</i>")
 	if lIdx >= 0 && rIdx > lIdx {
 		c.cache[ctx.Id] = ctx.Prompt[:lIdx] + ctx.Prompt[rIdx+4:]
+		ctx.Prompt = strings.ReplaceAll(ctx.Prompt, "<i>", "")
+		ctx.Prompt = strings.ReplaceAll(ctx.Prompt, "</i>", "")
 	} else {
 		c.cache[ctx.Id] = ctx.Prompt
 	}
