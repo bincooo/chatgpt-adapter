@@ -16,12 +16,11 @@ import (
 	"time"
 )
 
-const (
-	// 回车
-	Enter = "\u000A"
-	// 双引号
-	DQM = "\u0022"
-)
+type encoded string
+
+func (e encoded) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.QuoteToASCII(string(e))), nil
+}
 
 func CleanToken(token string) {
 	if token == "auto" {
@@ -109,12 +108,12 @@ func SSEString(ctx *gin.Context, content string) bool {
 }
 
 func SSEEnd(ctx *gin.Context) {
-	// 结尾img标签会被吞？？多加几个换行试试
-	marshal, _ := json.Marshal(BuildCompletion("\n\n"))
+	// 结尾img标签会被吞？？多加几个空格试试
+	marshal, _ := json.Marshal(BuildCompletion("  "))
 	if _, err := ctx.Writer.Write(append([]byte("data: "), marshal...)); err != nil {
 		logrus.Error(err)
 	}
-	if _, err := ctx.Writer.Write([]byte("data: [DONE]")); err != nil {
+	if _, err := ctx.Writer.Write([]byte("\n\ndata: [DONE]")); err != nil {
 		logrus.Error(err)
 	}
 }

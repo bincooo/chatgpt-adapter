@@ -29,6 +29,8 @@ func init() {
 }
 
 func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
+	once := true
+	conversationMapper := make(map[string]*types.ConversationContext)
 	isClose := false
 	isDone := false
 	if token == "" || token == "auto" {
@@ -37,22 +39,21 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	fmt.Println("TOKEN_KEY: " + token)
 
 	// 重试次数
-	retry := 2
+	retry := 3
 
 	var context *types.ConversationContext
 label:
-	if isClose {
-		if context != nil {
-			store.DeleteMessages(context.Id)
-		}
+	if isDone {
 		return
 	}
+
+	retry--
 
 	var err error
 	context, err = createBingAIConversation(r, token, func() bool { return isClose })
 	if err != nil {
 		if retry > 0 {
-			retry--
+			logrus.Warn("重试中...")
 			goto label
 		}
 		responseBingAIError(ctx, err, r.Stream, token)
@@ -60,23 +61,24 @@ label:
 	}
 
 	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
+		if response.Status == vars.Begin {
+			conversationMapper[context.Id] = context
+		}
 		if r.Stream {
-			if response.Error != nil {
-				isClose = true
-				if retry > 0 {
-					err = response.Error
-					retry--
-				} else {
-					responseBingAIError(ctx, response.Error, r.Stream, token)
-				}
-				return
-			}
-
 			if response.Status == vars.Begin {
 				ctx.Status(200)
 				ctx.Header("Accept", "*/*")
 				ctx.Header("Content-Type", "text/event-stream")
 				ctx.Writer.Flush()
+				return
+			}
+
+			if response.Error != nil {
+				isClose = true
+				err = response.Error
+				if retry <= 0 {
+					responseBingAIError(ctx, response.Error, r.Stream, token)
+				}
 				return
 			}
 
@@ -107,19 +109,35 @@ label:
 		}
 	})
 
-	if partialResponse.Error != nil {
-		if !isDone && retry > 0 {
-			goto label
+	defer func() {
+		if once {
+			for _, conversationContext := range conversationMapper {
+				cmdvars.Manager.Remove(conversationContext.Id, conversationContext.Bot)
+			}
+			once = false
 		}
-		responseBingAIError(ctx, partialResponse.Error, r.Stream, token)
-		return
+	}()
+
+	// 发生错误了，重试一次
+	if partialResponse.Error != nil && retry > 0 {
+		logrus.Warn("重试中...")
+		goto label
 	}
 
-	if !r.Stream {
+	// 什么也没有返回，重试一次
+	if !isDone && len(partialResponse.Message) == 0 && retry > 0 {
+		logrus.Warn("重试中...")
+		goto label
+	}
+
+	// 非流响应
+	if !r.Stream && !isDone {
+		if partialResponse.Error != nil {
+			responseBingAIError(ctx, partialResponse.Error, r.Stream, token)
+			return
+		}
 		ctx.JSON(200, BuildCompletion(partialResponse.Message))
 	}
-
-	store.DeleteMessages(context.Id)
 }
 
 // 构建BingAI的上下文
@@ -201,6 +219,7 @@ func createBingAIConversation(r *cmdtypes.RequestDTO, token string, IsClose func
 		"\n\n\n-----------------------「 当前对话 」-----------------------\n",
 		message,
 		"\n--------------------END-------------------")
+
 	if token == "" {
 		token = strings.ReplaceAll(uuid.NewString(), "-", "")
 	}

@@ -67,7 +67,7 @@ func (mgr *CommonBotManager) Add(name string, bot types.Bot) {
 	mgr.bots[name] = bot
 }
 
-// 删除机器人
+// 删除机器人，包括缓存对话
 func (mgr *CommonBotManager) Remove(uid string, name string) {
 	store.DeleteMessages(uid)
 	if bot, ok := mgr.bots[name]; ok {

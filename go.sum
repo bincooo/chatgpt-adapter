@@ -9,8 +9,8 @@ github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
 github.com/bincooo/claude-api v1.0.3-0.20231006025050-b13fff6295cc h1:Z+yfKpw3XIvXgkDJuPNUovWG4Q9Yw92qkFwXBR4NPHc=
 github.com/bincooo/claude-api v1.0.3-0.20231006025050-b13fff6295cc/go.mod h1:qoD2FHwGq2+Ohl5xi+jFFYjAGxP0V1ImeIg6R05uqPQ=
-github.com/bincooo/edge-api v1.0.1-0.20231008101639-6027e18cf9fa h1:N+/pbG6QcvKLJd0ZFT5VFsWfn75BGD0mfN8SKi+Em9E=
-github.com/bincooo/edge-api v1.0.1-0.20231008101639-6027e18cf9fa/go.mod h1:fFR88eNuEs5JhRvGLzbbsr0a+XfU5c3pdQCqLnCa1k8=
+github.com/bincooo/edge-api v1.0.1-0.20231012031127-8dac37c618bc h1:ziKKc54dJoSppArMdyHG2r2QVAAEk1QM/B8ZBvNKHQM=
+github.com/bincooo/edge-api v1.0.1-0.20231012031127-8dac37c618bc/go.mod h1:fFR88eNuEs5JhRvGLzbbsr0a+XfU5c3pdQCqLnCa1k8=
 github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f h1:/Etg/amI5W0mJcyGQ4efX1hFOsgL33Neop5HssdNvwc=
 github.com/bincooo/openai-wapi v1.0.1-0.20230717215411-79a74f385b4f/go.mod h1:hb9EoQHYsB8xy/a62qEBNPcNosBu1U6i6N2cgmdJU3E=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=

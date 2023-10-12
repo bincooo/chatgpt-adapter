@@ -55,12 +55,14 @@ type schema struct {
 }
 
 func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
+	once := true
+	conversationMapper := make(map[string]*types.ConversationContext)
 	isClose := false
 	isDone := false
 	fmt.Println("TOKEN_KEY: " + token)
 
 	// 重试次数
-	retry := 2
+	retry := 3
 
 	var err error
 	var context *types.ConversationContext
@@ -72,17 +74,22 @@ label:
 		return
 	}
 
+	retry--
+
 	context, err = createClaudeConversation(token, r, func() bool { return isClose })
 	if err != nil {
 		errorMessage := catchClaudeHandleError(err, token)
 		if retry > 0 {
-			retry--
+			logrus.Warn("重试中...")
 			goto label
 		}
 		ResponseError(ctx, errorMessage, r.Stream)
 		return
 	}
 	partialResponse := cmdvars.Manager.Reply(*context, func(response types.PartialResponse) {
+		if response.Status == vars.Begin {
+			conversationMapper[context.Id] = context
+		}
 		if r.Stream {
 			if response.Status == vars.Begin {
 				ctx.Status(200)
@@ -104,9 +111,7 @@ label:
 				}
 
 				errorMessage := catchClaudeHandleError(err, token)
-				if retry > 0 {
-					retry--
-				} else {
+				if retry <= 0 {
 					ResponseError(ctx, errorMessage, r.Stream)
 				}
 				return
@@ -138,21 +143,36 @@ label:
 		}
 	})
 
-	if !r.Stream && !isClose {
+	defer func() {
+		if once {
+			for _, conversationContext := range conversationMapper {
+				cmdvars.Manager.Remove(conversationContext.Id, conversationContext.Bot)
+			}
+			once = false
+		}
+	}()
+
+	// 发生错误了，重试一次
+	if !isDone && partialResponse.Error != nil && retry > 0 {
+		logrus.Warn("重试中...")
+		goto label
+	}
+
+	// 什么也没有返回，重试一次
+	if !isDone && len(partialResponse.Message) == 0 && retry > 0 {
+		logrus.Warn("重试中...")
+		goto label
+	}
+
+	// 非流响应
+	if !r.Stream && !isDone {
 		if partialResponse.Error != nil {
 			errorMessage := catchClaudeHandleError(partialResponse.Error, token)
-			if !isDone && retry > 0 {
-				goto label
-			}
 			ResponseError(ctx, errorMessage, r.Stream)
 			return
 		}
 
 		ctx.JSON(200, BuildCompletion(partialResponse.Message))
-	}
-
-	if !isDone && partialResponse.Error != nil && retry > 0 {
-		goto label
 	}
 
 	// 检查大黄标
@@ -209,12 +229,11 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsClose func
 		} else {
 			muLock.Lock()
 			defer muLock.Unlock()
-			if cmdvars.GlobalToken == "" {
-				var email string
-				email, cmdvars.GlobalToken, err = pool.GenerateSessionKey()
-				logrus.Info(cmdvars.I18n("GENERATE_SESSION_KEY") + "：available -- " + strconv.FormatBool(err == nil) + " email --- " + email + ", sessionKey --- " + cmdvars.GlobalToken)
-				pool.CacheKey("CACHE_KEY", cmdvars.GlobalToken)
-			}
+			var email string
+
+			email, cmdvars.GlobalToken, err = pool.GenerateSessionKey()
+			logrus.Info(cmdvars.I18n("GENERATE_SESSION_KEY") + "：available -- " + strconv.FormatBool(err == nil) + " email --- " + email + ", sessionKey --- " + cmdvars.GlobalToken)
+			pool.CacheKey("CACHE_KEY", cmdvars.GlobalToken)
 		}
 	}
 
