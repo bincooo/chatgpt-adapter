@@ -86,7 +86,12 @@ func (bot *BingBot) Reply(ctx types.ConversationContext) chan types.PartialRespo
 }
 
 func (bot *BingBot) Remove(id string) bool {
-	delete(bot.sessions, id)
+	if session, ok := bot.sessions[id]; ok {
+		if deleteHistory {
+			go session.Delete()
+		}
+		delete(bot.sessions, id)
+	}
 	slice := []string{id}
 	for key, _ := range bot.sessions {
 		if strings.HasPrefix(id+"$", key) {

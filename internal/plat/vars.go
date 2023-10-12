@@ -1,6 +1,14 @@
 package plat
 
-import "time"
+import (
+	"os"
+	"strings"
+	"time"
+)
+
+const (
+	ClackTyping = "_Typing…_"
+)
 
 var (
 	Timeout = 2 * time.Minute
@@ -11,3 +19,15 @@ var (
 		"function": "function",
 	}
 )
+
+var (
+	deleteHistory = loadEnvBool("DELETE_HISTORY", false)
+)
+
+func loadEnvBool(key string, defaultValue bool) bool {
+	value, exists := os.LookupEnv(key)
+	if !exists || value == "" {
+		return defaultValue
+	}
+	return strings.TrimSpace(strings.ToLower(value)) == "true"
+}

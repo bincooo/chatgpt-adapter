@@ -77,7 +77,7 @@ func (bot *OpenAIAPIBot) Reply(ctx types.ConversationContext) chan types.Partial
 }
 
 func (bot *OpenAIAPIBot) Remove(id string) bool {
-	logrus.Info("[MiaoX] - Bot.Remove: ")
+	logrus.Info("[MiaoX] - Bot.Remove: ", id)
 	return true
 }
 

@@ -7,25 +7,8 @@ import (
 	"github.com/bincooo/claude-api"
 	clTypes "github.com/bincooo/claude-api/types"
 	clVars "github.com/bincooo/claude-api/vars"
-	"os"
 	"strings"
 )
-
-const (
-	ClackTyping = "_Typing…_"
-)
-
-var (
-	deleteHistory = loadEnvBool("DELETE_HISTORY", false)
-)
-
-func loadEnvBool(key string, defaultValue bool) bool {
-	value, exists := os.LookupEnv(key)
-	if !exists || value == "" {
-		return defaultValue
-	}
-	return strings.TrimSpace(strings.ToLower(value)) == "true"
-}
 
 type ClaudeBot struct {
 	sessions map[string]clTypes.Chat
