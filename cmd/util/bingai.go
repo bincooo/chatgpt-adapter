@@ -31,7 +31,6 @@ func init() {
 func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	once := true
 	conversationMapper := make(map[string]*types.ConversationContext)
-	isClose := false
 	isDone := false
 	if token == "" || token == "auto" {
 		token = bingAIToken
@@ -40,17 +39,15 @@ func DoBingAIComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 
 	// 重试次数
 	retry := 3
-
-	var context *types.ConversationContext
 label:
 	if isDone {
 		return
 	}
 
+	isClose := false
 	retry--
 
-	var err error
-	context, err = createBingAIConversation(r, token, func() bool { return isClose })
+	context, err := createBingAIConversation(r, token, func() bool { return isClose })
 	if err != nil {
 		if retry > 0 {
 			logrus.Warn("重试中...")
@@ -76,6 +73,9 @@ label:
 			if response.Error != nil {
 				isClose = true
 				err = response.Error
+				if response.Error.Error() == "resolve timeout" {
+					retry = 0
+				}
 				if retry <= 0 {
 					responseBingAIError(ctx, response.Error, r.Stream, token)
 				}

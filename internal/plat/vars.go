@@ -11,7 +11,7 @@ const (
 )
 
 var (
-	Timeout = 2 * time.Minute
+	Timeout = 5 * time.Minute
 	kv      = map[string]string{
 		"user":     "user",
 		"bot":      "assistant",

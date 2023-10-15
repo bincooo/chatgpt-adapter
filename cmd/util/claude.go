@@ -57,26 +57,21 @@ type schema struct {
 func DoClaudeComplete(ctx *gin.Context, token string, r *cmdtypes.RequestDTO) {
 	once := true
 	conversationMapper := make(map[string]*types.ConversationContext)
-	isClose := false
 	isDone := false
 	fmt.Println("TOKEN_KEY: " + token)
 
 	// 重试次数
 	retry := 3
 
-	var err error
-	var context *types.ConversationContext
 label:
 	if isDone {
-		if err != nil {
-			_ = catchClaudeHandleError(err, token)
-		}
 		return
 	}
 
+	isClose := false
 	retry--
 
-	context, err = createClaudeConversation(token, r, func() bool { return isClose })
+	context, err := createClaudeConversation(token, r, func() bool { return isClose })
 	if err != nil {
 		errorMessage := catchClaudeHandleError(err, token)
 		if retry > 0 {
@@ -111,6 +106,9 @@ label:
 				}
 
 				errorMessage := catchClaudeHandleError(err, token)
+				if strings.Contains(errorMessage, "resolve timeout") {
+					retry = 0
+				}
 				if retry <= 0 {
 					ResponseError(ctx, errorMessage, r.Stream)
 				}

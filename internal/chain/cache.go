@@ -75,10 +75,12 @@ func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response s
 		prompt := c.cache[ctx.Id]
 
 		messages = append(messages, map[string]string{
+			"id":     ctx.MessageId,
 			"author": "user",
 			"text":   prompt,
 		})
 		messages = append(messages, map[string]string{
+			"id":     ctx.MessageId,
 			"author": "bot",
 			"text":   response,
 		})

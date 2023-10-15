@@ -109,6 +109,10 @@ func (mgr *CommonBotManager) replyConversation(bot types.Bot, handle func(types.
 
 	var slice []types.PartialResponse
 	chanResponse := bot.Reply(ctx)
+	if ctx.Bot == vars.Bing && ctx.Model == "Sydney" {
+		// Sydney 模式每一次对话后都会新建一个对话，所以可删除
+		defer bot.Remove(ctx.Id)
+	}
 	for {
 		if partialResponse, ok := <-chanResponse; ok {
 			h(partialResponse)

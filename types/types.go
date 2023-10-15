@@ -24,7 +24,8 @@ type ConversationContext struct {
 	Chain   string // 拦截处理器链
 	Proxy   string // 本地代理
 
-	Data any // 拓展数据
+	MessageId string // 消息每次对话的Id
+	Data      any    // 拓展数据
 
 	H func(partialResponse any) func(*CacheBuffer) error // 自定义流处理器
 }
