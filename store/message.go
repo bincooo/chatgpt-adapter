@@ -30,7 +30,6 @@ func DeleteMessages(uid string) {
 func DeleteMessageFor(uid, messageId string) {
 	messages := GetMessages(uid)
 	mu.Lock()
-	defer mu.Unlock()
 	count := 0
 label:
 	for i, message := range messages {
@@ -39,6 +38,10 @@ label:
 			count++
 			goto label
 		}
+	}
+	mu.Unlock()
+	if count > 0 {
+		CacheMessages(uid, messages)
 	}
 	logrus.Info("删除了", count, "条缓存消息")
 }
