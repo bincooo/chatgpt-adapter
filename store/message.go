@@ -32,10 +32,12 @@ func DeleteMessageFor(uid, messageId string) {
 	mu.Lock()
 	defer mu.Unlock()
 	count := 0
+label:
 	for i, message := range messages {
 		if id, ok := message["id"]; ok && id == messageId {
 			messages = append(messages[:i], messages[i+1:]...)
 			count++
+			goto label
 		}
 	}
 	logrus.Info("删除了", count, "条缓存消息")
