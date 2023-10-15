@@ -1,6 +1,7 @@
 package store
 
 import (
+	"github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -27,18 +28,23 @@ func DeleteMessages(uid string) {
 
 // 删除指定消息Id的内容
 func DeleteMessageFor(uid, messageId string) {
+	messages := GetMessages(uid)
 	mu.Lock()
 	defer mu.Unlock()
-	messages := GetMessages(uid)
+	count := 0
 	for i, message := range messages {
 		if id, ok := message["id"]; ok && id == messageId {
 			messages = append(messages[:i], messages[i+1:]...)
+			count++
 		}
 	}
+	logrus.Info("删除了", count, "条缓存消息")
 }
 
 // 获取消息
 func GetMessages(uid string) []Kv {
+	mu.Lock()
+	defer mu.Unlock()
 	if result, ok := messageStore[uid]; ok {
 		return result
 	}

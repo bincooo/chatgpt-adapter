@@ -70,10 +70,9 @@ func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response s
 		return
 	}
 
-	messages := store.GetMessages(ctx.Id)
+	messages := make([]map[string]string, 0)
 	if response != "" {
 		prompt := c.cache[ctx.Id]
-
 		messages = append(messages, map[string]string{
 			"id":     ctx.MessageId,
 			"author": "user",
@@ -84,6 +83,8 @@ func (c *CacheInterceptor) cacheAfter(ctx *types.ConversationContext, response s
 			"author": "bot",
 			"text":   response,
 		})
+		store.AddMessages(ctx.Id, messages)
+		messages = store.GetMessages(ctx.Id)
 
 		if len(messages) > maxCache {
 			messages = messages[len(messages)-maxCache:]
