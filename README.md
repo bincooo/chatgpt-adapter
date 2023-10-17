@@ -12,13 +12,12 @@
 略...
 
 #### 视频
-[![](https://bb-embed.herokuapp.com/embed?v=BV1jS4y1w7SW)](https://player.bilibili.com/player.html?aid=915750741&bvid=BV1tu4y1k7YC&cid=1261564029&p=1)
 
-<iframe src="//player.bilibili.com/player.html?aid=915750741&bvid=BV1tu4y1k7YC&cid=1261564029&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+[BingAI搭建教学 + 接入酒馆（高度自定义、突破30条限制）](https://www.bilibili.com/video/BV1tu4y1k7YC)
 
-<iframe src="//player.bilibili.com/player.html?aid=787161205&bvid=BV1Q14y1q79h&cid=1232116405&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+[SillyTavern傻酒馆解放监管！(claude2.0 web逆向 8月16日+可用) 搭建教程](https://www.bilibili.com/video/BV1Q14y1q79h)
 
-<iframe src="//player.bilibili.com/player.html?aid=316305540&bvid=BV14P411r753&cid=1208639313&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+[傻酒馆解放监管！(claude2.0 web逆向) 一个24小时陪你聊天赛博女孩](https://www.bilibili.com/video/BV14P411r753)
 
 #### 效果图
 
