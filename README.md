@@ -12,6 +12,7 @@
 略...
 
 #### 视频
+[![](https://bb-embed.herokuapp.com/embed?v=BV1jS4y1w7SW)](https://player.bilibili.com/player.html?aid=915750741&bvid=BV1tu4y1k7YC&cid=1261564029&p=1)
 
 <iframe src="//player.bilibili.com/player.html?aid=915750741&bvid=BV1tu4y1k7YC&cid=1261564029&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
 
