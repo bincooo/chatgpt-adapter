@@ -11,6 +11,14 @@
 
 略...
 
+#### 视频
+
+<iframe src="//player.bilibili.com/player.html?aid=915750741&bvid=BV1tu4y1k7YC&cid=1261564029&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+
+<iframe src="//player.bilibili.com/player.html?aid=787161205&bvid=BV1Q14y1q79h&cid=1232116405&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+
+<iframe src="//player.bilibili.com/player.html?aid=316305540&bvid=BV14P411r753&cid=1208639313&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+
 #### 效果图
 
 <details>
