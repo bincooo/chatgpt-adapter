@@ -65,3 +65,7 @@ en = "Account has not completed verification"
 [TRIM_PLOT]
 zh = "遇到</plot>终止响应"
 en = "Terminates response when `</plot>` is encountered"
+
+[MESSAGES_EMPTY]
+zh = "上下文消息为空"
+en = "The context message is empty"

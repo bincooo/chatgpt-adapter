@@ -251,8 +251,8 @@ func bingAIHandle(IsClose func() bool) types.CustomCacheHandler {
 			H: func(index int, content string) (state int, result string) {
 				r := []rune(content)
 				eIndex := len(r) - 1
-				if index+5 > eIndex {
-					return types.MAT_MATCHING, ""
+				if index+4 > eIndex {
+					return types.MAT_MATCHING, content
 				}
 				regexCompile := regexp.MustCompile(`\[\d]`)
 				content = regexCompile.ReplaceAllString(content, "")
@@ -260,6 +260,9 @@ func bingAIHandle(IsClose func() bool) types.CustomCacheHandler {
 				content = regexCompile.ReplaceAllString(content, "")
 				regexCompile = regexp.MustCompile(`\[\^\d\^`)
 				content = regexCompile.ReplaceAllString(content, "")
+				if strings.HasSuffix(content, "[") || strings.HasSuffix(content, "[^") {
+					return types.MAT_MATCHING, content
+				}
 				return types.MAT_MATCHED, content
 			},
 		})
@@ -270,8 +273,8 @@ func bingAIHandle(IsClose func() bool) types.CustomCacheHandler {
 			H: func(index int, content string) (state int, result string) {
 				r := []rune(content)
 				eIndex := len(r) - 1
-				if index+5 > eIndex {
-					return types.MAT_MATCHING, ""
+				if index+4 > eIndex {
+					return types.MAT_MATCHING, content
 				}
 				regexCompile := regexp.MustCompile(`\(\^\d\^\)`)
 				content = regexCompile.ReplaceAllString(content, "")
@@ -279,26 +282,29 @@ func bingAIHandle(IsClose func() bool) types.CustomCacheHandler {
 				content = regexCompile.ReplaceAllString(content, "")
 				regexCompile = regexp.MustCompile(`\(\^\d\^`)
 				content = regexCompile.ReplaceAllString(content, "")
+				if strings.HasSuffix(content, "(") || strings.HasSuffix(content, "(^") {
+					return types.MAT_MATCHING, content
+				}
 				return types.MAT_MATCHED, content
 			},
 		})
 
 		// ^2^) ^2^]
-		matchers = append(matchers, &types.StringMatcher{
-			Find: "^",
-			H: func(index int, content string) (state int, result string) {
-				r := []rune(content)
-				eIndex := len(r) - 1
-				if index+4 > eIndex {
-					return types.MAT_MATCHING, ""
-				}
-				regexCompile := regexp.MustCompile(`\^\d\^\)`)
-				content = regexCompile.ReplaceAllString(content, "")
-				regexCompile = regexp.MustCompile(`\^\d\^]`)
-				content = regexCompile.ReplaceAllString(content, "")
-				return types.MAT_MATCHED, content
-			},
-		})
+		//matchers = append(matchers, &types.StringMatcher{
+		//	Find: "^",
+		//	H: func(index int, content string) (state int, result string) {
+		//		r := []rune(content)
+		//		eIndex := len(r) - 1
+		//		if index+4 > eIndex {
+		//			return types.MAT_MATCHING, content
+		//		}
+		//		regexCompile := regexp.MustCompile(`\^\d\^\)`)
+		//		content = regexCompile.ReplaceAllString(content, "")
+		//		regexCompile = regexp.MustCompile(`\^\d\^]`)
+		//		content = regexCompile.ReplaceAllString(content, "")
+		//		return types.MAT_MATCHED, content
+		//	},
+		//})
 
 		pos := 0
 		return func(self *types.CacheBuffer) error {

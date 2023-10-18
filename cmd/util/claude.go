@@ -25,7 +25,8 @@ import (
 var (
 	muLock sync.Mutex
 
-	HARM = "I apologize, but I will not provide any responses that violate Anthropic's Acceptable Use Policy or could promote harm."
+	HARM            = "I apologize, but I will not provide any responses that violate Anthropic's Acceptable Use Policy or could promote harm."
+	ViolatingPolicy = "Your account has been disabled for violating Anthropic's Acceptable Use Policy."
 
 	H = "H:"
 	A = "A:"
@@ -162,6 +163,16 @@ label:
 		goto label
 	}
 
+	// 违反政策被禁用
+	if strings.Contains(partialResponse.Message, ViolatingPolicy) {
+		pool.CurrError(errors.New(ViolatingPolicy))
+		CleanToken(token)
+		if !isDone && retry > 0 {
+			logrus.Warn("重试中...")
+			goto label
+		}
+	}
+
 	// 非流响应
 	if !r.Stream && !isDone {
 		if partialResponse.Error != nil {
@@ -176,7 +187,8 @@ label:
 	// 检查大黄标
 	if token == "auto" && context.Model == vars.Model4WebClaude2S {
 		if strings.Contains(partialResponse.Message, HARM) {
-			cmdvars.GlobalToken = ""
+			CleanToken(token)
+			pool.CurrError(errors.New(HARM))
 			logrus.Warn(cmdvars.I18n("HARM"))
 		}
 	}
@@ -231,7 +243,9 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsClose func
 
 			email, cmdvars.GlobalToken, err = pool.GenerateSessionKey()
 			logrus.Info(cmdvars.I18n("GENERATE_SESSION_KEY") + "：available -- " + strconv.FormatBool(err == nil) + " email --- " + email + ", sessionKey --- " + cmdvars.GlobalToken)
-			pool.CacheKey("CACHE_KEY", cmdvars.GlobalToken)
+			if err == nil {
+				pool.CacheKey("CACHE_KEY", cmdvars.GlobalToken)
+			}
 		}
 	}
 
@@ -256,32 +270,6 @@ func createClaudeConversation(token string, r *cmdtypes.RequestDTO, IsClose func
 // 过滤与预处理claude-2.0的对话内容
 func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 	result := ""
-	if (r.Model == "claude-1.0" || r.Model == "claude-2.0") && len(r.Messages) > 0 {
-		// 将repository的内容往上挪
-		repositoryXmlHandle(r)
-
-		// 合并消息
-		for _, message := range r.Messages {
-			switch message["role"] {
-			case "assistant":
-				result += "Assistant: " + strings.TrimSpace(message["content"]) + "\n\n"
-			case "user":
-				content := strings.TrimSpace(message["content"])
-				if content == "" {
-					continue
-				}
-				if strings.HasPrefix(content, "System:") {
-					result += strings.TrimSpace(message["content"][7:]) + "\n\n"
-				} else {
-					result += "Human: " + message["content"] + "\n\n"
-				}
-			default:
-				result += strings.TrimSpace(message["content"]) + "\n\n"
-			}
-		}
-	}
-	// ====  Schema匹配 =======
-	compileRegex := regexp.MustCompile(`schema\s?\{[^}]*}`)
 	s := schema{
 		TrimAssistant: true,
 		TrimHuman:     true,
@@ -289,55 +277,102 @@ func trimClaudeMessage(r *cmdtypes.RequestDTO) (string, schema, error) {
 		BoS:           false,
 		Padding:       true,
 		FullColon:     true,
-		//TrimPlot:      false,
 	}
 
-	matchSlice := compileRegex.FindStringSubmatch(result)
-	if len(matchSlice) > 0 {
-		str := matchSlice[0]
-		result = strings.Replace(result, str, "", -1)
-		if err := json.Unmarshal([]byte(strings.TrimSpace(str[6:])), &s); err != nil {
-			return "", s, err
+	if len(r.Messages) == 0 {
+		return result, s, errors.New(cmdvars.I18n("MESSAGES_EMPTY"))
+	} else {
+		// 将repository的内容往上挪
+		repositoryXmlHandle(r)
+
+		// ====  Schema匹配 =======
+		compileRegex := regexp.MustCompile(`schema\s?\{[^}]*}`)
+
+		matchSlice := compileRegex.FindStringSubmatch(r.Messages[0]["content"])
+		if len(matchSlice) > 0 {
+			str := matchSlice[0]
+			result = strings.Replace(result, str, "", -1)
+			if err := json.Unmarshal([]byte(strings.TrimSpace(str[6:])), &s); err != nil {
+				return "", s, err
+			}
 		}
-	}
-	// =========================
+		// =========================
 
-	// ==== I apologize,[^\n]+ 道歉匹配 ======
-	compileRegex = regexp.MustCompile(`I apologize[^\n]+`)
-	result = compileRegex.ReplaceAllString(result, "")
-	// =========================
+		optimize := func(text string, s schema) string {
+			// ==== I apologize,[^\n]+ 道歉匹配 ======
+			cR := regexp.MustCompile(`I apologize[^\n]+`)
+			text = cR.ReplaceAllString(text, "")
+			// =========================
 
-	if s.TrimAssistant {
-		result = strings.TrimSuffix(result, "\n\nAssistant: ")
-	}
-	if s.TrimHuman {
-		result = strings.TrimPrefix(result, "\n\nHuman: ")
-	}
+			if s.TrimAssistant {
+				text = strings.TrimSuffix(text, "\n\nAssistant: ")
+			}
+			if s.TrimHuman {
+				text = strings.TrimPrefix(text, "\n\nHuman: ")
+			}
 
-	result = strings.ReplaceAll(result, "A:", "\nAssistant:")
-	result = strings.ReplaceAll(result, "H:", "\nHuman:")
-	if s.FullColon {
-		result = strings.ReplaceAll(result, "Assistant:", "Assistant：")
-		result = strings.ReplaceAll(result, "Human:", "Human：")
-	}
-
-	// 填充废料
-	if s.Padding && (r.Model == "claude-2.0" || r.Model == "claude-2") {
-		gPadding := cmdvars.GlobalPadding
-		if gPadding == "" {
-			gPadding = piles[rand.Intn(len(piles))]
-		}
-		c := (cmdvars.GlobalPaddingSize - len(result)) / len(gPadding)
-		cachePadding := ""
-		for idx := 0; idx < c; idx++ {
-			cachePadding += gPadding
+			text = strings.ReplaceAll(text, "A:", "\nAssistant:")
+			text = strings.ReplaceAll(text, "H:", "\nHuman:")
+			if s.FullColon {
+				text = strings.ReplaceAll(text, "Assistant:", "Assistant：")
+				text = strings.ReplaceAll(text, "Human:", "Human：")
+			}
+			return text
 		}
 
-		if cachePadding != "" {
-			result = cachePadding + "\n\n\n" + strings.TrimSpace(result)
+		// 合并消息
+		lastRole := ""
+		for _, message := range r.Messages {
+			content := strings.TrimSpace(message["content"])
+			if content == "" {
+				continue
+			}
+			switch message["role"] {
+			case "assistant":
+				if lastRole != "Assistant: " {
+					lastRole = "Assistant: "
+					result += optimize(lastRole+content, s) + "\n\n"
+				} else {
+					result += optimize(content, s) + "\n\n"
+				}
+			case "user":
+				if lastRole != "Human: " {
+					lastRole = "Human: "
+					if strings.HasPrefix(content, "System:") {
+						result += strings.TrimSpace(optimize(lastRole+content[7:], s)) + "\n\n"
+					} else {
+						result += optimize(lastRole+content, s) + "\n\n"
+					}
+				} else {
+					if strings.HasPrefix(content, "System:") {
+						result += strings.TrimSpace(optimize(content[7:], s)) + "\n\n"
+					} else {
+						result += optimize(content, s) + "\n\n"
+					}
+				}
+			default:
+				result += optimize(content, s) + "\n\n"
+			}
 		}
+
+		// 填充废料
+		if s.Padding && (r.Model == "claude-2.0" || r.Model == "claude-2") {
+			gPadding := cmdvars.GlobalPadding
+			if gPadding == "" {
+				gPadding = piles[rand.Intn(len(piles))]
+			}
+			c := (cmdvars.GlobalPaddingSize - len(result)) / len(gPadding)
+			cachePadding := ""
+			for idx := 0; idx < c; idx++ {
+				cachePadding += gPadding
+			}
+
+			if cachePadding != "" {
+				result = cachePadding + "\n\n\n" + strings.TrimSpace(result)
+			}
+		}
+		return result, s, nil
 	}
-	return result, s, nil
 }
 
 // claude-2.0 stream 流读取数据转换处理

@@ -160,7 +160,7 @@ func (mat *StringMatcher) Match(content string) (state int, result string) {
 				return
 			}
 			if state == MAT_MATCHING {
-				mat.cache = content
+				mat.cache = result
 				return state, ""
 			}
 			return state, content

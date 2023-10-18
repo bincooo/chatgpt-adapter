@@ -12,20 +12,18 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-const (
-	MINIMUM_SURVIVAL = 3 // 最小存活数
-)
-
 var (
-	keys      []*Key // session池
-	currIndex = -1
-	IsLocal   = false
-	mu        sync.Mutex
+	MINIMUM_SURVIVAL = 3    // 最小存活数
+	keys             []*Key // session池
+	currIndex        = -1
+	IsLocal          = false
+	mu               sync.Mutex
 )
 
 type Key struct {
@@ -36,6 +34,7 @@ type Key struct {
 
 func init() {
 	_ = godotenv.Load()
+	MINIMUM_SURVIVAL = LoadEnvInt("MINIMUM_SURVIVAL", MINIMUM_SURVIVAL)
 	k := strings.TrimSpace(LoadEnvVar("KEYS", ""))
 	keys = make([]*Key, 0)
 	if k != "" {
@@ -92,11 +91,31 @@ func init() {
 	}
 }
 
+func LoadEnvInt(key string, defaultValue int) int {
+	value, exists := os.LookupEnv(key)
+	if !exists || value == "" {
+		return defaultValue
+	}
+	result, err := strconv.Atoi(value)
+	if err != nil {
+		logrus.Error(err)
+		os.Exit(-1)
+	}
+	return result
+}
+
 func GetKey() (string, error) {
 	if IsLocal {
 		return getLocalKey()
 	} else {
 		return getSmailKey()
+	}
+}
+
+func CurrError(err error) {
+	if err != nil && currIndex >= 0 {
+		keys[currIndex].IsDie = true
+		keys[currIndex].Error = err
 	}
 }
 
@@ -140,16 +159,6 @@ func getSmailKey() (string, error) {
 
 	mu.Lock()
 	defer mu.Unlock()
-
-	if currIndex > -1 {
-		key := keys[currIndex]
-		if err = TestMessage(key.Token); err != nil {
-			key.IsDie = true
-			key.Error = err
-		} else {
-			return key.Token, nil
-		}
-	}
 
 	for index := 0; index < l; index++ {
 		currIndex++
