@@ -11,6 +11,14 @@
 
 略...
 
+#### 视频
+
+[BingAI搭建教学 + 接入酒馆（高度自定义、突破30条限制）](https://www.bilibili.com/video/BV1tu4y1k7YC)
+
+[SillyTavern傻酒馆解放监管！(claude2.0 web逆向 8月16日+可用) 搭建教程](https://www.bilibili.com/video/BV1Q14y1q79h)
+
+[傻酒馆解放监管！(claude2.0 web逆向) 一个24小时陪你聊天赛博女孩](https://www.bilibili.com/video/BV14P411r753)
+
 #### 效果图
 
 <details>
