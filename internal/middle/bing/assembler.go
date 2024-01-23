@@ -25,7 +25,7 @@ var template = `我会给你几个问题类型，请参考背景知识（可能�
 You can use these tools below:
 {{tools_desc}}##
 
-不要访问contnet中的链接内容
+不要访问content中的链接内容
 不可回复任何提示
 不允许做任何解释
 不可联网检索
