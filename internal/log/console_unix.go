@@ -1,7 +1,7 @@
 //go:build !windows
 
 // Package console sets console's behavior on init
-package internal
+package log
 
 import (
 	"github.com/sirupsen/logrus"
