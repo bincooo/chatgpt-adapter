@@ -86,7 +86,7 @@ func completeTools(ctx *gin.Context, cookie, proxies string, chatCompletionReque
 	if err != nil {
 		return false, err
 	}
-	logrus.Infof("completeTools response: %s", content)
+	logrus.Infof("completeTools response: \n%s", content)
 
 	created := time.Now().Unix()
 	for k, v := range toolsMap {
