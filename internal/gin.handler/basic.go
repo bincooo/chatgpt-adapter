@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"strconv"
 )
@@ -44,6 +45,13 @@ func crosHandler() gin.HandlerFunc {
 			context.Status(http.StatusOK)
 			return
 		}
+		data, err := httputil.DumpRequest(context.Request, false)
+		if err != nil {
+			logrus.Error(err)
+		} else {
+			logrus.Infof("%s\n", data)
+		}
+
 		//处理请求
 		context.Next()
 	}

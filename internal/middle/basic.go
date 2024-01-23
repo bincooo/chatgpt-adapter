@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net/http"
 	"time"
 )
 
 func ResponseWithE(ctx *gin.Context, err error) {
+	logrus.Error("response error: ", err)
 	ctx.JSON(http.StatusUnauthorized, gin.H{
 		"error": map[string]string{
 			"message": err.Error(),
@@ -19,6 +21,7 @@ func ResponseWithE(ctx *gin.Context, err error) {
 }
 
 func ResponseWithV(ctx *gin.Context, error string) {
+	logrus.Errorf("response error: %s", error)
 	ctx.JSON(http.StatusUnauthorized, gin.H{
 		"error": map[string]string{
 			"message": error,

@@ -7,6 +7,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 	"time"
@@ -118,6 +119,7 @@ func completeTools(ctx *gin.Context, cookie, proxies string, chatCompletionReque
 	if err != nil {
 		return false, err
 	}
+	logrus.Infof("completeTools response: %s", content)
 
 	created := time.Now().Unix()
 	for k, v := range toolsMap {
@@ -219,7 +221,7 @@ func buildTools(
 		}
 	}
 	for _, message := range pMessages {
-		history += fmt.Sprintf("%s: %s\n", toA(message["author"]), message["text"])
+		history += fmt.Sprintf("{%s: %s}\n", toA(message["author"]), message["text"])
 	}
 	prompt = strings.Replace(template, "{{tools_types}}", t1, -1)
 	prompt = strings.Replace(prompt, "{{tools_desc}}", t2, -1)
@@ -252,6 +254,7 @@ func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse boo
 	pos := 0
 	content := ""
 	created := time.Now().Unix()
+	logrus.Infof("waitResponse ...")
 
 	for {
 		message, ok := <-chatResponse
@@ -267,7 +270,9 @@ func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse boo
 		if sse {
 			contentL := len(message.Text)
 			if pos < contentL {
-				middle.ResponseWithSSE(ctx, "bing", message.Text[pos:contentL], created)
+				value := message.Text[pos:contentL]
+				fmt.Printf("----- raw -----\n %s\n", value)
+				middle.ResponseWithSSE(ctx, "bing", value, created)
 			}
 			pos = contentL
 		} else if len(message.Text) > 0 {
@@ -276,6 +281,7 @@ func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse boo
 	}
 
 	if !sse {
+		fmt.Printf("----- raw -----\n %s\n", content)
 		ctx.JSON(http.StatusOK, gpt.ChatCompletionResponse{
 			Model:   "bing",
 			Created: created,
