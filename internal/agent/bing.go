@@ -18,7 +18,7 @@ const BingToolCallsTemplate = `我会给你几个问题类型，请参考背景�
 You can use these tools below:
 {{- range $index, $value := .tools}}
 {{- if eq $value.T "function" }}
-{{inc $index 1}}. [{{$value.Fun.Name}}] 提取网页内容;
+{{inc $index 1}}. [{{$value.Fun.Name}}] {{$value.Fun.Description}};
   parameters: 
 {{- range $key, $v := $value.Fun.Params.Properties}}
     {{$key}}: {

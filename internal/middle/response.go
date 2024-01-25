@@ -188,7 +188,12 @@ func ResponseWithSSEToolCalls(ctx *gin.Context, model, name, args string, create
 	w.Flush()
 	time.Sleep(100 * time.Millisecond)
 
-	response.Choices[index].Delta = nil
+	response.Choices[index].FinishReason = "tool_calls"
+	response.Choices[index].Delta = &struct {
+		Role      string                   `json:"role"`
+		Content   string                   `json:"content"`
+		ToolCalls []map[string]interface{} `json:"tool_calls"`
+	}{}
 	marshal, _ = json.Marshal(response)
 	_, err = fmt.Fprintf(w, "data: %s\n\n", marshal)
 	if err != nil {
