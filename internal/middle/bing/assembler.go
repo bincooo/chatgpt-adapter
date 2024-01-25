@@ -61,6 +61,7 @@ func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gp
 }
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gpt.ChatCompletionRequest) (bool, error) {
+	logrus.Infof("completeTools ...")
 	toolsMap, prompt, err := middle.BuildToolCallsTemplate(
 		chatCompletionRequest.Tools,
 		chatCompletionRequest.Messages,
@@ -179,11 +180,17 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 	if pos < 0 {
 		return
 	}
+
 	if messages[pos]["role"] == "user" {
 		prompt = messages[pos]["content"]
 		messages = messages[:pos]
 	} else {
-		prompt = "continue"
+		c := []rune(messages[pos]["content"])
+		if contentL := len(c); contentL > 10 {
+			prompt = fmt.Sprintf("从`%s`断点处继续写", string(c[contentL-10:]))
+		} else {
+			prompt = "continue"
+		}
 	}
 
 	pos = 0
@@ -192,30 +199,28 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 	role := ""
 	buffer := make([]string, 0)
 
-	toA := func(expr string) string {
+	condition := func(expr string) string {
 		switch expr {
-		case "system", "user", "function":
-			return "user"
-		case "assistant":
-			return "bot"
+		case "system", "user", "function", "assistant":
+			return expr
 		default:
 			return ""
 		}
 	}
 
+	description := ""
+
+	// 合并历史对话
 	for {
 		if pos >= messageL {
 			if len(buffer) > 0 {
-				pMessages = append(pMessages, edge.ChatMessage{
-					"author": role,
-					"text":   strings.Join(buffer, "\n\n"),
-				})
+				description += fmt.Sprintf("### {%s}: \n\n\n%s\n---\n\n\n\n\n", strings.Title(role), strings.Join(buffer, "\n\n"))
 			}
 			break
 		}
 
 		message := messages[pos]
-		curr := toA(message["role"])
+		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
 			return nil, "", errors.New(
@@ -234,12 +239,22 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 			buffer = append(buffer, content)
 			continue
 		}
-		pMessages = append(pMessages, edge.ChatMessage{
-			"author": role,
-			"text":   strings.Join(buffer, "\n\n"),
-		})
+		description += fmt.Sprintf("### {%s}: \n\n\n%s\n---\n\n\n\n\n", strings.Title(role), strings.Join(buffer, "\n\n"))
 		buffer = append(make([]string, 0), content)
 		role = curr
+	}
+
+	if description != "" {
+		pMessages = append(pMessages, edge.ChatMessage{
+			"author":      "user",
+			"privacy":     "Internal",
+			"description": description,
+			"contextType": "WebPage",
+			"messageType": "Context",
+			"sourceName":  "history.md",
+			"sourceUrl":   "file:///history.md",
+			"messageId":   "discover-web--page-ping-mriduna-----",
+		})
 	}
 
 	return pMessages, prompt, nil

@@ -29,7 +29,7 @@ func completions(proxies string) gin.HandlerFunc {
 		//case "claude-2":
 		//case "gemini":
 		default:
-			middle.ResponseWithV(ctx, fmt.Sprintf("'%s' is not not yet supported", chatCompletionRequest.Model))
+			middle.ResponseWithV(ctx, fmt.Sprintf("model '%s' is not not yet supported", chatCompletionRequest.Model))
 		}
 	}
 }
