@@ -3,6 +3,7 @@ package bing
 import (
 	"errors"
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/bincooo/edge-api"
@@ -60,7 +61,10 @@ func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gp
 }
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gpt.ChatCompletionRequest) (bool, error) {
-	toolsMap, prompt, err := buildToolsPrompt(chatCompletionRequest.Tools, chatCompletionRequest.Messages)
+	toolsMap, prompt, err := middle.BuildToolCallsTemplate(
+		chatCompletionRequest.Tools,
+		chatCompletionRequest.Messages,
+		agent.BingToolCallsTemplate, 5)
 	if err != nil {
 		return false, err
 	}

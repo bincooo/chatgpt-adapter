@@ -6,7 +6,6 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/bing"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"strings"
 )
 
@@ -20,11 +19,7 @@ func completions(proxies string) gin.HandlerFunc {
 		}
 
 		if err := ctx.BindJSON(&chatCompletionRequest); err != nil {
-			ctx.JSON(http.StatusUnauthorized, gin.H{
-				"error": map[string]string{
-					"message": err.Error(),
-				},
-			})
+			middle.ResponseWithE(ctx, err)
 			return
 		}
 

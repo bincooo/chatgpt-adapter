@@ -1,12 +1,13 @@
-package bing
+package middle
 
 import (
+	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"testing"
 )
 
 func Test(t *testing.T) {
-	toolsMap, prompt, err := buildToolsPrompt([]struct {
+	toolsMap, prompt, err := BuildToolCallsTemplate([]struct {
 		Fun gpt.Function `json:"function"`
 		T   string       `json:"type"`
 	}{
@@ -43,7 +44,7 @@ func Test(t *testing.T) {
 			"content": "https://juejin.cn/post/7229480315353514045 阅读这个链接的内容",
 			"role":    "user",
 		},
-	})
+	}, agent.BingToolCallsTemplate, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
