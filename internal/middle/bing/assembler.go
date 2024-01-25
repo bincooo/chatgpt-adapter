@@ -3,16 +3,16 @@ package bing
 import (
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"net/http"
 	"strings"
 	"time"
 )
+
+const MODEL = "bing"
 
 func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gpt.ChatCompletionRequest) {
 	options, err := edge.NewDefaultOptions(cookie, "")
@@ -29,7 +29,7 @@ func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gp
 	}
 
 	if messages[messageL-1]["role"] != "function" && len(chatCompletionRequest.Tools) > 0 {
-		goOn, _err := completeTools(ctx, cookie, proxies, chatCompletionRequest)
+		goOn, _err := completeToolCalls(ctx, cookie, proxies, chatCompletionRequest)
 		if _err != nil {
 			middle.ResponseWithE(ctx, _err)
 			return
@@ -59,8 +59,8 @@ func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gp
 	waitResponse(ctx, chatResponse, chatCompletionRequest.Stream)
 }
 
-func completeTools(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gpt.ChatCompletionRequest) (bool, error) {
-	toolsMap, prompt, err := buildTools(chatCompletionRequest.Tools, chatCompletionRequest.Messages)
+func completeToolCalls(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gpt.ChatCompletionRequest) (bool, error) {
+	toolsMap, prompt, err := buildToolsPrompt(chatCompletionRequest.Tools, chatCompletionRequest.Messages)
 	if err != nil {
 		return false, err
 	}
@@ -76,7 +76,6 @@ func completeTools(ctx *gin.Context, cookie, proxies string, chatCompletionReque
 		Notebook(true).
 		Model(edge.ModelCreative).
 		Temperature(chatCompletionRequest.Temperature))
-
 	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, nil)
 	if err != nil {
 		return false, err
@@ -87,114 +86,30 @@ func completeTools(ctx *gin.Context, cookie, proxies string, chatCompletionReque
 		return false, err
 	}
 	logrus.Infof("completeTools response: \n%s", content)
+	return parseToToolCall(ctx, toolsMap, content, chatCompletionRequest.Stream)
+}
 
+func parseToToolCall(ctx *gin.Context, toolsMap map[string]string, content string, sse bool) (bool, error) {
 	created := time.Now().Unix()
 	for k, v := range toolsMap {
 		if strings.Contains(content, k) {
 			left := strings.Index(content, "{")
 			right := strings.LastIndex(content, "}")
-			args := ""
+			argv := ""
 			if left >= 0 && right > left {
-				args = content[left : right+1]
+				argv = content[left : right+1]
 			}
 
-			if chatCompletionRequest.Stream {
-				middle.ResponseWithSSEToolCalls(ctx, "bing", v, args, created)
+			if sse {
+				middle.ResponseWithSSEToolCalls(ctx, MODEL, v, argv, created)
+				return false, nil
+			} else {
+				middle.ResponseWithToolCalls(ctx, MODEL, v, argv)
 				return false, nil
 			}
-			ctx.JSON(http.StatusOK, gpt.ChatCompletionResponse{
-				Model:   "bing",
-				Created: created,
-				Id:      "chatcmpl-completion",
-				Object:  "chat.completion",
-				Choices: []gpt.ChatCompletionResponseChoice{
-					{
-						Index: 0,
-						Message: &struct {
-							Role      string                   `json:"role"`
-							Content   string                   `json:"content"`
-							ToolCalls []map[string]interface{} `json:"tool_calls"`
-						}{
-							Role: "assistant",
-							ToolCalls: []map[string]interface{}{
-								{
-									"id":   "call_" + middle.RandomString(5),
-									"type": "function",
-									"function": map[string]string{
-										"name":      v,
-										"arguments": args,
-									},
-								},
-							},
-						},
-						FinishReason: "stop",
-					},
-				},
-			})
-			return false, nil
 		}
 	}
 	return true, nil
-}
-
-func buildTools(
-	tools []struct {
-		Fun gpt.Function `json:"function"`
-		T   string       `json:"type"`
-	},
-	messages []map[string]string,
-) (toolsMap map[string]string, prompt string, err error) {
-	t1 := ""
-	t2 := ""
-	history := ""
-
-	toolsMap = make(map[string]string)
-	for i, tool := range tools {
-		if tool.T != "function" {
-			continue
-		}
-		f := tool.Fun
-		id := middle.RandomString(5)
-
-		t1 += fmt.Sprintf("{\"questionType\": \"%s\", \"typeId\": \"%s\"}\n", f.Name, id)
-		t2 += fmt.Sprintf(
-			"%d. [%s] %s;\n\tparameters:\n",
-			i+1,
-			f.Name,
-			f.Description,
-		)
-
-		if properties := f.Params.Properties; properties != nil {
-			for k, v := range properties {
-				value := v.(map[string]interface{})
-				t2 += fmt.Sprintf("\t\t%s: {\n\t\t\ttype: %s\n\t\t\tdescription: %s\n\t\t}\n", k, value["type"], value["description"])
-			}
-		}
-
-		toolsMap[id] = f.Name
-	}
-
-	pMessages, p, err := buildConversation(messages)
-	if err != nil {
-		return nil, "", err
-	}
-
-	toA := func(expr string) string {
-		switch expr {
-		case "bot":
-			return "AI"
-		default:
-			return "Human"
-		}
-	}
-	for _, message := range pMessages {
-		history += fmt.Sprintf("{%s: %s}\n", toA(message["author"]), message["text"])
-	}
-	prompt = strings.Replace(agent.ToolCallsTemplate, "{{tools_types}}", t1, -1)
-	prompt = strings.Replace(prompt, "{{tools_desc}}", t2, -1)
-	prompt = strings.Replace(prompt, "{{history}}", history, -1)
-	prompt = strings.Replace(prompt, "{{prompt}}", p, -1)
-	return
 }
 
 func waitMessage(chatResponse chan edge.ChatResponse) (content string, err error) {
@@ -239,7 +154,7 @@ func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse boo
 			if pos < contentL {
 				value := message.Text[pos:contentL]
 				fmt.Printf("----- raw -----\n %s\n", value)
-				middle.ResponseWithSSE(ctx, "bing", value, created)
+				middle.ResponseWithSSE(ctx, MODEL, value, created)
 			}
 			pos = contentL
 		} else if len(message.Text) > 0 {
@@ -249,31 +164,17 @@ func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse boo
 
 	if !sse {
 		fmt.Printf("----- raw -----\n %s\n", content)
-		ctx.JSON(http.StatusOK, gpt.ChatCompletionResponse{
-			Model:   "bing",
-			Created: created,
-			Id:      "chatcmpl-completion",
-			Object:  "chat.completion",
-			Choices: []gpt.ChatCompletionResponseChoice{
-				{
-					Index: 0,
-					Message: &struct {
-						Role      string                   `json:"role"`
-						Content   string                   `json:"content"`
-						ToolCalls []map[string]interface{} `json:"tool_calls"`
-					}{"assistant", content, nil},
-					FinishReason: "stop",
-				},
-			},
-		})
+		middle.ResponseWith(ctx, MODEL, content)
 	} else {
-		middle.ResponseWithSSE(ctx, "bing", "[DONE]", created)
+		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", created)
 	}
 }
 
 func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessage, prompt string, err error) {
-
 	pos := len(messages) - 1
+	if pos < 0 {
+		return
+	}
 	if messages[pos]["role"] == "user" {
 		prompt = messages[pos]["content"]
 		messages = messages[:pos]

@@ -13,6 +13,7 @@ type ChatCompletionRequest struct {
 }
 
 type Function struct {
+	Id          string `json:"-"`
 	Name        string `json:"name"`
 	Url         string `json:"url"`
 	Description string `json:"description"`
