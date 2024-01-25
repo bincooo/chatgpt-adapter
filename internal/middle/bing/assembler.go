@@ -184,12 +184,19 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 	if messages[pos]["role"] == "user" {
 		prompt = messages[pos]["content"]
 		messages = messages[:pos]
+	} else if messages[pos]["role"] == "function" {
+		prompt = "继续输出"
+		if pos-1 >= 0 { // 获取上一条记录
+			if msg := messages[pos-1]; msg["role"] == "user" {
+				prompt = msg["content"]
+			}
+		}
 	} else {
 		c := []rune(messages[pos]["content"])
 		if contentL := len(c); contentL > 10 {
 			prompt = fmt.Sprintf("从`%s`断点处继续写", string(c[contentL-10:]))
 		} else {
-			prompt = "continue"
+			prompt = "继续输出"
 		}
 	}
 
@@ -232,10 +239,11 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 			role = curr
 		}
 
+		if curr == "function" {
+			content = fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", curr, content)
+		}
+
 		if curr == role {
-			if message["role"] == "function" {
-				content = fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##\n---\n\n%s", message["name"], content, prompt)
-			}
 			buffer = append(buffer, content)
 			continue
 		}
