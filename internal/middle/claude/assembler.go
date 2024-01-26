@@ -1,4 +1,4 @@
-package bing
+package claude
 
 import (
 	"errors"
@@ -6,21 +6,22 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	"github.com/bincooo/edge-api"
+	claude2 "github.com/bincooo/claude-api"
+	"github.com/bincooo/claude-api/types"
+	"github.com/bincooo/claude-api/vars"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"math/rand"
 	"strings"
 	"time"
 )
 
-const MODEL = "bing"
+const MODEL = "claude-2"
+const padtxtMaxCount = 25000
 
 func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gpt.ChatCompletionRequest) {
-	options, err := edge.NewDefaultOptions(cookie, "")
-	if err != nil {
-		middle.ResponseWithE(ctx, err)
-		return
-	}
+	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
+	options.Agency = proxies
 
 	messages := chatCompletionRequest.Messages
 	messageL := len(messages)
@@ -40,26 +41,24 @@ func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gp
 		}
 	}
 
-	pMessages, prompt, err := buildConversation(messages)
+	attr, err := buildConversation(messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, err)
 		return
 	}
 
-	chat := edge.New(options.
-		Proxies(proxies).
-		TopicToE(true).
-		Model(edge.ModelSydney).
-		Temperature(chatCompletionRequest.Temperature))
-
-	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, pMessages)
+	chat, err := claude2.New(options)
 	if err != nil {
 		middle.ResponseWithE(ctx, err)
 		return
 	}
-	defer func() {
-		go chat.Delete()
-	}()
+
+	chatResponse, err := chat.Reply(ctx.Request.Context(), "", attr)
+	if err != nil {
+		middle.ResponseWithE(ctx, err)
+		return
+	}
+	defer chat.Delete()
 	waitResponse(ctx, chatResponse, chatCompletionRequest.Stream)
 }
 
@@ -68,30 +67,34 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, chatCompletionR
 	toolsMap, prompt, err := middle.BuildToolCallsTemplate(
 		chatCompletionRequest.Tools,
 		chatCompletionRequest.Messages,
-		agent.BingToolCallsTemplate, 5)
+		agent.ClaudeToolCallsTemplate, 5)
 	if err != nil {
 		return false, err
 	}
 
-	options, err := edge.NewDefaultOptions(cookie, "")
+	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
+	options.Agency = proxies
+
+	chat, err := claude2.New(options)
 	if err != nil {
 		return false, err
 	}
 
-	chat := edge.New(options.
-		Proxies(proxies).
-		TopicToE(true).
-		Notebook(true).
-		Model(edge.ModelCreative).
-		Temperature(chatCompletionRequest.Temperature))
-	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, nil)
+	if s := padtxt(padtxtMaxCount - len(prompt)); s != "" {
+		prompt = fmt.Sprintf("%s\n--------\n\n%s", s, prompt)
+	}
+	chatResponse, err := chat.Reply(ctx.Request.Context(), "", []types.Attachment{
+		{
+			Content:  prompt,
+			FileName: "paste.txt",
+			FileSize: len(prompt),
+			FileType: "text/plain",
+		},
+	})
 	if err != nil {
 		return false, err
 	}
-
-	defer func() {
-		go chat.Delete()
-	}()
+	defer chat.Delete()
 	content, err := waitMessage(chatResponse)
 	if err != nil {
 		return false, err
@@ -102,6 +105,11 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, chatCompletionR
 
 func parseToToolCall(ctx *gin.Context, toolsMap map[string]string, content string, sse bool) (bool, error) {
 	created := time.Now().Unix()
+	// 不合法标记
+	if strings.Contains(content, "questionType") {
+		return true, nil
+	}
+
 	for k, v := range toolsMap {
 		if strings.Contains(content, k) {
 			left := strings.Index(content, "{")
@@ -123,7 +131,7 @@ func parseToToolCall(ctx *gin.Context, toolsMap map[string]string, content strin
 	return true, nil
 }
 
-func waitMessage(chatResponse chan edge.ChatResponse) (content string, err error) {
+func waitMessage(chatResponse chan types.PartialResponse) (content string, err error) {
 
 	for {
 		message, ok := <-chatResponse
@@ -132,19 +140,18 @@ func waitMessage(chatResponse chan edge.ChatResponse) (content string, err error
 		}
 
 		if message.Error != nil {
-			return "", message.Error.Message
+			return "", message.Error
 		}
 
 		if len(message.Text) > 0 {
-			content = message.Text
+			content += message.Text
 		}
 	}
 
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse bool) {
-	pos := 0
+func waitResponse(ctx *gin.Context, chatResponse chan types.PartialResponse, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
@@ -160,17 +167,11 @@ func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse boo
 			return
 		}
 
-		contentL := len(message.Text)
-		if pos < contentL {
-			content = message.Text[pos:contentL]
-			fmt.Printf("----- raw -----\n %s\n", content)
-		}
-		pos = contentL
-
+		fmt.Printf("----- raw -----\n %s\n", message.Text)
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, content, created)
+			middle.ResponseWithSSE(ctx, MODEL, message.Text, created)
 		} else if len(message.Text) > 0 {
-			content = message.Text
+			content += message.Text
 		}
 	}
 
@@ -181,12 +182,13 @@ func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse boo
 	}
 }
 
-func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessage, prompt string, err error) {
+func buildConversation(messages []map[string]string) (attrs []types.Attachment, err error) {
 	pos := len(messages) - 1
 	if pos < 0 {
 		return
 	}
 
+	prompt := ""
 	if messages[pos]["role"] == "user" {
 		prompt = messages[pos]["content"]
 		messages = messages[:pos]
@@ -214,20 +216,22 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 
 	condition := func(expr string) string {
 		switch expr {
-		case "system", "user", "function", "assistant":
+		case "system", "function", "assistant":
 			return expr
+		case "user":
+			return "human"
 		default:
 			return ""
 		}
 	}
 
-	pMessagesVar := ""
+	pMessages := ""
 
 	// 合并历史对话
 	for {
 		if pos >= messageL {
 			if len(buffer) > 0 {
-				pMessagesVar += fmt.Sprintf("### {%s}: \n\n\n%s\n---\n\n\n\n\n", strings.Title(role), strings.Join(buffer, "\n\n"))
+				pMessages += fmt.Sprintf("%s： %s", strings.Title(role), strings.Join(buffer, "\n\n"))
 			}
 			break
 		}
@@ -236,7 +240,7 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
-			return nil, "", errors.New(
+			return nil, errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
@@ -253,23 +257,44 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 			buffer = append(buffer, content)
 			continue
 		}
-		pMessagesVar += fmt.Sprintf("### {%s}: \n\n\n%s\n---\n\n\n\n\n", strings.Title(role), strings.Join(buffer, "\n\n"))
+		pMessages += fmt.Sprintf("%s： %s", strings.Title(role), strings.Join(buffer, "\n\n"))
 		buffer = append(make([]string, 0), content)
 		role = curr
 	}
 
-	if pMessagesVar != "" {
-		pMessages = append(pMessages, edge.ChatMessage{
-			"author":      "user",
-			"privacy":     "Internal",
-			"description": pMessagesVar,
-			"contextType": "WebPage",
-			"messageType": "Context",
-			"sourceName":  "history.md",
-			"sourceUrl":   "file:///history.md",
-			"messageId":   "discover-web--page-ping-mriduna-----",
+	if pMessages != "" {
+		if prompt != "" {
+			pMessages += "Human：" + prompt
+		}
+
+		if s := padtxt(padtxtMaxCount - len(pMessages)); s != "" {
+			pMessages = fmt.Sprintf("%s\n--------\n\n%s", s, pMessages)
+		}
+
+		attrs = append(attrs, types.Attachment{
+			Content:  pMessages,
+			FileName: "paste.txt",
+			FileSize: len(pMessages),
+			FileType: "text/plain",
 		})
 	}
 
-	return pMessages, prompt, nil
+	return attrs, nil
+}
+
+func padtxt(length int) string {
+	if length <= 0 {
+		return ""
+	}
+
+	s := "abcdefghijklmnopqrstuvwsyz0123456789!@#$%^&*()_+,.?/\\"
+	bytes := make([]byte, length)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	for idx := 0; idx < length; idx++ {
+		pos := r.Intn(len(s))
+		u := s[pos]
+		bytes[idx] = u
+	}
+	return string(bytes)
 }

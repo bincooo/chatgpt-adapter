@@ -39,10 +39,10 @@ You can use these tools below:
 
 <对话记录>
 {{- range $index, $value := .pMessages}}
-{{if eq $value.author "user" -}}
-{ Human: {{$value.text}} }
+{{if eq $value.role "user" -}}
+{ Human: {{$value.content}} }
 {{- else -}}
-{ AI: {{$value.text}} }
+{ Assistant: {{$value.content}} }
 {{- end -}}
 {{end}}
 </对话记录>
