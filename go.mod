@@ -3,8 +3,8 @@ module github.com/bincooo/chatgpt-adapter/v2
 go 1.20
 
 require (
-	github.com/bincooo/claude-api v1.0.4-0.20240125222551-e3c2b3195571
-	github.com/bincooo/edge-api v1.0.3
+	github.com/bincooo/claude-api v1.0.4-0.20240126011503-f3db7b57b361
+	github.com/bincooo/edge-api v1.0.4-0.20240130205412-6c5dc2443f09
 	github.com/gin-gonic/gin v1.9.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
