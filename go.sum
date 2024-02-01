@@ -2,8 +2,8 @@ github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 h1:bBmmB7he0i
 github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5/go.mod h1:0UcFaCkhp6vZw6l5Dpq0Dp673CoF9GdvA8lTfst0GiU=
 github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/cCs=
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
-github.com/bincooo/claude-api v1.0.4-0.20240126011503-f3db7b57b361 h1:b1aewUPEoS9K+cUq4ko04v7wFLCZWlj1JI7P5buldt4=
-github.com/bincooo/claude-api v1.0.4-0.20240126011503-f3db7b57b361/go.mod h1:qoD2FHwGq2+Ohl5xi+jFFYjAGxP0V1ImeIg6R05uqPQ=
+github.com/bincooo/claude-api v1.0.4-0.20240201131128-1137ceb45507 h1:KWwDu+9R8BP/Rs8RAyqclBDICPYvQAzU8YXe/+nujKM=
+github.com/bincooo/claude-api v1.0.4-0.20240201131128-1137ceb45507/go.mod h1:qoD2FHwGq2+Ohl5xi+jFFYjAGxP0V1ImeIg6R05uqPQ=
 github.com/bincooo/edge-api v1.0.4-0.20240130205412-6c5dc2443f09 h1:qNJ6yY8lmKOoyKdoDW+K/oTOzHaZNccMV39fQgsN55E=
 github.com/bincooo/edge-api v1.0.4-0.20240130205412-6c5dc2443f09/go.mod h1:dM9ReHPZSrAVOrLuvacyueljmPKtw2eW6zWpWM7nB6o=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=
