@@ -22,9 +22,9 @@ You can use these tools below:
   parameters: 
 {{- range $key, $v := $value.Fun.Params.Properties}}
     {{$key}}: {
-      type: {{$v.type}}
-      description: {{$v.description}}
-      required: {{contains $value.Fun.Params.Required $key}}
+      type (类型): {{$v.type}}
+      required (为true时“参数JSON”中必须包含“{{$key}}”): {{contains $value.Fun.Params.Required $key}}
+      description (“{{$key}}”的描述信息): """ {{$v.description}} """
     }
 {{end -}}
 {{end -}}
@@ -53,6 +53,7 @@ content={{.content}}
 类型ID=
 参数JSON=
 ---
+required参数为必填参数，不可缺失。
 补充类型ID以及参数JSON的内容，仅回复ID和JSON。
 不需要解释任何结果！
 不需要执行任何任务！

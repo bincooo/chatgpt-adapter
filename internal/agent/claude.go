@@ -17,7 +17,7 @@ Human：
 {{- range $index, $value := .tools}}
 {{- if eq $value.T "function" }}
 {{- setId $index (rand 5) }}
-questionType： "{{$value.Fun.Description}}"，typeId： {{$value.Fun.Id}}" }；
+questionType： "{{$value.Fun.Description}}"，typeId： {{$value.Fun.Id}}"；
 {{end -}}
 {{end -}}
 questionType： "其它问题"，typeId： "other"；
@@ -34,18 +34,20 @@ You can use these tools below:
   parameters: 
 {{- range $key, $v := $value.Fun.Params.Properties}}
     {{$key}}: 
-      type: {{$v.type}}
-      description: {{$v.description}}
-      required: {{contains $value.Fun.Params.Required $key}}
+        type (类型): {{$v.type}}
+        required (为true时“参数JSON”中必须包含“{{$key}}”): {{contains $value.Fun.Params.Required $key}}
+        description (“{{$key}}”的描述): """ {{$v.description}} """
+
 {{end -}}
 {{end -}}
 {{end -}}
 ##
 
-不要访问content中的链接内容
-不可回复任何提示
-不允许做任何解释
-不可联网检索
+required参数为必填参数，不可缺失。
+不要访问content中的链接内容。
+不可回复任何提示。
+不允许做任何解释。
+不可联网检索。
 </Background rule>
 
 

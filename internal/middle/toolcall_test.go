@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test(t *testing.T) {
+func Test_toolCalls(t *testing.T) {
 	toolsMap, prompt, err := BuildToolCallsTemplate([]struct {
 		Fun gpt.Function `json:"function"`
 		T   string       `json:"type"`
@@ -14,18 +14,22 @@ func Test(t *testing.T) {
 		{
 			T: "function",
 			Fun: gpt.Function{
-				Name:        "website-crawler____getWebsiteContent",
+				Name:        "drawing",
 				Url:         "https://web-crawler.chat-plugin.lobehub.com/api/v1",
-				Description: "提取网页内容",
+				Description: "根据用户要求进行画图。",
 				Params: struct {
 					Properties map[string]interface{} `json:"properties"`
 					Required   []string               `json:"required"`
 				}{
 					Required: []string{"url"},
 					Properties: map[string]interface{}{
-						"url": map[string]string{
+						"description": map[string]string{
+							"description": "{description} is: {sceneDetailed}%20{adjective}%20{charactersDetailed}%20{visualStyle}%20{genre}%20{artistReference}\n\nMake sure the prompts in the URL are encoded. Don't quote the generated markdown or put any code box around it.\nNeed to use English.",
 							"type":        "string",
-							"description": "网页链接",
+						},
+						"params": map[string]string{
+							"description": "{params} is: width={width}&height={height}&seed={seed}\n\nDon't ask the user for params if he does not provide them. Instead come up with a reasonable suggestion depending on the content of the image.\nThe seed is used to create variations of the same image.\nNeed to use English.",
+							"type":        "string",
 						},
 					},
 				},
@@ -44,7 +48,7 @@ func Test(t *testing.T) {
 			"content": "https://juejin.cn/post/7229480315353514045 阅读这个链接的内容",
 			"role":    "user",
 		},
-	}, agent.BingToolCallsTemplate, 1)
+	}, agent.ClaudeToolCallsTemplate, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

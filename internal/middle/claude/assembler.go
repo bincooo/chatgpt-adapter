@@ -143,6 +143,7 @@ func waitMessage(chatResponse chan types.PartialResponse) (content string, err e
 			return "", message.Error
 		}
 
+		fmt.Printf("----- raw -----\n %s\n", message.Text)
 		if len(message.Text) > 0 {
 			content += message.Text
 		}
