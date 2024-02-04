@@ -21,7 +21,7 @@ const padtxtMaxCount = 25000
 
 func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gpt.ChatCompletionRequest) {
 	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
-	options.Agency = proxies
+	options.Proxies = proxies
 
 	messages := chatCompletionRequest.Messages
 	messageL := len(messages)
@@ -73,7 +73,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, chatCompletionR
 	}
 
 	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
-	options.Agency = proxies
+	options.Proxies = proxies
 
 	chat, err := claude2.New(options)
 	if err != nil {
