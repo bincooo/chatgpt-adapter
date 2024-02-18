@@ -19,19 +19,19 @@ import (
 const MODEL = "claude-2"
 const padtxtMaxCount = 25000
 
-func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gpt.ChatCompletionRequest) {
+func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) {
 	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
 	options.Proxies = proxies
 
-	messages := chatCompletionRequest.Messages
+	messages := req.Messages
 	messageL := len(messages)
 	if messageL == 0 {
 		middle.ResponseWithV(ctx, "[] is too short - 'messages'")
 		return
 	}
 
-	if messages[messageL-1]["role"] != "function" && len(chatCompletionRequest.Tools) > 0 {
-		goOn, _err := completeToolCalls(ctx, cookie, proxies, chatCompletionRequest)
+	if messages[messageL-1]["role"] != "function" && len(req.Tools) > 0 {
+		goOn, _err := completeToolCalls(ctx, cookie, proxies, req)
 		if _err != nil {
 			middle.ResponseWithE(ctx, _err)
 			return
@@ -59,14 +59,14 @@ func Complete(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gp
 		return
 	}
 	defer chat.Delete()
-	waitResponse(ctx, chatResponse, chatCompletionRequest.Stream)
+	waitResponse(ctx, chatResponse, req.Stream)
 }
 
-func completeToolCalls(ctx *gin.Context, cookie, proxies string, chatCompletionRequest gpt.ChatCompletionRequest) (bool, error) {
+func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
 	logrus.Infof("completeTools ...")
 	toolsMap, prompt, err := middle.BuildToolCallsTemplate(
-		chatCompletionRequest.Tools,
-		chatCompletionRequest.Messages,
+		req.Tools,
+		req.Messages,
 		agent.ClaudeToolCallsTemplate, 5)
 	if err != nil {
 		return false, err
@@ -100,7 +100,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, chatCompletionR
 		return false, err
 	}
 	logrus.Infof("completeTools response: \n%s", content)
-	return parseToToolCall(ctx, toolsMap, content, chatCompletionRequest.Stream)
+	return parseToToolCall(ctx, toolsMap, content, req.Stream)
 }
 
 func parseToToolCall(ctx *gin.Context, toolsMap map[string]string, content string, sse bool) (bool, error) {

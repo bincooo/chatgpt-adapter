@@ -3,8 +3,11 @@ package gpt
 type ChatCompletionRequest struct {
 	Messages      []map[string]string `json:"messages"`
 	Model         string              `json:"model"`
+	MaxTokens     int                 `json:"max_tokens"`
 	StopSequences []string            `json:"stop_sequences"`
 	Temperature   float32             `json:"temperature"`
+	TopK          int                 `json:"topK"`
+	TopP          float32             `json:"topP"`
 	Stream        bool                `json:"stream"`
 	Tools         []struct {
 		Fun Function `json:"function"`
@@ -20,6 +23,7 @@ type Function struct {
 	Params      struct {
 		Properties map[string]interface{} `json:"properties"`
 		Required   []string               `json:"required"`
+		Type       string                 `json:"type"`
 	} `json:"parameters"`
 }
 

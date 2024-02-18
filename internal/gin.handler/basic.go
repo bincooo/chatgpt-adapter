@@ -14,6 +14,7 @@ func Bind(port int, version, proxies string) {
 	gin.SetMode(gin.ReleaseMode)
 	route := gin.Default()
 	route.Use(crosHandler())
+	route.Use(panicHandler())
 	route.GET("/", index(version))
 	route.POST("/v1/chat/completions", completions(proxies))
 	route.POST("/v1/object/completions", completions(proxies))
@@ -54,6 +55,23 @@ func crosHandler() gin.HandlerFunc {
 
 		//处理请求
 		context.Next()
+	}
+}
+
+func panicHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		defer func() {
+			if r := recover(); r != nil {
+				if rec, ok := r.(string); ok {
+					logrus.Errorf("response error: %s", rec)
+					ctx.JSON(http.StatusUnauthorized, gin.H{
+						"error": map[string]string{
+							"message": rec,
+						},
+					})
+				}
+			}
+		}()
 	}
 }
 
