@@ -66,6 +66,7 @@ func build(proxies, token, content string, req gpt.ChatCompletionRequest) (*http
 				"System:",
 				"Assistant:",
 				"User:",
+				"Function:",
 			},
 		},
 		// 函数调用

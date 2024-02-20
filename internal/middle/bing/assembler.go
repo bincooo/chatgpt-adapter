@@ -1,6 +1,7 @@
 package bing
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
@@ -8,12 +9,14 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"strings"
 	"time"
 )
 
 const MODEL = "bing"
+const sysPrompt = "This is the conversation record and description stored locally as \"JSON\" : (\" System \"is the system information,\" User \"is the user message,\" Function \"is the execution result of the built-in tool, and\" Assistant \"is the reply information of the system assistant)"
 
 func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) {
 	options, err := edge.NewDefaultOptions(cookie, "")
@@ -30,9 +33,9 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 	}
 
 	if messages[messageL-1]["role"] != "function" && len(req.Tools) > 0 {
-		goOn, _err := completeToolCalls(ctx, cookie, proxies, req)
-		if _err != nil {
-			middle.ResponseWithE(ctx, _err)
+		goOn, e := completeToolCalls(ctx, cookie, proxies, req)
+		if e != nil {
+			middle.ResponseWithE(ctx, e)
 			return
 		}
 		if !goOn {
@@ -221,13 +224,22 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 		}
 	}
 
-	pMessagesVar := ""
+	pMessagesVar := make([]map[string]string, 0)
+
+	// 区块
+	blockProcessing := func(title string, buf []string) map[string]string {
+		content := strings.Join(buf, "\n\n")
+		dict := make(map[string]string)
+		dict["sender"] = title
+		dict["content"] = content
+		return dict
+	}
 
 	// 合并历史对话
 	for {
 		if pos >= messageL {
 			if len(buffer) > 0 {
-				pMessagesVar += fmt.Sprintf("### {%s}: \n\n\n%s\n---\n\n\n\n\n", strings.Title(role), strings.Join(buffer, "\n\n"))
+				pMessagesVar = append(pMessagesVar, blockProcessing(strings.Title(role), buffer))
 			}
 			break
 		}
@@ -253,20 +265,30 @@ func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessa
 			buffer = append(buffer, content)
 			continue
 		}
-		pMessagesVar += fmt.Sprintf("### {%s}: \n\n\n%s\n---\n\n\n\n\n", strings.Title(role), strings.Join(buffer, "\n\n"))
+		pMessagesVar = append(pMessagesVar, blockProcessing(strings.Title(role), buffer))
 		buffer = append(make([]string, 0), content)
 		role = curr
 	}
 
-	if pMessagesVar != "" {
+	if len(pMessagesVar) > 0 {
+		dict := make(map[string]interface{})
+		dict["id"] = uuid.NewString()
+		dict["language"] = "zh"
+		dict["system_prompt"] = sysPrompt
+		dict["participants"] = []string{"System", "Function", "Assistant", "User"}
+		dict["messages"] = pMessagesVar
+		indent, e := json.MarshalIndent(dict, "", "  ")
+		if e != nil {
+			return nil, "", e
+		}
 		pMessages = append(pMessages, edge.ChatMessage{
 			"author":      "user",
 			"privacy":     "Internal",
-			"description": pMessagesVar,
+			"description": string(indent),
 			"contextType": "WebPage",
 			"messageType": "Context",
-			"sourceName":  "history.md",
-			"sourceUrl":   "file:///history.md",
+			"sourceName":  "history.json",
+			"sourceUrl":   "file:///history.json",
 			"messageId":   "discover-web--page-ping-mriduna-----",
 		})
 	}

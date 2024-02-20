@@ -107,6 +107,27 @@ func waitResponse(ctx *gin.Context, partialResponse *http.Response, sse bool) {
 
 		index := bytes.Index(original, block)
 		result := string(original[index+len(block) : len(original)-1])
+
+		// 复原转码
+		if len(result) > 0 {
+			// 换行符处理
+			result = strings.ReplaceAll(result, `\n`, "\n")
+			// <符处理
+			idx := strings.Index(result, "\\u003c")
+			for idx >= 0 {
+				result = result[:idx] + "<" + result[idx+6:]
+				idx = strings.Index(result, "\\u003c")
+			}
+			// >符处理
+			idx = strings.Index(result, "\\u003e")
+			for idx >= 0 {
+				result = result[:idx] + ">" + result[idx+6:]
+				idx = strings.Index(result, "\\u003e")
+			}
+			// "符处理
+			result = strings.ReplaceAll(result, `\"`, "\"")
+		}
+
 		fmt.Printf("----- raw -----\n %s\n", result)
 		original = make([]byte, 0)
 
