@@ -4,7 +4,7 @@ go 1.21.6
 
 require (
 	github.com/bincooo/claude-api v1.0.4-0.20240204025116-2b48aa24ae4a
-	github.com/bincooo/coze-api v0.0.0-20240226125653-24f9ac54dd5f
+	github.com/bincooo/coze-api v0.0.0-20240226155544-9dce471363a4
 	github.com/bincooo/edge-api v1.0.3-1.1586.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.6.0
