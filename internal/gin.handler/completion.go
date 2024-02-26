@@ -3,9 +3,9 @@ package handler
 import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
-	coze "github.com/bincooo/chatgpt-adapter/v2/internal/middle/bing"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/bing"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/claude"
-	bing "github.com/bincooo/chatgpt-adapter/v2/internal/middle/coze"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/coze"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/gemini"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
