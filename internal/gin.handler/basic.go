@@ -102,6 +102,12 @@ func models(ctx *gin.Context) {
 				"owned_by": "bing-adapter",
 			},
 			{
+				"id":       "coze",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "coze-adapter",
+			},
+			{
 				"id":       "gemini",
 				"object":   "model",
 				"created":  1686935002,
