@@ -1,22 +1,29 @@
-package coze
+package bing
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	"github.com/bincooo/coze-api"
+	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"strings"
 	"time"
 )
 
-const MODEL = "coze"
+const MODEL = "bing"
+const sysPrompt = "This is the conversation record and description stored locally as \"JSON\" : (\" System \"is the system information,\" User \"is the user message,\" Function \"is the execution result of the built-in tool, and\" Assistant \"is the reply information of the system assistant)"
 
 func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) {
-	options := coze.NewDefaultOptions("7339624035606904840", 2, proxies)
+	options, err := edge.NewDefaultOptions(cookie, "")
+	if err != nil {
+		middle.ResponseWithE(ctx, err)
+		return
+	}
 
 	messages := req.Messages
 	messageL := len(messages)
@@ -36,29 +43,26 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 		}
 	}
 
-	pMessages, err := buildConversation(messages)
+	pMessages, prompt, err := buildConversation(messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, err)
 		return
 	}
 
-	msToken := ""
-	if !strings.Contains(cookie, "[msToken=") {
-		middle.ResponseWithV(ctx, "please provide the '[msToken=xxx]' cookie parameter")
-		return
-	} else {
-		co := strings.Split(cookie, "[msToken=")
-		msToken = strings.TrimSuffix(co[1], "]")
-		cookie = co[0]
-	}
-	chat := coze.New(cookie, msToken, options)
+	chat := edge.New(options.
+		Proxies(proxies).
+		TopicToE(true).
+		Model(edge.ModelSydney).
+		Temperature(req.Temperature))
 
-	chatResponse, err := chat.Reply(pMessages)
+	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, pMessages)
 	if err != nil {
 		middle.ResponseWithE(ctx, err)
 		return
 	}
-
+	defer func() {
+		go chat.Delete()
+	}()
 	waitResponse(ctx, chatResponse, req.Stream)
 }
 
@@ -72,28 +76,25 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 		return false, err
 	}
 
-	options := coze.NewDefaultOptions("7339624035606904840", 2, proxies)
-
-	msToken := ""
-	if !strings.Contains(cookie, "[msToken=") {
-		return false, errors.New("please provide the '[msToken=xxx]' cookie parameter")
-	} else {
-		co := strings.Split(cookie, "[msToken=")
-		msToken = strings.TrimSuffix(co[1], "]")
-		cookie = co[0]
-	}
-
-	chat := coze.New(cookie, msToken, options)
-	chatResponse, err := chat.Reply([]coze.Message{
-		{
-			Role:    "user",
-			Content: prompt,
-		},
-	})
+	options, err := edge.NewDefaultOptions(cookie, "")
 	if err != nil {
 		return false, err
 	}
 
+	chat := edge.New(options.
+		Proxies(proxies).
+		TopicToE(true).
+		Notebook(true).
+		Model(edge.ModelCreative).
+		Temperature(req.Temperature))
+	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, nil)
+	if err != nil {
+		return false, err
+	}
+
+	defer func() {
+		go chat.Delete()
+	}()
 	content, err := waitMessage(chatResponse)
 	if err != nil {
 		return false, err
@@ -125,7 +126,7 @@ func parseToToolCall(ctx *gin.Context, toolsMap map[string]string, content strin
 	return true, nil
 }
 
-func waitMessage(chatResponse chan string) (content string, err error) {
+func waitMessage(chatResponse chan edge.ChatResponse) (content string, err error) {
 
 	for {
 		message, ok := <-chatResponse
@@ -133,20 +134,20 @@ func waitMessage(chatResponse chan string) (content string, err error) {
 			break
 		}
 
-		if strings.HasPrefix(message, "error: ") {
-			return "", errors.New(strings.TrimPrefix(message, "error: "))
+		if message.Error != nil {
+			return "", message.Error.Message
 		}
 
-		message = strings.TrimPrefix(message, "text: ")
-		if len(message) > 0 {
-			content += message
+		if len(message.Text) > 0 {
+			content = message.Text
 		}
 	}
 
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) {
+func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse bool) {
+	pos := 0
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
@@ -157,22 +158,22 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) {
 			break
 		}
 
-		if strings.HasPrefix(message, "error: ") {
-			middle.ResponseWithV(ctx, strings.TrimPrefix(message, "error: "))
+		if message.Error != nil {
+			middle.ResponseWithE(ctx, message.Error)
 			return
 		}
 
-		message = strings.TrimPrefix(message, "text: ")
-		contentL := len(message)
-		if contentL <= 0 {
-			continue
+		contentL := len(message.Text)
+		if pos < contentL {
+			content = message.Text[pos:contentL]
+			fmt.Printf("----- raw -----\n %s\n", content)
 		}
+		pos = contentL
 
-		fmt.Printf("----- raw -----\n %s\n", message)
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, message, created)
-		} else {
-			content += message
+			middle.ResponseWithSSE(ctx, MODEL, content, created)
+		} else if len(message.Text) > 0 {
+			content = message.Text
 		}
 	}
 
@@ -183,34 +184,29 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) {
 	}
 }
 
-func buildConversation(messages []map[string]string) (pMessages []coze.Message, err error) {
-	var prompt string
+func buildConversation(messages []map[string]string) (pMessages []edge.ChatMessage, prompt string, err error) {
 	pos := len(messages) - 1
 	if pos < 0 {
 		return
 	}
 
-	if messages[pos]["role"] == "function" {
+	if messages[pos]["role"] == "user" {
+		prompt = messages[pos]["content"]
+		messages = messages[:pos]
+	} else if messages[pos]["role"] == "function" {
 		prompt = "继续输出"
 		if pos-1 >= 0 { // 获取上一条记录
 			if msg := messages[pos-1]; msg["role"] == "user" {
 				prompt = msg["content"]
 			}
 		}
-	} else if messages[pos]["role"] != "user" {
+	} else {
 		c := []rune(messages[pos]["content"])
 		if contentL := len(c); contentL > 10 {
 			prompt = fmt.Sprintf("从`%s`断点处继续写", string(c[contentL-10:]))
 		} else {
 			prompt = "继续输出"
 		}
-	}
-
-	if len(prompt) > 0 {
-		messages = append(messages, map[string]string{
-			"role":    "user",
-			"content": prompt,
-		})
 	}
 
 	pos = 0
@@ -228,13 +224,22 @@ func buildConversation(messages []map[string]string) (pMessages []coze.Message, 
 		}
 	}
 
+	pMessagesVar := make([]map[string]string, 0)
+
+	// 区块
+	blockProcessing := func(title string, buf []string) map[string]string {
+		content := strings.Join(buf, "\n\n")
+		dict := make(map[string]string)
+		dict["sender"] = title
+		dict["content"] = content
+		return dict
+	}
+
+	// 合并历史对话
 	for {
 		if pos >= messageL {
 			if len(buffer) > 0 {
-				pMessages = append(pMessages, coze.Message{
-					Role:    role,
-					Content: strings.Join(buffer, "\n\n"),
-				})
+				pMessagesVar = append(pMessagesVar, blockProcessing(strings.Title(role), buffer))
 			}
 			break
 		}
@@ -243,11 +248,10 @@ func buildConversation(messages []map[string]string) (pMessages []coze.Message, 
 		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
-			return nil, errors.New(
+			return nil, "", errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
-
 		pos++
 		if role == "" {
 			role = curr
@@ -261,13 +265,33 @@ func buildConversation(messages []map[string]string) (pMessages []coze.Message, 
 			buffer = append(buffer, content)
 			continue
 		}
-		pMessages = append(pMessages, coze.Message{
-			Role:    role,
-			Content: strings.Join(buffer, "\n\n"),
-		})
+		pMessagesVar = append(pMessagesVar, blockProcessing(strings.Title(role), buffer))
 		buffer = append(make([]string, 0), content)
 		role = curr
 	}
 
-	return pMessages, nil
+	if len(pMessagesVar) > 0 {
+		dict := make(map[string]interface{})
+		dict["id"] = uuid.NewString()
+		dict["language"] = "zh"
+		dict["system_prompt"] = sysPrompt
+		dict["participants"] = []string{"System", "Function", "Assistant", "User"}
+		dict["messages"] = pMessagesVar
+		indent, e := json.MarshalIndent(dict, "", "  ")
+		if e != nil {
+			return nil, "", e
+		}
+		pMessages = append(pMessages, edge.ChatMessage{
+			"author":      "user",
+			"privacy":     "Internal",
+			"description": string(indent),
+			"contextType": "WebPage",
+			"messageType": "Context",
+			"sourceName":  "history.json",
+			"sourceUrl":   "file:///history.json",
+			"messageId":   "discover-web--page-ping-mriduna-----",
+		})
+	}
+
+	return pMessages, prompt, nil
 }

@@ -3,8 +3,9 @@ package handler
 import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/bing"
+	coze "github.com/bincooo/chatgpt-adapter/v2/internal/middle/bing"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/claude"
+	bing "github.com/bincooo/chatgpt-adapter/v2/internal/middle/coze"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/gemini"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
@@ -32,6 +33,8 @@ func completions(proxies string) gin.HandlerFunc {
 			claude.Complete(ctx, token, proxies, chatCompletionRequest)
 		case "gemini":
 			gemini.Complete(ctx, token, proxies, chatCompletionRequest)
+		case "coze":
+			coze.Complete(ctx, token, proxies, chatCompletionRequest)
 		default:
 			middle.ResponseWithV(ctx, fmt.Sprintf("model '%s' is not not yet supported", chatCompletionRequest.Model))
 		}

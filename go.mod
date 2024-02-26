@@ -1,11 +1,10 @@
 module github.com/bincooo/chatgpt-adapter/v2
 
-go 1.21
-
-toolchain go1.21.6
+go 1.21.6
 
 require (
 	github.com/bincooo/claude-api v1.0.4-0.20240204025116-2b48aa24ae4a
+	github.com/bincooo/coze-api v0.0.0-20240226015445-5069d8759e4c
 	github.com/bincooo/edge-api v1.0.3-1.1586.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.6.0
