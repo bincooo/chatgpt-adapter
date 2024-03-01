@@ -26,14 +26,14 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 	messages := req.Messages
 	messageL := len(messages)
 	if messageL == 0 {
-		middle.ResponseWithV(ctx, "[] is too short - 'messages'")
+		middle.ResponseWithV(ctx, -1, "[] is too short - 'messages'")
 		return
 	}
 
 	if messages[messageL-1]["role"] != "function" && len(req.Tools) > 0 {
-		goOn, _err := completeToolCalls(ctx, cookie, proxies, req)
-		if _err != nil {
-			middle.ResponseWithE(ctx, _err)
+		goOn, e := completeToolCalls(ctx, cookie, proxies, req)
+		if e != nil {
+			middle.ResponseWithE(ctx, -1, e)
 			return
 		}
 		if !goOn {
@@ -43,19 +43,19 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 
 	attr, err := buildConversation(messages)
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
 	chat, err := claude2.New(options)
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
 	chatResponse, err := chat.Reply(ctx.Request.Context(), "", attr)
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 	defer chat.Delete()
@@ -164,7 +164,7 @@ func waitResponse(ctx *gin.Context, chatResponse chan types.PartialResponse, sse
 		}
 
 		if message.Error != nil {
-			middle.ResponseWithE(ctx, message.Error)
+			middle.ResponseWithE(ctx, -1, message.Error)
 			return
 		}
 

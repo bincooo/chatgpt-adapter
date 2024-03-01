@@ -9,6 +9,7 @@ import (
 	"github.com/bincooo/coze-api"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -16,19 +17,23 @@ import (
 const MODEL = "coze"
 
 func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) {
-	options := coze.NewDefaultOptions("7339624035606904840", 2, proxies)
+	options := coze.NewDefaultOptions("7339624035606904840", "1708909262893", 2, proxies)
 
 	messages := req.Messages
 	messageL := len(messages)
 	if messageL == 0 {
-		middle.ResponseWithV(ctx, "[] is too short - 'messages'")
+		middle.ResponseWithV(ctx, -1, "[] is too short - 'messages'")
 		return
 	}
 
 	if messages[messageL-1]["role"] != "function" && len(req.Tools) > 0 {
 		goOn, e := completeToolCalls(ctx, cookie, proxies, req)
 		if e != nil {
-			middle.ResponseWithE(ctx, e)
+			errMessage := e.Error()
+			if strings.Contains(errMessage, "Login verification is invalid") {
+				middle.ResponseWithV(ctx, http.StatusTooManyRequests, errMessage)
+			}
+			middle.ResponseWithV(ctx, -1, errMessage)
 			return
 		}
 		if !goOn {
@@ -38,13 +43,13 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 
 	pMessages, err := buildConversation(messages)
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
 	msToken := ""
 	if !strings.Contains(cookie, "[msToken=") {
-		middle.ResponseWithV(ctx, "please provide the '[msToken=xxx]' cookie parameter")
+		middle.ResponseWithV(ctx, -1, "please provide the '[msToken=xxx]' cookie parameter")
 		return
 	} else {
 		co := strings.Split(cookie, "[msToken=")
@@ -55,7 +60,7 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 
 	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages)
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
@@ -72,7 +77,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 		return false, err
 	}
 
-	options := coze.NewDefaultOptions("7339624035606904840", 2, proxies)
+	options := coze.NewDefaultOptions("7339624035606904840", "1708909262893", 2, proxies)
 
 	msToken := ""
 	if !strings.Contains(cookie, "[msToken=") {
@@ -158,7 +163,7 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) {
 		}
 
 		if strings.HasPrefix(message, "error: ") {
-			middle.ResponseWithV(ctx, strings.TrimPrefix(message, "error: "))
+			middle.ResponseWithV(ctx, -1, strings.TrimPrefix(message, "error: "))
 			return
 		}
 

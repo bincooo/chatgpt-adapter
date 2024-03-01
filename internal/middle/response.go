@@ -11,18 +11,24 @@ import (
 	"time"
 )
 
-func ResponseWithE(ctx *gin.Context, err error) {
+func ResponseWithE(ctx *gin.Context, code int, err error) {
 	logrus.Error("response error: ", err)
-	ctx.JSON(http.StatusUnauthorized, gin.H{
+	if code == -1 {
+		code = http.StatusBadGateway
+	}
+	ctx.JSON(code, gin.H{
 		"error": map[string]string{
 			"message": err.Error(),
 		},
 	})
 }
 
-func ResponseWithV(ctx *gin.Context, error string) {
+func ResponseWithV(ctx *gin.Context, code int, error string) {
 	logrus.Errorf("response error: %s", error)
-	ctx.JSON(http.StatusUnauthorized, gin.H{
+	if code == -1 {
+		code = http.StatusBadGateway
+	}
+	ctx.JSON(code, gin.H{
 		"error": map[string]string{
 			"message": error,
 		},

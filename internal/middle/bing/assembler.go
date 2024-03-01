@@ -21,21 +21,21 @@ const sysPrompt = "This is the conversation record and description stored locall
 func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) {
 	options, err := edge.NewDefaultOptions(cookie, "")
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
 	messages := req.Messages
 	messageL := len(messages)
 	if messageL == 0 {
-		middle.ResponseWithV(ctx, "[] is too short - 'messages'")
+		middle.ResponseWithV(ctx, -1, "[] is too short - 'messages'")
 		return
 	}
 
 	if messages[messageL-1]["role"] != "function" && len(req.Tools) > 0 {
 		goOn, e := completeToolCalls(ctx, cookie, proxies, req)
 		if e != nil {
-			middle.ResponseWithE(ctx, e)
+			middle.ResponseWithE(ctx, -1, e)
 			return
 		}
 		if !goOn {
@@ -45,7 +45,7 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 
 	pMessages, prompt, err := buildConversation(messages)
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
@@ -57,7 +57,7 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 
 	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, pMessages)
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 	defer func() {
@@ -159,7 +159,7 @@ func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse boo
 		}
 
 		if message.Error != nil {
-			middle.ResponseWithE(ctx, message.Error)
+			middle.ResponseWithE(ctx, -1, message.Error)
 			return
 		}
 

@@ -22,7 +22,7 @@ func completions(proxies string) gin.HandlerFunc {
 		}
 
 		if err := ctx.BindJSON(&chatCompletionRequest); err != nil {
-			middle.ResponseWithE(ctx, err)
+			middle.ResponseWithE(ctx, -1, err)
 			return
 		}
 
@@ -36,7 +36,7 @@ func completions(proxies string) gin.HandlerFunc {
 		case "coze":
 			coze.Complete(ctx, token, proxies, chatCompletionRequest)
 		default:
-			middle.ResponseWithV(ctx, fmt.Sprintf("model '%s' is not not yet supported", chatCompletionRequest.Model))
+			middle.ResponseWithV(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", chatCompletionRequest.Model))
 		}
 	}
 }

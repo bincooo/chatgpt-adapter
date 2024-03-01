@@ -24,24 +24,24 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 	messages := req.Messages
 	messageL := len(messages)
 	if messageL == 0 {
-		middle.ResponseWithV(ctx, "[] is too short - 'messages'")
+		middle.ResponseWithV(ctx, -1, "[] is too short - 'messages'")
 		return
 	}
 
 	content, err := buildConversation(messages)
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
 	response, err := build(proxies, cookie, content, req)
 	if err != nil {
-		middle.ResponseWithE(ctx, err)
+		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 	waitResponse(ctx, response, req.Stream)
@@ -68,14 +68,14 @@ func waitResponse(ctx *gin.Context, partialResponse *http.Response, sse bool) {
 
 		if err == io.EOF {
 			if isError {
-				middle.ResponseWithV(ctx, string(original))
+				middle.ResponseWithV(ctx, -1, string(original))
 				return
 			}
 			break
 		}
 
 		if err != nil {
-			middle.ResponseWithE(ctx, err)
+			middle.ResponseWithE(ctx, -1, err)
 			return
 		}
 
@@ -143,7 +143,7 @@ func waitResponse(ctx *gin.Context, partialResponse *http.Response, sse bool) {
 		var dict []map[string]any
 		err := json.Unmarshal(original, &dict)
 		if err != nil {
-			middle.ResponseWithE(ctx, err)
+			middle.ResponseWithE(ctx, -1, err)
 			return
 		}
 
@@ -154,7 +154,7 @@ func waitResponse(ctx *gin.Context, partialResponse *http.Response, sse bool) {
 
 		indent, err := json.MarshalIndent(functionCall["args"], "", "")
 		if err != nil {
-			middle.ResponseWithE(ctx, err)
+			middle.ResponseWithE(ctx, -1, err)
 			return
 		}
 
