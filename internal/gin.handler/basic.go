@@ -8,17 +8,25 @@ import (
 	"net/http/httputil"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func Bind(port int, version, proxies string) {
 	gin.SetMode(gin.ReleaseMode)
 	route := gin.Default()
-	route.Use(crosHandler())
-	route.Use(panicHandler())
+
+	route.Use(crosHandler)
+	route.Use(panicHandler)
+	route.Use(tokenHandler)
+	route.Use(proxiesHandler(proxies))
+
 	route.GET("/", index(version))
-	route.POST("/v1/chat/completions", completions(proxies))
-	route.POST("/v1/object/completions", completions(proxies))
-	route.POST("/proxies/v1/chat/completions", completions(proxies))
+	route.POST("/v1/chat/completions", completions)
+	route.POST("/v1/object/completions", completions)
+	route.POST("/proxies/v1/chat/completions", completions)
+	route.POST("v1/images/generations", generations)
+	route.POST("v1/object/generations", generations)
+	route.POST("proxies/v1/images/generations", generations)
 	route.GET("/proxies/v1/models", models)
 	route.GET("/v1/models", models)
 
@@ -30,49 +38,67 @@ func Bind(port int, version, proxies string) {
 	}
 }
 
-func crosHandler() gin.HandlerFunc {
-	return func(context *gin.Context) {
-		method := context.Request.Method
-		context.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		context.Header("Access-Control-Allow-Origin", "*") // 设置允许访问所有域
-		context.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE,UPDATE")
-		context.Header("Access-Control-Allow-Headers", "*")
-		context.Header("Access-Control-Expose-Headers", "*")
-		context.Header("Access-Control-Max-Age", "172800")
-		context.Header("Access-Control-Allow-Credentials", "false")
-		context.Set("content-type", "application/json")
-
-		if method == "OPTIONS" {
-			context.Status(http.StatusOK)
-			return
+func proxiesHandler(proxies string) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if proxies != "" {
+			ctx.Set("proxies", proxies)
 		}
-		data, err := httputil.DumpRequest(context.Request, false)
-		if err != nil {
-			logrus.Error(err)
-		} else {
-			logrus.Infof("%s\n", data)
-		}
-
-		//处理请求
-		context.Next()
 	}
 }
 
-func panicHandler() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		defer func() {
-			if r := recover(); r != nil {
-				if rec, ok := r.(string); ok {
-					logrus.Errorf("response error: %s", rec)
-					ctx.JSON(http.StatusUnauthorized, gin.H{
-						"error": map[string]string{
-							"message": rec,
-						},
-					})
-				}
-			}
-		}()
+func tokenHandler(ctx *gin.Context) {
+	token := ctx.Request.Header.Get("X-Api-Key")
+	if token == "" {
+		token = strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
 	}
+
+	if token != "" {
+		ctx.Set("token", token)
+	}
+}
+
+func crosHandler(context *gin.Context) {
+	method := context.Request.Method
+	context.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	context.Header("Access-Control-Allow-Origin", "*") // 设置允许访问所有域
+	context.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE,UPDATE")
+	context.Header("Access-Control-Allow-Headers", "*")
+	context.Header("Access-Control-Expose-Headers", "*")
+	context.Header("Access-Control-Max-Age", "172800")
+	context.Header("Access-Control-Allow-Credentials", "false")
+	context.Set("content-type", "application/json")
+
+	if method == "OPTIONS" {
+		context.Status(http.StatusOK)
+		return
+	}
+	data, err := httputil.DumpRequest(context.Request, false)
+	if err != nil {
+		logrus.Error(err)
+	} else {
+		logrus.Infof("%s\n", data)
+	}
+
+	//处理请求
+	context.Next()
+}
+
+func panicHandler(ctx *gin.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			if rec, ok := r.(string); ok {
+				logrus.Errorf("response error: %s", rec)
+				ctx.JSON(http.StatusUnauthorized, gin.H{
+					"error": map[string]string{
+						"message": rec,
+					},
+				})
+			}
+		}
+	}()
+
+	//处理请求
+	ctx.Next()
 }
 
 func index(version string) gin.HandlerFunc {

@@ -19,7 +19,11 @@ import (
 const MODEL = "gemini"
 const GOOGLE_BASE = "https://generativelanguage.googleapis.com/%s?key=%s"
 
-func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) {
+func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
+	var (
+		cookie  = ctx.GetString("token")
+		proxies = ctx.GetString("proxies")
+	)
 
 	messages := req.Messages
 	messageL := len(messages)

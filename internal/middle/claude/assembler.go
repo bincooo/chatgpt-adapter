@@ -19,7 +19,12 @@ import (
 const MODEL = "claude-2"
 const padtxtMaxCount = 25000
 
-func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) {
+func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
+	var (
+		cookie  = ctx.GetString("token")
+		proxies = ctx.GetString("proxies")
+	)
+
 	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
 	options.Proxies = proxies
 

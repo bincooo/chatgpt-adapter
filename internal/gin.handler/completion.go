@@ -9,34 +9,42 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/gemini"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
-	"strings"
 )
 
-func completions(proxies string) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		var chatCompletionRequest gpt.ChatCompletionRequest
+func completions(ctx *gin.Context) {
+	var chatCompletionRequest gpt.ChatCompletionRequest
+	if err := ctx.BindJSON(&chatCompletionRequest); err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
 
-		token := ctx.Request.Header.Get("X-Api-Key")
-		if token == "" {
-			token = strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
-		}
+	switch chatCompletionRequest.Model {
+	case "bing":
+		bing.Complete(ctx, chatCompletionRequest)
+	case "claude-2":
+		claude.Complete(ctx, chatCompletionRequest)
+	case "gemini":
+		gemini.Complete(ctx, chatCompletionRequest)
+	case "coze":
+		coze.Complete(ctx, chatCompletionRequest)
+	default:
+		middle.ResponseWithV(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", chatCompletionRequest.Model))
+	}
+}
 
-		if err := ctx.BindJSON(&chatCompletionRequest); err != nil {
-			middle.ResponseWithE(ctx, -1, err)
-			return
-		}
+func generations(ctx *gin.Context) {
+	var chatGenerationRequest gpt.ChatGenerationRequest
+	if err := ctx.BindJSON(&chatGenerationRequest); err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
 
-		switch chatCompletionRequest.Model {
-		case "bing":
-			bing.Complete(ctx, token, proxies, chatCompletionRequest)
-		case "claude-2":
-			claude.Complete(ctx, token, proxies, chatCompletionRequest)
-		case "gemini":
-			gemini.Complete(ctx, token, proxies, chatCompletionRequest)
-		case "coze":
-			coze.Complete(ctx, token, proxies, chatCompletionRequest)
-		default:
-			middle.ResponseWithV(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", chatCompletionRequest.Model))
-		}
+	switch chatGenerationRequest.Model {
+	//case "bing.dall-e-3":
+	// oneapi目前只认dall-e-3
+	case "dall-e-3", "coze.dall-e-3":
+		coze.Generation(ctx, chatGenerationRequest)
+	default:
+		middle.ResponseWithV(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", chatGenerationRequest.Model))
 	}
 }

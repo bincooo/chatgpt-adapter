@@ -18,7 +18,12 @@ import (
 const MODEL = "bing"
 const sysPrompt = "This is the conversation record and description stored locally as \"JSON\" : (\" System \"is the system information,\" User \"is the user message,\" Function \"is the execution result of the built-in tool, and\" Assistant \"is the reply information of the system assistant)"
 
-func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) {
+func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
+	var (
+		cookie  = ctx.GetString("token")
+		proxies = ctx.GetString("proxies")
+	)
+
 	options, err := edge.NewDefaultOptions(cookie, "")
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)

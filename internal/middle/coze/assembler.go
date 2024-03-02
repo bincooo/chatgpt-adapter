@@ -16,8 +16,19 @@ import (
 
 const MODEL = "coze"
 
-func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) {
-	options := coze.NewDefaultOptions("7339624035606904840", "1708909262893", 2, proxies)
+var (
+	botId   = "7339624035606904840"
+	version = "1709391847426"
+	scene   = 2
+)
+
+func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
+	var (
+		cookie  = ctx.GetString("token")
+		proxies = ctx.GetString("proxies")
+	)
+
+	options := coze.NewDefaultOptions(botId, version, scene, proxies)
 
 	messages := req.Messages
 	messageL := len(messages)
@@ -31,7 +42,7 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 		if e != nil {
 			errMessage := e.Error()
 			if strings.Contains(errMessage, "Login verification is invalid") {
-				middle.ResponseWithV(ctx, http.StatusTooManyRequests, errMessage)
+				middle.ResponseWithV(ctx, http.StatusUnauthorized, errMessage)
 			}
 			middle.ResponseWithV(ctx, -1, errMessage)
 			return
@@ -56,8 +67,8 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 		msToken = strings.TrimSuffix(co[1], "]")
 		cookie = co[0]
 	}
-	chat := coze.New(cookie, msToken, options)
 
+	chat := coze.New(cookie, msToken, options)
 	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
@@ -65,6 +76,39 @@ func Complete(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRe
 	}
 
 	waitResponse(ctx, chatResponse, req.Stream)
+}
+
+func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
+	var (
+		cookie  = ctx.GetString("token")
+		proxies = ctx.GetString("proxies")
+	)
+
+	options := coze.NewDefaultOptions("7338032064396214278", "1708525794004", 2, proxies)
+	msToken := ""
+
+	if !strings.Contains(cookie, "[msToken=") {
+		middle.ResponseWithV(ctx, -1, "please provide the '[msToken=xxx]' cookie parameter")
+		return
+	} else {
+		co := strings.Split(cookie, "[msToken=")
+		msToken = strings.TrimSuffix(co[1], "]")
+		cookie = co[0]
+	}
+
+	chat := coze.New(cookie, msToken, options)
+	image, err := chat.Images(ctx.Request.Context(), req.Prompt)
+	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"created": time.Now().Unix(),
+		"data": []map[string]string{
+			{"url": image},
+		},
+	})
 }
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {

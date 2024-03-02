@@ -15,6 +15,13 @@ type ChatCompletionRequest struct {
 	} `json:"tools"`
 }
 
+type ChatGenerationRequest struct {
+	Model  string `json:"model"`
+	Prompt string `json:"prompt"`
+	N      int    `json:"n"`
+	Size   string `json:"size"`
+}
+
 type Function struct {
 	Id          string `json:"-"`
 	Name        string `json:"name"`

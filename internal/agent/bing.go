@@ -53,6 +53,7 @@ content={{.content}}
 类型ID=
 参数JSON=
 ---
+画图工具 ‘size’ 参数固定给值 ‘1024x1024’
 required参数为必填参数，不可缺失。
 补充类型ID以及参数JSON的内容，仅回复ID和JSON。
 不需要解释任何结果！
