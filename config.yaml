@@ -1,0 +1,6 @@
+sd:
+  baseUrl: "https://xxx.com"
+openai:
+  model: "bing"
+  token: "xxx"
+  baseUrl: "http://127.0.0.1:8080"

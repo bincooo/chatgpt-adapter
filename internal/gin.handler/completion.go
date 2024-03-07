@@ -7,6 +7,8 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/claude"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/coze"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/gemini"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/sd"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
 )
@@ -44,6 +46,12 @@ func generations(ctx *gin.Context) {
 	// oneapi目前只认dall-e-3
 	case "dall-e-3", "coze.dall-e-3":
 		coze.Generation(ctx, chatGenerationRequest)
+	case "sd.dall-e-3":
+		ctx.Set("openai.model", pkg.Config.GetString("openai.model"))
+		ctx.Set("openai.baseUrl", pkg.Config.GetString("openai.baseUrl"))
+		ctx.Set("openai.token", pkg.Config.GetString("openai.token"))
+		ctx.Set("sd.baseUrl", pkg.Config.GetString("sd.baseUrl"))
+		sd.Generation(ctx, chatGenerationRequest)
 	default:
 		middle.ResponseWithV(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", chatGenerationRequest.Model))
 	}

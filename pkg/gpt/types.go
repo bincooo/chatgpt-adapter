@@ -40,6 +40,10 @@ type ChatCompletionResponse struct {
 	Created int64                          `json:"created"`
 	Model   string                         `json:"model"`
 	Choices []ChatCompletionResponseChoice `json:"choices"`
+	Error   *struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+	} `json:"error"`
 }
 
 type ChatCompletionResponseChoice struct {
