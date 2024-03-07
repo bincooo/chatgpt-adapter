@@ -6,7 +6,7 @@ require (
 	github.com/bincooo/claude-api v1.0.4-0.20240302022752-df7d854f32a6
 	github.com/bincooo/coze-api v0.0.0-20240302190821-5d318111de4f
 	github.com/bincooo/edge-api v1.0.3-1.1586.1
-	github.com/bincooo/sdio v0.0.0-20240307101846-479a7784ed84
+	github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.6.0
 	github.com/sirupsen/logrus v1.9.3

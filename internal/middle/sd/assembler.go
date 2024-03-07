@@ -10,9 +10,9 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
-	"reflect"
 	"strings"
 	"time"
 
@@ -71,48 +71,74 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		return
 	}
 
-	c, err := sdio.New(baseUrl)
+	index := 0
+	hash := sdio.SessionHash()
+	value := ""
+	var eventError error
+
+	query := fmt.Sprintf("?fn_index=%d&session_hash=%s", index, hash)
+	c, err := sdio.New(baseUrl + query)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
-	index := 0
-	hash := sdio.SessionHash()
-	value := ""
-
-	c.Event("send_hash", func(j sdio.JoinCompleted, data []byte) map[string]interface{} {
-		return map[string]interface{}{
-			"fn_index":     index,
-			"session_hash": hash,
-		}
-	})
-
 	c.Event("send_data", func(j sdio.JoinCompleted, data []byte) map[string]interface{} {
-		return map[string]interface{}{
-			"data":         []interface{}{prompt, 1, 3, -1, ""},
+		obj := map[string]interface{}{
+			"data": []interface{}{
+				prompt,
+				"(deformed eyes, nose, ears, nose), bad anatomy, ugly",
+				"anything-v4.5-pruned.ckpt [65745d25]",
+				25,
+				"DPM++ 2M Karras",
+				10,
+				512,
+				672,
+				-1,
+			},
 			"event_data":   nil,
 			"fn_index":     index,
 			"session_hash": hash,
+			"event_id":     j.EventId,
+			"trigger_id":   rand.Intn(10) + 5,
 		}
+		marshal, _ := json.Marshal(obj)
+		response, e := http.Post(baseUrl+"/queue/data", "application/json", bytes.NewReader(marshal))
+		if e != nil {
+			eventError = e
+		}
+		if response.StatusCode != http.StatusOK {
+			eventError = errors.New(response.Status)
+		}
+		return nil
 	})
 
 	c.Event("process_completed", func(j sdio.JoinCompleted, data []byte) map[string]interface{} {
+		//d := j.Output.Data
+		//if len(d) > 0 {
+		//	inter, ok := d[0].([]interface{})
+		//	if ok {
+		//		result := inter[0].(map[string]interface{})
+		//		if reflect.DeepEqual(result["is_file"], true) {
+		//			value = result["name"].(string)
+		//		}
+		//	}
+		//}
 		d := j.Output.Data
 		if len(d) > 0 {
-			inter, ok := d[0].([]interface{})
-			if ok {
-				result := inter[0].(map[string]interface{})
-				if reflect.DeepEqual(result["is_file"], true) {
-					value = result["name"].(string)
-				}
-			}
+			result := d[0].(map[string]interface{})
+			value = result["path"].(string)
 		}
 		return nil
 	})
 
 	err = c.Do(ctx.Request.Context())
 	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
+	if eventError != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}

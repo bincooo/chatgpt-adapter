@@ -10,8 +10,8 @@ github.com/bincooo/edge-api v1.0.3-1.1586.1 h1:gFkgVhPOBgYWtNJOyDs0xBTVNuJyoTZEH
 github.com/bincooo/edge-api v1.0.3-1.1586.1/go.mod h1:dM9ReHPZSrAVOrLuvacyueljmPKtw2eW6zWpWM7nB6o=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e/go.mod h1:0WuzYU+4cQL/hVbjoncY5TACMTbD9I+pLCdnPjfItp0=
-github.com/bincooo/sdio v0.0.0-20240307101846-479a7784ed84 h1:474qFLyUs0TyCRQ9XKBcbAYYm/49FYN8paWj4YH2h5c=
-github.com/bincooo/sdio v0.0.0-20240307101846-479a7784ed84/go.mod h1:zUVVlukIEk0sy6G5NUjAMrk6j3dJ3iGCEdRZnzOW6+c=
+github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f h1:AvYn1OlESjdb8ktABNP5iCFAAu108n4IV04Lh+tEMdA=
+github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f/go.mod h1:zUVVlukIEk0sy6G5NUjAMrk6j3dJ3iGCEdRZnzOW6+c=
 github.com/bitly/go-simplejson v0.5.0 h1:6IH+V8/tVMab511d5bn4M7EwGXZf9Hj6i2xSwkNEM+Y=
 github.com/bitly/go-simplejson v0.5.0/go.mod h1:cXHtHw4XUPsvGaxgjIAn8PhEWG9NfngEKAMDJEczWVA=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 h1:DDGfHa7BWjL4YnC6+E63dPcxHo2sUxDIu8g3QgEJdRY=
