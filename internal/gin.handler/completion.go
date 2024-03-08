@@ -11,6 +11,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
+	"strings"
 )
 
 func completions(ctx *gin.Context) {
@@ -41,16 +42,26 @@ func generations(ctx *gin.Context) {
 		return
 	}
 
+	token := ctx.GetString("token")
+	if strings.Contains(token, "[msToken") {
+		chatGenerationRequest.Model = "coze." + chatGenerationRequest.Model
+		//} else if strings.HasPrefix(token, "AIzaSy") {
+		//	chatGenerationRequest.Model = "gemini." + chatGenerationRequest.Model
+	} else {
+		chatGenerationRequest.Model = "sd." + chatGenerationRequest.Model
+	}
+
 	switch chatGenerationRequest.Model {
 	//case "bing.dall-e-3":
 	// oneapi目前只认dall-e-3
-	case "dall-e-3", "coze.dall-e-3":
+	case "coze.dall-e-3":
 		coze.Generation(ctx, chatGenerationRequest)
 	case "sd.dall-e-3":
 		ctx.Set("openai.model", pkg.Config.GetString("openai.model"))
 		ctx.Set("openai.baseUrl", pkg.Config.GetString("openai.baseUrl"))
 		ctx.Set("openai.token", pkg.Config.GetString("openai.token"))
 		ctx.Set("sd.baseUrl", pkg.Config.GetString("sd.baseUrl"))
+		ctx.Set("sd.template", pkg.Config.GetString("sd.template"))
 		sd.Generation(ctx, chatGenerationRequest)
 	default:
 		middle.ResponseWithV(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", chatGenerationRequest.Model))

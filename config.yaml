@@ -1,5 +1,7 @@
 sd:
-  baseUrl: "https://xxx.com"
+  baseUrl: "https://prodia-fast-stable-diffusion.hf.space"
+  index: 0
+  template: '[{{prompt}}, "(deformed eyes, nose, ears, nose), bad anatomy, ugly", "anything-v4.5-pruned.ckpt [65745d25]", 20, "DPM++ 2M Karras", 7, 1024, 1024, -1]'
 openai:
   model: "bing"
   token: "xxx"

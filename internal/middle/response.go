@@ -14,7 +14,7 @@ import (
 func ResponseWithE(ctx *gin.Context, code int, err error) {
 	logrus.Error("response error: ", err)
 	if code == -1 {
-		code = http.StatusBadGateway
+		code = http.StatusInternalServerError
 	}
 	ctx.JSON(code, gin.H{
 		"error": map[string]string{
@@ -26,7 +26,7 @@ func ResponseWithE(ctx *gin.Context, code int, err error) {
 func ResponseWithV(ctx *gin.Context, code int, error string) {
 	logrus.Errorf("response error: %s", error)
 	if code == -1 {
-		code = http.StatusBadGateway
+		code = http.StatusInternalServerError
 	}
 	ctx.JSON(code, gin.H{
 		"error": map[string]string{
