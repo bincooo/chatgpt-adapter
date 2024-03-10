@@ -3,8 +3,18 @@ package middle
 import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
+	"net/url"
 	"testing"
 )
+
+func Test0(t *testing.T) {
+	parse, err := url.Parse("socks5://127.0.0.1:7890")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(parse)
+}
 
 func Test_toolCalls(t *testing.T) {
 	toolsMap, prompt, err := BuildToolCallsTemplate([]struct {
@@ -20,6 +30,7 @@ func Test_toolCalls(t *testing.T) {
 				Params: struct {
 					Properties map[string]interface{} `json:"properties"`
 					Required   []string               `json:"required"`
+					Type       string                 `json:"type"`
 				}{
 					Required: []string{"url"},
 					Properties: map[string]interface{}{

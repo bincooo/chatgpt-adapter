@@ -2,10 +2,10 @@ package sd
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
@@ -13,7 +13,6 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -126,7 +125,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 			"fn_index":     index,
 			"session_hash": hash,
 			"event_id":     j.EventId,
-			"trigger_id":   rand.Intn(10) + 5,
+			"trigger_id":   rand.Intn(15) + 5,
 		}
 		marshal, _ := json.Marshal(obj)
 		response, e := http.Post(baseUrl+"/queue/data", "application/json", bytes.NewReader(marshal))
@@ -140,20 +139,12 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	})
 
 	c.Event("process_completed", func(j sdio.JoinCompleted, data []byte) map[string]interface{} {
-		//d := j.Output.Data
-		//if len(d) > 0 {
-		//	inter, ok := d[0].([]interface{})
-		//	if ok {
-		//		result := inter[0].(map[string]interface{})
-		//		if reflect.DeepEqual(result["is_file"], true) {
-		//			value = result["name"].(string)
-		//		}
-		//	}
-		//}
 		d := j.Output.Data
 		if len(d) > 0 {
 			result := d[0].(map[string]interface{})
 			value = result["path"].(string)
+		} else {
+			eventError = fmt.Errorf("image generate failed: %s", data)
 		}
 		return nil
 	})
@@ -227,31 +218,22 @@ func completePromptV(ctx *gin.Context, content string) (string, error) {
 
 	if left > -1 && left < right {
 		message = strings.ReplaceAll(message[left+3:right], "\"", "")
-		logrus.Infof("system assistant generate prompt[%s]: \n%s", model, message)
+		logrus.Infof("system assistant generate prompt[%s]: %s", model, message)
 		return strings.TrimSpace(message), nil
 	}
 
-	logrus.Infof("system assistant generate prompt[%s]: \nerror: system assistant generate prompt failed", model)
+	logrus.Infof("system assistant generate prompt[%s] error: system assistant generate prompt failed", model)
 	return "", errors.New("system assistant generate prompt failed")
 }
 
 func fetch(proxies, baseUrl, cookie string, marshal []byte) (*http.Response, error) {
-	client := http.DefaultClient
-	if proxies != "" {
-		client = &http.Client{
-			Transport: &http.Transport{
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					return url.Parse(proxies)
-				},
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
-		}
+	if strings.Contains(baseUrl, "127.0.0.1") || strings.Contains(baseUrl, "localhost") {
+		proxies = ""
 	}
 
-	if strings.Contains(baseUrl, "127.0.0.1") || strings.Contains(baseUrl, "localhost") {
-		client = http.DefaultClient
+	client, err := common.NewHttpClient(proxies)
+	if err != nil {
+		return nil, err
 	}
 
 	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v1/chat/completions", baseUrl), bytes.NewReader(marshal))

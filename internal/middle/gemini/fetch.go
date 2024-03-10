@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -108,18 +108,10 @@ func build(proxies, token, content string, req gpt.ChatCompletionRequest) (*http
 		return nil, err
 	}
 
-	client := http.DefaultClient
-	if proxies != "" {
-		purl, e := url.Parse(proxies)
-		if e != nil {
-			logrus.Error(e)
-			return nil, e
-		}
-		client = &http.Client{
-			Transport: &http.Transport{
-				Proxy: http.ProxyURL(purl),
-			},
-		}
+	client, err := common.NewHttpClient(proxies)
+	if err != nil {
+		logrus.Error(err)
+		return nil, err
 	}
 
 	res, err := client.Do(request)
