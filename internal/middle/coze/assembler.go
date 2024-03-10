@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/bincooo/coze-api"
@@ -17,9 +18,15 @@ import (
 const MODEL = "coze"
 
 var (
-	botId   = "7339624035606904840"
-	version = "1709391847426"
-	scene   = 2
+	// 8k
+	botId8k   = "7344596855164452870"
+	version8k = "1710051331162"
+	scene8k   = 2
+
+	// 128k
+	botId128k   = "7339624035606904840"
+	version128k = "1709391847426"
+	scene128k   = 2
 )
 
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
@@ -27,8 +34,6 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
 		cookie  = ctx.GetString("token")
 		proxies = ctx.GetString("proxies")
 	)
-
-	options := coze.NewDefaultOptions(botId, version, scene, proxies)
 
 	messages := req.Messages
 	messageL := len(messages)
@@ -68,6 +73,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
 		cookie = co[0]
 	}
 
+	options := newOptions(proxies, pMessages)
 	chat := coze.New(cookie, msToken, options)
 	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages)
 	if err != nil {
@@ -111,6 +117,25 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	})
 }
 
+func newOptions(proxies string, pMessages []coze.Message) (options coze.Options) {
+	opts8k := coze.NewDefaultOptions(botId8k, version8k, scene8k, proxies)
+	opts128k := coze.NewDefaultOptions(botId128k, version128k, scene128k, proxies)
+
+	options = opts8k
+	tokensL := calcTokens(pMessages)
+	if tokensL > 7000 { // 大于7k token 使用 gpt-128k
+		options = opts128k
+	}
+	return
+}
+
+func calcTokens(messages []coze.Message) (tokensL int) {
+	for _, message := range messages {
+		tokensL += common.CalcTokens(message.Content)
+	}
+	return
+}
+
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
 	logrus.Infof("completeTools ...")
 	toolsMap, prompt, err := middle.BuildToolCallsTemplate(
@@ -121,7 +146,12 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 		return false, err
 	}
 
-	options := coze.NewDefaultOptions("7339624035606904840", "1708909262893", 2, proxies)
+	pMessages := []coze.Message{
+		{
+			Role:    "system",
+			Content: prompt,
+		},
+	}
 
 	msToken := ""
 	if !strings.Contains(cookie, "[msToken=") {
@@ -132,13 +162,9 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 		cookie = co[0]
 	}
 
+	options := newOptions(proxies, pMessages)
 	chat := coze.New(cookie, msToken, options)
-	chatResponse, err := chat.Reply(ctx.Request.Context(), []coze.Message{
-		{
-			Role:    "user",
-			Content: prompt,
-		},
-	})
+	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages)
 	if err != nil {
 		return false, err
 	}
