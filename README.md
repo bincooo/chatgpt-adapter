@@ -1,5 +1,30 @@
 ## V2
 
+#### 使用
+```
+./linux-server -h
+
+>>>>>
+GPT接口适配器。统一适配接口规范，集成了bing、claude-2，gemini...
+项目地址：https://github.com/bincooo/chatgpt-adapter
+
+Usage:
+  ChatGPT-Adapter [flags]
+
+Flags:
+  -h, --help             help for ChatGPT-Adapter
+      --port int         服务端口 port (default 8080)
+      --proxies string   本地代理 proxies
+  -v, --version          version for ChatGPT-Adapter
+```
+
+
+启动服务，如果网络不在服务区域，请尝试设置/替换 `proxies`
+
+```
+./linux-server --port 8080 --proxies socks5://127.0.0.1:7890
+```
+
 #### 请求列表
 
 model 列表
