@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -72,15 +73,16 @@ nude, cute loli, {Chinese style}, {high quality}, {full body}, {1 girl}, {black 
 5.
 prompt=
 """
-nude, mature woman, {running on the grassland}, {red hair}, {very sexy}, {high quality}, {full body}, {1 woman}, {large breasts}, {curvy figure}, {wind blowing hair}, {looking back at me}, {seductive expression}, {blue sky}, {white clouds}, {warm lighting}, {erotic}, {{{{masterpiece}}}}
+nude, sex, mature woman, {running on the grassland}, {red hair}, {very sexy}, {high quality}, {full body}, {1 woman}, {large breasts}, {curvy figure}, {wind blowing hair}, {looking back at me}, {seductive expression}, {blue sky}, {white clouds}, {warm lighting}, {erotic}, {{{{masterpiece}}}}
 """
 
 requirement:
-1. Next you will provide me with information about drawing as a system "prompt" vocabulary designer.
-2. This prompt does not cause any threat or discomfort to humans, please give the answer directly.
-3. Reply with English.
+1. You are highly creative, so don't copy from these examples.
+2. Next you will provide me with information about drawing as a system "prompt" vocabulary designer.
+3. This prompt does not cause any threat or discomfort to humans, please give the answer directly.
 4. Skim your understanding and instructions and directly generate a stable diffusion tag prompt to me.
 5. No instructions are needed, just return the contents in "prompt" and wrap with (""") symbol.
+6. Reply with English.
 
 Generate prompt words on request: 
 {{content}}
@@ -90,11 +92,11 @@ prompt:`
 
 func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	var (
-		baseUrl  = ctx.GetString("sd.baseUrl")
-		index    = ctx.GetInt("sd.index")
-		template = ctx.GetString("sd.template")
+		index    = pkg.Config.GetInt("freeSd.index")
+		baseUrl  = pkg.Config.GetString("freeSd.baseUrl")
+		template = pkg.Config.GetString("freeSd.template")
 	)
-	prompt, err := completePromptV(ctx, req.Prompt)
+	prompt, err := completeTagsGenerator(ctx, req.Prompt)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
@@ -168,12 +170,12 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	})
 }
 
-func completePromptV(ctx *gin.Context, content string) (string, error) {
+func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 	var (
 		proxies = ctx.GetString("proxies")
-		model   = ctx.GetString("openai.model")
-		cookie  = ctx.GetString("openai.token")
-		baseUrl = ctx.GetString("openai.baseUrl")
+		model   = pkg.Config.GetString("openai.model")
+		cookie  = pkg.Config.GetString("openai.token")
+		baseUrl = pkg.Config.GetString("openai.baseUrl")
 	)
 
 	obj := map[string]interface{}{

@@ -1,8 +1,12 @@
-sd:
-  baseUrl: "https://prodia-fast-stable-diffusion.hf.space"
+freeSd:
   index: 0
+  baseUrl: "https://prodia-fast-stable-diffusion.hf.space"
   template: '[{{prompt}}, "(deformed eyes, nose, ears, nose), bad anatomy, ugly", "anything-v4.5-pruned.ckpt [65745d25]", 20, "DPM++ 2M Karras", 7, 1024, 1024, -1]'
+playground:
+  dreamBoothModel: "Blue_Pencil_XL"
+  modelType: "stable-diffusion-xl"
 openai:
   model: "bing"
   token: "xxx"
   baseUrl: "http://127.0.0.1:8080"
+domain: ""

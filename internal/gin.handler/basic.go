@@ -19,6 +19,9 @@ func Bind(port int, version, proxies string) {
 	route.Use(panicHandler)
 	route.Use(tokenHandler)
 	route.Use(proxiesHandler(proxies))
+	route.Use(func(ctx *gin.Context) {
+		ctx.Set("port", port)
+	})
 
 	route.GET("/", index(version))
 	route.POST("/v1/chat/completions", completions)
@@ -29,6 +32,7 @@ func Bind(port int, version, proxies string) {
 	route.POST("proxies/v1/images/generations", generations)
 	route.GET("/proxies/v1/models", models)
 	route.GET("/v1/models", models)
+	route.Static("/file/images/", "images")
 
 	addr := ":" + strconv.Itoa(port)
 	logrus.Info(fmt.Sprintf("server start by http://0.0.0.0%s/v1", addr))
