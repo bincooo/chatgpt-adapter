@@ -61,8 +61,9 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	hash := sdio.SessionHash()
 	var (
 		cookie = ctx.GetString("token")
-		domain = ctx.GetString("domain")
+		//proxies = ctx.GetString("proxies")
 
+		domain          = pkg.Config.GetString("domain")
 		modelType       = pkg.Config.GetString("playground.modelType")
 		dreamBoothModel = pkg.Config.GetString("playground.dreamBoothModel")
 	)
@@ -73,22 +74,22 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 
 	var payload = modelPayload{
 		BatchId:                 hash,
-		CfgScale:                7,
-		DreamBoothModel:         dreamBoothModel,
-		Filter:                  dreamBoothModel,
-		GenerateVariants:        false,
-		GuidanceScale:           7,
+		CfgScale:                8,
+		GuidanceScale:           8,
 		Width:                   1024,
 		Height:                  1024,
 		HighNoiseFrac:           0.8,
+		GenerateVariants:        false,
 		InitImageFromPlayground: false,
-		IsPrivate:               true,
+		IsPrivate:               false,
 		ModelType:               modelType,
+		Filter:                  convertToModel(req.Style, dreamBoothModel),
+		DreamBoothModel:         convertToModel(req.Style, dreamBoothModel),
 		NegativePrompt:          "ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, photo, realistic, text, watermark, signature, username, artist name",
 		NumImages:               1,
 		Prompt:                  req.Prompt,
 		Sampler:                 9,
-		Seed:                    int32(rand.Intn(100000000) + 329650152),
+		Seed:                    int32(rand.Intn(100000000) + 429650152),
 		StatusUUID:              uuid.NewString(),
 		Steps:                   30,
 		Strength:                1.45,
@@ -132,6 +133,56 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	})
 }
 
+func convertToModel(style, defaultModel string) string {
+	switch style {
+	case "none",
+		"Realism_Engine_SDXL",
+		"Real_Cartoon_XL",
+		"Blue_Pencil_XL",
+		"Starlight_XL",
+		"Juggernaut_XL",
+		"RealVisXL",
+		"ZavyChromaXL",
+		"NightVision_XL",
+		"Realistic_Stock_Photo",
+		"DreamShaper",
+		"MBBXL_Ultimate",
+		"Mysterious",
+		"Copax_TimeLessXL",
+		"SDXL_Niji",
+		"Pixel_Art_XL",
+		"ProtoVision_XL",
+		"DucHaiten_AIart_SDXL",
+		"CounterfeitXL",
+		"vibrant_glass",
+		"dreamy_stickers",
+		"ultra_lighting",
+		"watercolor",
+		"macro_realism",
+		"delicate_detail",
+		"radiant_symmetry",
+		"lush_illustration",
+		"saturated_space",
+		"neon_mecha",
+		"ethereal_low_poly",
+		"warm_box",
+		"cinematic",
+		"cinematic_warm",
+		"wasteland",
+		"flat_palette",
+		"ominous_escape",
+		"spielberg",
+		"royalistic",
+		"masterpiece",
+		"wall_art",
+		"haze",
+		"black_and_white_3d":
+		return style
+	default:
+		return defaultModel
+	}
+}
+
 func saveImage(base64Encoding string) (file string, err error) {
 	index := strings.Index(base64Encoding, ",")
 	base64Encoding = base64Encoding[index+1:]
@@ -169,24 +220,31 @@ func fetch(proxies, cookie string, marshal []byte) (*http.Response, error) {
 		return nil, err
 	}
 
-	request, err := http.NewRequest(http.MethodPost, "https://playground.com/api/models", bytes.NewReader(marshal))
+	baseUrl := pkg.Config.GetString("playground.baseUrl")
+	if baseUrl == "" {
+		baseUrl = "https://playground.com"
+	}
+
+	request, err := http.NewRequest(http.MethodPost, baseUrl+"/api/models", bytes.NewReader(marshal))
 	if err != nil {
 		return nil, err
 	}
 
 	h := request.Header
-	h.Add("accept", "application/json")
-	h.Add("content-type", "application/json")
-	h.Add("origin", "https://playground.com")
-	h.Add("referer", "https://playground.com/create")
-	h.Add("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.79")
-	h.Add("cookie", cookie)
+	h.Add("host", "playground.com")
+	h.Add("Origin", "https://playground.com")
+	h.Add("Referer", "https://playground.com/create")
+	h.Add("accept-language", "en-US,en;q=0.9")
+	h.Add("Content-Type", "application/json")
+	h.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+	//h.Add("X-Forwarded-For", common.RandomIp())
+	h.Add("Cookie", cookie)
 
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, err
 	}
-
+	// {"errorCode":
 	if response.StatusCode != http.StatusOK {
 		return nil, errors.New(response.Status)
 	}

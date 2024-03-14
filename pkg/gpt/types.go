@@ -20,6 +20,7 @@ type ChatGenerationRequest struct {
 	Prompt string `json:"prompt"`
 	N      int    `json:"n"`
 	Size   string `json:"size"`
+	Style  string `json:"style"`
 }
 
 type Function struct {
