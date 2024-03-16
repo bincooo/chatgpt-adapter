@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	claude2 "github.com/bincooo/claude-api"
@@ -19,7 +20,7 @@ import (
 const MODEL = "claude-2"
 const padtxtMaxCount = 25000
 
-func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
+func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
 		cookie  = ctx.GetString("token")
 		proxies = ctx.GetString("proxies")
@@ -64,7 +65,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
 		return
 	}
 	defer chat.Delete()
-	waitResponse(ctx, chatResponse, req.Stream)
+	waitResponse(ctx, matchers, chatResponse, req.Stream)
 }
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
@@ -157,9 +158,11 @@ func waitMessage(chatResponse chan types.PartialResponse) (content string, err e
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, chatResponse chan types.PartialResponse, sse bool) {
-	content := ""
-	created := time.Now().Unix()
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan types.PartialResponse, sse bool) {
+	var (
+		content = ""
+		created = time.Now().Unix()
+	)
 	logrus.Infof("waitResponse ...")
 
 	for {
@@ -174,10 +177,11 @@ func waitResponse(ctx *gin.Context, chatResponse chan types.PartialResponse, sse
 		}
 
 		fmt.Printf("----- raw -----\n %s\n", message.Text)
+		raw := common.ExecMatchers(matchers, message.Text)
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, message.Text, created)
-		} else if len(message.Text) > 0 {
-			content += message.Text
+			middle.ResponseWithSSE(ctx, MODEL, raw, created)
+		} else {
+			content += raw
 		}
 	}
 

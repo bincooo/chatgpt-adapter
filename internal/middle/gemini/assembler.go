@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
@@ -19,11 +20,14 @@ import (
 const MODEL = "gemini"
 const GOOGLE_BASE = "https://generativelanguage.googleapis.com/%s?key=%s"
 
-func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
+func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
 		cookie  = ctx.GetString("token")
 		proxies = ctx.GetString("proxies")
 	)
+
+	// 复原转码
+	matchers = appendMatchers(matchers)
 
 	messages := req.Messages
 	messageL := len(messages)
@@ -48,10 +52,36 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
-	waitResponse(ctx, response, req.Stream)
+	waitResponse(ctx, matchers, response, req.Stream)
 }
 
-func waitResponse(ctx *gin.Context, partialResponse *http.Response, sse bool) {
+func appendMatchers(matchers []common.Matcher) []common.Matcher {
+	matchers = append(matchers, &common.SymbolMatcher{
+		Find: "*",
+		H: func(index int, content string) (state int, result string) {
+			// 换行符处理
+			content = strings.ReplaceAll(content, `\n`, "\n")
+			// <符处理
+			idx := strings.Index(content, "\\u003c")
+			for idx >= 0 {
+				content = content[:idx] + "<" + content[idx+6:]
+				idx = strings.Index(content, "\\u003c")
+			}
+			// >符处理
+			idx = strings.Index(content, "\\u003e")
+			for idx >= 0 {
+				content = content[:idx] + ">" + content[idx+6:]
+				idx = strings.Index(content, "\\u003e")
+			}
+			// "符处理
+			content = strings.ReplaceAll(content, `\"`, "\"")
+			return common.MAT_MATCHED, content
+		},
+	})
+	return matchers
+}
+
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *http.Response, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
@@ -110,35 +140,15 @@ func waitResponse(ctx *gin.Context, partialResponse *http.Response, sse bool) {
 		}
 
 		index := bytes.Index(original, block)
-		result := string(original[index+len(block) : len(original)-1])
-
-		// 复原转码
-		if len(result) > 0 {
-			// 换行符处理
-			result = strings.ReplaceAll(result, `\n`, "\n")
-			// <符处理
-			idx := strings.Index(result, "\\u003c")
-			for idx >= 0 {
-				result = result[:idx] + "<" + result[idx+6:]
-				idx = strings.Index(result, "\\u003c")
-			}
-			// >符处理
-			idx = strings.Index(result, "\\u003e")
-			for idx >= 0 {
-				result = result[:idx] + ">" + result[idx+6:]
-				idx = strings.Index(result, "\\u003e")
-			}
-			// "符处理
-			result = strings.ReplaceAll(result, `\"`, "\"")
-		}
-
-		fmt.Printf("----- raw -----\n %s\n", result)
+		raw := string(original[index+len(block) : len(original)-1])
+		fmt.Printf("----- raw -----\n %s\n", raw)
 		original = make([]byte, 0)
+		raw = common.ExecMatchers(matchers, raw)
 
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, result, created)
+			middle.ResponseWithSSE(ctx, MODEL, raw, created)
 		} else {
-			content += result
+			content += raw
 		}
 
 	}

@@ -29,7 +29,7 @@ var (
 	scene128k   = 2
 )
 
-func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
+func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
 		cookie  = ctx.GetString("token")
 		proxies = ctx.GetString("proxies")
@@ -81,7 +81,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
 		return
 	}
 
-	waitResponse(ctx, chatResponse, req.Stream)
+	waitResponse(ctx, matchers, chatResponse, req.Stream)
 }
 
 func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
@@ -222,33 +222,34 @@ func waitMessage(chatResponse chan string) (content string, err error) {
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan string, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
 
 	for {
-		message, ok := <-chatResponse
+		raw, ok := <-chatResponse
 		if !ok {
 			break
 		}
 
-		if strings.HasPrefix(message, "error: ") {
-			middle.ResponseWithV(ctx, -1, strings.TrimPrefix(message, "error: "))
+		if strings.HasPrefix(raw, "error: ") {
+			middle.ResponseWithV(ctx, -1, strings.TrimPrefix(raw, "error: "))
 			return
 		}
 
-		message = strings.TrimPrefix(message, "text: ")
-		contentL := len(message)
+		raw = strings.TrimPrefix(raw, "text: ")
+		contentL := len(raw)
 		if contentL <= 0 {
 			continue
 		}
 
-		fmt.Printf("----- raw -----\n %s\n", message)
+		fmt.Printf("----- raw -----\n %s\n", raw)
+		raw = common.ExecMatchers(matchers, raw)
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, message, created)
+			middle.ResponseWithSSE(ctx, MODEL, raw, created)
 		} else {
-			content += message
+			content += raw
 		}
 	}
 

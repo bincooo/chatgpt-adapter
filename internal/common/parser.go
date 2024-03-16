@@ -318,7 +318,6 @@ func xmlPlotToHandleContents(messages []map[string]string) (inserts []map[uint8]
 			continue
 		}
 
-		//xmlNodes = append(xmlNodes, nodes...)
 		for _, node := range nodes {
 			// 注释内容删除
 			if node.t == XML_TYPE_I {

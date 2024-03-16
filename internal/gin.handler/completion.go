@@ -24,19 +24,20 @@ func completions(ctx *gin.Context) {
 	}
 
 	common.XmlPlot(chatCompletionRequest.Messages)
+	matchers := common.NewMatchers()
 
 	switch chatCompletionRequest.Model {
 	case "bing":
-		bing.Complete(ctx, chatCompletionRequest)
+		bing.Complete(ctx, chatCompletionRequest, matchers)
 	case "claude":
-		claude.Complete(ctx, chatCompletionRequest)
+		claude.Complete(ctx, chatCompletionRequest, matchers)
 	case "gemini":
-		gemini.Complete(ctx, chatCompletionRequest)
+		gemini.Complete(ctx, chatCompletionRequest, matchers)
 	case "coze":
-		coze.Complete(ctx, chatCompletionRequest)
+		coze.Complete(ctx, chatCompletionRequest, matchers)
 	default:
 		if strings.HasPrefix(chatCompletionRequest.Model, "claude-") {
-			claude.Complete(ctx, chatCompletionRequest)
+			claude.Complete(ctx, chatCompletionRequest, matchers)
 		} else {
 			middle.ResponseWithV(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", chatCompletionRequest.Model))
 		}

@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -18,7 +20,7 @@ import (
 const MODEL = "bing"
 const sysPrompt = "This is the conversation record and description stored locally as \"JSON\" : (\" System \"is the system information,\" User \"is the user message,\" Function \"is the execution result of the built-in tool, and\" Assistant \"is the reply information of the system assistant)"
 
-func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
+func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
 		cookie  = ctx.GetString("token")
 		proxies = ctx.GetString("proxies")
@@ -54,6 +56,8 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
 		return
 	}
 
+	// 清理多余的标签
+	matchers = appendMatchers(matchers)
 	chat := edge.New(options.
 		Proxies(proxies).
 		TopicToE(true).
@@ -68,7 +72,67 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest) {
 	defer func() {
 		go chat.Delete()
 	}()
-	waitResponse(ctx, chatResponse, req.Stream)
+	waitResponse(ctx, matchers, chatResponse, req.Stream)
+}
+
+func appendMatchers(matchers []common.Matcher) []common.Matcher {
+	// 清理 [1]、[2] 标签
+	// 清理 [^1^]、[^2^] 标签
+	// 清理 [^1^ 标签
+	matchers = append(matchers, &common.SymbolMatcher{
+		Find: "[",
+		H: func(index int, content string) (state int, result string) {
+			r := []rune(content)
+			eIndex := len(r) - 1
+			if index+4 > eIndex {
+				if index <= eIndex && r[index] != []rune("^")[0] {
+					return common.MAT_MATCHED, content
+				}
+				return common.MAT_MATCHING, content
+			}
+			regexCompile := regexp.MustCompile(`\[\d+]`)
+			content = regexCompile.ReplaceAllString(content, "")
+			regexCompile = regexp.MustCompile(`\[\^\d+\^]:`)
+			content = regexCompile.ReplaceAllString(content, "")
+			regexCompile = regexp.MustCompile(`\[\^\d+\^]`)
+			content = regexCompile.ReplaceAllString(content, "")
+			regexCompile = regexp.MustCompile(`\[\^\d+\^\^`)
+			content = regexCompile.ReplaceAllString(content, "")
+			regexCompile = regexp.MustCompile(`\[\^\d+\^`)
+			content = regexCompile.ReplaceAllString(content, "")
+			if strings.HasSuffix(content, "[") || strings.HasSuffix(content, "[^") {
+				return common.MAT_MATCHING, content
+			}
+			return common.MAT_MATCHED, content
+		},
+	})
+	// (^1^) (^1^ (^1^^ 标签
+	matchers = append(matchers, &common.SymbolMatcher{
+		Find: "(",
+		H: func(index int, content string) (state int, result string) {
+			r := []rune(content)
+			eIndex := len(r) - 1
+			if index+4 > eIndex {
+				if index <= eIndex && r[index] != []rune("^")[0] {
+					return common.MAT_MATCHED, content
+				}
+				return common.MAT_MATCHING, content
+			}
+			regexCompile := regexp.MustCompile(`\(\^\d+\^\):`)
+			content = regexCompile.ReplaceAllString(content, "")
+			regexCompile = regexp.MustCompile(`\(\^\d+\^\)`)
+			content = regexCompile.ReplaceAllString(content, "")
+			regexCompile = regexp.MustCompile(`\(\^\d+\^\^`)
+			content = regexCompile.ReplaceAllString(content, "")
+			regexCompile = regexp.MustCompile(`\(\^\d+\^`)
+			content = regexCompile.ReplaceAllString(content, "")
+			if strings.HasSuffix(content, "(") || strings.HasSuffix(content, "(^") {
+				return common.MAT_MATCHING, content
+			}
+			return common.MAT_MATCHED, content
+		},
+	})
+	return matchers
 }
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
@@ -151,12 +215,14 @@ func waitMessage(chatResponse chan edge.ChatResponse) (content string, err error
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse bool) {
-	pos := 0
-	content := ""
-	created := time.Now().Unix()
-	logrus.Infof("waitResponse ...")
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan edge.ChatResponse, sse bool) {
+	var (
+		pos     = 0
+		content = ""
+		created = time.Now().Unix()
+	)
 
+	logrus.Infof("waitResponse ...")
 	for {
 		message, ok := <-chatResponse
 		if !ok {
@@ -168,17 +234,19 @@ func waitResponse(ctx *gin.Context, chatResponse chan edge.ChatResponse, sse boo
 			return
 		}
 
+		var raw string
 		contentL := len(message.Text)
 		if pos < contentL {
-			content = message.Text[pos:contentL]
+			raw = message.Text[pos:contentL]
 			fmt.Printf("----- raw -----\n %s\n", content)
 		}
 		pos = contentL
+		raw = common.ExecMatchers(matchers, raw)
 
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, content, created)
-		} else if len(message.Text) > 0 {
-			content = message.Text
+			middle.ResponseWithSSE(ctx, MODEL, raw, created)
+		} else {
+			content += raw
 		}
 	}
 
