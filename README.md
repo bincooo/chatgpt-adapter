@@ -102,3 +102,30 @@ coze:
 > 例子：
 > 
 > 3fdb9fb39a9bc013049e4315c5xxx[msToken=xxx]
+
+
+#### free画图接口
+
+提供了 `coze.dall-e-3`、 `sd.dall-e-3`、 `pg.dall-e-3`，它们会根据你提供的 `Authorization` 选择其中的一个
+
+api:
+
+```txt
+/v1/chat/generations
+/v1/object/generations
+/proxies/v1/chat/generations
+```
+
+```curl
+curl -i -X POST \
+   -H "Content-Type:application/json" \
+   -H "Authorization: xxx" \
+   -d \
+'{
+  "prompt":"一个二次元少女",
+  "style":"",
+  "model":"dall-e-3",
+  "n":1
+}' \
+ 'http://127.0.0.1:8080/v1/chat/generations'
+```
