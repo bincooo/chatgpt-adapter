@@ -182,7 +182,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 }
 
 func convertToModel(style, defaultModel string) string {
-	if middle.Contains(models, style) {
+	if common.Contains(models, style) {
 		return style
 	}
 	return defaultModel

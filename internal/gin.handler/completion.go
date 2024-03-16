@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/bing"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/claude"
@@ -21,6 +22,8 @@ func completions(ctx *gin.Context) {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
+
+	common.XmlPlot(chatCompletionRequest.Messages)
 
 	switch chatCompletionRequest.Model {
 	case "bing":

@@ -1,6 +1,7 @@
 package middle
 
 import (
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 )
 
@@ -30,9 +31,9 @@ func BuildToolCallsTemplate(
 		Variables("tools", tools).
 		Variables("pMessages", pMessages).
 		Variables("content", content).
-		Func("rand", RandString).
+		Func("rand", common.RandStr).
 		Func("contains", func(s1 []string, s2 string) bool {
-			return Contains(s1, s2)
+			return common.Contains(s1, s2)
 		}).
 		Func("setId", func(index int, value string) string {
 			tools[index].Fun.Id = value
