@@ -57,6 +57,53 @@ type modelCompleted struct {
 	} `json:"images"`
 }
 
+var (
+	models = []string{
+		"none",
+		"Realism_Engine_SDXL",
+		"Real_Cartoon_XL",
+		"Blue_Pencil_XL",
+		"Starlight_XL",
+		"Juggernaut_XL",
+		"RealVisXL",
+		"ZavyChromaXL",
+		"NightVision_XL",
+		"Realistic_Stock_Photo",
+		"DreamShaper",
+		"MBBXL_Ultimate",
+		"Mysterious",
+		"Copax_TimeLessXL",
+		"SDXL_Niji",
+		"Pixel_Art_XL",
+		"ProtoVision_XL",
+		"DucHaiten_AIart_SDXL",
+		"CounterfeitXL",
+		"vibrant_glass",
+		"dreamy_stickers",
+		"ultra_lighting",
+		"watercolor",
+		"macro_realism",
+		"delicate_detail",
+		"radiant_symmetry",
+		"lush_illustration",
+		"saturated_space",
+		"neon_mecha",
+		"ethereal_low_poly",
+		"warm_box",
+		"cinematic",
+		"cinematic_warm",
+		"wasteland",
+		"flat_palette",
+		"ominous_escape",
+		"spielberg",
+		"royalistic",
+		"masterpiece",
+		"wall_art",
+		"haze",
+		"black_and_white_3d",
+	}
+)
+
 func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	hash := sdio.SessionHash()
 	var (
@@ -127,6 +174,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"created": time.Now().Unix(),
+		"styles":  models,
 		"data": []map[string]string{
 			{"url": fmt.Sprintf("%s/file/%s", domain, file)},
 		},
@@ -134,53 +182,10 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 }
 
 func convertToModel(style, defaultModel string) string {
-	switch style {
-	case "none",
-		"Realism_Engine_SDXL",
-		"Real_Cartoon_XL",
-		"Blue_Pencil_XL",
-		"Starlight_XL",
-		"Juggernaut_XL",
-		"RealVisXL",
-		"ZavyChromaXL",
-		"NightVision_XL",
-		"Realistic_Stock_Photo",
-		"DreamShaper",
-		"MBBXL_Ultimate",
-		"Mysterious",
-		"Copax_TimeLessXL",
-		"SDXL_Niji",
-		"Pixel_Art_XL",
-		"ProtoVision_XL",
-		"DucHaiten_AIart_SDXL",
-		"CounterfeitXL",
-		"vibrant_glass",
-		"dreamy_stickers",
-		"ultra_lighting",
-		"watercolor",
-		"macro_realism",
-		"delicate_detail",
-		"radiant_symmetry",
-		"lush_illustration",
-		"saturated_space",
-		"neon_mecha",
-		"ethereal_low_poly",
-		"warm_box",
-		"cinematic",
-		"cinematic_warm",
-		"wasteland",
-		"flat_palette",
-		"ominous_escape",
-		"spielberg",
-		"royalistic",
-		"masterpiece",
-		"wall_art",
-		"haze",
-		"black_and_white_3d":
+	if middle.Contains(models, style) {
 		return style
-	default:
-		return defaultModel
 	}
+	return defaultModel
 }
 
 func saveImage(base64Encoding string) (file string, err error) {

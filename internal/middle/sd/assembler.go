@@ -90,93 +90,9 @@ Generate prompt words on request:
 prompt:`
 )
 
-func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
-	var (
-		index   = pkg.Config.GetInt("freeSd.index")
-		baseUrl = pkg.Config.GetString("freeSd.baseUrl")
-	)
-	prompt, err := completeTagsGenerator(ctx, req.Prompt)
-	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
-	}
-
-	hash := sdio.SessionHash()
-	value := ""
-	var eventError error
-
-	query := fmt.Sprintf("?fn_index=%d&session_hash=%s", index, hash)
-	c, err := sdio.New(baseUrl + query)
-	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
-	}
-
-	sd := []interface{}{
-		prompt,
-		"(deformed eyes, nose, ears, nose), bad anatomy, ugly",
-		convertToModel(req.Style),
-		20,
-		"DPM++ 2M Karras",
-		8,
-		1024,
-		1024,
-		-1,
-	}
-
-	c.Event("send_data", func(j sdio.JoinCompleted, data []byte) map[string]interface{} {
-		obj := map[string]interface{}{
-			"data":         sd,
-			"event_data":   nil,
-			"fn_index":     index,
-			"session_hash": hash,
-			"event_id":     j.EventId,
-			"trigger_id":   rand.Intn(15) + 5,
-		}
-		marshal, _ := json.Marshal(obj)
-		response, e := http.Post(baseUrl+"/queue/data", "application/json", bytes.NewReader(marshal))
-		if e != nil {
-			eventError = e
-		}
-		if response.StatusCode != http.StatusOK {
-			eventError = errors.New(response.Status)
-		}
-		return nil
-	})
-
-	c.Event("process_completed", func(j sdio.JoinCompleted, data []byte) map[string]interface{} {
-		d := j.Output.Data
-		if len(d) > 0 {
-			result := d[0].(map[string]interface{})
-			value = result["path"].(string)
-		} else {
-			eventError = fmt.Errorf("image generate failed: %s", data)
-		}
-		return nil
-	})
-
-	err = c.Do(ctx.Request.Context())
-	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
-	}
-
-	if eventError != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"created": time.Now().Unix(),
-		"data": []map[string]string{
-			{"url": fmt.Sprintf("%s/file=%s", baseUrl, value)},
-		},
-	})
-}
-
-func convertToModel(style string) string {
-	switch style {
-	case "3Guofeng3_v34.safetensors [50f420de]",
+var (
+	models = []string{
+		"3Guofeng3_v34.safetensors [50f420de]",
 		"absolutereality_V16.safetensors [37db0fc3]",
 		"absolutereality_v181.safetensors [3d9d4d2b]",
 		"amIReal_V41.safetensors [0a8a2e61]",
@@ -238,11 +154,100 @@ func convertToModel(style string) string {
 		"shoninsBeautiful_v10.safetensors [25d8c546]",
 		"theallys-mix-ii-churned.safetensors [5d9225a4]",
 		"timeless-1.0.ckpt [7c4971d4]",
-		"toonyou_beta6.safetensors [980f6b15]":
-		return style
-	default:
-		return "anything-v4.5-pruned.ckpt [65745d25]"
+		"toonyou_beta6.safetensors [980f6b15]",
 	}
+)
+
+func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
+	var (
+		index   = pkg.Config.GetInt("freeSd.index")
+		baseUrl = pkg.Config.GetString("freeSd.baseUrl")
+	)
+	prompt, err := completeTagsGenerator(ctx, req.Prompt)
+	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
+	hash := sdio.SessionHash()
+	value := ""
+	var eventError error
+
+	query := fmt.Sprintf("?fn_index=%d&session_hash=%s", index, hash)
+	c, err := sdio.New(baseUrl + query)
+	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
+	sd := []interface{}{
+		prompt,
+		"(deformed eyes, nose, ears, nose), bad anatomy, ugly",
+		convertToModel(req.Style, "toonyou_beta6.safetensors [980f6b15]"),
+		20,
+		"DPM++ 2M Karras",
+		8,
+		1024,
+		1024,
+		-1,
+	}
+
+	c.Event("send_data", func(j sdio.JoinCompleted, data []byte) map[string]interface{} {
+		obj := map[string]interface{}{
+			"data":         sd,
+			"event_data":   nil,
+			"fn_index":     index,
+			"session_hash": hash,
+			"event_id":     j.EventId,
+			"trigger_id":   rand.Intn(15) + 5,
+		}
+		marshal, _ := json.Marshal(obj)
+		response, e := http.Post(baseUrl+"/queue/data", "application/json", bytes.NewReader(marshal))
+		if e != nil {
+			eventError = e
+		}
+		if response.StatusCode != http.StatusOK {
+			eventError = errors.New(response.Status)
+		}
+		return nil
+	})
+
+	c.Event("process_completed", func(j sdio.JoinCompleted, data []byte) map[string]interface{} {
+		d := j.Output.Data
+		if len(d) > 0 {
+			result := d[0].(map[string]interface{})
+			value = result["path"].(string)
+		} else {
+			eventError = fmt.Errorf("image generate failed: %s", data)
+		}
+		return nil
+	})
+
+	err = c.Do(ctx.Request.Context())
+	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
+	if eventError != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"created": time.Now().Unix(),
+		"styles":  models,
+		"data": []map[string]string{
+			{"url": fmt.Sprintf("%s/file=%s", baseUrl, value)},
+		},
+	})
+}
+
+func convertToModel(style, defaultModel string) string {
+	if middle.Contains(models, style) {
+		return style
+	}
+	return defaultModel
 }
 
 func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {

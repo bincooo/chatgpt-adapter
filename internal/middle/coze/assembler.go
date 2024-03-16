@@ -90,7 +90,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		proxies = ctx.GetString("proxies")
 	)
 
-	options := coze.NewDefaultOptions("7338032064396214278", "1708525794004", 2, proxies)
+	options := coze.NewDefaultOptions(botId8k, version8k, scene8k, proxies)
 	msToken := ""
 
 	if !strings.Contains(cookie, "[msToken=") {
@@ -111,6 +111,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"created": time.Now().Unix(),
+		"styles:": make([]string, 0),
 		"data": []map[string]string{
 			{"url": image},
 		},
