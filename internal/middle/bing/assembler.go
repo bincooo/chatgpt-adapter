@@ -22,8 +22,9 @@ const sysPrompt = "This is the conversation record and description stored locall
 
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
-		cookie  = ctx.GetString("token")
-		proxies = ctx.GetString("proxies")
+		cookie   = ctx.GetString("token")
+		proxies  = ctx.GetString("proxies")
+		notebook = ctx.GetBool("notebook")
 	)
 
 	options, err := edge.NewDefaultOptions(cookie, "")
@@ -63,6 +64,9 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		TopicToE(true).
 		Model(edge.ModelSydney).
 		Temperature(req.Temperature))
+	if notebook {
+		chat.Notebook(true)
+	}
 
 	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, pMessages)
 	if err != nil {
@@ -238,7 +242,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		contentL := len(message.Text)
 		if pos < contentL {
 			raw = message.Text[pos:contentL]
-			fmt.Printf("----- raw -----\n %s\n", content)
+			fmt.Printf("----- raw -----\n %s\n", raw)
 		}
 		pos = contentL
 		raw = common.ExecMatchers(matchers, raw)

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
@@ -12,6 +13,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/sd"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"regexp"
 	"strings"
 )
@@ -23,8 +25,17 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
-	common.XmlPlot(chatCompletionRequest.Messages)
+	common.XmlPlot(ctx, chatCompletionRequest.Messages)
 	matchers := common.NewMatchers()
+
+	if ctx.GetBool("debug") {
+		indent, err := json.MarshalIndent(chatCompletionRequest, "", "  ")
+		if err != nil {
+			logrus.Warn(err)
+		} else {
+			fmt.Printf("requset: \n%s", indent)
+		}
+	}
 
 	switch chatCompletionRequest.Model {
 	case "bing":

@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"regexp"
 	"sort"
 	"strconv"
@@ -215,14 +216,34 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 				tag := content[i+1 : n]
 				// whiteList 为nil放行所有标签，否则只解析whiteList中的
 				contains := xml.whiteList == nil || ContainFor(xml.whiteList, func(item string) bool {
-					if strings.HasPrefix(item, "reg:") {
-						compile := regexp.MustCompile(item[4:])
+					if strings.HasPrefix(item, "r:") {
+						compile := regexp.MustCompile(item[2:])
 						return compile.MatchString(tag)
 					}
-					return item == tag
+
+					s := strings.Split(tag, " ")
+					return item == s[0]
 				})
 
 				if !contains {
+					i = n
+					continue
+				}
+
+				// 这是一个自闭合的标签 <xxx />
+				ch := content[n-1]
+				if ch == '/' {
+					tag = tag[:len(tag)-1]
+					node := XmlNode{index: i, tag: tag, t: XML_TYPE_X}
+					split := strings.Split(node.tag, " ")
+					node.t = XML_TYPE_X
+					node.end = n + 1
+					// 解析xml参数
+					if len(split) > 1 {
+						node.tag = split[0]
+						node.attr = parseAttr(split[1:])
+					}
+					slice.s = append(slice.s, &node)
 					i = n
 					continue
 				}
@@ -246,65 +267,62 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 	return slice.s
 }
 
-func XmlPlot(messages []map[string]string) {
-	if len(messages) == 0 {
-		return
-	}
+func XmlPlot(ctx *gin.Context, messages []map[string]string) {
+	handles := xmlPlotToHandleContents(ctx, messages)
+	for _, h := range handles {
+		// 正则替换
+		if h['t'] == "regex" {
+			s := strings.Split(h['v'], ":")
+			if len(s) < 2 {
+				continue
+			}
 
-	inserts, regexs := xmlPlotToHandleContents(messages)
+			before := strings.TrimSpace(s[0])
+			after := strings.TrimSpace(strings.Join(s[1:], ""))
+			if before == "" {
+				continue
+			}
 
-	// 正则替换
-	for _, regex := range regexs {
-		s := strings.Split(regex['v'], ":")
-		if len(s) < 2 {
-			continue
+			c := regexp.MustCompile(before)
+			for _, message := range messages {
+				message["content"] = c.ReplaceAllString(message["content"], after)
+			}
 		}
 
-		before := strings.TrimSpace(s[0])
-		after := strings.TrimSpace(strings.Join(s[1:], ""))
-		if before == "" {
-			continue
-		}
+		// 深度插入
+		if h['t'] == "insert" {
+			i, _ := strconv.Atoi(h['i'])
+			messageL := len(messages)
+			if h['o'] == "true" && messageL-1 < Abs(i) {
+				continue
+			}
 
-		c := regexp.MustCompile(before)
-		for _, message := range messages {
-			message["content"] = c.ReplaceAllString(message["content"], after)
-		}
-	}
+			pos := messageL - 1 - i
+			if pos < 0 {
+				pos = 0
+			}
+			if pos >= messageL {
+				pos = messageL - 1
+			}
 
-	// 深度插入
-	for _, insert := range inserts {
-		i, _ := strconv.Atoi(insert['i'])
-		messageL := len(messages)
-		if insert['o'] == "true" && messageL-1 < Abs(i) {
-			continue
+			messages[pos]["content"] += "\n\n" + h['v']
 		}
-
-		pos := messageL - 1 - i
-		if pos < 0 {
-			pos = 0
-		}
-		if pos >= messageL {
-			pos = messageL - 1
-		}
-
-		messages[pos]["content"] += "\n\n" + insert['v']
 	}
 }
 
-// inserts: 深度插入, i 是深度索引，v 是插入内容， o 是指令
-// regexs: v 是正则内容
-func xmlPlotToHandleContents(messages []map[string]string) (inserts []map[uint8]string, regexs []map[uint8]string) {
+func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (handles []map[uint8]string) {
 	var (
 		parser = NewParser([]string{
 			"regex",
-			`reg:@-*\d+`,
+			`r:@-*\d+`,
+			"debug",
+			"notebook", // bing 的notebook模式
 		})
 	)
 
 	for _, message := range messages {
 		role := message["role"]
-		if role != "assistant" && role != "system" {
+		if role != "assistant" && role != "system" && role != "user" {
 			continue
 		}
 
@@ -325,6 +343,7 @@ func xmlPlotToHandleContents(messages []map[string]string) (inserts []map[uint8]
 			}
 
 			// 自由深度插入
+			// inserts: 深度插入, i 是深度索引，v 是插入内容， o 是指令
 			if node.t == XML_TYPE_X && node.tag[0] == '@' {
 				c, _ := regexp.Compile(`@-*\d+`)
 				if c.MatchString(node.tag) {
@@ -338,26 +357,58 @@ func xmlPlotToHandleContents(messages []map[string]string) (inserts []map[uint8]
 							}
 						}
 					}
-					inserts = append(inserts, map[uint8]string{'i': node.tag[1:], 'v': node.content, 'o': miss})
+					handles = append(handles, map[uint8]string{'i': node.tag[1:], 'v': node.content, 'o': miss, 't': "insert"})
 					clean(content[node.index:node.end])
 				}
 			}
 
 			// 正则替换
+			// regex: v 是正则内容
 			if node.t == XML_TYPE_X && node.tag == "regex" {
 				order := "0" // 优先级
 				if o, ok := node.attr["order"]; ok {
 					order = fmt.Sprintf("%v", o)
 				}
-				regexs = append(regexs, map[uint8]string{'o': order, 'v': node.content})
+				handles = append(handles, map[uint8]string{'o': order, 'v': node.content, 't': "regex"})
+				clean(content[node.index:node.end])
+			}
+
+			if node.t == XML_TYPE_X && node.tag == "matcher" {
+				find := ""
+				if f, ok := node.attr["find"]; ok {
+					find = f.(string)
+				}
+				if find == "" {
+					clean(content[node.index:node.end])
+					continue
+				}
+
+				findLen := "5"
+				if l, ok := node.attr["len"]; ok {
+					findLen = fmt.Sprintf("%v", l)
+				}
+
+				handles = append(handles, map[uint8]string{'f': find, 'l': findLen, 'v': node.content, 't': "matcher"})
+				clean(content[node.index:node.end])
+			}
+
+			// 开启 bing 的 notebook 模式
+			if node.t == XML_TYPE_X && node.tag == "notebook" {
+				ctx.Set("notebook", true)
+				clean(content[node.index:node.end])
+			}
+
+			// debug 模式
+			if node.t == XML_TYPE_X && node.tag == "debug" {
+				ctx.Set("debug", true)
 				clean(content[node.index:node.end])
 			}
 		}
 	}
 
-	if len(regexs) > 0 {
-		sort.Slice(regexs, func(i, j int) bool {
-			return regexs[i]['o'] > regexs[j]['o']
+	if len(handles) > 0 {
+		sort.Slice(handles, func(i, j int) bool {
+			return handles[i]['o'] > handles[j]['o']
 		})
 	}
 	return

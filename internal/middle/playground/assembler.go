@@ -110,15 +110,15 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		cookie = ctx.GetString("token")
 		//proxies = ctx.GetString("proxies")
 
-		domain          = pkg.Config.GetString("domain")
-		modelType       = pkg.Config.GetString("playground.modelType")
-		dreamBoothModel = pkg.Config.GetString("playground.dreamBoothModel")
+		domain    = pkg.Config.GetString("domain")
+		modelType = pkg.Config.GetString("playground.modelType")
 	)
 
 	if domain == "" {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
+	model := convertToModel(req.Style)
 	var payload = modelPayload{
 		BatchId:                 hash,
 		CfgScale:                8,
@@ -130,8 +130,8 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		InitImageFromPlayground: false,
 		IsPrivate:               false,
 		ModelType:               modelType,
-		Filter:                  convertToModel(req.Style, dreamBoothModel),
-		DreamBoothModel:         convertToModel(req.Style, dreamBoothModel),
+		Filter:                  model,
+		DreamBoothModel:         model,
 		NegativePrompt:          "ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, photo, realistic, text, watermark, signature, username, artist name",
 		NumImages:               1,
 		Prompt:                  req.Prompt,
@@ -178,14 +178,15 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		"data": []map[string]string{
 			{"url": fmt.Sprintf("%s/file/%s", domain, file)},
 		},
+		"currStyle": model,
 	})
 }
 
-func convertToModel(style, defaultModel string) string {
+func convertToModel(style string) string {
 	if common.Contains(models, style) {
 		return style
 	}
-	return defaultModel
+	return models[rand.Intn(len(models))]
 }
 
 func saveImage(base64Encoding string) (file string, err error) {
