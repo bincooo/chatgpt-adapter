@@ -106,7 +106,20 @@ coze:
 
 #### free画图接口
 
-提供了 `coze.dall-e-3`、 `sd.dall-e-3`、 `pg.dall-e-3`，它们会根据你提供的 `Authorization` 选择其中的一个
+提供了 `coze.dall-e-3`、 `sd.dall-e-3`、`xl.dall-e-3`, `bk.dall-e-3`, `pg.dall-e-3`，它们会根据你提供的 `Authorization` 选择其中的一个
+
+```txt
+// 下面三个固定写法
+
+// sd.dall-e-3
+Authorization: sk-prodia-sd
+
+// xl.dall-e-3
+Authorization: sk-prodia-xl
+
+// bk.dall-e-3
+Authorization: sk-krebzonide
+```
 
 api:
 
