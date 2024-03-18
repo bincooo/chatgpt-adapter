@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
 	"regexp"
 	"sort"
@@ -33,6 +34,14 @@ type XmlParser struct {
 // 只解析whiteList中的标签
 func NewParser(whiteList []string) XmlParser {
 	return XmlParser{whiteList}
+}
+
+func (xml XmlParser) TrimCDATA(value string) string {
+	if !strings.Contains(value, "<![CDATA[") {
+		return value
+	}
+	c := regexp.MustCompile(`<!\[CDATA\[([\s\S]*)]]>`)
+	return c.ReplaceAllString(value, "$1")
 }
 
 // xml解析的简单实现
@@ -102,29 +111,51 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 				continue
 			}
 
-			v1, err := strconv.Atoi(it[n+1:])
+			if it[n+1] == '"' && it[len(it)-1] == '"' {
+				attr[it[:n]] = xml.TrimCDATA(it[n+2 : len(it)-1])
+			}
+
+			s := xml.TrimCDATA(it[n+1:])
+			v1, err := strconv.Atoi(s)
 			if err == nil {
 				attr[it[:n]] = v1
 				continue
 			}
 
-			v2, err := strconv.ParseFloat(it[n+1:], 10)
+			v2, err := strconv.ParseFloat(s, 10)
 			if err == nil {
 				attr[it[:n]] = v2
 				continue
 			}
 
-			v3, err := strconv.ParseBool(it[n+1:])
+			v3, err := strconv.ParseBool(s)
 			if err == nil {
 				attr[it[:n]] = v3
 				continue
 			}
-
-			if it[n+1] == '"' && it[len(it)-1] == '"' {
-				attr[it[:n]] = it[n+2 : len(it)-1]
-			}
 		}
 		return attr
+	}
+
+	// 跳过 CDATA标记
+	igCd := func(content string, i, j int) int {
+		content = content[i:j]
+		n := searchStr(content, 0, "<![CDATA[")
+		if n < 0 { // 不是CD
+			return j
+		}
+
+		n = searchStr(content, n, "]]>")
+		if n < 0 { // 没有闭合
+			return -1
+		}
+
+		if n+3 == j { // 正好是闭合的标记
+			return -1
+		}
+
+		// 已经闭合
+		return j
 	}
 
 	// =============
@@ -163,7 +194,7 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 					step := 2 + len(curr.tag)
 					curr.t = XML_TYPE_X
 					curr.end = n + 1
-					curr.content = content[curr.index+step : curr.end-len(split[0])-3]
+					curr.content = xml.TrimCDATA(content[curr.index+step : curr.end-len(split[0])-3])
 					// 解析xml参数
 					if len(split) > 1 {
 						curr.tag = split[0]
@@ -184,6 +215,19 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 
 				// =========================================================
 				//
+			} else if nextStr(content, i, "![CDATA[") {
+				//
+				// ⬇⬇⬇⬇⬇ <![CDATA[xxx]]> CDATA结构体 ⬇⬇⬇⬇⬇
+				n := searchStr(content, i+8, "]]>")
+				if n < 0 {
+					i += 7
+					continue
+				}
+				i = n + 3
+				// ⬆⬆⬆⬆⬆ <![CDATA[xxx]]> CDATA结构体 ⬆⬆⬆⬆⬆
+
+				// =========================================================
+				//
 
 			} else if nextStr(content, i, "!--") {
 
@@ -192,12 +236,12 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 
 				n := searchStr(content, i+3, "-->")
 				if n < 0 {
-					i += 2
+					i += 3
 					continue
 				}
 
 				slice.s = append(slice.s, &XmlNode{index: i, end: n + 3, content: content[i : n+3], t: XML_TYPE_I})
-				i = n + 2
+				i = n + 3
 				// ⬆⬆⬆⬆⬆ 是否是注释 <!-- xxx --> ⬆⬆⬆⬆⬆
 
 				// =========================================================
@@ -208,9 +252,18 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 				//
 				// ⬇⬇⬇⬇⬇ 新的 XML 标记 ⬇⬇⬇⬇⬇
 
-				n := search(content, i, '>')
+				idx := i
+				n := search(content, idx, '>')
+			label:
 				if n == -1 {
 					break
+				}
+
+				idx = igCd(content, i, n)
+				if idx == -1 {
+					idx = n
+					n = search(content, idx+1, '>')
+					goto label
 				}
 
 				tag := content[i+1 : n]
@@ -267,7 +320,13 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 	return slice.s
 }
 
-func XmlPlot(ctx *gin.Context, messages []map[string]string) {
+func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
+	matchers := NewMatchers()
+	flags := pkg.Config.GetBool("flags")
+	if !flags {
+		return matchers
+	}
+
 	handles := xmlPlotToHandleContents(ctx, messages)
 	for _, h := range handles {
 		// 正则替换
@@ -307,7 +366,45 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) {
 
 			messages[pos]["content"] += "\n\n" + h['v']
 		}
+
+		// matcher 流响应干预
+		if h['t'] == "matcher" {
+			find := ""
+			if f, ok := h['f']; ok {
+				find = f
+			}
+			if find == "" {
+				continue
+			}
+
+			findL := 5
+			if l, e := strconv.Atoi(h['l']); e == nil {
+				findL = l
+			}
+
+			values := strings.Split(h['v'], ":")
+			if len(values) < 2 {
+				continue
+			}
+
+			c := regexp.MustCompile(strings.TrimSpace(values[0]))
+			join := strings.TrimSpace(strings.Join(values[1:], ":"))
+
+			matchers = append(matchers, &SymbolMatcher{
+				Find: find,
+				H: func(index int, content string) (state int, result string) {
+					r := []rune(content)
+					if index+findL > len(r)-1 {
+						return MAT_MATCHING, content
+					}
+
+					return MAT_MATCHED, c.ReplaceAllString(content, join)
+				},
+			})
+		}
 	}
+
+	return matchers
 }
 
 func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (handles []map[uint8]string) {
@@ -316,6 +413,7 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 			"regex",
 			`r:@-*\d+`,
 			"debug",
+			"matcher",
 			"notebook", // bing 的notebook模式
 		})
 	)
