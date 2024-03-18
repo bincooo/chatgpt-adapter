@@ -65,8 +65,15 @@ func generations(ctx *gin.Context) {
 	token := ctx.GetString("token")
 	if strings.Contains(token, "[msToken") {
 		chatGenerationRequest.Model = "coze." + chatGenerationRequest.Model
-		//} else if strings.HasPrefix(token, "AIzaSy") {
-		//	chatGenerationRequest.Model = "gemini." + chatGenerationRequest.Model
+	} else if token == "sk-prodia-xl" {
+		ctx.Set("prodia.space", "xl")
+		chatGenerationRequest.Model = "xl." + chatGenerationRequest.Model
+	} else if token == "sk-prodia-sd" {
+		ctx.Set("prodia.space", "sd")
+		chatGenerationRequest.Model = "sd." + chatGenerationRequest.Model
+	} else if token == "sk-krebzonide" {
+		ctx.Set("prodia.space", "kb")
+		chatGenerationRequest.Model = "kb." + chatGenerationRequest.Model
 	} else if ok, _ := regexp.MatchString(`\w{8,10}-\w{4}-\w{4}-\w{4}-\w{10,15}`, token); ok {
 		chatGenerationRequest.Model = "pg." + chatGenerationRequest.Model
 	} else {
@@ -74,11 +81,9 @@ func generations(ctx *gin.Context) {
 	}
 
 	switch chatGenerationRequest.Model {
-	//case "bing.dall-e-3":
-	// oneapi目前只认dall-e-3
 	case "coze.dall-e-3":
 		coze.Generation(ctx, chatGenerationRequest)
-	case "sd.dall-e-3":
+	case "xl.dall-e-3", "sd.dall-e-3", "kb.dall-e-3", "dall-e-3":
 		sd.Generation(ctx, chatGenerationRequest)
 	case "pg.dall-e-3":
 		pg.Generation(ctx, chatGenerationRequest)

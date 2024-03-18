@@ -2,20 +2,16 @@ package pg
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"io"
 	"math/rand"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -25,7 +21,7 @@ import (
 type modelPayload struct {
 	BatchId                 string  `json:"batchId"`
 	CfgScale                int32   `json:"cfg_scale"`
-	DreamBoothModel         string  `json:"dream_booth_model"`
+	BoothModel              string  `json:"dream_booth_model"`
 	Filter                  string  `json:"filter"`
 	GenerateVariants        bool    `json:"generateVariants"`
 	GuidanceScale           int32   `json:"guidance_scale"`
@@ -107,16 +103,9 @@ var (
 func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	hash := sdio.SessionHash()
 	var (
-		cookie = ctx.GetString("token")
-		//proxies = ctx.GetString("proxies")
-
-		domain    = pkg.Config.GetString("domain")
-		modelType = pkg.Config.GetString("playground.modelType")
+		cookie  = ctx.GetString("token")
+		proxies = ctx.GetString("proxies")
 	)
-
-	if domain == "" {
-		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
-	}
 
 	model := convertToModel(req.Style)
 	var payload = modelPayload{
@@ -129,9 +118,9 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		GenerateVariants:        false,
 		InitImageFromPlayground: false,
 		IsPrivate:               false,
-		ModelType:               modelType,
+		ModelType:               "stable-diffusion-xl",
 		Filter:                  model,
-		DreamBoothModel:         model,
+		BoothModel:              model,
 		NegativePrompt:          "ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, photo, realistic, text, watermark, signature, username, artist name",
 		NumImages:               1,
 		Prompt:                  req.Prompt,
@@ -155,6 +144,12 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		return
 	}
 
+	// {"errorCode":
+	if bytes.HasPrefix(data, []byte("{\"errorCode\":")) {
+		middle.ResponseWithV(ctx, -1, string(data))
+		return
+	}
+
 	var mc modelCompleted
 	if err = json.Unmarshal(data, &mc); err != nil {
 		middle.ResponseWithE(ctx, -1, err)
@@ -166,7 +161,13 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		return
 	}
 
-	file, err := saveImage(mc.Images[0].Url)
+	file, err := common.CreateBase64Image(mc.Images[0].Url, "jpg")
+	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
+	file, err = common.UploadCatboxFile(proxies, file)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
@@ -176,7 +177,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		"created": time.Now().Unix(),
 		"styles":  models,
 		"data": []map[string]string{
-			{"url": fmt.Sprintf("%s/file/%s", domain, file)},
+			{"url": file},
 		},
 		"currStyle": model,
 	})
@@ -189,33 +190,6 @@ func convertToModel(style string) string {
 	return models[rand.Intn(len(models))]
 }
 
-func saveImage(base64Encoding string) (file string, err error) {
-	index := strings.Index(base64Encoding, ",")
-	base64Encoding = base64Encoding[index+1:]
-	decode, err := base64.StdEncoding.DecodeString(base64Encoding)
-	if err != nil {
-		return "", err
-	}
-
-	_, err = os.Stat("images")
-	if os.IsNotExist(err) {
-		_ = os.Mkdir("images", os.ModePerm)
-	}
-
-	tempFile, err := os.CreateTemp("images", "image-*.jpg")
-	if err != nil {
-		return "", err
-	}
-
-	_, err = tempFile.Write(decode)
-	if err != nil {
-		return "", err
-	}
-
-	file = tempFile.Name()
-	return file, nil
-}
-
 func fetch(proxies, cookie string, marshal []byte) (*http.Response, error) {
 	if !strings.Contains(cookie, "__Secure-next-auth.session-token=") {
 		cookie = "__Secure-next-auth.session-token=" + cookie
@@ -226,11 +200,7 @@ func fetch(proxies, cookie string, marshal []byte) (*http.Response, error) {
 		return nil, err
 	}
 
-	baseUrl := pkg.Config.GetString("playground.baseUrl")
-	if baseUrl == "" {
-		baseUrl = "https://playground.com"
-	}
-
+	baseUrl := "https://playground.com"
 	request, err := http.NewRequest(http.MethodPost, baseUrl+"/api/models", bytes.NewReader(marshal))
 	if err != nil {
 		return nil, err
@@ -238,19 +208,19 @@ func fetch(proxies, cookie string, marshal []byte) (*http.Response, error) {
 
 	h := request.Header
 	h.Add("host", "playground.com")
-	h.Add("Origin", "https://playground.com")
-	h.Add("Referer", "https://playground.com/create")
+	h.Add("origin", "https://playground.com")
+	h.Add("referer", "https://playground.com/create")
 	h.Add("accept-language", "en-US,en;q=0.9")
-	h.Add("Content-Type", "application/json")
-	h.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-	//h.Add("X-Forwarded-For", common.RandomIp())
-	h.Add("Cookie", cookie)
+	h.Add("content-type", "application/json")
+	h.Add("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+	h.Add("x-forwarded-for", common.RandomIp())
+	h.Add("cookie", cookie)
 
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, err
 	}
-	// {"errorCode":
+
 	if response.StatusCode != http.StatusOK {
 		return nil, errors.New(response.Status)
 	}

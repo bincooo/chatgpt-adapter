@@ -80,7 +80,7 @@ func crosHandler(context *gin.Context) {
 	if err != nil {
 		logrus.Error(err)
 	} else {
-		logrus.Infof("%s\n", data)
+		fmt.Printf("%s\n", data)
 	}
 
 	//处理请求

@@ -1,12 +1,4 @@
-freeSd:
-  index: 0
-  baseUrl: "https://prodia-fast-stable-diffusion.hf.space"
-playground:
-  baseUrl: "http://127.0.0.1:8081/playground"
-  dreamBoothModel: "Starlight_XL"
-  modelType: "stable-diffusion-xl"
-openai:
+llm:
+  baseUrl: "http://127.0.0.1:8080"
   model: "bing"
   token: "xxx"
-  baseUrl: "http://127.0.0.1:8080"
-domain: "http://127.0.0.1:8081"
