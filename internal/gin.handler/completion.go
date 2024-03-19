@@ -78,6 +78,7 @@ func generations(ctx *gin.Context) {
 		chatGenerationRequest.Model = "sd." + chatGenerationRequest.Model
 	}
 
+	logrus.Infof("generate images text[ %s ]: %s", chatGenerationRequest.Model, chatGenerationRequest.Prompt)
 	switch chatGenerationRequest.Model {
 	case "coze.dall-e-3":
 		coze.Generation(ctx, chatGenerationRequest)

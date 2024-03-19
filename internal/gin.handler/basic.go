@@ -32,7 +32,7 @@ func Bind(port int, version, proxies string) {
 	route.POST("proxies/v1/images/generations", generations)
 	route.GET("/proxies/v1/models", models)
 	route.GET("/v1/models", models)
-	route.Static("/file/images/", "images")
+	route.Static("/file/tmp/", "tmp")
 
 	addr := ":" + strconv.Itoa(port)
 	logrus.Info(fmt.Sprintf("server start by http://0.0.0.0%s/v1", addr))

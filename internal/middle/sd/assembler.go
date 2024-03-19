@@ -270,8 +270,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		if len(d) > 0 {
 			switch space {
 			case "xl":
-				base64Encoding := d[0].(string)
-				file, e := common.CreateBase64Image(strings.TrimPrefix(base64Encoding, "data:image/png;base64,"), "png")
+				file, e := common.CreateBase64Image(d[0].(string), "png")
 				if e != nil {
 					eventError = fmt.Errorf("image save failed: %s", data)
 					return EMPTRY_EVENT_RETURN

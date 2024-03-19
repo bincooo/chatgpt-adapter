@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -105,7 +107,12 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	var (
 		cookie  = ctx.GetString("token")
 		proxies = ctx.GetString("proxies")
+		domain  = pkg.Config.GetString("domain")
 	)
+
+	if domain == "" {
+		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
+	}
 
 	model := convertToModel(req.Style)
 	var payload = modelPayload{
@@ -167,7 +174,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		return
 	}
 
-	file, err = common.UploadCatboxFile(proxies, file)
+	file, err = common.UploadCatboxFile(proxies, domain+"/file/"+file)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
