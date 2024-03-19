@@ -2,7 +2,7 @@ package middle
 
 import (
 	"bytes"
-	"html/template"
+	"text/template"
 )
 
 type TemplateWrapper struct {

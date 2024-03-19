@@ -1,0 +1,19 @@
+type: function
+description: Use imap_tools package to log in to your email (the email that supports
+  IMAP protocol) to verify and return the account object.
+parameters:
+  properties:
+    email_address:
+      type: str
+      description: Email address that needs to be logged in and linked.
+    email_password:
+      type: str
+      description: Password for the email address that needs to be logged in and linked.
+  required:
+  - email_address
+  - email_password
+returns:
+- type: object
+  description: The imap_tools's MailBox object returned after successfully connecting
+    to the mailbox through imap_tools, including various information about this account
+    (email, etc.), or None if login fails.

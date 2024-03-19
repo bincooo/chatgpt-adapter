@@ -1,0 +1,49 @@
+type: class
+description: Add value counts of a categorical column as new feature.
+methods:
+  __init__:
+    type: function
+    description: Initialize self.
+    parameters:
+      properties:
+        col:
+          type: str
+          description: Column for value counts.
+      required:
+      - col
+  fit:
+    type: function
+    description: Fit a model to be used in subsequent transform.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+  fit_transform:
+    type: function
+    description: Fit and transform the input DataFrame.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.
+  transform:
+    type: function
+    description: Transform the input DataFrame with the fitted model.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.

@@ -1,0 +1,62 @@
+type: class
+description: Add a new feature to the DataFrame by k-fold mean encoding of a categorical
+  column using the label column.
+methods:
+  __init__:
+    type: function
+    description: Initialize self.
+    parameters:
+      properties:
+        col:
+          type: str
+          description: Column to be k-fold mean encoded.
+        label:
+          type: str
+          description: Predicted label column.
+        n_splits:
+          type: int
+          description: Number of splits for K-fold. Defaults to 5.
+          default: '5'
+        random_state:
+          type: int
+          description: Random seed. Defaults to 2021.
+          default: '2021'
+      required:
+      - col
+      - label
+  fit:
+    type: function
+    description: Fit a model to be used in subsequent transform.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+  fit_transform:
+    type: function
+    description: Fit and transform the input DataFrame.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.
+  transform:
+    type: function
+    description: Transform the input DataFrame with the fitted model.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.

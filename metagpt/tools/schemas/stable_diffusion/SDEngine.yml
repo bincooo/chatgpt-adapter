@@ -1,0 +1,85 @@
+type: class
+description: Generate image using stable diffusion model. This class provides methods
+  to interact with a stable diffusion service to generate images based on text inputs.
+methods:
+  __init__:
+    type: function
+    description: Initialize the SDEngine instance with configuration.
+    parameters:
+      properties:
+        sd_url:
+          type: str
+          description: URL of the stable diffusion service. Defaults to "".
+          default: '""'
+      required: []
+  construct_payload:
+    type: function
+    description: Modify and set the API parameters for image generation.
+    parameters:
+      properties:
+        prompt:
+          type: str
+          description: Text input for image generation.
+        negtive_prompt:
+          type: str
+          description: Text input for negative prompts. Defaults to None.
+          default: None
+        width:
+          type: int
+          description: Width of the generated image in pixels. Defaults to 512.
+          default: '512'
+        height:
+          type: int
+          description: Height of the generated image in pixels. Defaults to 512.
+          default: '512'
+        sd_model:
+          type: str
+          description: The model to use for image generation. Defaults to "galaxytimemachinesGTM_photoV20".
+          default: '"galaxytimemachinesGTM_photoV20"'
+      required:
+      - prompt
+    returns:
+    - type: dict
+      description: Updated parameters for the stable diffusion API.
+  run_t2i:
+    type: async_function
+    description: Run the stable diffusion API for multiple prompts asynchronously.
+    parameters:
+      properties:
+        payloads:
+          type: list
+          description: list of payload, each payload is a dictionary of input parameters
+            for the stable diffusion API.
+      required:
+      - payloads
+  save:
+    type: function
+    description: Save generated images to the output directory.
+    parameters:
+      properties:
+        imgs:
+          type: str
+          description: Generated images.
+        save_name:
+          type: str
+          description: Output image name. Default is empty.
+      required:
+      - imgs
+  simple_run_t2i:
+    type: function
+    description: Run the stable diffusion API for multiple prompts, calling the stable
+      diffusion API to generate images.
+    parameters:
+      properties:
+        payload:
+          type: dict
+          description: Dictionary of input parameters for the stable diffusion API.
+        auto_save:
+          type: bool
+          description: Save generated images automatically. Defaults to True.
+          default: 'True'
+      required:
+      - payload
+    returns:
+    - type: list
+      description: The generated images as a result of the API call.

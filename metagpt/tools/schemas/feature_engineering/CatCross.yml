@@ -1,0 +1,67 @@
+type: class
+description: Add pairwise crossed features and convert them to numerical features.
+methods:
+  __init__:
+    type: function
+    description: Initialize self.
+    parameters:
+      properties:
+        cols:
+          type: list
+          description: Columns to be pairwise crossed, at least 2 columns.
+        max_cat_num:
+          type: int
+          description: Maximum unique categories per crossed feature. Defaults to
+            100.
+          default: '100'
+      required:
+      - cols
+  _cross_two:
+    type: function
+    description: 'staticmethod(function) -> method Convert a function to be a static
+      method. A static method does not receive an implicit first argument. To declare
+      a static method, use this idiom: class C: @staticmethod def f(arg1, arg2, ...):
+      ... It can be called either on the class (e.g. C.f()) or on an instance (e.g.
+      C().f()). Both the class and the instance are ignored, and neither is passed
+      implicitly as the first argument to the method. Static methods in Python are
+      similar to those found in Java or C++. For a more advanced concept, see the
+      classmethod builtin.'
+    parameters:
+      properties: {}
+      required: []
+  fit:
+    type: function
+    description: Fit a model to be used in subsequent transform.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+  fit_transform:
+    type: function
+    description: Fit and transform the input DataFrame.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.
+  transform:
+    type: function
+    description: Transform the input DataFrame with the fitted model.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.

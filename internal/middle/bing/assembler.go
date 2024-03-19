@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
@@ -137,66 +136,6 @@ func appendMatchers(matchers []common.Matcher) []common.Matcher {
 		},
 	})
 	return matchers
-}
-
-func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
-	logrus.Infof("completeTools ...")
-	toolsMap, prompt, err := middle.BuildToolCallsTemplate(
-		req.Tools,
-		req.Messages,
-		agent.BingToolCallsTemplate, 5)
-	if err != nil {
-		return false, err
-	}
-
-	options, err := edge.NewDefaultOptions(cookie, "")
-	if err != nil {
-		return false, err
-	}
-
-	chat := edge.New(options.
-		Proxies(proxies).
-		TopicToE(true).
-		Notebook(true).
-		Model(edge.ModelCreative).
-		Temperature(req.Temperature))
-	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, nil)
-	if err != nil {
-		return false, err
-	}
-
-	defer func() {
-		go chat.Delete()
-	}()
-	content, err := waitMessage(chatResponse)
-	if err != nil {
-		return false, err
-	}
-	logrus.Infof("completeTools response: \n%s", content)
-	return parseToToolCall(ctx, toolsMap, content, req.Stream)
-}
-
-func parseToToolCall(ctx *gin.Context, toolsMap map[string]string, content string, sse bool) (bool, error) {
-	created := time.Now().Unix()
-	for k, v := range toolsMap {
-		if strings.Contains(content, k) {
-			left := strings.Index(content, "{")
-			right := strings.LastIndex(content, "}")
-			argv := ""
-			if left >= 0 && right > left {
-				argv = content[left : right+1]
-			}
-
-			if sse {
-				middle.ResponseWithSSEToolCalls(ctx, MODEL, v, argv, created)
-				return false, nil
-			} else {
-				middle.ResponseWithToolCalls(ctx, MODEL, v, argv)
-				return false, nil
-			}
-		}
-	}
-	return true, nil
 }
 
 func waitMessage(chatResponse chan edge.ChatResponse) (content string, err error) {

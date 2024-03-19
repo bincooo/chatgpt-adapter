@@ -3,7 +3,6 @@ package claude
 import (
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
@@ -66,75 +65,6 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 	}
 	defer chat.Delete()
 	waitResponse(ctx, matchers, chatResponse, req.Stream)
-}
-
-func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
-	logrus.Infof("completeTools ...")
-	toolsMap, prompt, err := middle.BuildToolCallsTemplate(
-		req.Tools,
-		req.Messages,
-		agent.ClaudeToolCallsTemplate, 5)
-	if err != nil {
-		return false, err
-	}
-
-	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
-	options.Proxies = proxies
-
-	chat, err := claude2.New(options)
-	if err != nil {
-		return false, err
-	}
-
-	if s := padtxt(padtxtMaxCount - len(prompt)); s != "" {
-		prompt = fmt.Sprintf("%s\n--------\n\n%s", s, prompt)
-	}
-	chatResponse, err := chat.Reply(ctx.Request.Context(), "", []types.Attachment{
-		{
-			Content:  prompt,
-			FileName: "paste.txt",
-			FileSize: len(prompt),
-			FileType: "text/plain",
-		},
-	})
-	if err != nil {
-		return false, err
-	}
-	defer chat.Delete()
-	content, err := waitMessage(chatResponse)
-	if err != nil {
-		return false, err
-	}
-	logrus.Infof("completeTools response: \n%s", content)
-	return parseToToolCall(ctx, toolsMap, content, req.Stream)
-}
-
-func parseToToolCall(ctx *gin.Context, toolsMap map[string]string, content string, sse bool) (bool, error) {
-	created := time.Now().Unix()
-	// 不合法标记
-	if strings.Contains(content, "questionType") {
-		return true, nil
-	}
-
-	for k, v := range toolsMap {
-		if strings.Contains(content, k) {
-			left := strings.Index(content, "{")
-			right := strings.LastIndex(content, "}")
-			argv := ""
-			if left >= 0 && right > left {
-				argv = content[left : right+1]
-			}
-
-			if sse {
-				middle.ResponseWithSSEToolCalls(ctx, MODEL, v, argv, created)
-				return false, nil
-			} else {
-				middle.ResponseWithToolCalls(ctx, MODEL, v, argv)
-				return false, nil
-			}
-		}
-	}
-	return true, nil
 }
 
 func waitMessage(chatResponse chan types.PartialResponse) (content string, err error) {

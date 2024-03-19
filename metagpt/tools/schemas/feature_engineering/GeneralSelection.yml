@@ -1,0 +1,45 @@
+type: class
+description: Drop all nan feats and feats with only one unique value.
+methods:
+  __init__:
+    type: function
+    description: Initialize self. See help(type(self)) for accurate signature.
+    parameters:
+      properties: {}
+      required: []
+  fit:
+    type: function
+    description: Fit a model to be used in subsequent transform.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+  fit_transform:
+    type: function
+    description: Fit and transform the input DataFrame.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.
+  transform:
+    type: function
+    description: Transform the input DataFrame with the fitted model.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.

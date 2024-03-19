@@ -3,11 +3,13 @@ package gemini
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -24,7 +26,7 @@ type funcDecl struct {
 // 构建请求，返回响应
 func build(proxies, token, content string, req gpt.ChatCompletionRequest) (*http.Response, error) {
 	var (
-		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-pro:streamGenerateContent", token)
+		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.0-pro:streamGenerateContent", token)
 	)
 
 	if req.MaxTokens == 0 {
@@ -117,7 +119,15 @@ func build(proxies, token, content string, req gpt.ChatCompletionRequest) (*http
 	res, err := client.Do(request)
 	if err != nil {
 		logrus.Error(err)
+		var e *url.Error
+		if errors.As(err, &e) {
+			e.URL = strings.Replace(e.URL, token, "AIzaSy***", -1)
+		}
 		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(res.Status)
 	}
 
 	return res, nil

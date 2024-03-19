@@ -384,6 +384,12 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		return strings.TrimSpace(message), nil
 	}
 
+	if strings.HasSuffix(message, `"""`) { // 哎。bing 偶尔会漏掉前面的"""
+		message = strings.ReplaceAll(message[:len(message)-3], "\"", "")
+		logrus.Infof("system assistant generate prompt[%s]: %s", model, message)
+		return strings.TrimSpace(message), nil
+	}
+
 	logrus.Infof("system assistant generate prompt[%s] error: system assistant generate prompt failed", model)
 	return "", errors.New("system assistant generate prompt failed")
 }

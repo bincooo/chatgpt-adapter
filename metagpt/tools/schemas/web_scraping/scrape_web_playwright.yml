@@ -1,0 +1,14 @@
+type: async_function
+description: Asynchronously Scrape and save the HTML structure and inner text content
+  of a web page using Playwright.
+parameters:
+  properties:
+    url:
+      type: str
+      description: The main URL to fetch inner text from.
+  required:
+  - url
+returns:
+- type: dict
+  description: The inner text content and html structure of the web page, keys are
+    'inner_text', 'html'.

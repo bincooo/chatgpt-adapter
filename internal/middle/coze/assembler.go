@@ -3,7 +3,6 @@ package coze
 import (
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
@@ -135,70 +134,6 @@ func calcTokens(messages []coze.Message) (tokensL int) {
 		tokensL += common.CalcTokens(message.Content)
 	}
 	return
-}
-
-func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
-	logrus.Infof("completeTools ...")
-	toolsMap, prompt, err := middle.BuildToolCallsTemplate(
-		req.Tools,
-		req.Messages,
-		agent.BingToolCallsTemplate, 5)
-	if err != nil {
-		return false, err
-	}
-
-	pMessages := []coze.Message{
-		{
-			Role:    "system",
-			Content: prompt,
-		},
-	}
-
-	msToken := ""
-	if !strings.Contains(cookie, "[msToken=") {
-		return false, errors.New("please provide the '[msToken=xxx]' cookie parameter")
-	} else {
-		co := strings.Split(cookie, "[msToken=")
-		msToken = strings.TrimSuffix(co[1], "]")
-		cookie = co[0]
-	}
-
-	options := newOptions(proxies, pMessages)
-	chat := coze.New(cookie, msToken, options)
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages)
-	if err != nil {
-		return false, err
-	}
-
-	content, err := waitMessage(chatResponse)
-	if err != nil {
-		return false, err
-	}
-	logrus.Infof("completeTools response: \n%s", content)
-	return parseToToolCall(ctx, toolsMap, content, req.Stream)
-}
-
-func parseToToolCall(ctx *gin.Context, toolsMap map[string]string, content string, sse bool) (bool, error) {
-	created := time.Now().Unix()
-	for k, v := range toolsMap {
-		if strings.Contains(content, k) {
-			left := strings.Index(content, "{")
-			right := strings.LastIndex(content, "}")
-			argv := ""
-			if left >= 0 && right > left {
-				argv = content[left : right+1]
-			}
-
-			if sse {
-				middle.ResponseWithSSEToolCalls(ctx, MODEL, v, argv, created)
-				return false, nil
-			} else {
-				middle.ResponseWithToolCalls(ctx, MODEL, v, argv)
-				return false, nil
-			}
-		}
-	}
-	return true, nil
 }
 
 func waitMessage(chatResponse chan string) (content string, err error) {

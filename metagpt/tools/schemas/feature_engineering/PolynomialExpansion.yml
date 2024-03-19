@@ -1,0 +1,58 @@
+type: class
+description: Add polynomial and interaction features from selected numeric columns
+  to input DataFrame.
+methods:
+  __init__:
+    type: function
+    description: Initialize self.
+    parameters:
+      properties:
+        cols:
+          type: list
+          description: Columns for polynomial expansion.
+        label_col:
+          type: str
+          description: Label column name.
+        degree:
+          type: int
+          description: The degree of the polynomial features. Defaults to 2.
+          default: '2'
+      required:
+      - cols
+      - label_col
+  fit:
+    type: function
+    description: Fit a model to be used in subsequent transform.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+  fit_transform:
+    type: function
+    description: Fit and transform the input DataFrame.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.
+  transform:
+    type: function
+    description: Transform the input DataFrame with the fitted model.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.

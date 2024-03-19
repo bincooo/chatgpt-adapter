@@ -1,0 +1,54 @@
+type: class
+description: Encode a categorical column by the mean of the label column, and adds
+  the result as a new feature.
+methods:
+  __init__:
+    type: function
+    description: Initialize self.
+    parameters:
+      properties:
+        col:
+          type: str
+          description: Column to be mean encoded.
+        label:
+          type: str
+          description: Predicted label column.
+      required:
+      - col
+      - label
+  fit:
+    type: function
+    description: Fit a model to be used in subsequent transform.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+  fit_transform:
+    type: function
+    description: Fit and transform the input DataFrame.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.
+  transform:
+    type: function
+    description: Transform the input DataFrame with the fitted model.
+    parameters:
+      properties:
+        df:
+          type: pd.DataFrame
+          description: The input DataFrame.
+      required:
+      - df
+    returns:
+    - type: pd.DataFrame
+      description: The transformed DataFrame.
