@@ -1,7 +1,9 @@
 package middle
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
@@ -10,6 +12,17 @@ import (
 	"net/http"
 	"time"
 )
+
+var ContentCanceled = errors.New("request canceled")
+
+func IsCanceled(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ContentCanceled
+	default:
+		return nil
+	}
+}
 
 func ResponseWithE(ctx *gin.Context, code int, err error) {
 	logrus.Error("response error: ", err)

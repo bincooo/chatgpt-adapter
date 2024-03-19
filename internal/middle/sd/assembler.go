@@ -2,6 +2,7 @@ package sd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -292,6 +293,11 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		return EMPTRY_EVENT_RETURN
 	})
 
+	if err = middle.IsCanceled(ctx.Request.Context()); err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
 	err = c.Do(ctx.Request.Context())
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
@@ -350,7 +356,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 	}
 
 	marshal, _ := json.Marshal(obj)
-	response, err := fetch(proxies, baseUrl, cookie, marshal)
+	response, err := fetch(ctx.Request.Context(), proxies, baseUrl, cookie, marshal)
 	if err != nil {
 		return "", err
 	}
@@ -393,7 +399,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 	return "", errors.New("system assistant generate prompt failed")
 }
 
-func fetch(proxies, baseUrl, cookie string, marshal []byte) (*http.Response, error) {
+func fetch(ctx context.Context, proxies, baseUrl, cookie string, marshal []byte) (*http.Response, error) {
 	if strings.Contains(baseUrl, "127.0.0.1") || strings.Contains(baseUrl, "localhost") {
 		proxies = ""
 	}
@@ -412,7 +418,11 @@ func fetch(proxies, baseUrl, cookie string, marshal []byte) (*http.Response, err
 	h.Add("content-type", "application/json")
 	h.Add("Authorization", cookie)
 
-	response, err := client.Do(request)
+	if err = middle.IsCanceled(ctx); err != nil {
+		return nil, err
+	}
+
+	response, err := client.Do(request.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
