@@ -166,13 +166,13 @@ attribute:
 
 例子：
 ```text
-<matcher find="<![CDATA[<img>]]>"> <![CDATA[<img>(.+)</img>]]>:![image]($1) </matcher>
+<matcher find="<![CDATA[<img>]]>" len=30> <![CDATA[<img>(.+)</img>]]>:![image]($1) </matcher>
 
 >>>>> 
 {
   "messages": [
     {
-      "content": "<matcher find="<![CDATA[<img>]]>"> <![CDATA[<img>(.+)</img>]]>:![image](https://files.catbox.moe/$1) </matcher> 我说Hi，你回复<img>笑脸.jpg</img>",
+      "content": "<matcher find="<![CDATA[<img>]]>" len=30> <![CDATA[<img>(.+)</img>]]>:![image](https://files.catbox.moe/$1) </matcher> 我说Hi，你回复<img>笑脸.jpg</img>",
       "role": "system"
     },
     {
