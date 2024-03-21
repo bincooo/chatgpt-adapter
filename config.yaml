@@ -1,5 +1,8 @@
+# 图片访问
 domain: "http://127.0.0.1:8080"
-flags: true
+# 开启特殊标记增强
+flags: false
+# 内调llm，用于绘图时文本转tags
 llm:
   baseUrl: "http://127.0.0.1:8080"
   model: "bing"

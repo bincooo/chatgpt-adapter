@@ -47,7 +47,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		return
 	}
 
-	response, err := build(proxies, cookie, content, req)
+	response, err := build(ctx.Request.Context(), proxies, cookie, content, req)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return

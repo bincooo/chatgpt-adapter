@@ -165,7 +165,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		created = time.Now().Unix()
 	)
 
-	logrus.Infof("waitResponse ...")
+	logrus.Info("waitResponse ...")
 	for {
 		message, ok := <-chatResponse
 		if !ok {

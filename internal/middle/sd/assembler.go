@@ -395,7 +395,8 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		return strings.TrimSpace(message), nil
 	}
 
-	logrus.Infof("system assistant generate prompt[%s] error: system assistant generate prompt failed", model)
+	logrus.Info("response content: ", message)
+	logrus.Errorf("system assistant generate prompt[%s] error: system assistant generate prompt failed", model)
 	return "", errors.New("system assistant generate prompt failed")
 }
 

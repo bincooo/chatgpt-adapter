@@ -3,8 +3,9 @@ package common
 import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
-	"regexp"
+	"github.com/sirupsen/logrus"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,6 +32,16 @@ type XmlParser struct {
 	whiteList []string
 }
 
+func encode(content string) string {
+	e := "!u+000d!"
+	return strings.ReplaceAll(content, "\n", e)
+}
+
+func decode(content string) string {
+	e := "!u+000d!"
+	return strings.ReplaceAll(content, e, "\n")
+}
+
 // 只解析whiteList中的标签
 func NewParser(whiteList []string) XmlParser {
 	return XmlParser{whiteList}
@@ -40,8 +51,14 @@ func (xml XmlParser) TrimCDATA(value string) string {
 	if !strings.Contains(value, "<![CDATA[") {
 		return value
 	}
-	c := regexp.MustCompile(`<!\[CDATA\[([\s\S]*)]]>`)
-	return c.ReplaceAllString(value, "$1")
+	cmp := "<!\\[CDATA\\[(((?!]]>).)*)]]>"
+	c := regexp.MustCompile(cmp, regexp.Compiled)
+	replace, err := c.Replace(encode(value), "$1", -1, -1)
+	if err != nil {
+		logrus.Warn("compile failed: "+cmp, err)
+		return value
+	}
+	return decode(replace)
 }
 
 // xml解析的简单实现
@@ -270,8 +287,14 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 				// whiteList 为nil放行所有标签，否则只解析whiteList中的
 				contains := xml.whiteList == nil || ContainFor(xml.whiteList, func(item string) bool {
 					if strings.HasPrefix(item, "r:") {
-						compile := regexp.MustCompile(item[2:])
-						return compile.MatchString(tag)
+						cmp := item[2:]
+						c := regexp.MustCompile(cmp, regexp.Compiled)
+						matched, err := c.MatchString(tag)
+						if err != nil {
+							logrus.Warn("compile failed: "+cmp, err)
+							return false
+						}
+						return matched
 					}
 
 					s := strings.Split(tag, " ")
@@ -336,15 +359,33 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
 				continue
 			}
 
-			before := strings.TrimSpace(s[0])
-			after := strings.TrimSpace(strings.Join(s[1:], ""))
-			if before == "" {
+			cmp := strings.TrimSpace(s[0])
+			value := strings.TrimSpace(strings.Join(s[1:], ""))
+			if cmp == "" {
 				continue
 			}
 
-			c := regexp.MustCompile(before)
-			for _, message := range messages {
-				message["content"] = c.ReplaceAllString(message["content"], after)
+			// 忽略尾部n条
+			pos, _ := strconv.Atoi(h['m'])
+			if pos > -1 {
+				pos = len(messages) - 1 - pos
+				if pos < 0 {
+					pos = 0
+				}
+			} else {
+				pos = len(messages)
+			}
+
+			c := regexp.MustCompile(cmp, regexp.Compiled)
+			for idx, message := range messages {
+				if idx < pos && message["role"] != "system" {
+					replace, err := c.Replace(encode(message["content"]), value, -1, -1)
+					if err != nil {
+						logrus.Warn("compile failed: "+cmp, err)
+						continue
+					}
+					message["content"] = decode(replace)
+				}
 			}
 		}
 
@@ -352,18 +393,24 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
 		if h['t'] == "insert" {
 			i, _ := strconv.Atoi(h['i'])
 			messageL := len(messages)
-			if h['o'] == "true" && messageL-1 < Abs(i) {
+			if h['m'] == "true" && messageL-1 < Abs(i) {
 				continue
 			}
 
-			pos := messageL - 1 - i
-			if pos < 0 {
-				pos = 0
+			pos := 0
+			if i > -1 {
+				// 正插
+				pos = i
+				if pos >= messageL {
+					pos = messageL - 1
+				}
+			} else {
+				// 反插
+				pos = messageL - 1 + i
+				if pos < 0 {
+					pos = 0
+				}
 			}
-			if pos >= messageL {
-				pos = messageL - 1
-			}
-
 			messages[pos]["content"] += "\n\n" + h['v']
 		}
 
@@ -387,7 +434,7 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
 				continue
 			}
 
-			c := regexp.MustCompile(strings.TrimSpace(values[0]))
+			c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
 			join := strings.TrimSpace(strings.Join(values[1:], ":"))
 
 			matchers = append(matchers, &SymbolMatcher{
@@ -397,8 +444,12 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
 					if index+findL > len(r)-1 {
 						return MAT_MATCHING, content
 					}
-
-					return MAT_MATCHED, c.ReplaceAllString(content, join)
+					replace, err := c.Replace(encode(content), join, -1, -1)
+					if err != nil {
+						logrus.Warn("compile failed: "+values[0], err)
+						return MAT_MATCHED, content
+					}
+					return MAT_MATCHED, decode(replace)
 				},
 			})
 		}
@@ -443,8 +494,8 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 			// 自由深度插入
 			// inserts: 深度插入, i 是深度索引，v 是插入内容， o 是指令
 			if node.t == XML_TYPE_X && node.tag[0] == '@' {
-				c, _ := regexp.Compile(`@-*\d+`)
-				if c.MatchString(node.tag) {
+				c, _ := regexp.Compile(`@-*\d+`, regexp.Compiled)
+				if matched, _ := c.MatchString(node.tag); matched {
 					// 消息上下文次数少于插入深度时，是否忽略
 					// 如不忽略，将放置在头部或者尾部
 					miss := "true"
@@ -455,7 +506,7 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 							}
 						}
 					}
-					handles = append(handles, map[uint8]string{'i': node.tag[1:], 'v': node.content, 'o': miss, 't': "insert"})
+					handles = append(handles, map[uint8]string{'i': node.tag[1:], 'v': node.content, 'm': miss, 't': "insert"})
 					clean(content[node.index:node.end])
 				}
 			}
@@ -467,7 +518,13 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 				if o, ok := node.attr["order"]; ok {
 					order = fmt.Sprintf("%v", o)
 				}
-				handles = append(handles, map[uint8]string{'o': order, 'v': node.content, 't': "regex"})
+
+				miss := "-1"
+				if m, ok := node.attr["miss"]; ok {
+					miss = fmt.Sprintf("%v", m)
+				}
+
+				handles = append(handles, map[uint8]string{'m': miss, 'o': order, 'v': node.content, 't': "regex"})
 				clean(content[node.index:node.end])
 			}
 

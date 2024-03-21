@@ -2,6 +2,7 @@ package gemini
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,7 +25,7 @@ type funcDecl struct {
 }
 
 // 构建请求，返回响应
-func build(proxies, token, content string, req gpt.ChatCompletionRequest) (*http.Response, error) {
+func build(ctx context.Context, proxies, token, content string, req gpt.ChatCompletionRequest) (*http.Response, error) {
 	var (
 		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.0-pro:streamGenerateContent", token)
 	)
@@ -116,7 +117,7 @@ func build(proxies, token, content string, req gpt.ChatCompletionRequest) (*http
 		return nil, err
 	}
 
-	res, err := client.Do(request)
+	res, err := client.Do(request.WithContext(ctx))
 	if err != nil {
 		logrus.Error(err)
 		var e *url.Error

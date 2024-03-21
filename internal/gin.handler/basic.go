@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/http/httputil"
@@ -76,15 +77,21 @@ func crosHandler(context *gin.Context) {
 		context.Status(http.StatusOK)
 		return
 	}
+
+	uid := uuid.NewString()
+	// 请求打印
 	data, err := httputil.DumpRequest(context.Request, false)
 	if err != nil {
 		logrus.Error(err)
 	} else {
-		fmt.Printf("%s\n", data)
+		fmt.Printf("\n\n\n\n------ Start request %s  ---------\n%s\n", uid, data)
 	}
 
 	//处理请求
 	context.Next()
+
+	// 结束处理
+	fmt.Printf("------ End request %s  ---------\n", uid)
 }
 
 func panicHandler(ctx *gin.Context) {
