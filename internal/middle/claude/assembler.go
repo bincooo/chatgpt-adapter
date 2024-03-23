@@ -25,7 +25,12 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		proxies = ctx.GetString("proxies")
 	)
 
-	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
+	model := vars.Model4WebClaude2
+	if strings.HasPrefix(req.Model, "claude-") {
+		model = req.Model
+	}
+
+	options := claude2.NewDefaultOptions(cookie, model)
 	options.Proxies = proxies
 
 	messages := req.Messages

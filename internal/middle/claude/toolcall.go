@@ -24,7 +24,12 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 		return false, err
 	}
 
-	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
+	model := vars.Model4WebClaude2
+	if strings.HasPrefix(req.Model, "claude-") {
+		model = req.Model
+	}
+
+	options := claude2.NewDefaultOptions(cookie, model)
 	options.Proxies = proxies
 
 	chat, err := claude2.New(options)
@@ -66,10 +71,10 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 	}
 
 	// 收集参数
-	return parseToToolCall(ctx, cookie, proxies, fun, req.Messages, req.Stream)
+	return parseToToolCall(ctx, cookie, proxies, model, fun, req.Messages, req.Stream)
 }
 
-func parseToToolCall(ctx *gin.Context, cookie, proxies string, fun *gpt.Function, messages []map[string]string, sse bool) (bool, error) {
+func parseToToolCall(ctx *gin.Context, cookie, proxies, model string, fun *gpt.Function, messages []map[string]string, sse bool) (bool, error) {
 	logrus.Infof("parseToToolCall ...")
 	prompt, err := middle.BuildToolCallsTemplate(
 		[]struct {
@@ -82,7 +87,7 @@ func parseToToolCall(ctx *gin.Context, cookie, proxies string, fun *gpt.Function
 		return false, err
 	}
 
-	options := claude2.NewDefaultOptions(cookie, vars.Model4WebClaude2)
+	options := claude2.NewDefaultOptions(cookie, model)
 	options.Proxies = proxies
 
 	chat, err := claude2.New(options)
