@@ -4,7 +4,7 @@ go 1.21.6
 
 require (
 	github.com/bincooo/claude-api v1.0.4-0.20240302022752-df7d854f32a6
-	github.com/bincooo/coze-api v1.0.1-0.20240318071710-81ef17ed7651
+	github.com/bincooo/coze-api v1.0.1-0.20240323121509-fa2c4586e365
 	github.com/bincooo/edge-api v1.0.3-1.1630.0
 	github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f
 	github.com/dlclark/regexp2 v1.7.0

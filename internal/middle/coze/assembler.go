@@ -17,6 +17,11 @@ import (
 const MODEL = "coze"
 
 var (
+	// 35-16k
+	botId35_16k   = "7349524440562090002"
+	version35_16k = "1711195961118"
+	scene35_16k   = 2
+
 	// 8k
 	botId8k   = "7344596855164452870"
 	version8k = "1710051331162"
@@ -30,8 +35,9 @@ var (
 
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
-		cookie  = ctx.GetString("token")
-		proxies = ctx.GetString("proxies")
+		cookie   = ctx.GetString("token")
+		proxies  = ctx.GetString("proxies")
+		notebook = ctx.GetBool("notebook")
 	)
 
 	messages := req.Messages
@@ -74,7 +80,16 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 
 	options := newOptions(proxies, pMessages)
 	chat := coze.New(cookie, msToken, options)
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages)
+
+	query := ""
+	if notebook && len(pMessages) > 0 {
+		// notebook 模式只取第一条 content
+		query = pMessages[0].Content
+	} else {
+		query = coze.MergeMessages(pMessages)
+	}
+
+	chatResponse, err := chat.Reply(ctx.Request.Context(), query)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
@@ -89,7 +104,8 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		proxies = ctx.GetString("proxies")
 	)
 
-	options := coze.NewDefaultOptions(botId8k, version8k, scene8k, proxies)
+	// 只绘画用3.5 16k即可
+	options := coze.NewDefaultOptions(botId35_16k, version35_16k, scene35_16k, proxies)
 	msToken := ""
 
 	if !strings.Contains(cookie, "[msToken=") {

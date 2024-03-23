@@ -13,6 +13,7 @@ import (
 )
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
+	var notebook = ctx.GetBool("notebook")
 	logrus.Infof("completeTools ...")
 	prompt, err := middle.BuildToolCallsTemplate(
 		req.Tools,
@@ -41,7 +42,16 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 
 	options := newOptions(proxies, pMessages)
 	chat := coze.New(ck, msToken, options)
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages)
+
+	query := ""
+	if notebook && len(pMessages) > 0 {
+		// notebook 模式只取第一条 content
+		query = pMessages[0].Content
+	} else {
+		query = coze.MergeMessages(pMessages)
+	}
+
+	chatResponse, err := chat.Reply(ctx.Request.Context(), query)
 	if err != nil {
 		return false, err
 	}
@@ -69,6 +79,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 }
 
 func parseToToolCall(ctx *gin.Context, cookie, proxies string, fun *gpt.Function, messages []map[string]string, sse bool) (bool, error) {
+	var notebook = ctx.GetBool("notebook")
 	logrus.Infof("parseToToolCall ...")
 	prompt, err := middle.BuildToolCallsTemplate(
 		[]struct {
@@ -100,7 +111,16 @@ func parseToToolCall(ctx *gin.Context, cookie, proxies string, fun *gpt.Function
 
 	options := newOptions(proxies, pMessages)
 	chat := coze.New(ck, msToken, options)
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages)
+
+	query := ""
+	if notebook && len(pMessages) > 0 {
+		// notebook 模式只取第一条 content
+		query = pMessages[0].Content
+	} else {
+		query = coze.MergeMessages(pMessages)
+	}
+
+	chatResponse, err := chat.Reply(ctx.Request.Context(), query)
 	if err != nil {
 		return false, err
 	}
