@@ -106,13 +106,13 @@ attribute:
 
 例子：
 ```text
-<@1 miss=2> hello ~ </@1>
+<@1 miss=true> hello ~ </@1>
 
 >>>>> 
 {
   "messages": [
     {
-      "content": "<@1 miss=2> hello ~ </@1> 你是一个猫娘xxx...",
+      "content": "<@1 miss=false> hello ~ </@1> 你是一个猫娘xxx...",
       "role": "system"
     },
     {
@@ -123,7 +123,7 @@ attribute:
       "content": "研读书籍，准备明天的测验",
       "role": "user"
     },
-    
+
     ... ...
   ],
   "model": "coze",
@@ -146,7 +146,7 @@ attribute:
       "content": "研读书籍，准备明天的测验\n\n hello ~ ",
       "role": "user"
     },
-    
+
     ... ...
   ],
   "model": "coze",
