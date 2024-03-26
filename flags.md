@@ -222,3 +222,50 @@ attribute:
     "error": null
 }
 ```
+
+#### 历史记录 (会放置到第一个user或assistant的前面)
+```text
+flag: histories
+```
+
+例子：
+```text
+<histories>[{"role": "user", "content": "hi!"}]</histories>
+
+>>>>> 
+{
+  "messages": [
+    {
+      "content": "<histories>[{"role": "assistant", "content": "了解，请问有什么可以帮到你？"}]</histories> 你是一个拥有128k上下文token的gpt机器人",
+      "role": "system"
+    },
+    {
+      "content": "你好",
+      "role": "user"
+    }
+  ],
+  "model": "coze",
+  "stream": false
+}
+
+最终效果
+>>>>>
+{
+  "messages": [
+    {
+      "content": "你是一个拥有128k上下文token的gpt机器人",
+      "role": "system"
+    },
+    {
+      "role": "assistant",
+      "content": "了解，请问有什么可以帮到你？"
+    },
+    {
+      "content": "你好",
+      "role": "user"
+    }
+  ],
+  "model": "coze",
+  "stream": false
+}
+```

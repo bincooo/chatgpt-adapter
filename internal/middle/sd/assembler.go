@@ -379,7 +379,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		}
 	}
 
-	message := r.Choices[0].Message.Content
+	message := strings.TrimSpace(r.Choices[0].Message.Content)
 	left := strings.Index(message, `"""`)
 	right := strings.LastIndex(message, `"""`)
 

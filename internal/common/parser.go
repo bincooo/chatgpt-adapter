@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	regexp "github.com/dlclark/regexp2"
@@ -416,46 +417,75 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
 
 		// matcher 流响应干预
 		if h['t'] == "matcher" {
-			find := ""
-			if f, ok := h['f']; ok {
-				find = f
+			handleMatcher(h, matchers)
+		}
+
+		// 历史记录
+		if h['t'] == "histories" {
+			content := strings.TrimSpace(h['v'])
+			if content[0] != '[' || content[len(content)-1] != ']' {
+				continue
 			}
-			if find == "" {
+			var baseMessages []map[string]string
+			if err := json.Unmarshal([]byte(content), &baseMessages); err != nil {
+				logrus.Error("histories flags handle failed")
 				continue
 			}
 
-			findL := 5
-			if l, e := strconv.Atoi(h['l']); e == nil {
-				findL = l
-			}
-
-			values := strings.Split(h['v'], ":")
-			if len(values) < 2 {
+			if len(baseMessages) == 0 {
 				continue
 			}
 
-			c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
-			join := strings.TrimSpace(strings.Join(values[1:], ":"))
-
-			matchers = append(matchers, &SymbolMatcher{
-				Find: find,
-				H: func(index int, content string) (state int, result string) {
-					r := []rune(content)
-					if index+findL > len(r)-1 {
-						return MAT_MATCHING, content
-					}
-					replace, err := c.Replace(encode(content), join, -1, -1)
-					if err != nil {
-						logrus.Warn("compile failed: "+values[0], err)
-						return MAT_MATCHED, content
-					}
-					return MAT_MATCHED, decode(replace)
-				},
-			})
+			for idx := 0; idx < len(messages); idx++ {
+				if !strings.Contains("|system|function|", messages[idx]["role"]) {
+					messages = append(messages[:idx], append(baseMessages, messages[idx:]...)...)
+					break
+				}
+			}
 		}
 	}
 
 	return matchers
+}
+
+// matcher 流响应干预
+func handleMatcher(h map[uint8]string, matchers []Matcher) {
+	find := ""
+	if f, ok := h['f']; ok {
+		find = f
+	}
+	if find == "" {
+		return
+	}
+
+	findL := 5
+	if l, e := strconv.Atoi(h['l']); e == nil {
+		findL = l
+	}
+
+	values := strings.Split(h['v'], ":")
+	if len(values) < 2 {
+		return
+	}
+
+	c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
+	join := strings.TrimSpace(strings.Join(values[1:], ":"))
+
+	matchers = append(matchers, &SymbolMatcher{
+		Find: find,
+		H: func(index int, content string) (state int, result string) {
+			r := []rune(content)
+			if index+findL > len(r)-1 {
+				return MAT_MATCHING, content
+			}
+			replace, err := c.Replace(encode(content), join, -1, -1)
+			if err != nil {
+				logrus.Warn("compile failed: "+values[0], err)
+				return MAT_MATCHED, content
+			}
+			return MAT_MATCHED, decode(replace)
+		},
+	})
 }
 
 func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (handles []map[uint8]string) {
@@ -466,6 +496,7 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 			"debug",
 			"matcher",
 			"notebook", // bing 的notebook模式
+			"histories",
 		})
 	)
 
@@ -556,6 +587,12 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 			// debug 模式
 			if node.t == XML_TYPE_X && node.tag == "debug" {
 				ctx.Set("debug", true)
+				clean(content[node.index:node.end])
+			}
+
+			// 历史记录
+			if node.t == XML_TYPE_X && node.tag == "histories" {
+				handles = append(handles, map[uint8]string{'v': node.content, 't': "histories"})
 				clean(content[node.index:node.end])
 			}
 		}
