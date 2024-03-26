@@ -236,7 +236,7 @@ flag: histories
 {
   "messages": [
     {
-      "content": "<histories>[{"role": "assistant", "content": "了解，请问有什么可以帮到你？"}]</histories> 你是一个拥有128k上下文token的gpt机器人",
+      "content": "<histories>[{\"role\": \"assistant\", \"content\": \"了解，请问有什么可以帮到你？\"}]</histories> 你是一个拥有128k上下文token的gpt机器人",
       "role": "system"
     },
     {
