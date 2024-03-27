@@ -61,7 +61,7 @@ func generations(ctx *gin.Context) {
 	}
 
 	token := ctx.GetString("token")
-	if strings.Contains(token, "[msToken") {
+	if len(token) == 32 {
 		chatGenerationRequest.Model = "coze." + chatGenerationRequest.Model
 	} else if token == "sk-prodia-xl" {
 		ctx.Set("prodia.space", "xl")

@@ -68,18 +68,8 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		return
 	}
 
-	msToken := ""
-	if !strings.Contains(cookie, "[msToken=") {
-		middle.ResponseWithV(ctx, -1, "please provide the '[msToken=xxx]' cookie parameter")
-		return
-	} else {
-		co := strings.Split(cookie, "[msToken=")
-		msToken = strings.TrimSuffix(co[1], "]")
-		cookie = co[0]
-	}
-
 	options := newOptions(proxies, pMessages)
-	chat := coze.New(cookie, msToken, options)
+	chat := coze.New(cookie, options)
 
 	query := ""
 	if notebook && len(pMessages) > 0 {
@@ -106,18 +96,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 
 	// 只绘画用3.5 16k即可
 	options := coze.NewDefaultOptions(botId35_16k, version35_16k, scene35_16k, proxies)
-	msToken := ""
-
-	if !strings.Contains(cookie, "[msToken=") {
-		middle.ResponseWithV(ctx, -1, "please provide the '[msToken=xxx]' cookie parameter")
-		return
-	} else {
-		co := strings.Split(cookie, "[msToken=")
-		msToken = strings.TrimSuffix(co[1], "]")
-		cookie = co[0]
-	}
-
-	chat := coze.New(cookie, msToken, options)
+	chat := coze.New(cookie, options)
 	image, err := chat.Images(ctx.Request.Context(), req.Prompt)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)

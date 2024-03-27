@@ -1,7 +1,6 @@
 package coze
 
 import (
-	"errors"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
@@ -30,18 +29,8 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 		},
 	}
 
-	ck := ""
-	msToken := ""
-	if !strings.Contains(cookie, "[msToken=") {
-		return false, errors.New("please provide the '[msToken=xxx]' cookie parameter")
-	} else {
-		co := strings.Split(cookie, "[msToken=")
-		msToken = strings.TrimSuffix(co[1], "]")
-		ck = co[0]
-	}
-
 	options := newOptions(proxies, pMessages)
-	chat := coze.New(ck, msToken, options)
+	chat := coze.New(cookie, options)
 
 	query := ""
 	if notebook && len(pMessages) > 0 {
@@ -99,18 +88,8 @@ func parseToToolCall(ctx *gin.Context, cookie, proxies string, fun *gpt.Function
 		},
 	}
 
-	ck := ""
-	msToken := ""
-	if !strings.Contains(cookie, "[msToken=") {
-		return false, errors.New("please provide the '[msToken=xxx]' cookie parameter")
-	} else {
-		co := strings.Split(cookie, "[msToken=")
-		msToken = strings.TrimSuffix(co[1], "]")
-		ck = co[0]
-	}
-
 	options := newOptions(proxies, pMessages)
-	chat := coze.New(ck, msToken, options)
+	chat := coze.New(cookie, options)
 
 	query := ""
 	if notebook && len(pMessages) > 0 {
