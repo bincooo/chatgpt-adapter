@@ -93,15 +93,9 @@ gemini:
 > 在 `ai.google.dev` 中申请，获取 token凭证就是 `Authorization` 参数
 
 coze:
-> 在 `www.coze.com` 官网中登陆，浏览器 `cookies` 中取出 `sessionid` 、`msToken` 的值就是 `Authorization` 参数
->
-> 格式拼接： 
+> 在 `www.coze.com` 官网中登陆，浏览器 `cookies` 中取出 `sessionid` 的值就是 `Authorization` 参数
 > 
-> ${sessionid}[msToken=${msToken}]
-> 
-> 例子：
-> 
-> 3fdb9fb39a9bc013049e4315c5xxx[msToken=xxx]
+> TIPS：用户在更新版本时请注意，coze 不再需要传入msToken，更新后需要删除。
 
 
 #### free画图接口
