@@ -25,23 +25,27 @@ func IsCanceled(ctx context.Context) error {
 }
 
 func ResponseWithE(ctx *gin.Context, code int, err error) {
-	logrus.Error("response error: ", err)
-	if code == -1 {
-		code = http.StatusInternalServerError
-	}
-	ctx.JSON(code, gin.H{
-		"error": map[string]string{
-			"message": err.Error(),
-		},
-	})
+	ResponseWithV(ctx, code, err.Error())
 }
 
+// one-api 重试机制
+//
+//	read to https://github.com/songquanpeng/one-api/blob/5e81e19bc81e88d5df15a04f6a6268886127e002/controller/relay.go#L99
+//	code 429 http.StatusTooManyRequests
+//	code 5xx
+//
+// one-api 自动关闭管道
+//
+//	https://github.com/songquanpeng/one-api/blob/5e81e19bc81e88d5df15a04f6a6268886127e002/controller/relay.go#L118
+//	code 401 http.StatusUnauthorized
+//	err.Type ...
 func ResponseWithV(ctx *gin.Context, code int, error string) {
 	logrus.Errorf("response error: %s", error)
 	if code == -1 {
 		code = http.StatusInternalServerError
 	}
 	ctx.JSON(code, gin.H{
+		// "code": "invalid_api_key",
 		"error": map[string]string{
 			"message": error,
 		},

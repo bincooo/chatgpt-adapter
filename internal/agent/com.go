@@ -48,7 +48,8 @@ const ExtractJson = `你可以从 <对话记录></对话记录> 中提取指定 
 <字段说明>
 1. 下面的 JSON 字符串均按照 JSON Schema 的规则描述。
 2. key 代表字段名；description 代表字段的描述；required 代表是否必填(true|false)；type 代表数据类型；
-3. 如果没有可提取的内容，忽略该字段，如果是必填项则留空。
+3.1 如果没有可提取的内容，忽略该字段，如果是必填项就必须提取出一个值。
+3.2 当无法提取必填项时，请提醒用户提供信息（精简回复），不返回 JSON 字符串。
 4. 本次需提取的JSON Schema：
 {{- range $index, $value := .tools}}
 {{- if eq $value.T "function" }}

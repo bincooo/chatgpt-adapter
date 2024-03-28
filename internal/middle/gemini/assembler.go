@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/bincooo/goole15"
 )
 
 const MODEL = "gemini"
@@ -53,6 +55,75 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		return
 	}
 	waitResponse(ctx, matchers, response, req.Stream)
+}
+
+func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
+	var (
+		cookie  = ctx.GetString("token")
+		proxies = ctx.GetString("proxies")
+	)
+
+	// 复原转码
+	matchers = appendMatchers(matchers)
+	messages := req.Messages
+	messageL := len(messages)
+	if messageL == 0 {
+		middle.ResponseWithV(ctx, -1, "[] is too short - 'messages'")
+		return
+	}
+
+	content, err := buildConversation15(messages)
+	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
+	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
+	// 解析cookie
+	sign, auth, key, co := extCookie(cookie)
+	opts := goole.NewDefaultOptions(proxies)
+	chat := goole.New(co, sign, auth, key, opts)
+	ch, err := chat.Reply(ctx.Request.Context(), content)
+	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+	waitResponse15(ctx, matchers, ch, req.Stream)
+}
+
+func extCookie(co string) (sign, auth, key, cookie string) {
+	cookie = co
+	index := strings.Index(cookie, "[sign=")
+	if index > -1 {
+		end := strings.Index(cookie[index:], "]")
+		if end > -1 {
+			sign = cookie[index+6 : index+end]
+			cookie = cookie[:index] + cookie[index+end+1:]
+		}
+	}
+
+	index = strings.Index(cookie, "[auth=")
+	if index > -1 {
+		end := strings.Index(cookie[index:], "]")
+		if end > -1 {
+			auth = cookie[index+6 : index+end]
+			cookie = cookie[:index] + cookie[index+end+1:]
+		}
+	}
+
+	index = strings.Index(cookie, "[key=")
+	if index > -1 {
+		end := strings.Index(cookie[index:], "]")
+		if end > -1 {
+			key = cookie[index+5 : index+end]
+			cookie = cookie[:index] + cookie[index+end+1:]
+		}
+	}
+	return
 }
 
 func appendMatchers(matchers []common.Matcher) []common.Matcher {
@@ -191,6 +262,41 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 	}
 }
 
+func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string, sse bool) {
+	content := ""
+	created := time.Now().Unix()
+	logrus.Infof("waitResponse ...")
+
+	for {
+		tex, ok := <-ch
+		if !ok {
+			break
+		}
+
+		if strings.HasPrefix(tex, "error: ") {
+			middle.ResponseWithV(ctx, -1, strings.TrimPrefix(tex, "error: "))
+			return
+		}
+
+		if strings.HasPrefix(tex, "text: ") {
+			raw := strings.TrimPrefix(tex, "text: ")
+			fmt.Printf("----- raw -----\n %s\n", raw)
+			raw = common.ExecMatchers(matchers, raw)
+			if sse {
+				middle.ResponseWithSSE(ctx, MODEL, raw, created)
+			} else {
+				content += raw
+			}
+		}
+	}
+
+	if !sse {
+		middle.ResponseWith(ctx, MODEL, content)
+	} else {
+		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", created)
+	}
+}
+
 func buildConversation(messages []map[string]string) (string, error) {
 	pos := len(messages) - 1
 	if pos < 0 {
@@ -252,6 +358,76 @@ func buildConversation(messages []map[string]string) (string, error) {
 	}
 
 	return pMessages, nil
+}
+
+func buildConversation15(messages []map[string]string) (string, error) {
+	pos := len(messages) - 1
+	if pos < 0 {
+		return "", nil
+	}
+
+	pos = 0
+	messageL := len(messages)
+
+	role := ""
+	buffer := make([]string, 0)
+
+	condition := func(expr string) string {
+		switch expr {
+		case "system", "function", "assistant":
+			return expr
+		case "user":
+			return "human"
+		default:
+			return ""
+		}
+	}
+
+	var pMessages []goole.Message
+
+	// 合并历史对话
+	for {
+		if pos >= messageL {
+			if len(buffer) > 0 {
+				pMessages = append(pMessages, goole.Message{
+					Role:    role,
+					Content: strings.Join(buffer, "\n\n"),
+				})
+			}
+			break
+		}
+
+		message := messages[pos]
+		curr := condition(message["role"])
+		content := message["content"]
+		if curr == "" {
+			return "", errors.New(
+				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
+					message["role"], pos))
+		}
+		pos++
+		if role == "" {
+			role = curr
+		}
+
+		if curr == "function" {
+			content = fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], content)
+		}
+
+		if curr == role {
+			buffer = append(buffer, content)
+			continue
+		}
+
+		pMessages = append(pMessages, goole.Message{
+			Role:    role,
+			Content: strings.Join(buffer, "\n\n"),
+		})
+		buffer = append(make([]string, 0), content)
+		role = curr
+	}
+
+	return goole.MergeMessages(pMessages), nil
 }
 
 //

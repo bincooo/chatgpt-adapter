@@ -4,8 +4,9 @@ go 1.21.6
 
 require (
 	github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71
-	github.com/bincooo/coze-api v1.0.2-0.20240327062323-096282db2f26
+	github.com/bincooo/coze-api v1.0.2-0.20240328173348-6702a168134d
 	github.com/bincooo/edge-api v1.0.3-1.1630.0
+	github.com/bincooo/goole15 v0.0.0-20240328221413-240ab9823895
 	github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/gin-gonic/gin v1.9.1

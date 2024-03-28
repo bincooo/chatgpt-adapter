@@ -40,8 +40,10 @@ func completions(ctx *gin.Context) {
 		bing.Complete(ctx, chatCompletionRequest, matchers)
 	case "claude":
 		claude.Complete(ctx, chatCompletionRequest, matchers)
-	case "gemini":
+	case "gemini-1.0":
 		gemini.Complete(ctx, chatCompletionRequest, matchers)
+	case "gemini-1.5":
+		gemini.Complete15(ctx, chatCompletionRequest, matchers)
 	case "coze":
 		coze.Complete(ctx, chatCompletionRequest, matchers)
 	default:
