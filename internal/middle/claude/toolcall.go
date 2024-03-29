@@ -62,6 +62,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 	for _, t := range req.Tools {
 		if strings.Contains(content, t.Fun.Id) {
 			fun = &t.Fun
+			break
 		}
 	}
 
