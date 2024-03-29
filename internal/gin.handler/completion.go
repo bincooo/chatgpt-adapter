@@ -25,7 +25,7 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
-	matchers := common.XmlPlot(ctx, chatCompletionRequest.Messages)
+	matchers := common.XmlPlot(ctx, &chatCompletionRequest)
 	if ctx.GetBool("debug") {
 		indent, err := json.MarshalIndent(chatCompletionRequest, "", "  ")
 		if err != nil {

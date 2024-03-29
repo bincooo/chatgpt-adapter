@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -344,14 +345,14 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 	return slice.s
 }
 
-func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
+func XmlPlot(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 	matchers := NewMatchers()
 	flags := pkg.Config.GetBool("flags")
 	if !flags {
 		return matchers
 	}
 
-	handles := xmlPlotToHandleContents(ctx, messages)
+	handles := xmlPlotToHandleContents(ctx, req.Messages)
 	for _, h := range handles {
 		// 正则替换
 		if h['t'] == "regex" {
@@ -369,16 +370,16 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
 			// 忽略尾部n条
 			pos, _ := strconv.Atoi(h['m'])
 			if pos > -1 {
-				pos = len(messages) - 1 - pos
+				pos = len(req.Messages) - 1 - pos
 				if pos < 0 {
 					pos = 0
 				}
 			} else {
-				pos = len(messages)
+				pos = len(req.Messages)
 			}
 
 			c := regexp.MustCompile(cmp, regexp.Compiled)
-			for idx, message := range messages {
+			for idx, message := range req.Messages {
 				if idx < pos && message["role"] != "system" {
 					replace, err := c.Replace(encode(message["content"]), value, -1, -1)
 					if err != nil {
@@ -393,7 +394,7 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
 		// 深度插入
 		if h['t'] == "insert" {
 			i, _ := strconv.Atoi(h['i'])
-			messageL := len(messages)
+			messageL := len(req.Messages)
 			if h['m'] == "true" && messageL-1 < Abs(i) {
 				continue
 			}
@@ -412,7 +413,7 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
 					pos = 0
 				}
 			}
-			messages[pos]["content"] += "\n\n" + h['v']
+			req.Messages[pos]["content"] += "\n\n" + h['v']
 		}
 
 		// matcher 流响应干预
@@ -436,9 +437,9 @@ func XmlPlot(ctx *gin.Context, messages []map[string]string) []Matcher {
 				continue
 			}
 
-			for idx := 0; idx < len(messages); idx++ {
-				if !strings.Contains("|system|function|", messages[idx]["role"]) {
-					messages = append(messages[:idx], append(baseMessages, messages[idx:]...)...)
+			for idx := 0; idx < len(req.Messages); idx++ {
+				if !strings.Contains("|system|function|", req.Messages[idx]["role"]) {
+					req.Messages = append(req.Messages[:idx], append(baseMessages, req.Messages[idx:]...)...)
 					break
 				}
 			}
