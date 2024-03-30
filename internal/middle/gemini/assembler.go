@@ -84,18 +84,22 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 	}
 
 	// 解析cookie
-	sign, auth, key, co := extCookie(cookie)
+	sign, auth, key, user, co := extCookie(cookie)
 	opts := goole.NewDefaultOptions(proxies)
-	chat := goole.New(co, sign, auth, key, opts)
+	chat := goole.New(co, sign, auth, key, user, opts)
 	ch, err := chat.Reply(ctx.Request.Context(), content)
 	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
+		code := -1
+		if strings.Contains(err.Error(), "429 Too Many Requests") {
+			code = http.StatusTooManyRequests
+		}
+		middle.ResponseWithE(ctx, code, err)
 		return
 	}
 	waitResponse15(ctx, matchers, ch, req.Stream)
 }
 
-func extCookie(co string) (sign, auth, key, cookie string) {
+func extCookie(co string) (sign, auth, key, user string, cookie string) {
 	cookie = co
 	index := strings.Index(cookie, "[sign=")
 	if index > -1 {
@@ -120,6 +124,15 @@ func extCookie(co string) (sign, auth, key, cookie string) {
 		end := strings.Index(cookie[index:], "]")
 		if end > -1 {
 			key = cookie[index+5 : index+end]
+			cookie = cookie[:index] + cookie[index+end+1:]
+		}
+	}
+
+	index = strings.Index(cookie, "[u=")
+	if index > -1 {
+		end := strings.Index(cookie[index:], "]")
+		if end > -1 {
+			user = cookie[index+3 : index+end]
 			cookie = cookie[:index] + cookie[index+end+1:]
 		}
 	}
@@ -274,7 +287,12 @@ func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string,
 		}
 
 		if strings.HasPrefix(tex, "error: ") {
-			middle.ResponseWithV(ctx, -1, strings.TrimPrefix(tex, "error: "))
+			message := strings.TrimPrefix(tex, "error: ")
+			code := -1
+			if strings.Contains(message, "429 Too Many Requests") {
+				code = http.StatusTooManyRequests
+			}
+			middle.ResponseWithV(ctx, code, message)
 			return
 		}
 
