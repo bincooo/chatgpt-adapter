@@ -409,7 +409,7 @@ func XmlPlot(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 				}
 			} else {
 				// 反插
-				pos = messageL - 1 + i
+				pos = messageL + i
 				if pos < 0 {
 					pos = 0
 				}
