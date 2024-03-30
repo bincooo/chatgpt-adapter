@@ -49,7 +49,7 @@ func NewParser(whiteList []string) XmlParser {
 	return XmlParser{whiteList}
 }
 
-func (xml XmlParser) TrimCDATA(value string) string {
+func TrimCDATA(value string) string {
 	if !strings.Contains(value, "<![CDATA[") {
 		return value
 	}
@@ -131,10 +131,10 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 			}
 
 			if it[n+1] == '"' && it[len(it)-1] == '"' {
-				attr[it[:n]] = xml.TrimCDATA(it[n+2 : len(it)-1])
+				attr[it[:n]] = TrimCDATA(it[n+2 : len(it)-1])
 			}
 
-			s := xml.TrimCDATA(it[n+1:])
+			s := TrimCDATA(it[n+1:])
 			v1, err := strconv.Atoi(s)
 			if err == nil {
 				attr[it[:n]] = v1
@@ -213,7 +213,7 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 					step := 2 + len(curr.tag)
 					curr.t = XML_TYPE_X
 					curr.end = n + 1
-					curr.content = xml.TrimCDATA(content[curr.index+step : curr.end-len(split[0])-3])
+					curr.content = TrimCDATA(content[curr.index+step : curr.end-len(split[0])-3])
 					// 解析xml参数
 					if len(split) > 1 {
 						curr.tag = split[0]
@@ -353,16 +353,17 @@ func XmlPlot(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 	}
 
 	handles := xmlPlotToHandleContents(ctx, req.Messages)
+
 	for _, h := range handles {
 		// 正则替换
 		if h['t'] == "regex" {
-			s := strings.Split(h['v'], ":")
+			s := split(h['v'])
 			if len(s) < 2 {
 				continue
 			}
 
 			cmp := strings.TrimSpace(s[0])
-			value := strings.TrimSpace(strings.Join(s[1:], ""))
+			value := strings.TrimSpace(s[1])
 			if cmp == "" {
 				continue
 			}
@@ -464,13 +465,13 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 		findL = l
 	}
 
-	values := strings.Split(h['v'], ":")
+	values := split(h['v'])
 	if len(values) < 2 {
 		return
 	}
 
 	c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
-	join := strings.TrimSpace(strings.Join(values[1:], ":"))
+	join := strings.TrimSpace(values[1])
 
 	matchers = append(matchers, &SymbolMatcher{
 		Find: find,
@@ -605,4 +606,18 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 		})
 	}
 	return
+}
+
+func split(value string) []string {
+	contentL := len(value)
+	for i := 0; i < contentL; i++ {
+		if value[i] == ':' {
+			if i < 1 || value[i-1] != '\\' {
+				return []string{
+					strings.ReplaceAll(value[:i], "\\:", ":"), value[i+1:],
+				}
+			}
+		}
+	}
+	return nil
 }
