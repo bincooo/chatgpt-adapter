@@ -208,16 +208,16 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 				}
 				// 找不到 ⬆⬆⬆⬆⬆
 
-				split := strings.Split(curr.tag, " ")
-				if split[0] == content[i+2:n] {
+				s := strings.Split(curr.tag, " ")
+				if s[0] == content[i+2:n] {
 					step := 2 + len(curr.tag)
 					curr.t = XML_TYPE_X
 					curr.end = n + 1
-					curr.content = TrimCDATA(content[curr.index+step : curr.end-len(split[0])-3])
+					curr.content = TrimCDATA(content[curr.index+step : curr.end-len(s[0])-3])
 					// 解析xml参数
-					if len(split) > 1 {
-						curr.tag = split[0]
-						curr.attr = parseAttr(split[1:])
+					if len(s) > 1 {
+						curr.tag = s[0]
+						curr.attr = parseAttr(s[1:])
 					}
 					i = n
 
@@ -414,7 +414,17 @@ func XmlPlot(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 					pos = 0
 				}
 			}
-			req.Messages[pos]["content"] += "\n\n" + h['v']
+
+			if h['r'] == "" {
+				req.Messages[pos]["content"] += "\n\n" + h['v']
+			} else {
+				req.Messages = append(req.Messages[:pos+1], append([]map[string]string{
+					{
+						"role":    h['r'],
+						"content": h['v'],
+					},
+				}, req.Messages[pos+1:]...)...)
+			}
 		}
 
 		// matcher 流响应干预
@@ -532,14 +542,18 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 					// 消息上下文次数少于插入深度时，是否忽略
 					// 如不忽略，将放置在头部或者尾部
 					miss := "true"
-					if node.attr != nil {
-						if it, ok := node.attr["miss"]; ok {
-							if v, o := it.(bool); !o || !v {
-								miss = "false"
-							}
+					if it, ok := node.attr["miss"]; ok {
+						if v, o := it.(bool); !o || !v {
+							miss = "false"
 						}
 					}
-					handles = append(handles, map[uint8]string{'i': node.tag[1:], 'v': node.content, 'm': miss, 't': "insert"})
+					// 插入元素
+					// 为空则是拼接到该消息末尾
+					r := ""
+					if it, ok := node.attr["role"]; ok {
+						r = it.(string)
+					}
+					handles = append(handles, map[uint8]string{'i': node.tag[1:], 'r': r, 'v': node.content, 'm': miss, 't': "insert"})
 					clean(content[node.index:node.end])
 				}
 			}

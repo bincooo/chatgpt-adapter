@@ -102,6 +102,7 @@ flag: @-*\d+    正数向下数，负数向上数
 
 attribute:
     miss: (bool) 超出 `messages` 长度时是否忽略 true/false, 为false时会拼接到第一条或者最后一条
+    role: (string) 留空或没有属性会在索引下的消息体末尾拼接，有值则在索引位置插入消息体:{ "role": role, "content": body }
 ```
 
 例子：
