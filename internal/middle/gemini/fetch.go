@@ -65,12 +65,7 @@ func build(ctx context.Context, proxies, token, content string, req gpt.ChatComp
 			"topP":            req.TopP,
 			"temperature":     req.Temperature, // 0.8
 			"maxOutputTokens": req.MaxTokens,
-			"stopSequences": []string{
-				"System:",
-				"Assistant:",
-				"User:",
-				"Function:",
-			},
+			"stopSequences":   []string{},
 		},
 		// 函数调用
 		"tools": []map[string][]any{
