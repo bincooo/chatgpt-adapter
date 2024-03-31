@@ -174,9 +174,14 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	var (
 		index   = 0
 		baseUrl = "https://prodia-fast-stable-diffusion.hf.space"
+		domain  = pkg.Config.GetString("domain")
 		proxies = ctx.GetString("proxies")
 		space   = ctx.GetString("prodia.space")
 	)
+
+	if domain == "" {
+		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
+	}
 
 	prompt, err := completeTagsGenerator(ctx, req.Prompt)
 	if err != nil {
@@ -276,16 +281,22 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 					eventError = fmt.Errorf("image save failed: %s", data)
 					return EMPTRY_EVENT_RETURN
 				}
-				value, eventError = common.UploadCatboxFile(proxies, file)
+				value = fmt.Sprintf("%s/file/%s", domain, file)
 			case "kb":
 				d = d[0].([]interface{})
 				result := d[0].(map[string]interface{})
-				value, eventError = common.UploadCatboxFile(proxies, fmt.Sprintf("%s/file=%s", bu, result["name"].(string)))
-				return EMPTRY_EVENT_RETURN
+				value, err = common.DownloadImage(proxies, fmt.Sprintf("%s/file=%s", bu, result["name"].(string)), "png")
+				if err != nil {
+					eventError = err
+				}
+				value = fmt.Sprintf("%s/file/%s", domain, value)
 			default:
 				result := d[0].(map[string]interface{})
-				value, eventError = common.UploadCatboxFile(proxies, fmt.Sprintf("%s/file=%s", bu, result["path"].(string)))
-				return EMPTRY_EVENT_RETURN
+				value, err = common.DownloadImage(proxies, fmt.Sprintf("%s/file=%s", bu, result["path"].(string)), "png")
+				if err != nil {
+					eventError = err
+				}
+				value = fmt.Sprintf("%s/file/%s", domain, value)
 			}
 		} else {
 			eventError = fmt.Errorf("image generate failed: %s", data)

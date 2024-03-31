@@ -106,9 +106,8 @@ var (
 func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	hash := sdio.SessionHash()
 	var (
-		cookie  = ctx.GetString("token")
-		proxies = ctx.GetString("proxies")
-		domain  = pkg.Config.GetString("domain")
+		cookie = ctx.GetString("token")
+		domain = pkg.Config.GetString("domain")
 	)
 
 	model := convertToModel(req.Style)
@@ -181,28 +180,9 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	}
 
 	if domain == "" {
-		file = fmt.Sprintf("http://127.0.0.1:%d/file/%s", ctx.GetInt("port"), file)
-		ctx.JSON(http.StatusOK, gin.H{
-			"created": time.Now().Unix(),
-			"styles":  models,
-			"data": []map[string]string{
-				{"url": file},
-			},
-			"currStyle": model,
-		})
-		return
+		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
-
-	if err = middle.IsCanceled(ctx); err != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
-	}
-	file, err = common.UploadCatboxFile(proxies, domain+"/file/"+file)
-	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
-	}
-
+	file = fmt.Sprintf("%s/file/%s", domain, file)
 	ctx.JSON(http.StatusOK, gin.H{
 		"created": time.Now().Unix(),
 		"styles":  models,
@@ -211,6 +191,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		},
 		"currStyle": model,
 	})
+	return
 }
 
 func convertToModel(style string) string {
