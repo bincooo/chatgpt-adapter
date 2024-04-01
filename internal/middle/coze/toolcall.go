@@ -30,7 +30,8 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 	}
 
 	options := newOptions(proxies, pMessages)
-	chat := coze.New(cookie, options)
+	co, msToken := extCookie(cookie)
+	chat := coze.New(co, msToken, options)
 
 	query := ""
 	if notebook && len(pMessages) > 0 {
@@ -90,7 +91,8 @@ func parseToToolCall(ctx *gin.Context, cookie, proxies string, fun *gpt.Function
 	}
 
 	options := newOptions(proxies, pMessages)
-	chat := coze.New(cookie, options)
+	co, msToken := extCookie(cookie)
+	chat := coze.New(co, msToken, options)
 
 	query := ""
 	if notebook && len(pMessages) > 0 {

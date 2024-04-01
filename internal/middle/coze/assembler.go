@@ -91,7 +91,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 
 func extCookie(co string) (cookie, msToken string) {
 	cookie = co
-	index := strings.Index(cookie, "[sign=")
+	index := strings.Index(cookie, "[msToken=")
 	if index > -1 {
 		end := strings.Index(cookie[index:], "]")
 		if end > -1 {
