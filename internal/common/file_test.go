@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+func TestHash(t *testing.T) {
+	t.Log(Hash("Hello"))
+}
+
 func Test_download(t *testing.T) {
 	file, err := DownloadImage("http://127.0.0.1:7890", "https://krebzonide-sdxl-turbo-with-refiner.hf.space/file=/tmp/gradio/e8cec4458822c7cd2308e8d36949cd3c1c446196/image.png", "png")
 	if err != nil {

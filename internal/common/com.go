@@ -1,6 +1,9 @@
 package common
 
-import "math/rand"
+import (
+	"hash/fnv"
+	"math/rand"
+)
 
 // 判断切片是否包含子元素
 func Contains[T comparable](slice []T, t T) bool {
@@ -38,4 +41,10 @@ func Abs(n int) int {
 		return -n
 	}
 	return n
+}
+
+func Hash(str string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(str))
+	return h.Sum32()
 }

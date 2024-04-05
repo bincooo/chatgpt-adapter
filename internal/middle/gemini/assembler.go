@@ -3,17 +3,21 @@ package gemini
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
+	com "github.com/bincooo/goole15/common"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bincooo/goole15"
@@ -21,6 +25,16 @@ import (
 
 const MODEL = "gemini"
 const GOOGLE_BASE = "https://generativelanguage.googleapis.com/%s?key=%s"
+const login = "http://127.0.0.1:8081/v1/login"
+
+// TODO clear loop
+var gkv = make(map[uint32]cookieOpts)
+var mu sync.Mutex
+
+type cookieOpts struct {
+	userAgent string
+	cookie    string
+}
 
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
@@ -59,7 +73,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 
 func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
-		cookie  = ctx.GetString("token")
+		token   = ctx.GetString("token")
 		proxies = ctx.GetString("proxies")
 	)
 
@@ -84,8 +98,14 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 	}
 
 	// 解析cookie
-	sign, auth, key, user, co := extCookie(cookie)
+	sign, auth, key, user, co, err := extCookie(ctx.Request.Context(), token, proxies)
+	if err != nil {
+		middle.ResponseWithE(ctx, -1, err)
+		return
+	}
+
 	opts := goole.NewDefaultOptions(proxies)
+	opts.UA(gkv[common.Hash(token)].userAgent)
 	chat := goole.New(co, sign, auth, key, user, opts)
 	ch, err := chat.Reply(ctx.Request.Context(), content)
 	if err != nil {
@@ -99,8 +119,63 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 	waitResponse15(ctx, matchers, ch, req.Stream)
 }
 
-func extCookie(co string) (sign, auth, key, user string, cookie string) {
-	cookie = co
+func extCookie(ctx context.Context, token, proxies string) (sign, auth, key, user string, cookie string, err error) {
+	var opts cookieOpts
+	h := common.Hash(token)
+	if co, ok := gkv[h]; ok {
+		opts = co
+	} else {
+		s := strings.Split(token, "|")
+		if len(s) < 4 {
+			err = errors.New("invalid token")
+			return
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+		response, e := com.New().
+			Proxies(proxies).
+			URL(login).
+			Method(http.MethodPost).
+			Context(ctx).
+			Header("Authorization", s[3]).
+			SetBody(map[string]string{
+				"mail":   s[0],
+				"cMail":  s[1],
+				"passwd": s[2],
+			}).
+			JsonHeader().
+			Do()
+		if e != nil {
+			err = errors.New("fetch cookies failed")
+			return
+		}
+
+		if response.StatusCode != http.StatusOK {
+			err = errors.New("fetch cookies failed: " + response.Status)
+			return
+		}
+
+		var result map[string]interface{}
+		e = com.ToObj(response, &result)
+		if e != nil {
+			err = errors.New(fmt.Sprintf("fetch cookies failed: %v", e))
+			return
+		}
+
+		if !reflect.DeepEqual(result["ok"], true) {
+			err = errors.New(fmt.Sprintf("fetch cookies failed: %s", result["message"]))
+			return
+		}
+
+		opts = cookieOpts{
+			userAgent: result["userAgent"].(string),
+			cookie:    result["cookies"].(string),
+		}
+		gkv[h] = opts
+	}
+
+	cookie = opts.cookie
 	index := strings.Index(cookie, "[sign=")
 	if index > -1 {
 		end := strings.Index(cookie[index:], "]")
@@ -378,10 +453,10 @@ func buildConversation(messages []map[string]string) (string, error) {
 	return pMessages, nil
 }
 
-func buildConversation15(messages []map[string]string) (string, error) {
+func buildConversation15(messages []map[string]string) ([]goole.Message, error) {
 	pos := len(messages) - 1
 	if pos < 0 {
-		return "", nil
+		return nil, errors.New("messages is empty")
 	}
 
 	pos = 0
@@ -392,10 +467,8 @@ func buildConversation15(messages []map[string]string) (string, error) {
 
 	condition := func(expr string) string {
 		switch expr {
-		case "system", "function", "assistant":
+		case "user", "system", "function", "assistant":
 			return expr
-		case "user":
-			return "human"
 		default:
 			return ""
 		}
@@ -419,7 +492,7 @@ func buildConversation15(messages []map[string]string) (string, error) {
 		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
-			return "", errors.New(
+			return nil, errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
@@ -445,7 +518,7 @@ func buildConversation15(messages []map[string]string) (string, error) {
 		role = curr
 	}
 
-	return goole.MergeMessages(pMessages), nil
+	return pMessages, nil
 }
 
 //

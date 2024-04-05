@@ -345,14 +345,15 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 	return slice.s
 }
 
-func XmlPlot(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
+func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 	matchers := NewMatchers()
+	ctx.Set("cmd", -1)
 	flags := pkg.Config.GetBool("flags")
 	if !flags {
 		return matchers
 	}
 
-	handles := xmlPlotToHandleContents(ctx, req.Messages)
+	handles := XmlFlagsToHandleContents(ctx, req.Messages)
 
 	for _, h := range handles {
 		// 正则替换
@@ -440,7 +441,7 @@ func XmlPlot(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 			}
 			var baseMessages []map[string]string
 			if err := json.Unmarshal([]byte(content), &baseMessages); err != nil {
-				logrus.Error("histories flags handle failed")
+				logrus.Error("histories flags handle failed: ", err)
 				continue
 			}
 
@@ -454,6 +455,15 @@ func XmlPlot(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 					break
 				}
 			}
+		}
+
+		// 适配FastGPT的工具调用
+		if h['t'] == "cmd" {
+			num, err := strconv.Atoi(h['n'])
+			if err != nil {
+				num = 0
+			}
+			ctx.Set("cmd", num)
 		}
 	}
 
@@ -500,15 +510,17 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 	})
 }
 
-func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (handles []map[uint8]string) {
+func XmlFlagsToHandleContents(ctx *gin.Context, messages []map[string]string) (handles []map[uint8]string) {
 	var (
 		parser = NewParser([]string{
 			"regex",
 			`r:@-*\d+`,
 			"debug",
 			"matcher",
+			"pad",      // bing中使用的标记：填充引导对话，尝试避免道歉
 			"notebook", // bing 的notebook模式
 			"histories",
+			"cmd",
 		})
 	)
 
@@ -594,6 +606,12 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 				clean(content[node.index:node.end])
 			}
 
+			// 开启 bing 的 pad 标记：填充引导对话，尝试避免道歉
+			if node.t == XML_TYPE_X && node.tag == "pad" {
+				ctx.Set("pad", true)
+				clean(content[node.index:node.end])
+			}
+
 			// 开启 bing 的 notebook 模式
 			if node.t == XML_TYPE_X && node.tag == "notebook" {
 				ctx.Set("notebook", true)
@@ -609,6 +627,16 @@ func xmlPlotToHandleContents(ctx *gin.Context, messages []map[string]string) (ha
 			// 历史记录
 			if node.t == XML_TYPE_X && node.tag == "histories" {
 				handles = append(handles, map[uint8]string{'v': node.content, 't': "histories"})
+				clean(content[node.index:node.end])
+			}
+
+			// 适配FastGPT的工具调用
+			if node.t == XML_TYPE_X && node.tag == "cmd" {
+				num := "0"
+				if l, ok := node.attr["num"]; ok {
+					num = fmt.Sprintf("%v", l)
+				}
+				handles = append(handles, map[uint8]string{'n': num, 't': "cmd"})
 				clean(content[node.index:node.end])
 			}
 		}

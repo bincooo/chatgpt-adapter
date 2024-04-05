@@ -4,12 +4,12 @@ github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
 github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71 h1:+uDGlcGcL/YL8eS5tM+9moWW3n9RIEsV5Ewk0pfZrwo=
 github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71/go.mod h1:qoD2FHwGq2+Ohl5xi+jFFYjAGxP0V1ImeIg6R05uqPQ=
-github.com/bincooo/coze-api v1.0.2-0.20240401142808-a01cec45cd23 h1:NQ/4xw8EWzlJjS2Yy34ZI/cyRCFlE7wYO1hLGk6S90k=
-github.com/bincooo/coze-api v1.0.2-0.20240401142808-a01cec45cd23/go.mod h1:/BwOAxy8B8f/xwOKcGQd4qGgpj16M3XDdAqAf4s5pyc=
+github.com/bincooo/coze-api v1.0.2-0.20240405081411-05cf25751abe h1:IitqcQim+NhhR5yP8otIf5iW5ryT2xvMB+rkm+ZZITk=
+github.com/bincooo/coze-api v1.0.2-0.20240405081411-05cf25751abe/go.mod h1:/BwOAxy8B8f/xwOKcGQd4qGgpj16M3XDdAqAf4s5pyc=
 github.com/bincooo/edge-api v1.0.3-1.1630.0 h1:VxEwnyazwNIhZaPpJdBGSQKvFbaAqBwPUllAMRGGD/0=
 github.com/bincooo/edge-api v1.0.3-1.1630.0/go.mod h1:KqUn1YF4q4FMy1I6Z3Zjq7qEoFQ9p4lbrFTJKcYwP5I=
-github.com/bincooo/goole15 v0.0.0-20240331121428-4b6a8b4c3d55 h1:EQM34CcvMzBlw4focxazcQOVtryMyzSbbV3U3Mgbdoo=
-github.com/bincooo/goole15 v0.0.0-20240331121428-4b6a8b4c3d55/go.mod h1:BhvAZuM5Neg6GbSGrWSStsU1dtpj9WJzC2zlgmT+DAA=
+github.com/bincooo/goole15 v0.0.0-20240405081041-d4f07e2b3d06 h1:HYrNgM4SWzf5dc7vLTnuLjiCOQ4HFOBFP0/pUYxnNxw=
+github.com/bincooo/goole15 v0.0.0-20240405081041-d4f07e2b3d06/go.mod h1:BhvAZuM5Neg6GbSGrWSStsU1dtpj9WJzC2zlgmT+DAA=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e/go.mod h1:0WuzYU+4cQL/hVbjoncY5TACMTbD9I+pLCdnPjfItp0=
 github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f h1:AvYn1OlESjdb8ktABNP5iCFAAu108n4IV04Lh+tEMdA=

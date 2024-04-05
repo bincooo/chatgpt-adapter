@@ -25,7 +25,7 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
-	matchers := common.XmlPlot(ctx, &chatCompletionRequest)
+	matchers := common.XmlFlags(ctx, &chatCompletionRequest)
 	if ctx.GetBool("debug") {
 		indent, err := json.MarshalIndent(chatCompletionRequest, "", "  ")
 		if err != nil {
@@ -63,7 +63,7 @@ func generations(ctx *gin.Context) {
 	}
 
 	token := ctx.GetString("token")
-	if strings.Contains(token, "[msToken=") {
+	if strings.Contains(token, "msToken=") || strings.Contains(token, "sessionid=") {
 		chatGenerationRequest.Model = "coze." + chatGenerationRequest.Model
 	} else if token == "sk-prodia-xl" {
 		ctx.Set("prodia.space", "xl")

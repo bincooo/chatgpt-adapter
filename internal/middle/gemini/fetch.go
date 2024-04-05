@@ -35,11 +35,11 @@ func build(ctx context.Context, proxies, token, content string, req gpt.ChatComp
 	}
 
 	if req.TopK == 0 {
-		req.TopK = 1
+		req.TopK = 100
 	}
 
 	if req.TopP == 0 {
-		req.TopP = 1
+		req.TopP = 0.95
 	}
 
 	// 参数基本与openai对齐
