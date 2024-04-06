@@ -46,14 +46,13 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 	// 复原转码
 	matchers = appendMatchers(matchers)
 
-	messages := req.Messages
-	messageL := len(messages)
+	messageL := len(req.Messages)
 	if messageL == 0 {
 		middle.ResponseWithV(ctx, -1, "[] is too short - 'messages'")
 		return
 	}
 
-	messages, err := buildConversation(messages)
+	messages, err := buildConversation(req.Messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
@@ -400,7 +399,7 @@ func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string,
 	}
 }
 
-func buildConversation(messages []map[string]string) (newMessages []map[string]string, err error) {
+func buildConversation(messages []map[string]string) (newMessages []map[string]interface{}, err error) {
 	pos := len(messages) - 1
 	if pos < 0 {
 		return
@@ -433,17 +432,26 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]s
 	}
 
 	// 合并历史对话
+	// [ { role: user, parts: [ { text: 'xxx' } ] } ]
 	for {
 		if pos >= messageL {
 			if len(buffer) > 0 {
-				newMessages = append(newMessages, map[string]string{
-					"role":    convRole(role),
-					"content": strings.Join(buffer, "\n\n"),
+				newMessages = append(newMessages, map[string]interface{}{
+					"role": convRole(role),
+					"parts": []interface{}{
+						map[string]string{
+							"text": strings.Join(buffer, "\n\n"),
+						},
+					},
 				})
 				if role == "system" {
-					newMessages = append(newMessages, map[string]string{
-						"role":    "model",
-						"content": "Okay.",
+					newMessages = append(newMessages, map[string]interface{}{
+						"role": "model",
+						"parts": []interface{}{
+							map[string]string{
+								"text": "Okay.",
+							},
+						},
 					})
 				}
 			}
@@ -471,14 +479,22 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]s
 			buffer = append(buffer, content)
 			continue
 		}
-		newMessages = append(newMessages, map[string]string{
-			"role":    convRole(role),
-			"content": strings.Join(buffer, "\n\n"),
+		newMessages = append(newMessages, map[string]interface{}{
+			"role": convRole(role),
+			"parts": []interface{}{
+				map[string]string{
+					"text": strings.Join(buffer, "\n\n"),
+				},
+			},
 		})
 		if role == "system" {
-			newMessages = append(newMessages, map[string]string{
-				"role":    "model",
-				"content": "Okay.",
+			newMessages = append(newMessages, map[string]interface{}{
+				"role": "model",
+				"parts": []interface{}{
+					map[string]string{
+						"text": "Okay.",
+					},
+				},
 			})
 		}
 		buffer = append(make([]string, 0), content)
