@@ -55,12 +55,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	}
 
 	marshal, err := json.Marshal(map[string]any{
-		"contents": struct {
-			Parts []map[string]interface{} `json:"parts"`
-		}{
-			//[]map[string]string{
-			//	{"text": content},
-			//},
+		"contents": []interface{}{
 			messages,
 		}, // [ { role: user, parts: [ { text: 'xxx' } ] } ]
 		"generationConfig": map[string]any{
