@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	com "github.com/bincooo/goole15/common"
 	"github.com/gin-gonic/gin"
@@ -52,7 +53,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		return
 	}
 
-	content, err := buildConversation(messages)
+	messages, err := buildConversation(messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
@@ -63,7 +64,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		return
 	}
 
-	response, err := build(ctx.Request.Context(), proxies, cookie, content, req)
+	response, err := build(ctx.Request.Context(), proxies, cookie, messages, req)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
@@ -131,13 +132,22 @@ func extCookie(ctx context.Context, token, proxies string) (sign, auth, key, use
 			return
 		}
 
+		gLogin := pkg.Config.GetString("goole")
+		if gLogin == "" {
+			gLogin = login
+		}
+
 		mu.Lock()
 		defer mu.Unlock()
+
+		timeout, cancel := context.WithTimeout(ctx, time.Minute)
+		defer cancel()
+
 		response, e := com.New().
 			Proxies(proxies).
-			URL(login).
+			URL(gLogin).
 			Method(http.MethodPost).
-			Context(ctx).
+			Context(timeout).
 			Header("Authorization", s[3]).
 			SetBody(map[string]string{
 				"mail":   s[0],
@@ -390,10 +400,10 @@ func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string,
 	}
 }
 
-func buildConversation(messages []map[string]string) (string, error) {
+func buildConversation(messages []map[string]string) (newMessages []map[string]string, err error) {
 	pos := len(messages) - 1
 	if pos < 0 {
-		return "", nil
+		return
 	}
 
 	pos = 0
@@ -404,22 +414,38 @@ func buildConversation(messages []map[string]string) (string, error) {
 
 	condition := func(expr string) string {
 		switch expr {
-		case "system", "function", "assistant":
+		case "system", "function", "assistant", "user":
 			return expr
-		case "user":
-			return "human"
 		default:
 			return ""
 		}
 	}
 
-	pMessages := ""
+	convRole := func(expr string) string {
+		switch expr {
+		case "system", "function", "user":
+			return "user"
+		case "assistant":
+			return "model"
+		default:
+			return "user"
+		}
+	}
 
 	// 合并历史对话
 	for {
 		if pos >= messageL {
 			if len(buffer) > 0 {
-				pMessages += fmt.Sprintf("%s:\n %s\n\n", strings.Title(role), strings.Join(buffer, "\n\n"))
+				newMessages = append(newMessages, map[string]string{
+					"role":    convRole(role),
+					"content": strings.Join(buffer, "\n\n"),
+				})
+				if role == "system" {
+					newMessages = append(newMessages, map[string]string{
+						"role":    "model",
+						"content": "Okay.",
+					})
+				}
 			}
 			break
 		}
@@ -428,7 +454,7 @@ func buildConversation(messages []map[string]string) (string, error) {
 		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
-			return "", errors.New(
+			return nil, errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
@@ -445,12 +471,21 @@ func buildConversation(messages []map[string]string) (string, error) {
 			buffer = append(buffer, content)
 			continue
 		}
-		pMessages += fmt.Sprintf("%s: \n%s\n\n", strings.Title(role), strings.Join(buffer, "\n\n"))
+		newMessages = append(newMessages, map[string]string{
+			"role":    convRole(role),
+			"content": strings.Join(buffer, "\n\n"),
+		})
+		if role == "system" {
+			newMessages = append(newMessages, map[string]string{
+				"role":    "model",
+				"content": "Okay.",
+			})
+		}
 		buffer = append(make([]string, 0), content)
 		role = curr
 	}
 
-	return pMessages, nil
+	return
 }
 
 func buildConversation15(messages []map[string]string) ([]goole.Message, error) {

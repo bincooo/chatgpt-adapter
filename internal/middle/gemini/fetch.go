@@ -25,7 +25,7 @@ type funcDecl struct {
 }
 
 // 构建请求，返回响应
-func build(ctx context.Context, proxies, token, content string, req gpt.ChatCompletionRequest) (*http.Response, error) {
+func build(ctx context.Context, proxies, token string, messages []map[string]string, req gpt.ChatCompletionRequest) (*http.Response, error) {
 	var (
 		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.0-pro:streamGenerateContent", token)
 	)
@@ -57,9 +57,12 @@ func build(ctx context.Context, proxies, token, content string, req gpt.ChatComp
 	marshal, err := json.Marshal(map[string]any{
 		"contents": struct {
 			Parts []map[string]string `json:"parts"`
-		}{[]map[string]string{
-			{"text": content},
-		}}, // [ { role: user, parts: [ 'xxx' ] } ]
+		}{
+			//[]map[string]string{
+			//	{"text": content},
+			//},
+			messages,
+		}, // [ { role: user, parts: [ 'xxx' ] } ]
 		"generationConfig": map[string]any{
 			"topK":            req.TopK,
 			"topP":            req.TopP,
