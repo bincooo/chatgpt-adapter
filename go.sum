@@ -8,8 +8,8 @@ github.com/bincooo/coze-api v1.0.2-0.20240405081411-05cf25751abe h1:IitqcQim+Nhh
 github.com/bincooo/coze-api v1.0.2-0.20240405081411-05cf25751abe/go.mod h1:/BwOAxy8B8f/xwOKcGQd4qGgpj16M3XDdAqAf4s5pyc=
 github.com/bincooo/edge-api v1.0.3-1.1630.0 h1:VxEwnyazwNIhZaPpJdBGSQKvFbaAqBwPUllAMRGGD/0=
 github.com/bincooo/edge-api v1.0.3-1.1630.0/go.mod h1:KqUn1YF4q4FMy1I6Z3Zjq7qEoFQ9p4lbrFTJKcYwP5I=
-github.com/bincooo/goole15 v0.0.0-20240405081041-d4f07e2b3d06 h1:HYrNgM4SWzf5dc7vLTnuLjiCOQ4HFOBFP0/pUYxnNxw=
-github.com/bincooo/goole15 v0.0.0-20240405081041-d4f07e2b3d06/go.mod h1:BhvAZuM5Neg6GbSGrWSStsU1dtpj9WJzC2zlgmT+DAA=
+github.com/bincooo/goole15 v0.0.0-20240407063206-f4fcba91de72 h1:aH0HJJy35n1DUCAgaQ+DcHEG15+thMI+ts7Vc7gjJa4=
+github.com/bincooo/goole15 v0.0.0-20240407063206-f4fcba91de72/go.mod h1:BhvAZuM5Neg6GbSGrWSStsU1dtpj9WJzC2zlgmT+DAA=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e/go.mod h1:0WuzYU+4cQL/hVbjoncY5TACMTbD9I+pLCdnPjfItp0=
 github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f h1:AvYn1OlESjdb8ktABNP5iCFAAu108n4IV04Lh+tEMdA=

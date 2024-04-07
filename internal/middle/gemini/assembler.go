@@ -37,6 +37,7 @@ type cookieOpts struct {
 	cookie    string
 }
 
+// https://ai.google.dev/models/gemini?hl=zh-cn
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
 		cookie  = ctx.GetString("token")
@@ -71,6 +72,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 	waitResponse(ctx, matchers, response, req.Stream)
 }
 
+// https://ai.google.dev/models/gemini?hl=zh-cn
 func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
 		token   = ctx.GetString("token")
@@ -79,14 +81,13 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 
 	// 复原转码
 	matchers = appendMatchers(matchers)
-	messages := req.Messages
-	messageL := len(messages)
+	messageL := len(req.Messages)
 	if messageL == 0 {
 		middle.ResponseWithV(ctx, -1, "[] is too short - 'messages'")
 		return
 	}
 
-	content, err := buildConversation15(messages)
+	messages, err := buildConversation15(req.Messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
@@ -98,16 +99,19 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 	}
 
 	// 解析cookie
-	sign, auth, key, user, co, err := extCookie(ctx.Request.Context(), token, proxies)
+	sign, auth, key, user, co, err := extCookie15(ctx.Request.Context(), token, proxies)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
 	opts := goole.NewDefaultOptions(proxies)
-	opts.UA(gkv[common.Hash(token)].userAgent)
+	if c, ok := gkv[common.Hash(token)]; ok {
+		opts.UA(c.userAgent)
+	}
+
 	chat := goole.New(co, sign, auth, key, user, opts)
-	ch, err := chat.Reply(ctx.Request.Context(), content)
+	ch, err := chat.Reply(ctx.Request.Context(), messages)
 	if err != nil {
 		code := -1
 		if strings.Contains(err.Error(), "429 Too Many Requests") {
@@ -119,10 +123,17 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 	waitResponse15(ctx, matchers, ch, req.Stream)
 }
 
-func extCookie(ctx context.Context, token, proxies string) (sign, auth, key, user string, cookie string, err error) {
+func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, user string, cookie string, err error) {
 	var opts cookieOpts
 	h := common.Hash(token)
-	if co, ok := gkv[h]; ok {
+
+	if !strings.Contains(token, "@gmail.com|") {
+		// 不走接口获取的token
+		opts = cookieOpts{
+			cookie: token,
+		}
+		//
+	} else if co, ok := gkv[h]; ok {
 		opts = co
 	} else {
 		s := strings.Split(token, "|")
@@ -385,7 +396,7 @@ func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string,
 			fmt.Printf("----- raw -----\n %s\n", raw)
 			raw = common.ExecMatchers(matchers, raw)
 			if sse {
-				middle.ResponseWithSSE(ctx, MODEL, raw, created)
+				middle.ResponseWithSSE(ctx, MODEL+"-1.5", raw, created)
 			} else {
 				content += raw
 			}
@@ -393,9 +404,9 @@ func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string,
 	}
 
 	if !sse {
-		middle.ResponseWith(ctx, MODEL, content)
+		middle.ResponseWith(ctx, MODEL+"-1.5", content)
 	} else {
-		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", created)
+		middle.ResponseWithSSE(ctx, MODEL+"-1.5", "[DONE]", created)
 	}
 }
 

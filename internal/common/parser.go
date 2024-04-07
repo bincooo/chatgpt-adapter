@@ -526,7 +526,7 @@ func XmlFlagsToHandleContents(ctx *gin.Context, messages []map[string]string) (h
 
 	for _, message := range messages {
 		role := message["role"]
-		if role != "assistant" && role != "system" && role != "user" {
+		if role != "system" && role != "user" {
 			continue
 		}
 
