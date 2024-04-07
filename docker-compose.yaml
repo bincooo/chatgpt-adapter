@@ -1,0 +1,10 @@
+version: '3.9'
+services:
+  server:
+    build: .
+    image: bincooo/chatgpt-adapter:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml
