@@ -4,6 +4,7 @@ go 1.21.6
 
 require (
 	github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71
+	github.com/bincooo/cohere-api v0.0.0-20240407191130-3fca0fc87bae
 	github.com/bincooo/coze-api v1.0.2-0.20240405081411-05cf25751abe
 	github.com/bincooo/edge-api v1.0.3-1.1630.0
 	github.com/bincooo/goole15 v0.0.0-20240407113036-f089274aea02
@@ -15,7 +16,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
-	golang.org/x/net v0.22.0
+	golang.org/x/net v0.24.0
 )
 
 require (
@@ -63,9 +64,9 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
+	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
