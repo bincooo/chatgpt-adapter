@@ -106,6 +106,9 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 	}
 
 	opts := goole.NewDefaultOptions(proxies)
+	opts.Temperature(req.Temperature)
+	opts.TopP(req.TopP)
+	opts.TopK(req.TopK)
 	if c, ok := gkv[common.Hash(token)]; ok {
 		opts.UA(c.userAgent)
 	}

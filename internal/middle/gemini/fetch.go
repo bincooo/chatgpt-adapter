@@ -30,6 +30,10 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.0-pro:streamGenerateContent", token)
 	)
 
+	if req.Temperature < 0.1 {
+		req.Temperature = 1
+	}
+
 	if req.MaxTokens == 0 {
 		req.MaxTokens = 2048
 	}

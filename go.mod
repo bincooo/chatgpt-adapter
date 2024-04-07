@@ -6,7 +6,7 @@ require (
 	github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71
 	github.com/bincooo/coze-api v1.0.2-0.20240405081411-05cf25751abe
 	github.com/bincooo/edge-api v1.0.3-1.1630.0
-	github.com/bincooo/goole15 v0.0.0-20240407063206-f4fcba91de72
+	github.com/bincooo/goole15 v0.0.0-20240407113036-f089274aea02
 	github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/gin-gonic/gin v1.9.1
