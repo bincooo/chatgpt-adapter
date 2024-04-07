@@ -145,10 +145,22 @@ func models(ctx *gin.Context) {
 				"owned_by": "coze-adapter",
 			},
 			{
-				"id":       "gemini",
+				"id":       "gemini-1.0",
 				"object":   "model",
 				"created":  1686935002,
 				"owned_by": "gemini-adapter",
+			},
+			{
+				"id":       "gemini-1.5",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "gemini-adapter",
+			},
+			{
+				"id":       "command-r-plus",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
 			},
 		},
 	})
