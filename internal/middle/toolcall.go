@@ -13,7 +13,7 @@ func BuildToolCallsTemplate(
 	messages []map[string]string,
 	toolCallsTemplate string,
 	maxMessage int,
-) (prompt string, err error) {
+) (message string, err error) {
 	pMessages := messages
 	content := "continue"
 	if messageL := len(messages); messageL > 0 && messages[messageL-1]["role"] == "user" {
@@ -43,7 +43,7 @@ func BuildToolCallsTemplate(
 			return i + s
 		}).
 		Build()
-	prompt, err = build(toolCallsTemplate)
+	message, err = build(toolCallsTemplate)
 	if err != nil {
 		return
 	}

@@ -518,7 +518,7 @@ func XmlFlagsToHandleContents(ctx *gin.Context, messages []map[string]string) (h
 			"debug",
 			"matcher",
 			"pad",      // bing中使用的标记：填充引导对话，尝试避免道歉
-			"notebook", // bing 的notebook模式
+			"notebook", // notebook模式
 			"histories",
 			"cmd",
 		})
@@ -612,9 +612,16 @@ func XmlFlagsToHandleContents(ctx *gin.Context, messages []map[string]string) (h
 				clean(content[node.index:node.end])
 			}
 
-			// 开启 bing 的 notebook 模式
+			// notebook 模式
 			if node.t == XML_TYPE_X && node.tag == "notebook" {
-				ctx.Set("notebook", true)
+				// 此标签默认为false， 可通过disabled属性设置开启和关闭
+				disabled := false
+				if e, ok := node.attr["disabled"]; ok {
+					if o, k := e.(bool); k {
+						disabled = o
+					}
+				}
+				ctx.Set("notebook", !disabled)
 				clean(content[node.index:node.end])
 			}
 

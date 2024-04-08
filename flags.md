@@ -32,7 +32,13 @@ flag: debug
 
 #### bing 模型 开启 notebook 模式
 ```text
+flag: notebook
+
+attribute:
+    disabled: (bool) 是否禁用，默认false
+
 <notebook />
+<notebook disabled />
 ```
 
 #### 正则替换

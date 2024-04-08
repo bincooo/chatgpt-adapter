@@ -27,6 +27,17 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
+	// cohere 默认generate模式
+	switch chatCompletionRequest.Model {
+	case cohere.COMMAND,
+		cohere.COMMAND_R,
+		cohere.COMMAND_LIGHT,
+		cohere.COMMAND_LIGHT_NIGHTLY,
+		cohere.COMMAND_NIGHTLY,
+		cohere.COMMAND_R_PLUS:
+		ctx.Set("notebook", true)
+	}
+
 	matchers := common.XmlFlags(ctx, &chatCompletionRequest)
 	if ctx.GetBool("debug") {
 		indent, err := json.MarshalIndent(chatCompletionRequest, "", "  ")

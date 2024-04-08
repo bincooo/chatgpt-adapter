@@ -13,7 +13,7 @@ import (
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
 	logrus.Infof("completeTools ...")
-	system, err := middle.BuildToolCallsTemplate(
+	message, err := middle.BuildToolCallsTemplate(
 		req.Tools,
 		req.Messages,
 		agent.CQConditions, 5)
@@ -22,9 +22,17 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 	}
 
 	pMessages := make([]cohere.Message, 0)
-	chat := cohere.New(cookie, 0.4, -1, req.Model)
+	chat := cohere.New(cookie, 0.4, req.Model, false)
 	chat.Proxies(proxies)
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, "请执行")
+	chat.TopK(req.TopK)
+	chat.MaxTokens(req.MaxTokens)
+	chat.StopSequences([]string{
+		"user:",
+		"assistant:",
+		"system:",
+	})
+
+	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, "", message)
 	if err != nil {
 		return false, err
 	}
@@ -54,7 +62,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 
 func parseToToolCall(ctx *gin.Context, cookie string, req gpt.ChatCompletionRequest, proxies string, fun *gpt.Function) (bool, error) {
 	logrus.Infof("parseToToolCall ...")
-	system, err := middle.BuildToolCallsTemplate(
+	message, err := middle.BuildToolCallsTemplate(
 		[]struct {
 			Fun gpt.Function `json:"function"`
 			T   string       `json:"type"`
@@ -66,9 +74,17 @@ func parseToToolCall(ctx *gin.Context, cookie string, req gpt.ChatCompletionRequ
 	}
 
 	pMessages := make([]cohere.Message, 0)
-	chat := cohere.New(cookie, 0.4, -1, req.Model)
+	chat := cohere.New(cookie, 0.4, req.Model, false)
 	chat.Proxies(proxies)
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, "请执行")
+	chat.TopK(req.TopK)
+	chat.MaxTokens(req.MaxTokens)
+	chat.StopSequences([]string{
+		"user:",
+		"assistant:",
+		"system:",
+	})
+
+	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, "", message)
 	if err != nil {
 		return false, err
 	}

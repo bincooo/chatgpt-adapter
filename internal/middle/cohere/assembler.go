@@ -17,27 +17,11 @@ import (
 
 const MODEL = "cohere"
 
-var (
-	// 35-16k
-	botId35_16k   = "7353052833752694791"
-	version35_16k = "1712016747307"
-	scene35_16k   = 2
-
-	// 8k
-	botId8k   = "7353047124357365778"
-	version8k = "1712016843935"
-	scene8k   = 2
-
-	// 128k
-	botId128k   = "7353048532129644562"
-	version128k = "1712016880672"
-	scene128k   = 2
-)
-
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
-		cookie  = ctx.GetString("token")
-		proxies = ctx.GetString("proxies")
+		cookie   = ctx.GetString("token")
+		proxies  = ctx.GetString("proxies")
+		notebook = ctx.GetBool("notebook")
 	)
 
 	messages := req.Messages
@@ -62,14 +46,41 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		}
 	}
 
-	pMessages, system, message, err := buildConversation(messages)
-	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
+	var system string
+	var message string
+	var pMessages []cohere.Message
+	var chat cohere.Chat
+	if notebook {
+		m, err := buildConversation(messages)
+		if err != nil {
+			middle.ResponseWithE(ctx, -1, err)
+			return
+		}
+
+		message = m
+		chat = cohere.New(cookie, req.Temperature, req.Model, false)
+		chat.Proxies(proxies)
+		chat.TopK(req.TopK)
+		chat.MaxTokens(req.MaxTokens)
+		chat.StopSequences([]string{
+			"user:",
+			"assistant:",
+			"system:",
+		})
+	} else {
+		p, s, m, err := buildChatConversation(messages)
+		if err != nil {
+			middle.ResponseWithE(ctx, -1, err)
+			return
+		}
+
+		system = s
+		message = m
+		pMessages = p
+		chat = cohere.New(cookie, req.Temperature, req.Model, true)
+		chat.Proxies(proxies)
 	}
 
-	chat := cohere.New(cookie, req.Temperature, -1, req.Model)
-	chat.Proxies(proxies)
 	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, message)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
@@ -157,7 +168,73 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	}
 }
 
-func buildConversation(messages []map[string]string) (pMessages []cohere.Message, system, content string, err error) {
+func buildConversation(messages []map[string]string) (content string, err error) {
+	pos := len(messages) - 1
+	if pos < 0 {
+		return
+	}
+
+	messageL := len(messages)
+	pMessages := make([]map[string]string, 0)
+
+	pos = 0
+	role := ""
+	buffer := make([]string, 0)
+
+	condition := func(expr string) string {
+		switch expr {
+		case "system", "user", "function", "assistant":
+			return expr
+		default:
+			return ""
+		}
+	}
+
+	for {
+		if pos >= messageL {
+			if len(buffer) > 0 {
+				pMessages = append(pMessages, map[string]string{
+					"role":    role,
+					"content": strings.Join(buffer, "\n\n"),
+				})
+			}
+			break
+		}
+
+		message := messages[pos]
+		curr := condition(message["role"])
+		tMessage := message["content"]
+		if curr == "" {
+			return "", errors.New(
+				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
+					message["role"], pos))
+		}
+
+		pos++
+		if role == "" {
+			role = curr
+		}
+
+		if curr == "function" {
+			tMessage = fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], tMessage)
+		}
+
+		if curr == role {
+			buffer = append(buffer, tMessage)
+			continue
+		}
+		pMessages = append(pMessages, map[string]string{
+			"role":    role,
+			"content": strings.Join(buffer, "\n\n"),
+		})
+		buffer = append(make([]string, 0), tMessage)
+		role = curr
+	}
+
+	return cohere.MergeMessages(pMessages), nil
+}
+
+func buildChatConversation(messages []map[string]string) (pMessages []cohere.Message, system, content string, err error) {
 	pos := len(messages) - 1
 	if pos < 0 {
 		return
