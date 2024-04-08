@@ -231,6 +231,14 @@ func buildConversation(messages []map[string]string) (content string, err error)
 		role = curr
 	}
 
+	// 尾部添加一个assistant空消息
+	if pMessages[len(pMessages)-1]["role"] != "assistant" {
+		pMessages = append(pMessages, map[string]string{
+			"role":    "assistant",
+			"content": "",
+		})
+	}
+
 	return cohere.MergeMessages(pMessages), nil
 }
 
