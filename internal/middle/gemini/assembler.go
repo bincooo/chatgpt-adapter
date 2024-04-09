@@ -109,7 +109,8 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 	opts.Temperature(req.Temperature)
 	opts.TopP(req.TopP)
 	opts.TopK(req.TopK)
-	if c, ok := gkv[common.Hash(token)]; ok {
+	h := common.Hash(token)
+	if c, ok := gkv[h]; ok {
 		opts.UA(c.userAgent)
 	}
 
@@ -117,8 +118,12 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 	ch, err := chat.Reply(ctx.Request.Context(), messages)
 	if err != nil {
 		code := -1
-		if strings.Contains(err.Error(), "429 Too Many Requests") {
+		errMessage := err.Error()
+		if strings.Contains(errMessage, "429 Too Many Requests") {
 			code = http.StatusTooManyRequests
+		}
+		if strings.Contains(errMessage, "500 Internal Server Error") {
+			delete(gkv, h) // 尚不清楚 500 错误的原因
 		}
 		middle.ResponseWithE(ctx, code, err)
 		return
@@ -138,6 +143,7 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 		//
 	} else if co, ok := gkv[h]; ok {
 		opts = co
+		logrus.Info("cookie: ", co.cookie)
 	} else {
 		s := strings.Split(token, "|")
 		if len(s) < 4 {
@@ -199,6 +205,7 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 	}
 
 	cookie = opts.cookie
+	logrus.Info("cookie: ", cookie)
 	index := strings.Index(cookie, "[sign=")
 	if index > -1 {
 		end := strings.Index(cookie[index:], "]")
