@@ -9,6 +9,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -125,6 +126,13 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	}
 
 	if res.StatusCode != http.StatusOK {
+		h := res.Header
+		if c := h.Get("content-type"); strings.Contains(c, "application/json") {
+			bts, e := io.ReadAll(res.Body)
+			if e == nil {
+				return nil, fmt.Errorf("%s: %s", res.Status, bts)
+			}
+		}
 		return nil, errors.New(res.Status)
 	}
 
