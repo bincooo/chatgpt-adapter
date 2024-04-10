@@ -434,21 +434,12 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 
 	condition := func(expr string) string {
 		switch expr {
-		case "system", "function", "assistant", "user":
-			return expr
-		default:
-			return ""
-		}
-	}
-
-	convRole := func(expr string) string {
-		switch expr {
-		case "system", "function", "user":
+		case "system", "user", "function":
 			return "user"
 		case "assistant":
 			return "model"
 		default:
-			return "user"
+			return ""
 		}
 	}
 
@@ -458,23 +449,23 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 		if pos >= messageL {
 			if len(buffer) > 0 {
 				newMessages = append(newMessages, map[string]interface{}{
-					"role": convRole(role),
+					"role": role,
 					"parts": []interface{}{
 						map[string]string{
 							"text": strings.Join(buffer, "\n\n"),
 						},
 					},
 				})
-				if role == "system" {
-					newMessages = append(newMessages, map[string]interface{}{
-						"role": "model",
-						"parts": []interface{}{
-							map[string]string{
-								"text": "Okay.",
-							},
+			}
+			if role == "model" { //
+				newMessages = append(newMessages, map[string]interface{}{
+					"role": "user",
+					"parts": []interface{}{
+						map[string]string{
+							"text": "continue",
 						},
-					})
-				}
+					},
+				})
 			}
 			break
 		}
@@ -492,7 +483,7 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 			role = curr
 		}
 
-		if curr == "function" {
+		if message["role"] == "function" {
 			content = fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], content)
 		}
 
@@ -501,23 +492,13 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 			continue
 		}
 		newMessages = append(newMessages, map[string]interface{}{
-			"role": convRole(role),
+			"role": role,
 			"parts": []interface{}{
 				map[string]string{
 					"text": strings.Join(buffer, "\n\n"),
 				},
 			},
 		})
-		if role == "system" {
-			newMessages = append(newMessages, map[string]interface{}{
-				"role": "model",
-				"parts": []interface{}{
-					map[string]string{
-						"text": "Okay.",
-					},
-				},
-			})
-		}
 		buffer = append(make([]string, 0), content)
 		role = curr
 	}
