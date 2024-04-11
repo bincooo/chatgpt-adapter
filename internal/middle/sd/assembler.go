@@ -66,17 +66,17 @@ CG illustration, {best quality}, sex, {{{{{masterpiece}}}}}, beautiful detailed 
 3.
 prompt=
 """
-nude, cute loli, {anime style}, {high quality},  {1 girl}, {black hair}, {brown eyes}, {wet skin},  {holding a towel}, {looking at the camera}, {hentai}, {{{{masterpiece}}}}
+cute loli, {anime style}, {high quality},  {1 girl}, {black hair}, {brown eyes}, {wet skin},  {holding a towel}, {looking at the camera}, {hentai}, {{{{masterpiece}}}}
 """
 4.
 prompt=
 """
-nude, cute loli, {smiling at me}, {green nature}, {pink lotus}
+cute loli, {smiling at me}, {green nature}, {pink lotus}
 """
 5.
 prompt=
 """
-nude, sex, mature woman, {running on the grassland}, {red hair}, {very sexy}, {high quality}, {full body}, {warm lighting}, {erotic}, {{{{masterpiece}}}}
+mature woman, {running on the grassland}, {red hair}, {very sexy}, {high quality}, {full body}, {warm lighting}, {erotic}, {{{{masterpiece}}}}
 """
 
 Comply with requirements:
