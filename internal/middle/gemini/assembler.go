@@ -28,9 +28,13 @@ const MODEL = "gemini"
 const GOOGLE_BASE = "https://generativelanguage.googleapis.com/%s?key=%s"
 const login = "http://127.0.0.1:8081/v1/login"
 
-// TODO clear loop
-var gkv = make(map[uint32]cookieOpts)
-var mu sync.Mutex
+var (
+	// TODO clear loop
+	gkv = make(map[uint32]cookieOpts)
+	mu  sync.Mutex
+
+	okey = "okey!"
+)
 
 type cookieOpts struct {
 	userAgent string
@@ -432,6 +436,7 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 	role := ""
 	buffer := make([]string, 0)
 
+	mergeMessages := make([]map[string]string, 0)
 	// role类型转换
 	condition := func(expr string) string {
 		switch expr {
@@ -446,67 +451,33 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 		}
 	}
 
-	// 检查下一个消息体是否是指定的role类型
-	next := func(pos int, role string) bool {
-		if pos+1 >= messageL {
-			return false
-		}
-		message := messages[pos+1]
-		return condition(message["role"]) == role
-	}
-
 	push := func(pos int, role string, content string) {
 		if role == "system" {
-			newMessages = append(newMessages, map[string]interface{}{
-				"role": "user",
-				"parts": []interface{}{
-					map[string]string{
-						"text": content,
-					},
-				},
+			mergeMessages = append(mergeMessages, map[string]string{
+				"role":    "user",
+				"content": content,
 			})
-			if !next(pos, "model") {
-				newMessages = append(newMessages, map[string]interface{}{
-					"role": "model",
-					"parts": []interface{}{
-						map[string]string{
-							"text": "okey!",
-						},
-					},
-				})
-			}
+			mergeMessages = append(mergeMessages, map[string]string{
+				"role":    "model",
+				"content": okey,
+			})
 		} else {
-			newMessages = append(newMessages, map[string]interface{}{
-				"role": role,
-				"parts": []interface{}{
-					map[string]string{
-						"text": content,
-					},
-				},
+			mergeMessages = append(mergeMessages, map[string]string{
+				"role":    role,
+				"content": content,
 			})
 		}
 	}
 
 	// 合并历史对话
-	// [ { role: user, parts: [ { text: 'xxx' } ] } ]
+	// merge one
 	for {
 		if pos >= messageL {
 			if len(buffer) > 0 {
 				join := strings.Join(buffer, "\n\n")
-				if len(join) > 0 {
+				if len(strings.TrimSpace(join)) > 0 {
 					push(pos, role, join)
 				}
-			}
-
-			if role == "model" || role == "system" { //
-				newMessages = append(newMessages, map[string]interface{}{
-					"role": "user",
-					"parts": []interface{}{
-						map[string]string{
-							"text": "continue",
-						},
-					},
-				})
 			}
 			break
 		}
@@ -529,7 +500,9 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 		}
 
 		if curr == role {
-			buffer = append(buffer, content)
+			if len(strings.TrimSpace(content)) > 0 {
+				buffer = append(buffer, content)
+			}
 			continue
 		}
 
@@ -542,6 +515,80 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 		role = curr
 	}
 
+	push = func(pos int, role string, content string) {
+		if role == "system" {
+			newMessages = append(newMessages, map[string]interface{}{
+				"role": "user",
+				"parts": []interface{}{
+					map[string]string{
+						"text": content,
+					},
+				},
+			})
+		} else {
+			newMessages = append(newMessages, map[string]interface{}{
+				"role": role,
+				"parts": []interface{}{
+					map[string]string{
+						"text": content,
+					},
+				},
+			})
+		}
+	}
+
+	pos = 0
+	role = ""
+	buffer = make([]string, 0)
+	messageL = len(mergeMessages)
+
+	// [ { role: user, parts: [ { text: 'xxx' } ] } ]
+	// merge two
+	for {
+		if pos >= messageL {
+			if len(buffer) > 0 {
+				join := strings.Join(buffer, "\n\n")
+				if len(join) > 0 {
+					push(pos, role, join)
+				}
+			}
+
+			message := newMessages[len(newMessages)-1]
+			if message["role"] == "model" { //
+				newMessages = append(newMessages, map[string]interface{}{
+					"role": "user",
+					"parts": []interface{}{
+						map[string]string{
+							"text": "continue",
+						},
+					},
+				})
+			}
+			break
+		}
+
+		message := mergeMessages[pos]
+		curr := message["role"]
+		content := message["content"]
+
+		pos++
+		if role == "" {
+			role = curr
+		}
+
+		if curr == role {
+			buffer = append(buffer, content)
+			continue
+		}
+
+		join := strings.Join(buffer, "\n\n")
+		if len(join) > 0 {
+			push(pos, role, join)
+		}
+
+		buffer = append(make([]string, 0), content)
+		role = curr
+	}
 	return
 }
 
@@ -587,7 +634,7 @@ func buildConversation15(messages []map[string]string) ([]goole.Message, error) 
 			if !next(pos, "assistant") {
 				newMessages = append(newMessages, goole.Message{
 					Role:    "assistant",
-					Content: "okey!",
+					Content: okey,
 				})
 			}
 		} else {

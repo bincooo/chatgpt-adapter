@@ -97,14 +97,12 @@ func crosHandler(context *gin.Context) {
 func panicHandler(ctx *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			if rec, ok := r.(string); ok {
-				logrus.Errorf("response error: %s", rec)
-				ctx.JSON(http.StatusUnauthorized, gin.H{
-					"error": map[string]string{
-						"message": rec,
-					},
-				})
-			}
+			logrus.Errorf("response error: %v", r)
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": map[string]string{
+					"message": fmt.Sprintf("%v", r),
+				},
+			})
 		}
 	}()
 

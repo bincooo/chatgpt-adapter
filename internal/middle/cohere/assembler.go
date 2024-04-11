@@ -278,7 +278,7 @@ func buildChatConversation(messages []map[string]string) (pMessages []cohere.Mes
 
 	role := ""
 	buffer := make([]string, 0)
-
+	var mergeMessages []cohere.Message
 	condition := func(expr string) string {
 		switch expr {
 		case "system", "user", "function", "assistant":
@@ -297,12 +297,13 @@ func buildChatConversation(messages []map[string]string) (pMessages []cohere.Mes
 		}
 	}
 
+	// merge one
 	for {
 		if pos >= messageL {
-			if len(buffer) > 0 {
-				pMessages = append(pMessages, cohere.Message{
+			if join := strings.Join(buffer, "\n\n"); len(strings.TrimSpace(join)) > 0 {
+				mergeMessages = append(mergeMessages, cohere.Message{
 					Role:    convRole(role),
-					Message: strings.Join(buffer, "\n\n"),
+					Message: join,
 				})
 			}
 			break
@@ -327,11 +328,53 @@ func buildChatConversation(messages []map[string]string) (pMessages []cohere.Mes
 		}
 
 		if curr == role {
+			tMessage = strings.TrimSpace(tMessage)
+			if len(tMessage) > 0 {
+				buffer = append(buffer, tMessage)
+			}
+			continue
+		}
+		mergeMessages = append(mergeMessages, cohere.Message{
+			Role:    convRole(role),
+			Message: strings.Join(buffer, "\n\n"),
+		})
+		buffer = append(make([]string, 0), tMessage)
+		role = curr
+	}
+
+	messageL = len(mergeMessages)
+
+	pos = 0
+	role = ""
+	buffer = make([]string, 0)
+
+	// merge two
+	for {
+		if pos >= messageL {
+			join := strings.Join(buffer, "\n\n")
+			pMessages = append(pMessages, cohere.Message{
+				Role:    role,
+				Message: join,
+			})
+			break
+		}
+
+		message := mergeMessages[pos]
+		curr := message.Role
+		tMessage := message.Message
+
+		pos++
+		if role == "" {
+			role = curr
+		}
+
+		if curr == role {
 			buffer = append(buffer, tMessage)
 			continue
 		}
+
 		pMessages = append(pMessages, cohere.Message{
-			Role:    convRole(role),
+			Role:    role,
 			Message: strings.Join(buffer, "\n\n"),
 		})
 		buffer = append(make([]string, 0), tMessage)
