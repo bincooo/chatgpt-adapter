@@ -28,8 +28,12 @@ type funcDecl struct {
 // 构建请求，返回响应
 func build(ctx context.Context, proxies, token string, messages []map[string]interface{}, req gpt.ChatCompletionRequest) (*http.Response, error) {
 	var (
-		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.0-pro:streamGenerateContent", token)
+		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.0-pro-latest:streamGenerateContent", token)
 	)
+
+	if req.Model == "gemini-1.5" {
+		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.5-pro-latest:streamGenerateContent", token)
+	}
 
 	if req.Temperature < 0.1 {
 		req.Temperature = 1
@@ -59,24 +63,28 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		}
 	}
 
-	marshal, err := json.Marshal(map[string]any{
-		"contents": []interface{}{
-			messages,
-		}, // [ { role: user, parts: [ { text: 'xxx' } ] } ]
+	// fix: Please ensure that multiturn requests ends with a user role or a function response.
+	if messages[0]["role"] != "user" {
+		messages = append([]map[string]interface{}{
+			{
+				"role": "user",
+				"parts": []interface{}{
+					map[string]string{
+						"text": "hi ~",
+					},
+				},
+			},
+		}, messages...)
+	}
+
+	payload := map[string]any{
+		"contents": messages, // [ { role: user, parts: [ { text: 'xxx' } ] } ]
 		"generationConfig": map[string]any{
 			"topK":            req.TopK,
 			"topP":            req.TopP,
 			"temperature":     req.Temperature, // 0.8
 			"maxOutputTokens": req.MaxTokens,
 			"stopSequences":   []string{},
-		},
-		// 函数调用
-		"tools": []map[string][]any{
-			{
-				"function_declarations": []any{
-					_funcDecl,
-				},
-			},
 		},
 		// 安全级别
 		"safetySettings": []map[string]string{
@@ -97,7 +105,19 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 				"threshold": "BLOCK_NONE",
 			},
 		},
-	})
+	}
+
+	if len(_funcDecl) > 0 {
+		// 函数调用
+		payload["tools"] = []map[string][]any{
+			{
+				"function_declarations": []any{
+					_funcDecl,
+				},
+			},
+		}
+	}
+	marshal, err := json.Marshal(payload)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

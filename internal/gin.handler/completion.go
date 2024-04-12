@@ -56,7 +56,12 @@ func completions(ctx *gin.Context) {
 	case "gemini-1.0":
 		gemini.Complete(ctx, chatCompletionRequest, matchers)
 	case "gemini-1.5":
-		gemini.Complete15(ctx, chatCompletionRequest, matchers)
+		token := ctx.GetString("token")
+		if strings.HasPrefix(token, "AIzaSy") {
+			gemini.Complete(ctx, chatCompletionRequest, matchers)
+		} else {
+			gemini.Complete15(ctx, chatCompletionRequest, matchers)
+		}
 	case "coze":
 		coze.Complete(ctx, chatCompletionRequest, matchers)
 	case cohere.COMMAND,

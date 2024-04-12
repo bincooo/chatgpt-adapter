@@ -688,6 +688,14 @@ func buildConversation15(messages []map[string]string) ([]goole.Message, error) 
 		role = curr
 	}
 
+	if newMessages[0].Role != "user" {
+		newMessages = append([]goole.Message{
+			{
+				Role:    "user",
+				Content: "hi ~",
+			},
+		}, newMessages...)
+	}
 	return newMessages, nil
 }
 
