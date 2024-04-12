@@ -52,10 +52,10 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	}
 
 	// 参数基本与openai对齐
-	_funcDecl := make([]funcDecl, 0)
+	_funcDecls := make([]funcDecl, 0)
 	if toolsL := len(req.Tools); toolsL > 0 {
 		for _, v := range req.Tools {
-			_funcDecl = append(_funcDecl, funcDecl{
+			_funcDecls = append(_funcDecls, funcDecl{
 				Name:        strings.Replace(v.Fun.Name, "-", "_", -1),
 				Description: v.Fun.Description,
 				Params:      v.Fun.Params,
@@ -107,13 +107,11 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		},
 	}
 
-	if len(_funcDecl) > 0 {
+	if len(_funcDecls) > 0 {
 		// 函数调用
-		payload["tools"] = []map[string][]any{
+		payload["tools"] = []map[string]interface{}{
 			{
-				"function_declarations": []any{
-					_funcDecl,
-				},
+				"function_declarations": _funcDecls,
 			},
 		}
 	}

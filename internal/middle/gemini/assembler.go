@@ -25,7 +25,7 @@ import (
 )
 
 const MODEL = "gemini"
-const GOOGLE_BASE = "https://generativelanguage.googleapis.com/%s?key=%s"
+const GOOGLE_BASE = "https://generativelanguage.googleapis.com/%s?alt=sse&key=%s"
 const login = "http://127.0.0.1:8081/v1/login"
 
 var (
@@ -39,6 +39,19 @@ var (
 type cookieOpts struct {
 	userAgent string
 	cookie    string
+}
+
+type candidatesResponse struct {
+	Candidates []candidate `json:"candidates"`
+}
+
+type candidate struct {
+	Content struct {
+		Role  string                   `json:"role"`
+		Parts []map[string]interface{} `json:"parts"`
+	} `json:"content"`
+	FinishReason string `json:"finishReason"`
+	Index        int    `json:"index"`
 }
 
 // https://ai.google.dev/models/gemini?hl=zh-cn
@@ -281,10 +294,9 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 
 	reader := bufio.NewReader(partialResponse.Body)
 	var original []byte
-	var block = []byte(`"text": "`)
-	var fBlock = []byte(`"functionCall": {`)
+	var block = []byte("data: ")
+	var functionCall interface{}
 	isError := false
-	isFunc := false
 
 	for {
 		line, hm, err := reader.ReadLine()
@@ -314,65 +326,58 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 			continue
 		}
 
-		if isFunc {
-			continue
-		}
-
 		if bytes.Contains(original, []byte(`"error":`)) {
 			isError = true
 			continue
 		}
 
-		if bytes.Contains(original, fBlock) {
-			isFunc = true
+		if !bytes.HasPrefix(original, block) {
 			continue
 		}
 
-		if !bytes.Contains(original, block) {
+		var c candidatesResponse
+		original = bytes.TrimPrefix(original, block)
+		if err = json.Unmarshal(original, &c); err != nil {
+			middle.ResponseWithE(ctx, -1, err)
+			return
+		}
+
+		cond := c.Candidates[0]
+		if cond.Content.Role != "model" {
+			original = nil
 			continue
 		}
 
-		index := bytes.Index(original, block)
-		raw := string(original[index+len(block) : len(original)-1])
+		if fc, ok := cond.Content.Parts[0]["functionCall"]; ok {
+			functionCall = fc
+			original = nil
+			continue
+		}
+
+		raw, ok := cond.Content.Parts[0]["text"]
+		if !ok {
+			original = nil
+			continue
+		}
 		fmt.Printf("----- raw -----\n %s\n", raw)
-		original = make([]byte, 0)
-		raw = common.ExecMatchers(matchers, raw)
+		original = nil
+		raw = common.ExecMatchers(matchers, raw.(string))
 
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, raw, created)
+			middle.ResponseWithSSE(ctx, MODEL, raw.(string), created)
 		} else {
-			content += raw
+			content += raw.(string)
 		}
 
 	}
 
-	if isFunc {
-		var dict []map[string]any
-		err := json.Unmarshal(original, &dict)
-		if err != nil {
-			middle.ResponseWithE(ctx, -1, err)
-			return
-		}
-
-		candidate := dict[0]["candidates"].([]interface{})[0].(map[string]interface{})
-		cont := candidate["content"].(map[string]interface{})
-		part := cont["parts"].([]interface{})[0].(map[string]interface{})
-		functionCall := part["functionCall"].(map[string]interface{})
-
-		indent, err := json.MarshalIndent(functionCall["args"], "", "")
-		if err != nil {
-			middle.ResponseWithE(ctx, -1, err)
-			return
-		}
-
-		name := functionCall["name"].(string)
-		index := strings.Index(name, "_")
-		name = name[:index] + "-" + name[index+1:]
-
+	if functionCall != nil {
+		fc := functionCall.(map[string]interface{})
+		args, _ := json.Marshal(fc["args"])
 		if sse {
-			middle.ResponseWithSSEToolCalls(ctx, MODEL, name, string(indent), created)
+			middle.ResponseWithSSEToolCalls(ctx, MODEL, fc["name"].(string), string(args), created)
 		} else {
-			middle.ResponseWithToolCalls(ctx, MODEL, name, string(indent))
+			middle.ResponseWithToolCalls(ctx, MODEL, fc["name"].(string), string(args))
 		}
 		return
 	}
