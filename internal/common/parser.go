@@ -353,6 +353,10 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 		return matchers
 	}
 
+	if len(req.Messages) == 0 {
+		return matchers
+	}
+
 	handles := XmlFlagsToHandleContents(ctx, req.Messages)
 
 	for _, h := range handles {
@@ -633,8 +637,11 @@ func XmlFlagsToHandleContents(ctx *gin.Context, messages []map[string]string) (h
 
 			// 历史记录
 			if node.t == XML_TYPE_X && node.tag == "histories" {
-				handles = append(handles, map[uint8]string{'v': node.content, 't': "histories"})
-				clean(content[node.index:node.end])
+				str := strings.TrimSpace(node.content)
+				if len(str) >= 2 && str[0] != '[' && str[len(str)-1] != ']' {
+					handles = append(handles, map[uint8]string{'v': str, 't': "histories"})
+					clean(content[node.index:node.end])
+				}
 			}
 
 			// 适配FastGPT的工具调用

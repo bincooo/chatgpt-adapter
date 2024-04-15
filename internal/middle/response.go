@@ -100,7 +100,7 @@ func ResponseWithSSE(ctx *gin.Context, model, content string, usage map[string]i
 		Model:   model,
 		Created: created,
 		Id:      "chatcmpl-completion",
-		Object:  "chat.completion",
+		Object:  "chat.completion.chunk",
 		Choices: []gpt.ChatCompletionResponseChoice{
 			{
 				Index: 0,
