@@ -61,20 +61,19 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		proxies = ctx.GetString("proxies")
 	)
 
-	// 复原转码
-	matchers = appendMatchers(matchers)
-
 	messageL := len(req.Messages)
 	if messageL == 0 {
 		middle.ResponseWithV(ctx, -1, "[] is too short - 'messages'")
 		return
 	}
 
-	messages, err := buildConversation(req.Messages)
+	messages, tokens, err := buildConversation(req.Messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
+
+	ctx.Set("tokens", tokens)
 
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
@@ -96,19 +95,19 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 		proxies = ctx.GetString("proxies")
 	)
 
-	// 复原转码
-	matchers = appendMatchers(matchers)
 	messageL := len(req.Messages)
 	if messageL == 0 {
 		middle.ResponseWithV(ctx, -1, "[] is too short - 'messages'")
 		return
 	}
 
-	messages, err := buildConversation15(req.Messages)
+	messages, tokens, err := buildConversation15(req.Messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
+
+	ctx.Set("tokens", tokens)
 
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
@@ -261,36 +260,11 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 	return
 }
 
-func appendMatchers(matchers []common.Matcher) []common.Matcher {
-	matchers = append(matchers, &common.SymbolMatcher{
-		Find: "*",
-		H: func(index int, content string) (state int, result string) {
-			// 换行符处理
-			content = strings.ReplaceAll(content, `\n`, "\n")
-			// <符处理
-			idx := strings.Index(content, "\\u003c")
-			for idx >= 0 {
-				content = content[:idx] + "<" + content[idx+6:]
-				idx = strings.Index(content, "\\u003c")
-			}
-			// >符处理
-			idx = strings.Index(content, "\\u003e")
-			for idx >= 0 {
-				content = content[:idx] + ">" + content[idx+6:]
-				idx = strings.Index(content, "\\u003e")
-			}
-			// "符处理
-			content = strings.ReplaceAll(content, `\"`, "\"")
-			return common.MAT_MATCHED, content
-		},
-	})
-	return matchers
-}
-
 func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *http.Response, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
+	tokens := ctx.GetInt("tokens")
 
 	reader := bufio.NewReader(partialResponse.Body)
 	var original []byte
@@ -364,10 +338,9 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 		raw = common.ExecMatchers(matchers, raw.(string))
 
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, raw.(string), created)
-		} else {
-			content += raw.(string)
+			middle.ResponseWithSSE(ctx, MODEL, raw.(string), nil, created)
 		}
+		content += raw.(string)
 
 	}
 
@@ -385,7 +358,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 	if !sse {
 		middle.ResponseWith(ctx, MODEL, content)
 	} else {
-		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", created)
+		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", common.CalcUsageTokens(content, tokens), created)
 	}
 }
 
@@ -393,6 +366,7 @@ func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string,
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
+	tokens := ctx.GetInt("tokens")
 
 	for {
 		tex, ok := <-ch
@@ -415,21 +389,21 @@ func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string,
 			fmt.Printf("----- raw -----\n %s\n", raw)
 			raw = common.ExecMatchers(matchers, raw)
 			if sse {
-				middle.ResponseWithSSE(ctx, MODEL+"-1.5", raw, created)
-			} else {
-				content += raw
+				middle.ResponseWithSSE(ctx, MODEL+"-1.5", raw, nil, created)
 			}
+			content += raw
+
 		}
 	}
 
 	if !sse {
 		middle.ResponseWith(ctx, MODEL+"-1.5", content)
 	} else {
-		middle.ResponseWithSSE(ctx, MODEL+"-1.5", "[DONE]", created)
+		middle.ResponseWithSSE(ctx, MODEL+"-1.5", "[DONE]", common.CalcUsageTokens(content, tokens), created)
 	}
 }
 
-func buildConversation(messages []map[string]string) (newMessages []map[string]interface{}, err error) {
+func buildConversation(messages []map[string]string) (newMessages []map[string]interface{}, tokens int, err error) {
 	pos := len(messages) - 1
 	if pos < 0 {
 		return
@@ -491,7 +465,7 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
-			return nil, errors.New(
+			return nil, -1, errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
@@ -554,6 +528,7 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 			if len(buffer) > 0 {
 				join := strings.Join(buffer, "\n\n")
 				if len(join) > 0 {
+					tokens += common.CalcTokens(join)
 					push(pos, role, join)
 				}
 			}
@@ -588,6 +563,7 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 
 		join := strings.Join(buffer, "\n\n")
 		if len(join) > 0 {
+			tokens += common.CalcTokens(join)
 			push(pos, role, join)
 		}
 
@@ -597,14 +573,15 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 	return
 }
 
-func buildConversation15(messages []map[string]string) ([]goole.Message, error) {
+func buildConversation15(messages []map[string]string) ([]goole.Message, int, error) {
 	pos := len(messages) - 1
 	if pos < 0 {
-		return nil, errors.New("messages is empty")
+		return nil, -1, errors.New("messages is empty")
 	}
 
 	pos = 0
 	messageL := len(messages)
+	tokens := 0
 
 	role := ""
 	buffer := make([]string, 0)
@@ -656,6 +633,7 @@ func buildConversation15(messages []map[string]string) ([]goole.Message, error) 
 			if len(buffer) > 0 {
 				join := strings.Join(buffer, "\n\n")
 				if len(join) > 0 {
+					tokens += common.CalcTokens(join)
 					push(pos, role, join)
 				}
 			}
@@ -666,7 +644,7 @@ func buildConversation15(messages []map[string]string) ([]goole.Message, error) 
 		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
-			return nil, errors.New(
+			return nil, -1, errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
@@ -686,6 +664,7 @@ func buildConversation15(messages []map[string]string) ([]goole.Message, error) 
 
 		join := strings.Join(buffer, "\n\n")
 		if len(join) > 0 {
+			tokens += common.CalcTokens(join)
 			push(pos, role, join)
 		}
 
@@ -701,7 +680,7 @@ func buildConversation15(messages []map[string]string) ([]goole.Message, error) 
 			},
 		}, newMessages...)
 	}
-	return newMessages, nil
+	return newMessages, tokens, nil
 }
 
 //

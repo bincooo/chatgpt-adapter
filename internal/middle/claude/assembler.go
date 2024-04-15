@@ -51,12 +51,13 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		}
 	}
 
-	attr, err := buildConversation(messages)
+	attr, tokens, err := buildConversation(messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
+	ctx.Set("tokens", tokens)
 	chat, err := claude2.New(options)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
@@ -97,6 +98,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	var (
 		content = ""
 		created = time.Now().Unix()
+		tokens  = ctx.GetInt("tokens")
 	)
 	logrus.Infof("waitResponse ...")
 
@@ -114,20 +116,19 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		fmt.Printf("----- raw -----\n %s\n", message.Text)
 		raw := common.ExecMatchers(matchers, message.Text)
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, raw, created)
-		} else {
-			content += raw
+			middle.ResponseWithSSE(ctx, MODEL, raw, nil, created)
 		}
+		content += raw
 	}
 
 	if !sse {
 		middle.ResponseWith(ctx, MODEL, content)
 	} else {
-		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", created)
+		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", common.CalcUsageTokens(content, tokens), created)
 	}
 }
 
-func buildConversation(messages []map[string]string) (attrs []types.Attachment, err error) {
+func buildConversation(messages []map[string]string) (attrs []types.Attachment, tokens int, err error) {
 	pos := len(messages) - 1
 	if pos < 0 {
 		return
@@ -185,7 +186,7 @@ func buildConversation(messages []map[string]string) (attrs []types.Attachment, 
 		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
-			return nil, errors.New(
+			return nil, -1, errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
@@ -216,6 +217,7 @@ func buildConversation(messages []map[string]string) (attrs []types.Attachment, 
 			pMessages = fmt.Sprintf("%s\n--------\n\n%s", s, pMessages)
 		}
 
+		tokens = common.CalcTokens(pMessages)
 		attrs = append(attrs, types.Attachment{
 			Content:  pMessages,
 			FileName: "paste.txt",
@@ -224,7 +226,7 @@ func buildConversation(messages []map[string]string) (attrs []types.Attachment, 
 		})
 	}
 
-	return attrs, nil
+	return attrs, tokens, nil
 }
 
 func padtxt(length int) string {

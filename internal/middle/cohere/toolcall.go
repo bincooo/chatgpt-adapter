@@ -104,7 +104,7 @@ func parseToToolCall(ctx *gin.Context, cookie string, req gpt.ChatCompletionRequ
 	} else {
 		// 没有解析出 JSON
 		if req.Stream {
-			middle.ResponseWithSSE(ctx, MODEL, content, created)
+			middle.ResponseWithSSE(ctx, MODEL, content, nil, created)
 			return false, nil
 		} else {
 			middle.ResponseWith(ctx, MODEL, content)

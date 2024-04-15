@@ -109,7 +109,7 @@ func parseToToolCall(ctx *gin.Context, cookie, proxies string, fun *gpt.Function
 	} else {
 		// 没有解析出 JSON
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, content, created)
+			middle.ResponseWithSSE(ctx, MODEL, content, nil, created)
 			return false, nil
 		} else {
 			middle.ResponseWith(ctx, MODEL, content)

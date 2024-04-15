@@ -73,7 +73,7 @@ func ResponseWith(ctx *gin.Context, model, content string) {
 	})
 }
 
-func ResponseWithSSE(ctx *gin.Context, model, content string, created int64) {
+func ResponseWithSSE(ctx *gin.Context, model, content string, usage map[string]int, created int64) {
 	w := ctx.Writer
 	if w.Header().Get("Content-Type") == "" {
 		ctx.Writer.Header().Set("Content-Type", "text/event-stream")
@@ -108,6 +108,7 @@ func ResponseWithSSE(ctx *gin.Context, model, content string, created int64) {
 				FinishReason: finishReason,
 			},
 		},
+		Usage: usage,
 	}
 
 	marshal, _ := json.Marshal(response)

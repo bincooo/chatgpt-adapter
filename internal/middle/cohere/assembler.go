@@ -68,11 +68,13 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 			"system:",
 		})
 	} else {
-		p, s, m, err := buildChatConversation(messages)
+		p, s, m, tokens, err := buildChatConversation(messages)
 		if err != nil {
 			middle.ResponseWithE(ctx, -1, err)
 			return
 		}
+
+		ctx.Set("tokens", tokens)
 
 		system = s
 		message = m
@@ -117,6 +119,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	logrus.Infof("waitResponse ...")
 	prefix := ""
 	cmd := ctx.GetInt("cmd")
+	tokens := ctx.GetInt("tokens")
 
 	for {
 		raw, ok := <-chatResponse
@@ -155,16 +158,15 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		}
 		raw = common.ExecMatchers(matchers, raw)
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, raw, created)
-		} else {
-			content += raw
+			middle.ResponseWithSSE(ctx, MODEL, raw, nil, created)
 		}
+		content += raw
 	}
 
 	if !sse {
 		middle.ResponseWith(ctx, MODEL, content)
 	} else {
-		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", created)
+		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", common.CalcUsageTokens(content, tokens), created)
 	}
 }
 
@@ -242,7 +244,7 @@ func buildConversation(messages []map[string]string) (content string, err error)
 	return cohere.MergeMessages(pMessages), nil
 }
 
-func buildChatConversation(messages []map[string]string) (pMessages []cohere.Message, system, content string, err error) {
+func buildChatConversation(messages []map[string]string) (pMessages []cohere.Message, system, content string, tokens int, err error) {
 	pos := len(messages) - 1
 	if pos < 0 {
 		return
@@ -313,7 +315,7 @@ func buildChatConversation(messages []map[string]string) (pMessages []cohere.Mes
 		curr := condition(message["role"])
 		tMessage := message["content"]
 		if curr == "" {
-			return nil, "", "", errors.New(
+			return nil, "", "", -1, errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
@@ -352,6 +354,7 @@ func buildChatConversation(messages []map[string]string) (pMessages []cohere.Mes
 	for {
 		if pos >= messageL {
 			join := strings.Join(buffer, "\n\n")
+			tokens += common.CalcTokens(join)
 			pMessages = append(pMessages, cohere.Message{
 				Role:    role,
 				Message: join,
@@ -373,6 +376,7 @@ func buildChatConversation(messages []map[string]string) (pMessages []cohere.Mes
 			continue
 		}
 
+		tokens += common.CalcTokens(strings.Join(buffer, ""))
 		pMessages = append(pMessages, cohere.Message{
 			Role:    role,
 			Message: strings.Join(buffer, "\n\n"),

@@ -10,3 +10,4 @@ GOOS=linux GOARCH=amd64 ${cmd} ${args} -ldflags '-w -s' -o ${outdir}/linux-serve
 GOARM=7 GOOS=linux GOARCH=arm64 ${cmd} ${args} -ldflags '-w -s' -o ${outdir}/linux-server-arm64 server.go
 
 # cp .env.example ${outdir}/.env.example
+cp config.yaml $outdir/config.yaml

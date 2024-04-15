@@ -51,12 +51,13 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		}
 	}
 
-	pMessages, prompt, err := buildConversation(pad, messages)
+	pMessages, prompt, tokens, err := buildConversation(pad, messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
+	ctx.Set("tokens", tokens)
 	// 清理多余的标签
 	matchers = appendMatchers(matchers)
 	chat := edge.New(options.
@@ -168,6 +169,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		pos     = 0
 		content = ""
 		created = time.Now().Unix()
+		tokens  = ctx.GetInt("tokens")
 	)
 
 	logrus.Info("waitResponse ...")
@@ -192,20 +194,19 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		raw = common.ExecMatchers(matchers, raw)
 
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, raw, created)
-		} else {
-			content += raw
+			middle.ResponseWithSSE(ctx, MODEL, raw, nil, created)
 		}
+		content += raw
 	}
 
 	if !sse {
 		middle.ResponseWith(ctx, MODEL, content)
 	} else {
-		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", created)
+		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", common.CalcUsageTokens(content, tokens), created)
 	}
 }
 
-func buildConversation(pad bool, messages []map[string]string) (pMessages []edge.ChatMessage, prompt string, err error) {
+func buildConversation(pad bool, messages []map[string]string) (pMessages []edge.ChatMessage, prompt string, tokens int, err error) {
 	pos := len(messages) - 1
 	if pos < 0 {
 		return
@@ -260,6 +261,7 @@ func buildConversation(pad bool, messages []map[string]string) (pMessages []edge
 	for {
 		if pos >= messageL {
 			if len(buffer) > 0 {
+				tokens += common.CalcTokens(strings.Join(buffer, ""))
 				pMessagesVar = append(pMessagesVar, blockProcessing(strings.Title(role), buffer))
 			}
 			break
@@ -269,7 +271,7 @@ func buildConversation(pad bool, messages []map[string]string) (pMessages []edge
 		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
-			return nil, "", errors.New(
+			return nil, "", -1, errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
@@ -286,6 +288,8 @@ func buildConversation(pad bool, messages []map[string]string) (pMessages []edge
 			buffer = append(buffer, content)
 			continue
 		}
+
+		tokens += common.CalcTokens(strings.Join(buffer, ""))
 		pMessagesVar = append(pMessagesVar, blockProcessing(strings.Title(role), buffer))
 		buffer = append(make([]string, 0), content)
 		role = curr
@@ -300,7 +304,7 @@ func buildConversation(pad bool, messages []map[string]string) (pMessages []edge
 		dict["messages"] = pMessagesVar
 		indent, e := json.MarshalIndent(dict, "", "  ")
 		if e != nil {
-			return nil, "", e
+			return nil, "", -1, e
 		}
 
 		if pad { // 填充引导对话，尝试避免道歉
@@ -335,5 +339,6 @@ func buildConversation(pad bool, messages []map[string]string) (pMessages []edge
 		})
 	}
 
-	return pMessages, prompt, nil
+	tokens += common.CalcTokens(prompt)
+	return pMessages, prompt, tokens, nil
 }

@@ -63,12 +63,13 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		}
 	}
 
-	pMessages, err := buildConversation(messages)
+	pMessages, tokens, err := buildConversation(messages)
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
+	ctx.Set("tokens", tokens)
 	options := newOptions(proxies, pMessages)
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)
@@ -174,6 +175,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	logrus.Infof("waitResponse ...")
 	prefix := ""
 	cmd := ctx.GetInt("cmd")
+	tokens := ctx.GetInt("tokens")
 
 	for {
 		raw, ok := <-chatResponse
@@ -212,20 +214,19 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		}
 		raw = common.ExecMatchers(matchers, raw)
 		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, raw, created)
-		} else {
-			content += raw
+			middle.ResponseWithSSE(ctx, MODEL, raw, nil, created)
 		}
+		content += raw
 	}
 
 	if !sse {
 		middle.ResponseWith(ctx, MODEL, content)
 	} else {
-		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", created)
+		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", common.CalcUsageTokens(content, tokens), created)
 	}
 }
 
-func buildConversation(messages []map[string]string) (pMessages []coze.Message, err error) {
+func buildConversation(messages []map[string]string) (pMessages []coze.Message, tokens int, err error) {
 	var prompt string
 	pos := len(messages) - 1
 	if pos < 0 {
@@ -273,6 +274,7 @@ func buildConversation(messages []map[string]string) (pMessages []coze.Message, 
 	for {
 		if pos >= messageL {
 			if len(buffer) > 0 {
+				tokens += common.CalcTokens(strings.Join(buffer, ""))
 				pMessages = append(pMessages, coze.Message{
 					Role:    role,
 					Content: strings.Join(buffer, "\n\n"),
@@ -285,7 +287,7 @@ func buildConversation(messages []map[string]string) (pMessages []coze.Message, 
 		curr := condition(message["role"])
 		content := message["content"]
 		if curr == "" {
-			return nil, errors.New(
+			return nil, -1, errors.New(
 				fmt.Sprintf("'%s' is not one of ['system', 'assistant', 'user', 'function'] - 'messages.%d.role'",
 					message["role"], pos))
 		}
@@ -303,6 +305,8 @@ func buildConversation(messages []map[string]string) (pMessages []coze.Message, 
 			buffer = append(buffer, content)
 			continue
 		}
+
+		tokens += common.CalcTokens(strings.Join(buffer, ""))
 		pMessages = append(pMessages, coze.Message{
 			Role:    role,
 			Content: strings.Join(buffer, "\n\n"),
@@ -311,5 +315,5 @@ func buildConversation(messages []map[string]string) (pMessages []coze.Message, 
 		role = curr
 	}
 
-	return pMessages, nil
+	return pMessages, tokens, nil
 }
