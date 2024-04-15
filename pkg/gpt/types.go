@@ -61,5 +61,5 @@ type ChatCompletionResponseChoice struct {
 		Content   string                   `json:"content"`
 		ToolCalls []map[string]interface{} `json:"tool_calls"`
 	} `json:"delta"`
-	FinishReason string `json:"finish_reason"`
+	FinishReason *string `json:"finish_reason"`
 }
