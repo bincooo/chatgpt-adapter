@@ -26,8 +26,7 @@ type XmlNode struct {
 	t       int
 	content string
 	attr    map[string]interface{}
-	parent  *XmlNode
-	child   []*XmlNode
+	child   []XmlNode
 }
 
 type XmlParser struct {
@@ -64,11 +63,13 @@ func TrimCDATA(value string) string {
 }
 
 // xml解析的简单实现
-func (xml XmlParser) Parse(value string) []*XmlNode {
+func (xml XmlParser) Parse(value string) []XmlNode {
 	messageL := len(value)
 	if messageL == 0 {
 		return nil
 	}
+
+	var recursive func(value string) (slice []XmlNode)
 
 	// 查找从 index 开始，符合的字节返回其下标，没有则-1
 	search := func(content string, index int, ch uint8) int {
@@ -115,8 +116,8 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 	}
 
 	// 解析xml标签的属性
-	parseAttr := func(slice []string) map[string]any {
-		attr := make(map[string]any)
+	parseAttr := func(slice []string) map[string]interface{} {
+		attr := make(map[string]interface{})
 		for _, it := range slice {
 			n := search(it, 0, '=')
 			if n <= 0 {
@@ -179,170 +180,160 @@ func (xml XmlParser) Parse(value string) []*XmlNode {
 
 	// =============
 	// =============
-
-	content := value
-	contentL := len(content)
-	type skv struct {
-		s []*XmlNode
-		p *skv
-	}
-
-	slice := &skv{make([]*XmlNode, 0), nil}
-
-	var curr *XmlNode = nil
-	for i := 0; i < contentL; i++ {
-		if content[i] == '<' {
-			// =========================================================
-			// ⬇⬇⬇⬇⬇ 结束标记 ⬇⬇⬇⬇⬇
-			if next(content, i, '/') {
-				n := search(content, i, '>')
-				// 找不到 ⬇⬇⬇⬇⬇
-				if n == -1 {
-					// 丢弃
+	recursive = func(value string) (slice []XmlNode) {
+		content := value
+		contentL := len(content)
+		var curr *XmlNode = nil
+		for i := 0; i < contentL; i++ {
+			// curr 的标记不完整跳过该标记，重新扫描
+			if i == contentL-1 {
+				if curr != nil {
+					i = curr.index + len(curr.tag) + 1
 					curr = nil
-					break
 				}
+			}
 
-				if curr == nil {
-					continue
-				}
-				// 找不到 ⬆⬆⬆⬆⬆
-
-				s := strings.Split(curr.tag, " ")
-				if s[0] == content[i+2:n] {
-					step := 2 + len(curr.tag)
-					curr.t = XML_TYPE_X
-					curr.end = n + 1
-					curr.content = TrimCDATA(content[curr.index+step : curr.end-len(s[0])-3])
-					// 解析xml参数
-					if len(s) > 1 {
-						curr.tag = s[0]
-						curr.attr = parseAttr(s[1:])
-					}
-					i = n
-
-					slice.s = append(slice.s, curr)
-					curr = curr.parent
-					if curr != nil {
-						curr.child = slice.s
-					}
-					if slice.p != nil {
-						slice = slice.p
-					}
-				}
-				// ⬆⬆⬆⬆⬆ 结束标记 ⬆⬆⬆⬆⬆
-
+			if content[i] == '<' {
 				// =========================================================
-				//
-			} else if nextStr(content, i, "![CDATA[") {
-				//
-				// ⬇⬇⬇⬇⬇ <![CDATA[xxx]]> CDATA结构体 ⬇⬇⬇⬇⬇
-				n := searchStr(content, i+8, "]]>")
-				if n < 0 {
-					i += 7
-					continue
-				}
-				i = n + 3
-				// ⬆⬆⬆⬆⬆ <![CDATA[xxx]]> CDATA结构体 ⬆⬆⬆⬆⬆
+				// ⬇⬇⬇⬇⬇ 结束标记 ⬇⬇⬇⬇⬇
+				if curr != nil && next(content, i, '/') {
+					n := search(content, i, '>')
+					// 找不到 ⬇⬇⬇⬇⬇
+					if n == -1 {
+						// 丢弃
+						curr = nil
+						break
+					}
+					// 找不到 ⬆⬆⬆⬆⬆
 
-				// =========================================================
-				//
-
-			} else if nextStr(content, i, "!--") {
-
-				//
-				// ⬇⬇⬇⬇⬇ 是否是注释 <!-- xxx --> ⬇⬇⬇⬇⬇
-
-				n := searchStr(content, i+3, "-->")
-				if n < 0 {
-					i += 3
-					continue
-				}
-
-				slice.s = append(slice.s, &XmlNode{index: i, end: n + 3, content: content[i : n+3], t: XML_TYPE_I})
-				i = n + 3
-				// ⬆⬆⬆⬆⬆ 是否是注释 <!-- xxx --> ⬆⬆⬆⬆⬆
-
-				// =========================================================
-				//
-
-			} else {
-
-				//
-				// ⬇⬇⬇⬇⬇ 新的 XML 标记 ⬇⬇⬇⬇⬇
-
-				idx := i
-				n := search(content, idx, '>')
-			label:
-				if n == -1 {
-					break
-				}
-
-				idx = igCd(content, i, n)
-				if idx == -1 {
-					idx = n
-					n = search(content, idx+1, '>')
-					goto label
-				}
-
-				tag := content[i+1 : n]
-				// whiteList 为nil放行所有标签，否则只解析whiteList中的
-				contains := xml.whiteList == nil || ContainFor(xml.whiteList, func(item string) bool {
-					if strings.HasPrefix(item, "r:") {
-						cmp := item[2:]
-						c := regexp.MustCompile(cmp, regexp.Compiled)
-						matched, err := c.MatchString(tag)
-						if err != nil {
-							logrus.Warn("compile failed: "+cmp, err)
-							return false
+					s := strings.Split(curr.tag, " ")
+					if s[0] == content[i+2:n] {
+						step := 2 + len(curr.tag)
+						curr.t = XML_TYPE_X
+						curr.end = n + 1
+						// 解析xml参数
+						if len(s) > 1 {
+							curr.tag = s[0]
+							curr.attr = parseAttr(s[1:])
 						}
-						return matched
+						i = n
+
+						str := content[curr.index+step : curr.end-len(s[0])-3]
+						curr.child = recursive(str)
+						curr.content = TrimCDATA(str)
+						slice = append(slice, *curr)
+						i = curr.end
+						curr = nil
+					}
+					// ⬆⬆⬆⬆⬆ 结束标记 ⬆⬆⬆⬆⬆
+
+					// =========================================================
+					//
+				} else if nextStr(content, i, "![CDATA[") {
+					//
+					// ⬇⬇⬇⬇⬇ <![CDATA[xxx]]> CDATA结构体 ⬇⬇⬇⬇⬇
+					n := searchStr(content, i+8, "]]>")
+					if n < 0 {
+						i += 7
+						continue
+					}
+					i = n + 3
+					// ⬆⬆⬆⬆⬆ <![CDATA[xxx]]> CDATA结构体 ⬆⬆⬆⬆⬆
+
+					// =========================================================
+					//
+
+				} else if curr == nil && nextStr(content, i, "!--") {
+
+					//
+					// ⬇⬇⬇⬇⬇ 是否是注释 <!-- xxx --> ⬇⬇⬇⬇⬇
+
+					n := searchStr(content, i+3, "-->")
+					if n < 0 {
+						i += 3
+						continue
 					}
 
-					s := strings.Split(tag, " ")
-					return item == s[0]
-				})
+					node := XmlNode{index: i, end: n + 3, content: content[i : n+3], t: XML_TYPE_I}
+					slice = append(slice, node)
+					// ⬆⬆⬆⬆⬆ 是否是注释 <!-- xxx --> ⬆⬆⬆⬆⬆
+					// 循环后置++，所以-1
+					i = node.end - 1
+					// =========================================================
+					//
 
-				if !contains {
-					i = n
-					continue
-				}
+				} else if curr == nil {
 
-				// 这是一个自闭合的标签 <xxx />
-				ch := content[n-1]
-				if ch == '/' {
-					tag = tag[:len(tag)-1]
-					node := XmlNode{index: i, tag: tag, t: XML_TYPE_X}
-					split := strings.Split(node.tag, " ")
-					node.t = XML_TYPE_X
-					node.end = n + 1
-					// 解析xml参数
-					if len(split) > 1 {
-						node.tag = split[0]
-						node.attr = parseAttr(split[1:])
+					//
+					// ⬇⬇⬇⬇⬇ 新的 XML 标记 ⬇⬇⬇⬇⬇
+
+					idx := i
+					n := search(content, idx, '>')
+				label:
+					if n == -1 {
+						break
 					}
-					slice.s = append(slice.s, &node)
-					i = n
-					continue
-				}
 
-				if curr == nil {
+					idx = igCd(content, i, n)
+					if idx == -1 {
+						idx = n
+						n = search(content, idx+1, '>')
+						goto label
+					}
+
+					tag := content[i+1 : n]
+					// whiteList 为nil放行所有标签，否则只解析whiteList中的
+					contains := xml.whiteList == nil || ContainFor(xml.whiteList, func(item string) bool {
+						if strings.HasPrefix(item, "r:") {
+							cmp := item[2:]
+							c := regexp.MustCompile(cmp, regexp.Compiled)
+							matched, err := c.MatchString(tag)
+							if err != nil {
+								logrus.Warn("compile failed: "+cmp, err)
+								return false
+							}
+							return matched
+						}
+
+						s := strings.Split(tag, " ")
+						return item == s[0]
+					})
+
+					if !contains {
+						i = n
+						continue
+					}
+
+					// 这是一个自闭合的标签 <xxx />
+					ch := content[n-1]
+					if ch == '/' {
+						tag = tag[:len(tag)-1]
+						node := XmlNode{index: i, tag: tag, t: XML_TYPE_X}
+						s := strings.Split(node.tag, " ")
+						node.t = XML_TYPE_X
+						node.end = n + 1
+						// 解析xml参数
+						if len(s) > 1 {
+							node.tag = s[0]
+							node.attr = parseAttr(s[1:])
+						}
+						slice = append(slice, node)
+						i = node.end
+						continue
+					}
+
 					curr = &XmlNode{index: i, tag: tag, t: XML_TYPE_S}
-					//slice.s = append(slice.s, curr)
-				} else {
-					node := &XmlNode{index: i, tag: tag, t: XML_TYPE_S, parent: curr}
-					slice = &skv{make([]*XmlNode, 0), slice}
-					//slice.s = append(slice.s, node)
-					curr = node
+					i = n
+					// ⬆⬆⬆⬆⬆ 新的 XML 标记 ⬆⬆⬆⬆⬆
 				}
-				i = n
-				// ⬆⬆⬆⬆⬆ 新的 XML 标记 ⬆⬆⬆⬆⬆
 			}
 		}
+
+		return
 	}
 
 	// =========================================================
-	return slice.s
+	return recursive(value)
 }
 
 func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -98,11 +99,7 @@ func panicHandler(ctx *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
 			logrus.Errorf("response error: %v", r)
-			ctx.JSON(http.StatusUnauthorized, gin.H{
-				"error": map[string]string{
-					"message": fmt.Sprintf("%v", r),
-				},
-			})
+			middle.ResponseWithV(ctx, -1, fmt.Sprintf("%v", r))
 		}
 	}()
 
