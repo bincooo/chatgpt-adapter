@@ -348,7 +348,7 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 		return matchers
 	}
 
-	handles := XmlFlagsToHandleContents(ctx, req.Messages)
+	handles := xmlFlagsToContents(ctx, req.Messages)
 
 	for _, h := range handles {
 		// 正则替换
@@ -431,7 +431,7 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 		// 历史记录
 		if h['t'] == "histories" {
 			content := strings.TrimSpace(h['v'])
-			if content[0] != '[' || content[len(content)-1] != ']' {
+			if len(content) < 2 || content[0] != '[' || content[len(content)-1] != ']' {
 				continue
 			}
 			var baseMessages []map[string]string
@@ -505,7 +505,7 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 	})
 }
 
-func XmlFlagsToHandleContents(ctx *gin.Context, messages []map[string]string) (handles []map[uint8]string) {
+func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles []map[uint8]string) {
 	var (
 		parser = NewParser([]string{
 			"regex",
@@ -629,7 +629,7 @@ func XmlFlagsToHandleContents(ctx *gin.Context, messages []map[string]string) (h
 			// 历史记录
 			if node.t == XML_TYPE_X && node.tag == "histories" {
 				str := strings.TrimSpace(node.content)
-				if len(str) >= 2 && str[0] != '[' && str[len(str)-1] != ']' {
+				if len(str) >= 2 && str[0] == '[' && str[len(str)-1] == ']' {
 					handles = append(handles, map[uint8]string{'v': str, 't': "histories"})
 					clean(content[node.index:node.end])
 				}
