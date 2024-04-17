@@ -1,4 +1,14 @@
-## V2
+![Screenshot 2024-04-18 at 04 03 41](https://github.com/bincooo/chatgpt-adapter/assets/36452456/b130375c-f40b-404a-bade-6640f2aa29c9)
+
+------------------------------------
+
+<p align="center">
+  <h2 align="center">ChatGPT for Adapter</h2>
+  <p align="center">
+    一款将免费服务整合到一起的ChatGPT接口服务！
+    <br/>
+  </p>
+</p>
 
 #### 使用
 ```
