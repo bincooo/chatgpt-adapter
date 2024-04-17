@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/spf13/cobra"
@@ -25,6 +26,7 @@ var (
 
 func Init() {
 	pkg.Init()
+	common.Init()
 	Cmd.PersistentFlags().StringVar(&proxies, "proxies", "", "本地代理 proxies")
 	Cmd.PersistentFlags().IntVar(&port, "port", 8080, "服务端口 port")
 }

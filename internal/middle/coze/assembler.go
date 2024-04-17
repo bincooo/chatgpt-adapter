@@ -120,6 +120,15 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		return
 	}
 
+	if (req.Size == "HD" || strings.HasPrefix(req.Size, "1792x")) && common.HasMfy() {
+		v, e := common.Magnify(ctx, image)
+		if e != nil {
+			logrus.Error(e)
+		} else {
+			image = v
+		}
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"created": time.Now().Unix(),
 		"styles:": make([]string, 0),

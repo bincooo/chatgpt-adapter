@@ -12,6 +12,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
 	"net/http"
@@ -183,6 +184,15 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 	file = fmt.Sprintf("%s/file/%s", domain, file)
+	if (req.Size == "HD" || strings.HasPrefix(req.Size, "1792x")) && common.HasMfy() {
+		v, e := common.Magnify(ctx, file)
+		if e != nil {
+			logrus.Error(e)
+		} else {
+			file = v
+		}
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"created": time.Now().Unix(),
 		"styles":  models,
@@ -191,7 +201,6 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		},
 		"currStyle": model,
 	})
-	return
 }
 
 func convertToModel(style string) string {

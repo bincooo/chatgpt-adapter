@@ -14,8 +14,8 @@ github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b h1:rJDNFBL46xBqMfG
 github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b/go.mod h1:BhvAZuM5Neg6GbSGrWSStsU1dtpj9WJzC2zlgmT+DAA=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e/go.mod h1:0WuzYU+4cQL/hVbjoncY5TACMTbD9I+pLCdnPjfItp0=
-github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f h1:AvYn1OlESjdb8ktABNP5iCFAAu108n4IV04Lh+tEMdA=
-github.com/bincooo/sdio v0.0.0-20240307130432-7248b54caf4f/go.mod h1:zUVVlukIEk0sy6G5NUjAMrk6j3dJ3iGCEdRZnzOW6+c=
+github.com/bincooo/sdio v0.0.0-20240417233918-5dceaa1b75bf h1:oNMOvqTT7g2aixcjrR0uwn+B6VcEvON4ry5m6gtscnw=
+github.com/bincooo/sdio v0.0.0-20240417233918-5dceaa1b75bf/go.mod h1:g6Wihnfvy8ikldWA6JVGykEFdofvWxZixd21vmvYzmU=
 github.com/bitly/go-simplejson v0.5.0 h1:6IH+V8/tVMab511d5bn4M7EwGXZf9Hj6i2xSwkNEM+Y=
 github.com/bitly/go-simplejson v0.5.0/go.mod h1:cXHtHw4XUPsvGaxgjIAn8PhEWG9NfngEKAMDJEczWVA=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 h1:DDGfHa7BWjL4YnC6+E63dPcxHo2sUxDIu8g3QgEJdRY=

@@ -9,3 +9,6 @@ llm:
   baseUrl: "http://127.0.0.1:8080"
   model: "bing"
   token: "xxx"
+# 图片放大
+magnify:
+  - "910d9be5b5ca4621b7a3eee954c26b1e"
