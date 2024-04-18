@@ -3,7 +3,7 @@
 ------------------------------------
 
 <p align="center">
-  <h2 align="center">ChatGPT for Adapter</h2>
+  <h2 align="center">Adapter for ChatGPT</h2>
   <p align="center">
     一款将免费服务整合到一起的ChatGPT接口服务！
     <br/>
