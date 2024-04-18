@@ -528,6 +528,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 			// 注释内容删除
 			if node.t == XML_TYPE_I {
 				clean(content[node.index:node.end])
+				continue
 			}
 
 			// 自由深度插入
@@ -555,6 +556,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 					handles = append(handles, map[uint8]string{'i': node.tag[1:], 'r': r, 'v': node.content, 'm': miss, 't': "insert"})
 					clean(content[node.index:node.end])
 				}
+				continue
 			}
 
 			// 正则替换
@@ -572,6 +574,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 
 				handles = append(handles, map[uint8]string{'m': miss, 'o': order, 'v': node.content, 't': "regex"})
 				clean(content[node.index:node.end])
+				continue
 			}
 
 			if node.t == XML_TYPE_X && node.tag == "matcher" {
@@ -591,12 +594,14 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 
 				handles = append(handles, map[uint8]string{'f': find, 'l': findLen, 'v': node.content, 't': "matcher"})
 				clean(content[node.index:node.end])
+				continue
 			}
 
 			// 开启 bing 的 pad 标记：填充引导对话，尝试避免道歉
 			if node.t == XML_TYPE_X && node.tag == "pad" {
 				ctx.Set("pad", true)
 				clean(content[node.index:node.end])
+				continue
 			}
 
 			// notebook 模式
@@ -610,12 +615,14 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 				}
 				ctx.Set("notebook", !disabled)
 				clean(content[node.index:node.end])
+				continue
 			}
 
 			// debug 模式
 			if node.t == XML_TYPE_X && node.tag == "debug" {
 				ctx.Set("debug", true)
 				clean(content[node.index:node.end])
+				continue
 			}
 
 			// 历史记录
@@ -625,6 +632,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 					handles = append(handles, map[uint8]string{'v': str, 't': "histories"})
 					clean(content[node.index:node.end])
 				}
+				continue
 			}
 		}
 	}
