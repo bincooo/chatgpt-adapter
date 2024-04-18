@@ -276,7 +276,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		if len(d) > 0 {
 			switch space {
 			case "xl":
-				file, e := common.CreateBase64Image(d[0].(string), "png")
+				file, e := common.SaveBase64(d[0].(string), "png")
 				if e != nil {
 					eventError = fmt.Errorf("image save failed: %s", data)
 					return EMPTRY_EVENT_RETURN
@@ -285,14 +285,14 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 			case "kb":
 				d = d[0].([]interface{})
 				result := d[0].(map[string]interface{})
-				value, err = common.DownloadImage(proxies, fmt.Sprintf("%s/file=%s", bu, result["name"].(string)), "png")
+				value, err = common.Download(proxies, fmt.Sprintf("%s/file=%s", bu, result["name"].(string)), "png")
 				if err != nil {
 					eventError = err
 				}
 				value = fmt.Sprintf("%s/file/%s", domain, value)
 			default:
 				result := d[0].(map[string]interface{})
-				value, err = common.DownloadImage(proxies, fmt.Sprintf("%s/file=%s", bu, result["path"].(string)), "png")
+				value, err = common.Download(proxies, fmt.Sprintf("%s/file=%s", bu, result["path"].(string)), "png")
 				if err != nil {
 					eventError = err
 				}

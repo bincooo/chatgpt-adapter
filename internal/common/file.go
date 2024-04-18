@@ -64,7 +64,7 @@ func Magnify(ctx context.Context, url string) (jpgurl string, err error) {
 	return "", errors.New("poll failed")
 }
 
-func CreateBase64Image(base64Encoding, suffix string) (file string, err error) {
+func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 	index := strings.Index(base64Encoding, ",")
 	base64Encoding = base64Encoding[index+1:]
 	dec, err := base64.StdEncoding.DecodeString(base64Encoding)
@@ -76,48 +76,48 @@ func CreateBase64Image(base64Encoding, suffix string) (file string, err error) {
 	if os.IsNotExist(err) {
 		err = os.Mkdir("tmp", os.ModePerm)
 		if err != nil {
-			logrus.Error("CreateBase64Image: ", err)
+			logrus.Error("save base64 failed: ", err)
 			return "", err
 		}
 	}
 
-	tempFile, err := os.CreateTemp("tmp", "image-*."+suffix)
+	tempFile, err := os.CreateTemp("tmp", "*."+suffix)
 	if err != nil {
-		logrus.Error("CreateBase64Image: ", err)
+		logrus.Error("save base64 failed: ", err)
 		return "", err
 	}
 	defer tempFile.Close()
 
 	_, err = tempFile.Write(dec)
 	if err != nil {
-		logrus.Error("CreateBase64Image: ", err)
+		logrus.Error("save base64 failed: ", err)
 		return "", err
 	}
 
 	return tempFile.Name(), nil
 }
 
-func DownloadImage(proxies, weburl, suffix string) (file string, err error) {
+func Download(proxies, url, suffix string) (file string, err error) {
 	client, err := NewHttpClient(proxies)
 	if err != nil {
-		logrus.Error("DownloadImage: ", err)
+		logrus.Error("download failed: ", err)
 		return "", err
 	}
 
-	response, err := client.Get(weburl)
+	response, err := client.Get(url)
 	if err != nil {
-		logrus.Error("DownloadImage: ", err)
+		logrus.Error("download failed: ", err)
 		return "", err
 	}
 
 	if response.StatusCode != http.StatusOK {
-		logrus.Error("DownloadImage: ", response.Status)
+		logrus.Error("download failed: ", response.Status)
 		return "", errors.New(response.Status)
 	}
 
 	dec, err := io.ReadAll(response.Body)
 	if err != nil {
-		logrus.Error("DownloadImage: ", err)
+		logrus.Error("download failed: ", err)
 		return "", err
 	}
 
@@ -125,21 +125,21 @@ func DownloadImage(proxies, weburl, suffix string) (file string, err error) {
 	if os.IsNotExist(err) {
 		err = os.Mkdir("tmp", os.ModePerm)
 		if err != nil {
-			logrus.Error("DownloadImage: ", err)
+			logrus.Error("download failed: ", err)
 			return "", err
 		}
 	}
 
-	tempFile, err := os.CreateTemp("tmp", "image-*."+suffix)
+	tempFile, err := os.CreateTemp("tmp", "*."+suffix)
 	if err != nil {
-		logrus.Error("DownloadImage: ", err)
+		logrus.Error("download failed: ", err)
 		return "", err
 	}
 	defer tempFile.Close()
 
 	_, err = tempFile.Write(dec)
 	if err != nil {
-		logrus.Error("DownloadImage: ", err)
+		logrus.Error("download failed: ", err)
 		return "", err
 	}
 

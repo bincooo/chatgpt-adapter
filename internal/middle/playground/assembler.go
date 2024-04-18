@@ -174,7 +174,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
-	file, err := common.CreateBase64Image(mc.Images[0].Url, "jpg")
+	file, err := common.SaveBase64(mc.Images[0].Url, "jpg")
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
