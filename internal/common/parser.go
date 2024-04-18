@@ -338,7 +338,6 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 
 func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 	matchers := NewMatchers()
-	ctx.Set("cmd", -1)
 	flags := pkg.Config.GetBool("flags")
 	if !flags {
 		return matchers
@@ -451,15 +450,6 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 				}
 			}
 		}
-
-		// 适配FastGPT的工具调用
-		if h['t'] == "cmd" {
-			num, err := strconv.Atoi(h['n'])
-			if err != nil {
-				num = 0
-			}
-			ctx.Set("cmd", num)
-		}
 	}
 
 	return matchers
@@ -515,7 +505,6 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 			"pad",      // bing中使用的标记：填充引导对话，尝试避免道歉
 			"notebook", // notebook模式
 			"histories",
-			"cmd",
 		})
 	)
 
@@ -558,7 +547,10 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 					// 为空则是拼接到该消息末尾
 					r := ""
 					if it, ok := node.attr["role"]; ok {
-						r = it.(string)
+						switch str := it.(string); str {
+						case "user", "system", "assistant":
+							r = str
+						}
 					}
 					handles = append(handles, map[uint8]string{'i': node.tag[1:], 'r': r, 'v': node.content, 'm': miss, 't': "insert"})
 					clean(content[node.index:node.end])
@@ -633,16 +625,6 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 					handles = append(handles, map[uint8]string{'v': str, 't': "histories"})
 					clean(content[node.index:node.end])
 				}
-			}
-
-			// 适配FastGPT的工具调用
-			if node.t == XML_TYPE_X && node.tag == "cmd" {
-				num := "0"
-				if l, ok := node.attr["num"]; ok {
-					num = fmt.Sprintf("%v", l)
-				}
-				handles = append(handles, map[uint8]string{'n': num, 't': "cmd"})
-				clean(content[node.index:node.end])
 			}
 		}
 	}
