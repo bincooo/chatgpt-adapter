@@ -98,13 +98,10 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 }
 
 func Download(proxies, url, suffix string) (file string, err error) {
-	client, err := NewHttpClient(proxies)
-	if err != nil {
-		logrus.Error("download failed: ", err)
-		return "", err
-	}
-
-	response, err := client.Get(url)
+	response, err := ClientBuilder().
+		Proxies(proxies).
+		URL(url).
+		Do()
 	if err != nil {
 		logrus.Error("download failed: ", err)
 		return "", err

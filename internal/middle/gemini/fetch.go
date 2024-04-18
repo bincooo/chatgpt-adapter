@@ -1,7 +1,6 @@
 package gemini
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -121,19 +120,14 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		return nil, err
 	}
 
-	request, err := http.NewRequest(http.MethodPost, burl, bytes.NewReader(marshal))
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-
-	client, err := common.NewHttpClient(proxies)
-	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-
-	res, err := client.Do(request.WithContext(ctx))
+	res, err := common.ClientBuilder().
+		Proxies(proxies).
+		Context(ctx).
+		Method(http.MethodPost).
+		URL(burl).
+		JsonHeader().
+		SetBytes(marshal).
+		Do()
 	if err != nil {
 		logrus.Error(err)
 		var e *url.Error

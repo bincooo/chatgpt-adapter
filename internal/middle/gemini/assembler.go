@@ -178,7 +178,7 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 		timeout, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 
-		response, e := com.New().
+		response, e := common.ClientBuilder().
 			Proxies(proxies).
 			URL(gLogin).
 			Method(http.MethodPost).
@@ -192,7 +192,7 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 			JsonHeader().
 			Do()
 		if e != nil {
-			err = errors.New("fetch cookies failed")
+			err = fmt.Errorf("fetch cookies failed: %v", e)
 			return
 		}
 

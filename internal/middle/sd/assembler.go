@@ -425,25 +425,15 @@ func fetch(ctx context.Context, proxies, baseUrl, cookie string, marshal []byte)
 		proxies = ""
 	}
 
-	client, err := common.NewHttpClient(proxies)
-	if err != nil {
-		return nil, err
-	}
-
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v1/chat/completions", baseUrl), bytes.NewReader(marshal))
-	if err != nil {
-		return nil, err
-	}
-
-	h := request.Header
-	h.Add("content-type", "application/json")
-	h.Add("Authorization", cookie)
-
-	if err = middle.IsCanceled(ctx); err != nil {
-		return nil, err
-	}
-
-	response, err := client.Do(request.WithContext(ctx))
+	response, err := common.ClientBuilder().
+		Context(ctx).
+		Proxies(proxies).
+		Method(http.MethodPost).
+		URL(fmt.Sprintf("%s/v1/chat/completions", baseUrl)).
+		Header("Authorization", cookie).
+		JsonHeader().
+		SetBytes(marshal).
+		Do()
 	if err != nil {
 		return nil, err
 	}

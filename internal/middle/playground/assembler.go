@@ -215,34 +215,24 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 		cookie = "__Secure-next-auth.session-token=" + cookie
 	}
 
-	client, err := common.NewHttpClient(proxies)
-	if err != nil {
-		return nil, err
-	}
-
 	baseUrl := "https://playground.com"
-	request, err := http.NewRequest(http.MethodPost, baseUrl+"/api/models", bytes.NewReader(marshal))
+	response, err := common.ClientBuilder().
+		Proxies(proxies).
+		Context(ctx).
+		Method(http.MethodPost).
+		URL(baseUrl+"/api/models").
+		Header("host", "playground.com").
+		Header("origin", "https://playground.com").
+		Header("referer", "https://playground.com/create").
+		Header("accept-language", "en-US,en;q=0.9").
+		Header("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36").
+		Header("x-forwarded-for", common.RandomIp()).
+		Header("cookie", cookie).
+		JsonHeader().
+		SetBytes(marshal).
+		Do()
 	if err != nil {
 		return nil, err
-	}
-
-	h := request.Header
-	h.Add("host", "playground.com")
-	h.Add("origin", "https://playground.com")
-	h.Add("referer", "https://playground.com/create")
-	h.Add("accept-language", "en-US,en;q=0.9")
-	h.Add("content-type", "application/json")
-	h.Add("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-	h.Add("x-forwarded-for", common.RandomIp())
-	h.Add("cookie", cookie)
-
-	if err = middle.IsCanceled(ctx); err != nil {
-		return nil, err
-	}
-
-	response, e := client.Do(request.WithContext(ctx))
-	if e != nil {
-		return nil, e
 	}
 
 	if response.StatusCode != http.StatusOK {
