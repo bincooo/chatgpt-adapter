@@ -37,13 +37,37 @@ func ClientBuilder() *R {
 	}
 }
 
-func (r *R) URL(value string) *R {
-	r.url = value
+func (r *R) URL(url string) *R {
+	r.url = url
 	return r
 }
 
 func (r *R) Method(method string) *R {
 	r.method = method
+	return r
+}
+
+func (r *R) GET(url string) *R {
+	r.url = url
+	r.method = http.MethodGet
+	return r
+}
+
+func (r *R) POST(url string) *R {
+	r.url = url
+	r.method = http.MethodPost
+	return r
+}
+
+func (r *R) PUT(url string) *R {
+	r.url = url
+	r.method = http.MethodPut
+	return r
+}
+
+func (r *R) DELETE(url string) *R {
+	r.url = url
+	r.method = http.MethodDelete
 	return r
 }
 
@@ -83,6 +107,19 @@ func (r *R) SetBody(payload interface{}) *R {
 func (r *R) SetBytes(data []byte) *R {
 	r.bytes = data
 	return r
+}
+
+func (r *R) DoWith(status int) (*http.Response, error) {
+	response, err := r.Do()
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != status {
+		return nil, errors.New(response.Status)
+	}
+
+	return response, nil
 }
 
 func (r *R) Do() (*http.Response, error) {
@@ -170,7 +207,7 @@ func client(proxies string) (*http.Client, error) {
 	return c, nil
 }
 
-func ToObj(response *http.Response, obj interface{}) error {
+func ToObject(response *http.Response, obj interface{}) error {
 	data, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err

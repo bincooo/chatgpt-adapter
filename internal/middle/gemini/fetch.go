@@ -123,8 +123,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	res, err := common.ClientBuilder().
 		Proxies(proxies).
 		Context(ctx).
-		Method(http.MethodPost).
-		URL(burl).
+		POST(burl).
 		JsonHeader().
 		SetBytes(marshal).
 		Do()

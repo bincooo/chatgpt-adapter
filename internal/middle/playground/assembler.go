@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
@@ -216,11 +215,10 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 	}
 
 	baseUrl := "https://playground.com"
-	response, err := common.ClientBuilder().
+	return common.ClientBuilder().
 		Proxies(proxies).
 		Context(ctx).
-		Method(http.MethodPost).
-		URL(baseUrl+"/api/models").
+		POST(baseUrl+"/api/models").
 		Header("host", "playground.com").
 		Header("origin", "https://playground.com").
 		Header("referer", "https://playground.com/create").
@@ -230,14 +228,5 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 		Header("cookie", cookie).
 		JsonHeader().
 		SetBytes(marshal).
-		Do()
-	if err != nil {
-		return nil, err
-	}
-
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(response.Status)
-	}
-	return response, nil
-
+		DoWith(http.StatusOK)
 }

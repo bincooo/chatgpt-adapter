@@ -425,18 +425,12 @@ func fetch(ctx context.Context, proxies, baseUrl, cookie string, marshal []byte)
 		proxies = ""
 	}
 
-	response, err := common.ClientBuilder().
+	return common.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
-		Method(http.MethodPost).
-		URL(fmt.Sprintf("%s/v1/chat/completions", baseUrl)).
+		POST(fmt.Sprintf("%s/v1/chat/completions", baseUrl)).
 		Header("Authorization", cookie).
 		JsonHeader().
 		SetBytes(marshal).
 		Do()
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
 }

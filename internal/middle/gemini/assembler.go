@@ -11,7 +11,6 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	com "github.com/bincooo/goole15/common"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -180,8 +179,7 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 
 		response, e := common.ClientBuilder().
 			Proxies(proxies).
-			URL(gLogin).
-			Method(http.MethodPost).
+			POST(gLogin).
 			Context(timeout).
 			Header("Authorization", s[3]).
 			SetBody(map[string]string{
@@ -190,19 +188,14 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 				"passwd": s[2],
 			}).
 			JsonHeader().
-			Do()
+			DoWith(http.StatusOK)
 		if e != nil {
 			err = fmt.Errorf("fetch cookies failed: %v", e)
 			return
 		}
 
-		if response.StatusCode != http.StatusOK {
-			err = errors.New("fetch cookies failed: " + response.Status)
-			return
-		}
-
 		var result map[string]interface{}
-		e = com.ToObj(response, &result)
+		e = common.ToObject(response, &result)
 		if e != nil {
 			err = errors.New(fmt.Sprintf("fetch cookies failed: %v", e))
 			return
