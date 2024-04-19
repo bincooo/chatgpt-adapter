@@ -34,33 +34,48 @@ type XmlParser struct {
 	whiteList []string
 }
 
-func encode(content string) string {
-	e := "!u+000d!"
-	return strings.ReplaceAll(content, "\n", e)
-}
-
-func decode(content string) string {
-	e := "!u+000d!"
-	return strings.ReplaceAll(content, e, "\n")
-}
-
 // 只解析whiteList中的标签
 func NewParser(whiteList []string) XmlParser {
 	return XmlParser{whiteList}
 }
 
-func TrimCDATA(value string) string {
-	if !strings.Contains(value, "<![CDATA[") {
-		return value
+func trimCdata(value string) string {
+	// 查找从 index 开始，符合的字符串返回其下标，没有则-1
+	searchStr := func(content string, index int, s string) int {
+		l := len(s)
+		contentL := len(content)
+		for i := index + 1; i < contentL; i++ {
+			if i+l > contentL {
+				return -1
+			}
+			if content[i:i+l] == s {
+				return i
+			}
+		}
+		return -1
 	}
-	cmp := "<!\\[CDATA\\[(((?!]]>).)*)]]>"
-	c := regexp.MustCompile(cmp, regexp.Compiled)
-	replace, err := c.Replace(encode(value), "$1", -1, -1)
-	if err != nil {
-		logrus.Warn("compile failed: "+cmp, err)
-		return value
+
+	// 比较 index 的下一个字符串，如果相同返回 true
+	nextStr := func(content string, index int, s string) bool {
+		contentL := len(content)
+		if index+1+len(s) >= contentL {
+			return false
+		}
+		return content[index+1:index+1+len(s)] == s
 	}
-	return decode(replace)
+
+label:
+	valueL := len(value)
+	for i := 0; i < valueL; i++ {
+		if value[i] == '<' && nextStr(value, i, "![CDATA[") {
+			n := searchStr(value, i+9, "]]>")
+			if n >= 0 {
+				value = value[:i] + value[i+9:n] + value[n+3:]
+				goto label
+			}
+		}
+	}
+	return value
 }
 
 // xml解析的简单实现
@@ -88,7 +103,7 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 		l := len(s)
 		contentL := len(content)
 		for i := index + 1; i < contentL; i++ {
-			if i+l >= contentL {
+			if i+l > contentL {
 				return -1
 			}
 			if content[i:i+l] == s {
@@ -133,10 +148,10 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 			}
 
 			if it[n+1] == '"' && it[len(it)-1] == '"' {
-				attr[it[:n]] = TrimCDATA(it[n+2 : len(it)-1])
+				attr[it[:n]] = trimCdata(it[n+2 : len(it)-1])
 			}
 
-			s := TrimCDATA(it[n+1:])
+			s := trimCdata(it[n+1:])
 			v1, err := strconv.Atoi(s)
 			if err == nil {
 				attr[it[:n]] = v1
@@ -228,7 +243,7 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 
 						str := content[curr.index+step : curr.end-len(s[0])-3]
 						curr.child = recursive(str)
-						curr.content = TrimCDATA(str)
+						curr.content = trimCdata(str)
 						i = curr.end - 1
 
 						curr.count--
@@ -402,12 +417,12 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 			c := regexp.MustCompile(cmp, regexp.Compiled)
 			for idx, message := range req.Messages {
 				if idx < pos && message["role"] != "system" {
-					replace, err := c.Replace(encode(message["content"]), value, -1, -1)
+					replace, err := c.Replace(message["content"], value, -1, -1)
 					if err != nil {
 						logrus.Warn("compile failed: "+cmp, err)
 						continue
 					}
-					message["content"] = decode(replace)
+					message["content"] = replace
 				}
 			}
 		}
@@ -510,12 +525,12 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 			if index+findL > len(r)-1 {
 				return MAT_MATCHING, content
 			}
-			replace, err := c.Replace(encode(content), join, -1, -1)
+			replace, err := c.Replace(content, join, -1, -1)
 			if err != nil {
 				logrus.Warn("compile failed: "+values[0], err)
 				return MAT_MATCHED, content
 			}
-			return MAT_MATCHED, decode(replace)
+			return MAT_MATCHED, replace
 		},
 	})
 }
