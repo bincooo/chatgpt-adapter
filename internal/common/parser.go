@@ -25,6 +25,7 @@ type XmlNode struct {
 	tag     string
 	t       int
 	content string
+	count   int
 	attr    map[string]interface{}
 	child   []XmlNode
 }
@@ -188,8 +189,16 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 			// curr 的标记不完整跳过该标记，重新扫描
 			if i == contentL-1 {
 				if curr != nil {
-					i = curr.index + len(curr.tag) + 1
+					if curr.index < curr.end {
+						slice = append(slice, *curr)
+						i = curr.end
+					} else {
+						i = curr.index + len(curr.tag) + 1
+					}
 					curr = nil
+					if i >= contentL {
+						return
+					}
 				}
 			}
 
@@ -216,13 +225,21 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 							curr.tag = s[0]
 							curr.attr = parseAttr(s[1:])
 						}
-						i = n
 
 						str := content[curr.index+step : curr.end-len(s[0])-3]
 						curr.child = recursive(str)
 						curr.content = TrimCDATA(str)
+						i = curr.end - 1
+
+						curr.count--
+						if curr.count > 0 {
+							if i == contentL-1 {
+								i--
+							}
+							continue
+						}
+
 						slice = append(slice, *curr)
-						i = curr.end
 						curr = nil
 					}
 					// ⬆⬆⬆⬆⬆ 结束标记 ⬆⬆⬆⬆⬆
@@ -243,7 +260,7 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 					// =========================================================
 					//
 
-				} else if curr == nil && nextStr(content, i, "!--") {
+				} else if nextStr(content, i, "!--") {
 
 					//
 					// ⬇⬇⬇⬇⬇ 是否是注释 <!-- xxx --> ⬇⬇⬇⬇⬇
@@ -262,7 +279,7 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 					// =========================================================
 					//
 
-				} else if curr == nil {
+				} else {
 
 					//
 					// ⬇⬇⬇⬇⬇ 新的 XML 标记 ⬇⬇⬇⬇⬇
@@ -306,7 +323,7 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 
 					// 这是一个自闭合的标签 <xxx />
 					ch := content[n-1]
-					if ch == '/' {
+					if curr == nil && ch == '/' {
 						tag = tag[:len(tag)-1]
 						node := XmlNode{index: i, tag: tag, t: XML_TYPE_X}
 						s := strings.Split(node.tag, " ")
@@ -322,8 +339,16 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 						continue
 					}
 
-					curr = &XmlNode{index: i, tag: tag, t: XML_TYPE_S}
-					i = n
+					if curr == nil {
+						curr = &XmlNode{index: i, tag: tag, t: XML_TYPE_S, count: 1}
+						i = n
+						continue
+					}
+
+					if curr.tag == tag {
+						curr.count++
+						i = n
+					}
 					// ⬆⬆⬆⬆⬆ 新的 XML 标记 ⬆⬆⬆⬆⬆
 				}
 			}
