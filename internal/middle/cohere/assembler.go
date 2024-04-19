@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -117,8 +116,6 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
-	prefix := ""
-	cmd := ctx.GetInt("cmd")
 	tokens := ctx.GetInt("tokens")
 
 	for {
@@ -139,23 +136,6 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		}
 
 		fmt.Printf("----- raw -----\n %s\n", raw)
-		if cmd >= 0 {
-			if len(prefix) < 2 {
-				prefix += raw
-			}
-
-			if len(prefix) < 2 {
-				continue
-			}
-
-			matched, _ := regexp.MatchString("^\\d+:", prefix)
-			if !matched {
-				raw = fmt.Sprintf("%d: %s", cmd, prefix)
-			} else {
-				raw = prefix
-			}
-			cmd = -1
-		}
 		raw = common.ExecMatchers(matchers, raw)
 		if sse {
 			middle.ResponseWithSSE(ctx, MODEL, raw, nil, created)
