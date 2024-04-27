@@ -89,7 +89,8 @@ Comply with requirements:
 7. Reply with English.
 
 Generate prompt words on content """{{content}}""".
-prompt:`
+
+reply markdown code block about prompt:`
 )
 
 var (
@@ -363,13 +364,18 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		baseUrl = pkg.Config.GetString("llm.baseUrl")
 	)
 
+	prefix := ""
+	if model == "bing" {
+		prefix = "<pad />"
+	}
+
 	obj := map[string]interface{}{
 		"model":  model,
 		"stream": false,
 		"messages": []map[string]string{
 			{
 				"role":    "user",
-				"content": strings.Replace(sysPrompt, "{{content}}", content, -1),
+				"content": strings.Replace(prefix+sysPrompt, "{{content}}", content, -1),
 			},
 		},
 		"temperature": .8,
@@ -411,6 +417,15 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 
 	if strings.HasSuffix(message, `"""`) { // 哎。bing 偶尔会漏掉前面的"""
 		message = strings.ReplaceAll(message[:len(message)-3], "\"", "")
+		logrus.Infof("system assistant generate prompt[%s]: %s", model, message)
+		return strings.TrimSpace(message), nil
+	}
+
+	left = strings.Index(message, "```")
+	right = strings.LastIndex(message, "```")
+
+	if left > -1 && left < right {
+		message = strings.ReplaceAll(message[left+3:right], "\"", "")
 		logrus.Infof("system assistant generate prompt[%s]: %s", model, message)
 		return strings.TrimSpace(message), nil
 	}
