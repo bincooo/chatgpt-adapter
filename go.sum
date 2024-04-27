@@ -8,8 +8,8 @@ github.com/bincooo/cohere-api v0.0.0-20240408053055-744e6f22b310 h1:NtvRGHhzEd5Z
 github.com/bincooo/cohere-api v0.0.0-20240408053055-744e6f22b310/go.mod h1:fi6FdO5X1gGcXNpn/6vGICraupaaoruMbDOIOtO5PZg=
 github.com/bincooo/coze-api v1.0.2-0.20240409071705-1dbff01abec0 h1:alKDqG+5QY8ee2vBTf10H+1+3OgVbkZTQ+kKedzahkI=
 github.com/bincooo/coze-api v1.0.2-0.20240409071705-1dbff01abec0/go.mod h1:/BwOAxy8B8f/xwOKcGQd4qGgpj16M3XDdAqAf4s5pyc=
-github.com/bincooo/edge-api v1.0.3-1.1630.0 h1:VxEwnyazwNIhZaPpJdBGSQKvFbaAqBwPUllAMRGGD/0=
-github.com/bincooo/edge-api v1.0.3-1.1630.0/go.mod h1:KqUn1YF4q4FMy1I6Z3Zjq7qEoFQ9p4lbrFTJKcYwP5I=
+github.com/bincooo/edge-api v1.0.3-1.1694.0 h1:sQUdfK9LxjCwXxzcs+ba1F2ESr1aVnqJUDIHZUkvZUY=
+github.com/bincooo/edge-api v1.0.3-1.1694.0/go.mod h1:KqUn1YF4q4FMy1I6Z3Zjq7qEoFQ9p4lbrFTJKcYwP5I=
 github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b h1:rJDNFBL46xBqMfGykXtt3pVR3K44c3+vOlhseVpTbQM=
 github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b/go.mod h1:BhvAZuM5Neg6GbSGrWSStsU1dtpj9WJzC2zlgmT+DAA=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=
