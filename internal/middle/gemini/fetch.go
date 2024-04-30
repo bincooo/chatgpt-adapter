@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
+	"github.com/bincooo/gio.emits/common"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -124,8 +124,8 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		Proxies(proxies).
 		Context(ctx).
 		POST(burl).
-		JsonHeader().
-		SetBytes(marshal).
+		JHeader().
+		Bytes(marshal).
 		Do()
 	if err != nil {
 		logrus.Error(err)

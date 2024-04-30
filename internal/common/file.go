@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
-	"github.com/bincooo/sdio"
+	"github.com/bincooo/gio.emits/common"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -46,7 +46,7 @@ func Magnify(ctx context.Context, url string) (jpgurl string, err error) {
 			continue
 		}
 
-		jpgurl, err = sdio.Magnify(ctx, url, c.key, "art", "1")
+		jpgurl, err = magnify(ctx, url, c.key, "art", "1")
 		if err != nil {
 			c.disable = true
 			c.Add(5 * time.Minute) // 5m 内不参与轮询
@@ -98,7 +98,7 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 }
 
 func Download(proxies, url, suffix string) (file string, err error) {
-	response, err := ClientBuilder().
+	response, err := common.ClientBuilder().
 		Proxies(proxies).
 		URL(url).
 		Do()

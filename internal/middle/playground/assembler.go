@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
+	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
+	"github.com/bincooo/gio.emits"
+	"github.com/bincooo/gio.emits/common"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -17,8 +19,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/bincooo/sdio"
 )
 
 type modelPayload struct {
@@ -104,7 +104,7 @@ var (
 )
 
 func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
-	hash := sdio.SessionHash()
+	hash := emits.SessionHash()
 	var (
 		cookie = ctx.GetString("token")
 		domain = pkg.Config.GetString("domain")
@@ -173,7 +173,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
-	file, err := common.SaveBase64(mc.Images[0].Url, "jpg")
+	file, err := com.SaveBase64(mc.Images[0].Url, "jpg")
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
@@ -183,8 +183,8 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 	file = fmt.Sprintf("%s/file/%s", domain, file)
-	if (req.Size == "HD" || strings.HasPrefix(req.Size, "1792x")) && common.HasMfy() {
-		v, e := common.Magnify(ctx, file)
+	if (req.Size == "HD" || strings.HasPrefix(req.Size, "1792x")) && com.HasMfy() {
+		v, e := com.Magnify(ctx, file)
 		if e != nil {
 			logrus.Error(e)
 		} else {
@@ -203,7 +203,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 }
 
 func convertToModel(style string) string {
-	if common.Contains(models, style) {
+	if com.Contains(models, style) {
 		return style
 	}
 	return models[rand.Intn(len(models))]
@@ -224,9 +224,9 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 		Header("referer", "https://playground.com/create").
 		Header("accept-language", "en-US,en;q=0.9").
 		Header("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36").
-		Header("x-forwarded-for", common.RandomIp()).
+		Header("x-forwarded-for", common.RandIP()).
 		Header("cookie", cookie).
-		JsonHeader().
-		SetBytes(marshal).
+		JHeader().
+		Bytes(marshal).
 		DoWith(http.StatusOK)
 }

@@ -7,10 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
+	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
+	"github.com/bincooo/gio.emits/common"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -54,7 +55,7 @@ type candidate struct {
 }
 
 // https://ai.google.dev/models/gemini?hl=zh-cn
-func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
+func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []com.Matcher) {
 	var (
 		cookie  = ctx.GetString("token")
 		proxies = ctx.GetString("proxies")
@@ -88,7 +89,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 }
 
 // https://ai.google.dev/models/gemini?hl=zh-cn
-func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
+func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []com.Matcher) {
 	var (
 		token   = ctx.GetString("token")
 		proxies = ctx.GetString("proxies")
@@ -124,7 +125,7 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 	opts.Temperature(req.Temperature)
 	opts.TopP(req.TopP)
 	opts.TopK(req.TopK)
-	h := common.Hash(token)
+	h := com.Hash(token)
 	if c, ok := gkv[h]; ok {
 		opts.UA(c.userAgent)
 	}
@@ -148,7 +149,7 @@ func Complete15(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []comm
 
 func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, user string, cookie string, err error) {
 	var opts cookieOpts
-	h := common.Hash(token)
+	h := com.Hash(token)
 
 	if !strings.Contains(token, "@gmail.com|") {
 		// 不走接口获取的token
@@ -182,12 +183,12 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 			POST(gLogin).
 			Context(timeout).
 			Header("Authorization", s[3]).
-			SetBody(map[string]string{
+			Body(map[string]string{
 				"mail":   s[0],
 				"cMail":  s[1],
 				"passwd": s[2],
 			}).
-			JsonHeader().
+			JHeader().
 			DoWith(http.StatusOK)
 		if e != nil {
 			err = fmt.Errorf("fetch cookies failed: %v", e)
@@ -253,7 +254,7 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 	return
 }
 
-func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *http.Response, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *http.Response, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
@@ -328,7 +329,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 		}
 		fmt.Printf("----- raw -----\n %s\n", raw)
 		original = nil
-		raw = common.ExecMatchers(matchers, raw.(string))
+		raw = com.ExecMatchers(matchers, raw.(string))
 
 		if sse {
 			middle.ResponseWithSSE(ctx, MODEL, raw.(string), nil, created)
@@ -351,11 +352,11 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 	if !sse {
 		middle.ResponseWith(ctx, MODEL, content)
 	} else {
-		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", common.CalcUsageTokens(content, tokens), created)
+		middle.ResponseWithSSE(ctx, MODEL, "[DONE]", com.CalcUsageTokens(content, tokens), created)
 	}
 }
 
-func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string, sse bool) {
+func waitResponse15(ctx *gin.Context, matchers []com.Matcher, ch chan string, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
@@ -380,7 +381,7 @@ func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string,
 		if strings.HasPrefix(tex, "text: ") {
 			raw := strings.TrimPrefix(tex, "text: ")
 			fmt.Printf("----- raw -----\n %s\n", raw)
-			raw = common.ExecMatchers(matchers, raw)
+			raw = com.ExecMatchers(matchers, raw)
 			if sse {
 				middle.ResponseWithSSE(ctx, MODEL+"-1.5", raw, nil, created)
 			}
@@ -392,7 +393,7 @@ func waitResponse15(ctx *gin.Context, matchers []common.Matcher, ch chan string,
 	if !sse {
 		middle.ResponseWith(ctx, MODEL+"-1.5", content)
 	} else {
-		middle.ResponseWithSSE(ctx, MODEL+"-1.5", "[DONE]", common.CalcUsageTokens(content, tokens), created)
+		middle.ResponseWithSSE(ctx, MODEL+"-1.5", "[DONE]", com.CalcUsageTokens(content, tokens), created)
 	}
 }
 
@@ -521,7 +522,7 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 			if len(buffer) > 0 {
 				join := strings.Join(buffer, "\n\n")
 				if len(join) > 0 {
-					tokens += common.CalcTokens(join)
+					tokens += com.CalcTokens(join)
 					push(pos, role, join)
 				}
 			}
@@ -556,7 +557,7 @@ func buildConversation(messages []map[string]string) (newMessages []map[string]i
 
 		join := strings.Join(buffer, "\n\n")
 		if len(join) > 0 {
-			tokens += common.CalcTokens(join)
+			tokens += com.CalcTokens(join)
 			push(pos, role, join)
 		}
 
@@ -626,7 +627,7 @@ func buildConversation15(messages []map[string]string) ([]goole.Message, int, er
 			if len(buffer) > 0 {
 				join := strings.Join(buffer, "\n\n")
 				if len(join) > 0 {
-					tokens += common.CalcTokens(join)
+					tokens += com.CalcTokens(join)
 					push(pos, role, join)
 				}
 			}
@@ -657,7 +658,7 @@ func buildConversation15(messages []map[string]string) ([]goole.Message, int, er
 
 		join := strings.Join(buffer, "\n\n")
 		if len(join) > 0 {
-			tokens += common.CalcTokens(join)
+			tokens += com.CalcTokens(join)
 			push(pos, role, join)
 		}
 
