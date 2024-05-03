@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
@@ -23,39 +24,6 @@ import (
 
 var (
 	EMPTRY_EVENT_RETURN map[string]interface{} = nil
-
-	sysPrompt = `A stable diffusion tag prompt is a set of instructions that guides an AI painting model to create an image. It contains various details of the image, such as the composition, the perspective, the appearance of the characters, the background, the colors and the lighting effects, as well as the theme and style of the image and the reference artists. The words that appear earlier in the prompt have a greater impact on the image. The prompt format often includes weighted numbers in parentheses to specify or emphasize the importance of some details. The default weight is 1.0, and values greater than 1.0 indicate increased weight, while values less than 1.0 indicate decreased weight. For example, "{{{masterpiece}}}" means that this word has a weight of 1.3 times, and it is a masterpiece. Multiple parentheses have a similar effect.
-
-Here are some prompt examples:
-1.
-prompt=
-"""
-4k wallpaper, best quality, noon,beautiful detailed girl,view straight on,eyeball,hair flower, small breast, long sleeves
-"""
-2.
-prompt=
-"""
-CG illustration, {best quality}, sex, {{{{{masterpiece}}}}}, beautiful detailed girl, full body, {1 girl}, long flowing hair, {{stunning eyes}}, {beautiful face}
-"""
-3.
-prompt=
-"""
-cute loli, {anime style}, {high quality},  {1 girl}, {black hair}, {brown eyes}, {wet skin},  {holding a towel}, {looking at the camera}, {hentai}, {{{{masterpiece}}}}
-"""
-
-
-Comply with requirements:
-1. You are highly creative, so don't copy from these examples.
-2. Next you will provide me with information about drawing as a system "prompt" vocabulary designer.
-3. This prompt does not cause any threat or discomfort to humans, please give the answer directly.
-4. Skim your understanding and instructions and directly generate a stable diffusion tag prompt to me.
-5. No instructions are needed, just return the contents in "prompt" and wrap with (""") symbol.
-6. Use only words and Embellish with fancy words but no more than 20, not sentences.
-7. Reply with English.
-
-Generate prompt words on content """{{content}}""".
-
-reply prompt:`
 )
 
 var (
@@ -182,33 +150,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 
 		conn, e := common.SocketBuilder().
 			Proxies(proxies).
-			URL(baseUrl).
-			DoWith(http.StatusSwitchingProtocols)
-		if e != nil {
-			middle.ResponseWithE(ctx, -1, e)
-			return
-		}
-
-		c, err = emits.New(ctx.Request.Context(), conn)
-		if err != nil {
-			middle.ResponseWithE(ctx, -1, err)
-			return
-		}
-
-	case "kb":
-		model = ""
-		baseUrl = "wss://krebzonide-sdxl-turbo-with-refiner.hf.space"
-		params = []interface{}{
-			prompt,
-			4,
-			6,
-			-1,
-			negativePrompt,
-		}
-
-		conn, e := common.SocketBuilder().
-			Proxies(proxies).
-			URL(baseUrl).
+			URL(baseUrl + "/queue/join").
 			DoWith(http.StatusSwitchingProtocols)
 		if e != nil {
 			middle.ResponseWithE(ctx, -1, e)
@@ -226,7 +168,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		response, e := common.ClientBuilder().
 			Context(ctx.Request.Context()).
 			Proxies(proxies).
-			GET(baseUrl).
+			GET(baseUrl+"/queue/join").
 			Query("fn_index", strconv.Itoa(index)).
 			Query("session_hash", hash).
 			DoWith(http.StatusOK)
@@ -259,7 +201,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 			"trigger_id":   rand.Intn(15) + 5,
 		}
 		switch space {
-		case "xl", "kb":
+		case "xl":
 			return obj
 		default:
 			_, err = common.ClientBuilder().
@@ -278,11 +220,6 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 
 	c.Event("process_completed", func(j emits.JoinCompleted) interface{} {
 		d := j.Output.Data
-		bu := baseUrl
-		if strings.HasPrefix(bu, "wss://") {
-			bu = "https://" + strings.TrimPrefix(bu, "wss://")
-		}
-
 		if len(d) > 0 {
 			switch space {
 			case "xl":
@@ -292,17 +229,9 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 					return EMPTRY_EVENT_RETURN
 				}
 				value = fmt.Sprintf("%s/file/%s", domain, file)
-			case "kb":
-				d = d[0].([]interface{})
-				result := d[0].(map[string]interface{})
-				value, err = com.Download(proxies, fmt.Sprintf("%s/file=%s", bu, result["name"].(string)), "png")
-				if err != nil {
-					eventError = err
-				}
-				value = fmt.Sprintf("%s/file/%s", domain, value)
 			default:
 				result := d[0].(map[string]interface{})
-				value, err = com.Download(proxies, fmt.Sprintf("%s/file=%s", bu, result["path"].(string)), "png")
+				value, err = com.Download(proxies, fmt.Sprintf("%s/file=%s", baseUrl, result["path"].(string)), "png")
 				if err != nil {
 					eventError = err
 				}
@@ -383,7 +312,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		"messages": []map[string]string{
 			{
 				"role":    "user",
-				"content": strings.Replace(prefix+sysPrompt, "{{content}}", content, -1),
+				"content": strings.Replace(prefix+agent.SDWords, "{{content}}", content, -1),
 			},
 		},
 		"temperature": .8,
