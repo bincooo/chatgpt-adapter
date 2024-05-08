@@ -111,6 +111,9 @@ gemini:
 coze:
 > 在 `www.coze.com` 官网中登陆，浏览器 `cookies` 中复制完整的 `cookie` 就是 `Authorization` 参数
 
+lmsys:
+> 无需cookie， model参数为 `lmsys/` 前缀，例：`lmsys/claude-3-haiku-20240307`
+> 该接口有第三方监管，但用来进行正向对话还是不错的
 
 #### free画图接口
 

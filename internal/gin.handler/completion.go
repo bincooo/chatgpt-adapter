@@ -10,6 +10,7 @@ import (
 	coh "github.com/bincooo/chatgpt-adapter/v2/internal/middle/cohere"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/coze"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/gemini"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/lmsys"
 	pg "github.com/bincooo/chatgpt-adapter/v2/internal/middle/playground"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/sd"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
@@ -72,11 +73,17 @@ func completions(ctx *gin.Context) {
 		cohere.COMMAND_R_PLUS:
 		coh.Complete(ctx, chatCompletionRequest, matchers)
 	default:
+		if strings.HasPrefix(chatCompletionRequest.Model, "lmsys/") {
+			lmsys.Complete(ctx, chatCompletionRequest, matchers)
+			return
+		}
+
 		if strings.HasPrefix(chatCompletionRequest.Model, "claude-") {
 			claude.Complete(ctx, chatCompletionRequest, matchers)
-		} else {
-			middle.ResponseWithV(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", chatCompletionRequest.Model))
+			return
 		}
+
+		middle.ResponseWithV(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", chatCompletionRequest.Model))
 	}
 }
 
