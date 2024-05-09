@@ -17,7 +17,36 @@ const (
 	MODEL = "lmsys"
 )
 
+var (
+	blocks = []string{
+		"<|system|>",
+		"<|user|>",
+		"<|assistant|>",
+		"<|function|>",
+		"<|end|>",
+	}
+)
+
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
+	// 自定义标记块中断
+	cancel := make(chan bool, 1)
+	matchers = append(matchers, &common.SymbolMatcher{
+		Find: "<|",
+		H: func(index int, content string) (state int, result string) {
+			if len(content) < 13 {
+				return common.MAT_MATCHING, content
+			}
+
+			for _, block := range blocks {
+				if strings.Contains(content, block) {
+					cancel <- true
+					return common.MAT_MATCHED, ""
+				}
+			}
+			return common.MAT_DEFAULT, content
+		},
+	})
+
 	req.Model = req.Model[6:]
 	proxies := ctx.GetString("proxies")
 	messages := req.Messages
@@ -54,6 +83,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		temperature: req.Temperature,
 		topP:        req.TopP,
 		maxTokens:   req.MaxTokens,
+		cancel:      cancel,
 	})
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
@@ -171,7 +201,7 @@ func buildConversation(messages []map[string]string) (newMessages string, tokens
 		if pos >= messageL {
 			if len(buffer) > 0 {
 				tokens += common.CalcTokens(strings.Join(buffer, ""))
-				newMessages = fmt.Sprintf("<|%s|>\n%s<|end|>", role, strings.Join(buffer, "\n\n"))
+				newMessages += fmt.Sprintf("<|%s|>\n%s<|end|>", role, strings.Join(buffer, "\n\n"))
 			}
 			break
 		}
@@ -200,7 +230,7 @@ func buildConversation(messages []map[string]string) (newMessages string, tokens
 		}
 
 		tokens += common.CalcTokens(strings.Join(buffer, ""))
-		newMessages = fmt.Sprintf("<|%s|>\n%s<|end|>\n\n", role, strings.Join(buffer, "\n\n"))
+		newMessages += fmt.Sprintf("<|%s|>\n%s<|end|>\n\n", role, strings.Join(buffer, "\n\n"))
 		buffer = append(make([]string, 0), content)
 		role = curr
 	}

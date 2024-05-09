@@ -7,7 +7,7 @@ require (
 	github.com/bincooo/cohere-api v0.0.0-20240408053055-744e6f22b310
 	github.com/bincooo/coze-api v1.0.2-0.20240409071705-1dbff01abec0
 	github.com/bincooo/edge-api v1.0.3-1.1694.0
-	github.com/bincooo/gio.emits v0.0.0-20240430221013-89cd1c8ab79d
+	github.com/bincooo/gio.emits v0.0.0-20240509021256-cd7ba8cf5f33
 	github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/gin-gonic/gin v1.9.1

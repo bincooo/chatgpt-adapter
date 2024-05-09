@@ -5,9 +5,9 @@ import (
 )
 
 const (
-	MAT_DEFAULT int = iota
-	MAT_MATCHING
-	MAT_MATCHED
+	MAT_DEFAULT  int = iota // 接收字符，并执行下一个匹配器
+	MAT_MATCHING            // 匹配中
+	MAT_MATCHED             // 匹配器命中
 )
 
 // 匹配器，匹配常量符号流式结果处理

@@ -22,6 +22,8 @@ type options struct {
 	temperature float32
 	topP        float32
 	maxTokens   int
+
+	cancel chan bool
 }
 
 func fetch(ctx context.Context, proxies, messages string, opts options) (chan string, error) {
@@ -114,52 +116,58 @@ func partTwo(ctx context.Context, proxies, hash string, opts options) (chan stri
 	pos := 0
 
 	e.Event("process_generating", func(j emits.JoinCompleted) interface{} {
-		data := j.Output.Data
-		if len(data) < 2 {
-			e.Err = errors.New("illegal response")
+		select {
+		case <-opts.cancel:
+			e.Cancel()
+			return nil
+		default:
+			data := j.Output.Data
+			if len(data) < 2 {
+				e.Error(errors.New("illegal response"))
+				return nil
+			}
+
+			items, ok := data[1].([]interface{})
+			if !ok {
+				e.Error(errors.New("illegal response"))
+				return nil
+			}
+
+			if len(items) < 1 {
+				e.Error(errors.New("illegal response"))
+				return nil
+			}
+
+			items, ok = items[0].([]interface{})
+			if !ok {
+				e.Error(errors.New("illegal response"))
+				return nil
+			}
+
+			if len(items) < 3 {
+				return nil
+			}
+
+			if items[0] != "replace" {
+				e.Error(errors.New("illegal response"))
+				return nil
+			}
+
+			message := items[2].(string)
+			l := len(message)
+			if message[l-3:] == "▌" {
+				message = message[:l-3]
+				l -= 3
+			}
+
+			if pos >= l {
+				return nil
+			}
+
+			ch <- "text: " + message[pos:]
+			pos = l
 			return nil
 		}
-
-		items, ok := data[1].([]interface{})
-		if !ok {
-			e.Err = errors.New("illegal response")
-			return nil
-		}
-
-		if len(items) < 1 {
-			e.Err = errors.New("illegal response")
-			return nil
-		}
-
-		items, ok = items[0].([]interface{})
-		if !ok {
-			e.Err = errors.New("illegal response")
-			return nil
-		}
-
-		if len(items) < 3 {
-			return nil
-		}
-
-		if items[0] != "replace" {
-			e.Err = errors.New("illegal response")
-			return nil
-		}
-
-		message := items[2].(string)
-		l := len(message)
-		if message[l-3:] == "▌" {
-			message = message[:l-3]
-			l -= 3
-		}
-
-		if pos >= l {
-			return nil
-		}
-
-		ch <- "text: " + message[pos:]
-		pos = l
-		return nil
 	})
 
 	go func() {
