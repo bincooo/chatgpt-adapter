@@ -122,37 +122,272 @@ func models(ctx *gin.Context) {
 		"object": "list",
 		"data": []gin.H{
 			{
-				"id":       "claude-2",
+				"id":       "claude",
 				"object":   "model",
 				"created":  1686935002,
 				"owned_by": "claude-adapter",
-			},
-			{
+			}, {
+				"id":       "claude-3-haiku-20240307",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "claude-adapter",
+			}, {
+				"id":       "claude-3-sonnet-20240229",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "claude-adapter",
+			}, {
+				"id":       "claude-3-opus-20240229",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "claude-adapter",
+			}, {
 				"id":       "bing",
 				"object":   "model",
 				"created":  1686935002,
 				"owned_by": "bing-adapter",
-			},
-			{
+			}, {
 				"id":       "coze",
 				"object":   "model",
 				"created":  1686935002,
 				"owned_by": "coze-adapter",
-			},
-			{
+			}, {
 				"id":       "gemini-1.0",
 				"object":   "model",
 				"created":  1686935002,
 				"owned_by": "gemini-adapter",
-			},
-			{
+			}, {
 				"id":       "gemini-1.5",
 				"object":   "model",
 				"created":  1686935002,
 				"owned_by": "gemini-adapter",
-			},
-			{
+			}, {
+				"id":       "command",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "command-r",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "command-light",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "command-light-nightly",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "command-nightly",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
 				"id":       "command-r-plus",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/claude-3-haiku-20240307",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/claude-3-sonnet-20240229",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/claude-3-opus-20240229",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/claude-2.1",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/reka-core-20240501",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/qwen-max-0428",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/qwen1.5-110b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/llama-3-70b-instruct",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/llama-3-8b-instruct",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/gemini-1.5-pro-api-0409-preview",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/snowflake-arctic-instruct",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/phi-3-mini-128k-instruct",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/mixtral-8x22b-instruct-v0.1",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/gpt-4-turbo-2024-04-09",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/gpt-3.5-turbo-0125",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/reka-flash",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/reka-flash-online",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/command-r-plus",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/command-r",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/gemma-1.1-7b-it",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/gemma-1.1-2b-it",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/mixtral-8x7b-instruct-v0.1",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/mistral-large-2402",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/mistral-medium",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/qwen1.5-72b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/qwen1.5-32b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/qwen1.5-14b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/qwen1.5-7b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/qwen1.5-4b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/zephyr-orpo-141b-A35b-v0.1",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/dbrx-instruct",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/starling-lm-7b-beta",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/llama-2-70b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/llama-2-13b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/llama-2-7b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/olmo-7b-instruct",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/vicuna-13b",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/yi-34b-chat",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/codellama-70b-instruct",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "cohere-adapter",
+			}, {
+				"id":       "lmsys/openhermes-2.5-mistral-7b",
 				"object":   "model",
 				"created":  1686935002,
 				"owned_by": "cohere-adapter",

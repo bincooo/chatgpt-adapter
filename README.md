@@ -39,36 +39,39 @@ Flags:
 
 model 列表
 ```txt
-{
-    "id":       "claude-2",
-    "object":   "model",
-    "created":  1686935002,
-    "owned_by": "claude-adapter"
-},
-{
-    "id":       "bing",
-    "object":   "model",
-    "created":  1686935002,
-    "owned_by": "bing-adapter"
-},
-{
-    "id":       "coze",
-    "object":   "model",
-    "created":  1686935002,
-    "owned_by": "coze-adapter"
-},
-{
-    "id":       "gemini-1.0",
-    "object":   "model",
-    "created":  1686935002,
-    "owned_by": "gemini-adapter"
-},
-{
-    "id":       "command-r-plus",
-    "object":   "model",
-    "created":  1686935002,
-    "owned_by": "cohere-adapter"
-}
+[
+    {
+        "id":       "claude",
+        "object":   "model",
+        "created":  1686935002,
+        "owned_by": "claude-adapter"
+    },
+    {
+        "id":       "bing",
+        "object":   "model",
+        "created":  1686935002,
+        "owned_by": "bing-adapter"
+    },
+    {
+        "id":       "coze",
+        "object":   "model",
+        "created":  1686935002,
+        "owned_by": "coze-adapter"
+    },
+    {
+        "id":       "gemini-1.0",
+        "object":   "model",
+        "created":  1686935002,
+        "owned_by": "gemini-adapter"
+    },
+    {
+        "id":       "command-r-plus",
+        "object":   "model",
+        "created":  1686935002,
+        "owned_by": "cohere-adapter"
+    }
+    (更多模型请访问API获取) ...
+]
 ```
 
 completions 对话
