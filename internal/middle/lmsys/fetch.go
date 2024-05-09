@@ -3,18 +3,19 @@ package lmsys
 import (
 	"context"
 	"errors"
+	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	emits "github.com/bincooo/gio.emits"
 	"github.com/bincooo/gio.emits/common"
 	"github.com/sirupsen/logrus"
-	"math/rand"
 	"net/http"
-	"strconv"
 )
 
 const (
 	baseUrl = "https://arena.lmsys.org"
 	ua      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"
 )
+
+var cookies string
 
 type options struct {
 	model       string
@@ -35,19 +36,20 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 	}
 
 	hash := emits.SessionHash()
-	cookies, err := partOne(ctx, proxies, opts.model, messages, hash)
+	co, err := partOne(ctx, proxies, opts.model, messages, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	if cookies == "" {
+	if co == "" {
 		return nil, errors.New("fetch failed")
 	}
 
-	return partTwo(ctx, proxies, cookies, hash, opts)
+	cookies = co
+	return partTwo(ctx, proxies, hash, opts)
 }
 
-func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (chan string, error) {
+func partTwo(ctx context.Context, proxies, hash string, opts options) (chan string, error) {
 	obj := map[string]interface{}{
 		"event_data":   nil,
 		"fn_index":     42,
@@ -68,6 +70,8 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		JHeader().
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
+		Header("Origin", "https://arena.lmsys.org").
+		Header("Referer", "https://arena.lmsys.org/").
 		Body(obj).
 		DoWith(http.StatusOK)
 	if err != nil {
@@ -85,6 +89,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		return nil, errors.New("fetch failed")
 	}
 
+	cookies = common.MergeCookies(cookies, common.GetCookies(response))
 	response, err = common.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
@@ -92,11 +97,14 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Query("session_hash", hash).
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
+		Header("Origin", "https://arena.lmsys.org").
+		Header("Referer", "https://arena.lmsys.org/").
 		DoWith(http.StatusOK)
 	if err != nil {
 		return nil, err
 	}
 
+	cookies = common.MergeCookies(cookies, common.GetCookies(response))
 	e, err := emits.New(ctx, response)
 	if err != nil {
 		return nil, err
@@ -176,13 +184,19 @@ func partOne(ctx context.Context, proxies string, model string, messages string,
 		},
 	}
 
+	if cookies == "" {
+		cookies = "SERVERID=S2|" + com.RandStr(5)
+	}
+
 	response, err := common.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
 		JHeader().
 		Header("User-Agent", ua).
-		Header("Cookie", "SERVERID=S2|"+strconv.Itoa(rand.Intn(899999)+100000)).
+		Header("Cookie", cookies).
+		Header("Origin", "https://arena.lmsys.org").
+		Header("Referer", "https://arena.lmsys.org/").
 		Body(obj).
 		DoWith(http.StatusOK)
 	if err != nil {
@@ -200,7 +214,7 @@ func partOne(ctx context.Context, proxies string, model string, messages string,
 		return "", errors.New("fetch failed")
 	}
 
-	cookies := common.GetCookies(response)
+	cookies = common.MergeCookies(cookies, common.GetCookies(response))
 	response, err = common.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
@@ -208,11 +222,14 @@ func partOne(ctx context.Context, proxies string, model string, messages string,
 		Query("session_hash", hash).
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
+		Header("Origin", "https://arena.lmsys.org").
+		Header("Referer", "https://arena.lmsys.org/").
 		DoWith(http.StatusOK)
 	if err != nil {
 		return "", err
 	}
 
+	cookies = common.MergeCookies(cookies, common.GetCookies(response))
 	e, err := emits.New(ctx, response)
 	if err != nil {
 		return "", err
