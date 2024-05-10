@@ -31,6 +31,14 @@ var (
 	botId128k   = "7353048532129644562"
 	version128k = "1712016880672"
 	scene128k   = 2
+
+	blocks = []string{
+		"<|system|>",
+		"<|user|>",
+		"<|assistant|>",
+		"<|function|>",
+		"<|end|>",
+	}
 )
 
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
@@ -87,7 +95,26 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		return
 	}
 
-	waitResponse(ctx, matchers, chatResponse, req.Stream)
+	// 自定义标记块中断
+	cancel := make(chan bool, 1)
+	matchers = append(matchers, &common.SymbolMatcher{
+		Find: "<|",
+		H: func(index int, content string) (state int, result string) {
+			if len(content) < 13 {
+				return common.MAT_MATCHING, content
+			}
+
+			for _, block := range blocks {
+				if strings.Contains(content, block) {
+					cancel <- true
+					return common.MAT_MATCHED, ""
+				}
+			}
+			return common.MAT_DEFAULT, content
+		},
+	})
+
+	waitResponse(ctx, matchers, cancel, chatResponse, req.Stream)
 }
 
 func extCookie(co string) (cookie, msToken string) {
@@ -177,37 +204,43 @@ func waitMessage(chatResponse chan string) (content string, err error) {
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan string, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan bool, chatResponse chan string, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
 	tokens := ctx.GetInt("tokens")
 
 	for {
-		raw, ok := <-chatResponse
-		if !ok {
-			break
-		}
+		select {
+		case <-cancel:
+			goto label
+		default:
+			raw, ok := <-chatResponse
+			if !ok {
+				goto label
+			}
 
-		if strings.HasPrefix(raw, "error: ") {
-			middle.ResponseWithV(ctx, -1, strings.TrimPrefix(raw, "error: "))
-			return
-		}
+			if strings.HasPrefix(raw, "error: ") {
+				middle.ResponseWithV(ctx, -1, strings.TrimPrefix(raw, "error: "))
+				return
+			}
 
-		raw = strings.TrimPrefix(raw, "text: ")
-		contentL := len(raw)
-		if contentL <= 0 {
-			continue
-		}
+			raw = strings.TrimPrefix(raw, "text: ")
+			contentL := len(raw)
+			if contentL <= 0 {
+				continue
+			}
 
-		fmt.Printf("----- raw -----\n %s\n", raw)
-		raw = common.ExecMatchers(matchers, raw)
-		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, raw, nil, created)
+			fmt.Printf("----- raw -----\n %s\n", raw)
+			raw = common.ExecMatchers(matchers, raw)
+			if sse {
+				middle.ResponseWithSSE(ctx, MODEL, raw, nil, created)
+			}
+			content += raw
 		}
-		content += raw
 	}
 
+label:
 	if !sse {
 		middle.ResponseWith(ctx, MODEL, content)
 	} else {

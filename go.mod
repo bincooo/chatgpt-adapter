@@ -5,7 +5,7 @@ go 1.21.6
 require (
 	github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71
 	github.com/bincooo/cohere-api v0.0.0-20240408053055-744e6f22b310
-	github.com/bincooo/coze-api v1.0.2-0.20240510024648-9ae7b24f7d5e
+	github.com/bincooo/coze-api v1.0.2-0.20240510042405-0f4058f868f3
 	github.com/bincooo/edge-api v1.0.3-1.1694.0
 	github.com/bincooo/gio.emits v0.0.0-20240509021256-cd7ba8cf5f33
 	github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b
