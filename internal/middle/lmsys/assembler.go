@@ -28,25 +28,6 @@ var (
 )
 
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
-	// 自定义标记块中断
-	cancel := make(chan bool, 1)
-	matchers = append(matchers, &common.SymbolMatcher{
-		Find: "<|",
-		H: func(index int, content string) (state int, result string) {
-			if len(content) < 13 {
-				return common.MAT_MATCHING, content
-			}
-
-			for _, block := range blocks {
-				if strings.Contains(content, block) {
-					cancel <- true
-					return common.MAT_MATCHED, ""
-				}
-			}
-			return common.MAT_DEFAULT, content
-		},
-	})
-
 	req.Model = req.Model[6:]
 	proxies := ctx.GetString("proxies")
 	messages := req.Messages
@@ -77,20 +58,48 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		return
 	}
 
+	cancel := make(chan error, 1)
 	ctx.Set("tokens", tokens)
+
 	ch, err := fetch(ctx, proxies, newMessages, options{
 		model:       req.Model,
 		temperature: req.Temperature,
 		topP:        req.TopP,
 		maxTokens:   req.MaxTokens,
-		cancel:      cancel,
 	})
 	if err != nil {
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
 
-	waitResponse(ctx, matchers, ch, req.Stream)
+	// 自定义标记块中断
+	matchers = append(matchers, &common.SymbolMatcher{
+		Find: "<|",
+		H: func(index int, content string) (state int, result string) {
+			if len(content) < 13 {
+				return common.MAT_MATCHING, content
+			}
+
+			for _, block := range blocks {
+				if strings.Contains(content, block) {
+					cancel <- nil
+					return common.MAT_MATCHED, ""
+				}
+			}
+			return common.MAT_DEFAULT, content
+		},
+	})
+
+	// 违反内容中断并返回错误
+	matchers = append(matchers, &common.SymbolMatcher{
+		Find: "I did not actually provide any input that could violate",
+		H: func(index int, content string) (state int, result string) {
+			cancel <- errors.New("I did not actually provide any input that could violate content guidelines")
+			return common.MAT_MATCHED, ""
+		},
+	})
+
+	waitResponse(ctx, matchers, ch, cancel, req.Stream)
 }
 
 func waitMessage(chatResponse chan string) (content string, err error) {
@@ -114,37 +123,47 @@ func waitMessage(chatResponse chan string) (content string, err error) {
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan string, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan string, cancel chan error, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
 	tokens := ctx.GetInt("tokens")
 
 	for {
-		raw, ok := <-chatResponse
-		if !ok {
-			break
-		}
+		select {
+		case err := <-cancel:
+			if err != nil {
+				middle.ResponseWithE(ctx, -1, err)
+				return
+			}
+			goto label
+		default:
+			raw, ok := <-chatResponse
+			if !ok {
+				goto label
+			}
 
-		if strings.HasPrefix(raw, "error: ") {
-			middle.ResponseWithV(ctx, -1, strings.TrimPrefix(raw, "error: "))
-			return
-		}
+			if strings.HasPrefix(raw, "error: ") {
+				middle.ResponseWithV(ctx, -1, strings.TrimPrefix(raw, "error: "))
+				return
+			}
 
-		raw = strings.TrimPrefix(raw, "text: ")
-		contentL := len(raw)
-		if contentL <= 0 {
-			continue
-		}
+			raw = strings.TrimPrefix(raw, "text: ")
+			contentL := len(raw)
+			if contentL <= 0 {
+				continue
+			}
 
-		fmt.Printf("----- raw -----\n %s\n", raw)
-		raw = common.ExecMatchers(matchers, raw)
-		if sse {
-			middle.ResponseWithSSE(ctx, MODEL, raw, nil, created)
+			fmt.Printf("----- raw -----\n %s\n", raw)
+			raw = common.ExecMatchers(matchers, raw)
+			if sse && len(raw) > 0 {
+				middle.ResponseWithSSE(ctx, MODEL, raw, nil, created)
+			}
+			content += raw
 		}
-		content += raw
 	}
 
+label:
 	if !sse {
 		middle.ResponseWith(ctx, MODEL, content)
 	} else {
@@ -235,5 +254,6 @@ func buildConversation(messages []map[string]string) (newMessages string, tokens
 		role = curr
 	}
 
+	newMessages += "\n<|assistant|>"
 	return newMessages, tokens, nil
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/bincooo/gio.emits/common"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -15,15 +16,11 @@ const (
 	ua      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"
 )
 
-var cookies string
-
 type options struct {
 	model       string
 	temperature float32
 	topP        float32
 	maxTokens   int
-
-	cancel chan bool
 }
 
 func fetch(ctx context.Context, proxies, messages string, opts options) (chan string, error) {
@@ -38,20 +35,19 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 	}
 
 	hash := emits.SessionHash()
-	co, err := partOne(ctx, proxies, opts.model, messages, hash)
+	cookies, err := partOne(ctx, proxies, opts.model, messages, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	if co == "" {
+	if cookies == "" {
 		return nil, errors.New("fetch failed")
 	}
 
-	cookies = co
-	return partTwo(ctx, proxies, hash, opts)
+	return partTwo(ctx, proxies, cookies, hash, opts)
 }
 
-func partTwo(ctx context.Context, proxies, hash string, opts options) (chan string, error) {
+func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (chan string, error) {
 	obj := map[string]interface{}{
 		"event_data":   nil,
 		"fn_index":     42,
@@ -74,6 +70,7 @@ func partTwo(ctx context.Context, proxies, hash string, opts options) (chan stri
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
+		Header("X-Forwarded-For", common.RandIP()).
 		Body(obj).
 		DoWith(http.StatusOK)
 	if err != nil {
@@ -101,12 +98,12 @@ func partTwo(ctx context.Context, proxies, hash string, opts options) (chan stri
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
+		Header("X-Forwarded-For", common.RandIP()).
 		DoWith(http.StatusOK)
 	if err != nil {
 		return nil, err
 	}
 
-	cookies = common.MergeCookies(cookies, common.GetCookies(response))
 	e, err := emits.New(ctx, response)
 	if err != nil {
 		return nil, err
@@ -115,64 +112,65 @@ func partTwo(ctx context.Context, proxies, hash string, opts options) (chan stri
 	ch := make(chan string)
 	pos := 0
 
+	//e.Event("*", func(j emits.JoinCompleted) interface{} {
+	//	logrus.Infof("%s", j.InitialBytes)
+	//	return nil
+	//})
 	e.Event("process_generating", func(j emits.JoinCompleted) interface{} {
-		select {
-		case <-opts.cancel:
-			e.Cancel()
-			return nil
-		default:
-			data := j.Output.Data
-			if len(data) < 2 {
-				e.Error(errors.New("illegal response"))
-				return nil
-			}
-
-			items, ok := data[1].([]interface{})
-			if !ok {
-				e.Error(errors.New("illegal response"))
-				return nil
-			}
-
-			if len(items) < 1 {
-				e.Error(errors.New("illegal response"))
-				return nil
-			}
-
-			items, ok = items[0].([]interface{})
-			if !ok {
-				e.Error(errors.New("illegal response"))
-				return nil
-			}
-
-			if len(items) < 3 {
-				return nil
-			}
-
-			if items[0] != "replace" {
-				e.Error(errors.New("illegal response"))
-				return nil
-			}
-
-			message := items[2].(string)
-			l := len(message)
-			if message[l-3:] == "▌" {
-				message = message[:l-3]
-				l -= 3
-			}
-
-			if pos >= l {
-				return nil
-			}
-
-			ch <- "text: " + message[pos:]
-			pos = l
+		data := j.Output.Data
+		if len(data) < 2 {
 			return nil
 		}
+
+		items, ok := data[1].([]interface{})
+		if !ok {
+			return nil
+		}
+
+		if len(items) < 1 {
+			return nil
+		}
+
+		items, ok = items[0].([]interface{})
+		if !ok {
+			return nil
+		}
+
+		if l := len(items); l < 3 {
+			if l == 2 {
+				str := items[1].(string)
+				if !strings.HasPrefix(str, "<span class=") {
+					ch <- "error: " + items[1].(string)
+				}
+			}
+			return nil
+		}
+
+		if items[0] != "replace" {
+			return nil
+		}
+
+		message := items[2].(string)
+		l := len(message)
+		if message[l-3:] == "▌" {
+			message = message[:l-3]
+			l -= 3
+		}
+
+		if pos >= l {
+			return nil
+		}
+
+		ch <- "text: " + message[pos:]
+		pos = l
+		return nil
 	})
 
 	go func() {
 		defer close(ch)
-		_ = e.Do()
+		if err = e.Do(); err != nil {
+			logrus.Error(err)
+		}
 	}()
 
 	return ch, nil
@@ -192,10 +190,7 @@ func partOne(ctx context.Context, proxies string, model string, messages string,
 		},
 	}
 
-	if cookies == "" {
-		cookies = "SERVERID=S2|" + com.RandStr(5)
-	}
-
+	cookies := "SERVERID=S2|" + com.RandStr(5)
 	response, err := common.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
