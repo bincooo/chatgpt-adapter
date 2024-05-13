@@ -3,10 +3,12 @@ package lmsys
 import (
 	"context"
 	"errors"
+	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	emits "github.com/bincooo/gio.emits"
 	"github.com/bincooo/gio.emits/common"
 	"github.com/sirupsen/logrus"
+	"math/rand"
 	"net/http"
 	"strings"
 )
@@ -14,6 +16,11 @@ import (
 const (
 	baseUrl = "https://arena.lmsys.org"
 	ua      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"
+)
+
+var (
+	fnIndex   = 39
+	triggerId = 94
 )
 
 type options struct {
@@ -50,8 +57,8 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (chan string, error) {
 	obj := map[string]interface{}{
 		"event_data":   nil,
-		"fn_index":     42,
-		"trigger_id":   93,
+		"fn_index":     fnIndex + 1,
+		"trigger_id":   triggerId,
 		"session_hash": hash,
 		"data": []interface{}{
 			nil,
@@ -179,8 +186,8 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 func partOne(ctx context.Context, proxies string, model string, messages string, hash string) (string, error) {
 	obj := map[string]interface{}{
 		"event_data":   nil,
-		"fn_index":     41,
-		"trigger_id":   93,
+		"fn_index":     fnIndex,
+		"trigger_id":   triggerId,
 		"session_hash": hash,
 		"data": []interface{}{
 			nil,
@@ -190,7 +197,7 @@ func partOne(ctx context.Context, proxies string, model string, messages string,
 		},
 	}
 
-	cookies := "SERVERID=S2|" + com.RandStr(5)
+	cookies := fmt.Sprintf("SERVERID=S%d|%s", rand.Intn(98)+1, com.RandStr(5))
 	response, err := common.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).

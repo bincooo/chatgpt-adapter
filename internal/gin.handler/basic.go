@@ -118,6 +118,20 @@ func index(version string) gin.HandlerFunc {
 }
 
 func models(ctx *gin.Context) {
+	/*
+		// lmsys 模型导出代码
+		const lis = $0.querySelectorAll('li')
+		let result = ''
+		for (let index = 0, len = lis.length; index < len; index ++) {
+		    result += `{
+						"id":       "lmsys/${lis[index].getAttribute('aria-label')}",
+						"object":   "model",
+						"created":  1686935002,
+						"owned_by": "lmsys-adapter",
+					}, `
+		}
+		console.log(result)
+	*/
 	ctx.JSON(200, gin.H{
 		"object": "list",
 		"data": []gin.H{
@@ -212,6 +226,41 @@ func models(ctx *gin.Context) {
 				"created":  1686935002,
 				"owned_by": "lmsys-adapter",
 			}, {
+				"id":       "lmsys/gpt-4o-2024-05-13",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "lmsys-adapter",
+			}, {
+				"id":       "lmsys/gpt-4-turbo-2024-04-09",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "lmsys-adapter",
+			}, {
+				"id":       "lmsys/im-also-a-good-gpt2-chatbot",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "lmsys-adapter",
+			}, {
+				"id":       "lmsys/im-a-good-gpt2-chatbot",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "lmsys-adapter",
+			}, {
+				"id":       "lmsys/llama-3-70b-instruct",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "lmsys-adapter",
+			}, {
+				"id":       "lmsys/llama-3-8b-instruct",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "lmsys-adapter",
+			}, {
+				"id":       "lmsys/gemini-1.5-pro-api-preview",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "lmsys-adapter",
+			}, {
 				"id":       "lmsys/reka-core-20240501",
 				"object":   "model",
 				"created":  1686935002,
@@ -227,21 +276,6 @@ func models(ctx *gin.Context) {
 				"created":  1686935002,
 				"owned_by": "lmsys-adapter",
 			}, {
-				"id":       "lmsys/llama-3-70b-instruct",
-				"object":   "model",
-				"created":  1686935002,
-				"owned_by": "lmsys-adapter",
-			}, {
-				"id":       "lmsys/llama-3-8b-instruct",
-				"object":   "model",
-				"created":  1686935002,
-				"owned_by": "lmsys-adapter",
-			}, {
-				"id":       "lmsys/gemini-1.5-pro-api-0409-preview",
-				"object":   "model",
-				"created":  1686935002,
-				"owned_by": "lmsys-adapter",
-			}, {
 				"id":       "lmsys/snowflake-arctic-instruct",
 				"object":   "model",
 				"created":  1686935002,
@@ -253,11 +287,6 @@ func models(ctx *gin.Context) {
 				"owned_by": "lmsys-adapter",
 			}, {
 				"id":       "lmsys/mixtral-8x22b-instruct-v0.1",
-				"object":   "model",
-				"created":  1686935002,
-				"owned_by": "lmsys-adapter",
-			}, {
-				"id":       "lmsys/gpt-4-turbo-2024-04-09",
 				"object":   "model",
 				"created":  1686935002,
 				"owned_by": "lmsys-adapter",
@@ -343,11 +372,6 @@ func models(ctx *gin.Context) {
 				"owned_by": "lmsys-adapter",
 			}, {
 				"id":       "lmsys/dbrx-instruct",
-				"object":   "model",
-				"created":  1686935002,
-				"owned_by": "lmsys-adapter",
-			}, {
-				"id":       "lmsys/starling-lm-7b-beta",
 				"object":   "model",
 				"created":  1686935002,
 				"owned_by": "lmsys-adapter",

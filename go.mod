@@ -6,7 +6,7 @@ require (
 	github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71
 	github.com/bincooo/cohere-api v0.0.0-20240408053055-744e6f22b310
 	github.com/bincooo/coze-api v1.0.2-0.20240510042405-0f4058f868f3
-	github.com/bincooo/edge-api v1.0.3-1.1694.0
+	github.com/bincooo/edge-api v1.0.4-0.20240513025500-6634798bd70c
 	github.com/bincooo/gio.emits v0.0.0-20240509021256-cd7ba8cf5f33
 	github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b
 	github.com/dlclark/regexp2 v1.7.0
@@ -46,7 +46,6 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/refraction-networking/utls v1.3.2 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect

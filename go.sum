@@ -8,8 +8,8 @@ github.com/bincooo/cohere-api v0.0.0-20240408053055-744e6f22b310 h1:NtvRGHhzEd5Z
 github.com/bincooo/cohere-api v0.0.0-20240408053055-744e6f22b310/go.mod h1:fi6FdO5X1gGcXNpn/6vGICraupaaoruMbDOIOtO5PZg=
 github.com/bincooo/coze-api v1.0.2-0.20240510042405-0f4058f868f3 h1:mNHK/BoCORCwhYFQy+KO8dDoNDGRFiSw7n3AuRnoMqU=
 github.com/bincooo/coze-api v1.0.2-0.20240510042405-0f4058f868f3/go.mod h1:/BwOAxy8B8f/xwOKcGQd4qGgpj16M3XDdAqAf4s5pyc=
-github.com/bincooo/edge-api v1.0.3-1.1694.0 h1:sQUdfK9LxjCwXxzcs+ba1F2ESr1aVnqJUDIHZUkvZUY=
-github.com/bincooo/edge-api v1.0.3-1.1694.0/go.mod h1:KqUn1YF4q4FMy1I6Z3Zjq7qEoFQ9p4lbrFTJKcYwP5I=
+github.com/bincooo/edge-api v1.0.4-0.20240513025500-6634798bd70c h1:dYbJKPEQIUUrT/CU9A5I6H4JY+b4YVbzoNIjP5uGOxg=
+github.com/bincooo/edge-api v1.0.4-0.20240513025500-6634798bd70c/go.mod h1:KqUn1YF4q4FMy1I6Z3Zjq7qEoFQ9p4lbrFTJKcYwP5I=
 github.com/bincooo/gio.emits v0.0.0-20240509021256-cd7ba8cf5f33 h1:uU81a7+lSGv5JHhkb42cCVybPcUtc4Eijr3Pc0ilcRg=
 github.com/bincooo/gio.emits v0.0.0-20240509021256-cd7ba8cf5f33/go.mod h1:y1ZVb+yakVh/Dge6ZZp/yufDbzFmO8dBlzlGbu/ohEw=
 github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b h1:rJDNFBL46xBqMfGykXtt3pVR3K44c3+vOlhseVpTbQM=
@@ -90,8 +90,6 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=
-github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
 github.com/pelletier/go-toml/v2 v2.1.0 h1:FnwAJ4oYMvbT/34k9zzHuZNrhlz48GB3/s6at6/MHO4=
 github.com/pelletier/go-toml/v2 v2.1.0/go.mod h1:tJU2Z3ZkXwnxa4DPO899bsyIoywizdUvyaeZurnPPDc=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
