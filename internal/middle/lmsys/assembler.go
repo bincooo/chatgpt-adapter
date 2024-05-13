@@ -17,16 +17,6 @@ const (
 	MODEL = "lmsys"
 )
 
-var (
-	blocks = []string{
-		"<|system|>",
-		"<|user|>",
-		"<|assistant|>",
-		"<|function|>",
-		"<|end|>",
-	}
-)
-
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	req.Model = req.Model[6:]
 	proxies := ctx.GetString("proxies")

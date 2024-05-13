@@ -19,8 +19,10 @@ const (
 )
 
 var (
-	fnIndex   = 39
-	triggerId = 94
+	fns = [][]int{
+		{39, 94},
+		{41, 95},
+	}
 )
 
 type options struct {
@@ -28,6 +30,7 @@ type options struct {
 	temperature float32
 	topP        float32
 	maxTokens   int
+	fn          []int
 }
 
 func fetch(ctx context.Context, proxies, messages string, opts options) (chan string, error) {
@@ -42,7 +45,7 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 	}
 
 	hash := emits.SessionHash()
-	cookies, err := partOne(ctx, proxies, opts.model, messages, hash)
+	cookies, err := partOne(ctx, proxies, &opts, messages, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +60,8 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (chan string, error) {
 	obj := map[string]interface{}{
 		"event_data":   nil,
-		"fn_index":     fnIndex + 1,
-		"trigger_id":   triggerId,
+		"fn_index":     opts.fn[0] + 1,
+		"trigger_id":   opts.fn[1],
 		"session_hash": hash,
 		"data": []interface{}{
 			nil,
@@ -183,32 +186,43 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	return ch, nil
 }
 
-func partOne(ctx context.Context, proxies string, model string, messages string, hash string) (string, error) {
+func partOne(ctx context.Context, proxies string, opts *options, messages string, hash string) (string, error) {
 	obj := map[string]interface{}{
 		"event_data":   nil,
-		"fn_index":     fnIndex,
-		"trigger_id":   triggerId,
 		"session_hash": hash,
 		"data": []interface{}{
 			nil,
-			model,
+			opts.model,
 			messages,
 			nil,
 		},
 	}
 
-	cookies := fmt.Sprintf("SERVERID=S%d|%s", rand.Intn(98)+1, com.RandStr(5))
-	response, err := common.ClientBuilder().
-		Context(ctx).
-		Proxies(proxies).
-		POST(baseUrl+"/queue/join").
-		JHeader().
-		Header("User-Agent", ua).
-		Header("Cookie", cookies).
-		Header("Origin", "https://arena.lmsys.org").
-		Header("Referer", "https://arena.lmsys.org/").
-		Body(obj).
-		DoWith(http.StatusOK)
+	var fn []int
+	var response *http.Response
+	var err error
+
+	cookies := fmt.Sprintf("SERVERID=S%d|%s", rand.Intn(97)+2, com.RandStr(5))
+	for _, fn = range fns {
+		obj["fn_index"] = fn[0]
+		obj["trigger_id"] = fn[1]
+
+		response, err = common.ClientBuilder().
+			Context(ctx).
+			Proxies(proxies).
+			POST(baseUrl+"/queue/join?").
+			JHeader().
+			Header("User-Agent", ua).
+			Header("Cookie", cookies).
+			Header("Origin", "https://arena.lmsys.org").
+			Header("Referer", "https://arena.lmsys.org/").
+			Body(obj).
+			DoWith(http.StatusOK)
+		if err == nil {
+			break
+		}
+	}
+
 	if err != nil {
 		return "", err
 	}
@@ -259,5 +273,6 @@ func partOne(ctx context.Context, proxies string, model string, messages string,
 		return "", errors.New("fetch failed")
 	}
 
+	opts.fn = fn
 	return cookies, nil
 }
