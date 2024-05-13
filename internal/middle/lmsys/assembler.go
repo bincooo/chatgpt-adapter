@@ -58,7 +58,6 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		return
 	}
 
-	cancel := make(chan error, 1)
 	ctx.Set("tokens", tokens)
 
 	ch, err := fetch(ctx, proxies, newMessages, options{
@@ -73,22 +72,8 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 	}
 
 	// 自定义标记块中断
-	matchers = append(matchers, &common.SymbolMatcher{
-		Find: "<|",
-		H: func(index int, content string) (state int, result string) {
-			if len(content) < 13 {
-				return common.MAT_MATCHING, content
-			}
-
-			for _, block := range blocks {
-				if strings.Contains(content, block) {
-					cancel <- nil
-					return common.MAT_MATCHED, ""
-				}
-			}
-			return common.MAT_DEFAULT, content
-		},
-	})
+	cancel, matcher := common.NewCancelMather()
+	matchers = append(matchers, matcher)
 
 	// 违反内容中断并返回错误
 	matchers = append(matchers, &common.SymbolMatcher{

@@ -16,16 +16,6 @@ import (
 
 const MODEL = "bing"
 
-var (
-	blocks = []string{
-		"<|system|>",
-		"<|user|>",
-		"<|assistant|>",
-		"<|function|>",
-		"<|end|>",
-	}
-)
-
 func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common.Matcher) {
 	var (
 		cookie   = ctx.GetString("token")
@@ -154,28 +144,9 @@ func appendMatchers(matchers []common.Matcher) (chan error, []common.Matcher) {
 	})
 
 	// 自定义标记块中断
-	count := 0
-	cancel := make(chan error, 1)
-	matchers = append(matchers, &common.SymbolMatcher{
-		Find: "<|",
-		H: func(index int, content string) (state int, result string) {
-			if len(content) < 13 {
-				return common.MAT_MATCHING, content
-			}
+	cancel, matcher := common.NewCancelMather()
+	matchers = append(matchers, matcher)
 
-			for _, block := range blocks {
-				if strings.Contains(content, block) {
-					if block == "<|assistant|>" && count == 0 {
-						count++
-						return common.MAT_MATCHED, strings.ReplaceAll(content, "<|assistant|>", "")
-					}
-					cancel <- nil
-					return common.MAT_MATCHED, ""
-				}
-			}
-			return common.MAT_DEFAULT, content
-		},
-	})
 	return cancel, matchers
 }
 

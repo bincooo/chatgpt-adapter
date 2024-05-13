@@ -10,6 +10,16 @@ const (
 	MAT_MATCHED             // 匹配器命中
 )
 
+var (
+	blocks = []string{
+		"<|system|>",
+		"<|user|>",
+		"<|assistant|>",
+		"<|function|>",
+		"<|end|>",
+	}
+)
+
 // 匹配器，匹配常量符号流式结果处理
 type Matcher interface {
 	match(content string) (state int, result string)
@@ -26,6 +36,31 @@ func NewMatchers() []Matcher {
 	slice := make([]Matcher, 0)
 	// todo 内置一些过滤器
 	return slice
+}
+
+func NewCancelMather() (chan error, Matcher) {
+	count := 0
+	cancel := make(chan error, 1)
+	return cancel, &SymbolMatcher{
+		Find: "<|",
+		H: func(index int, content string) (state int, result string) {
+			if len(content) < 13 {
+				return MAT_MATCHING, content
+			}
+
+			for _, block := range blocks {
+				if strings.Contains(content, block) {
+					if block == "<|assistant|>" && count == 0 {
+						count++
+						return MAT_MATCHED, strings.ReplaceAll(content, "<|assistant|>", "")
+					}
+					cancel <- nil
+					return MAT_MATCHED, ""
+				}
+			}
+			return MAT_DEFAULT, content
+		},
+	}
 }
 
 func ExecMatchers(matchers []Matcher, raw string) string {
