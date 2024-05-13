@@ -13,7 +13,7 @@ import (
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCompletionRequest) (bool, error) {
 	logrus.Infof("completeTools ...")
-	prompt, err := middle.BuildToolCallsTemplate(
+	text, err := middle.BuildToolCallsTemplate(
 		req.Tools,
 		req.Messages,
 		agent.CQConditions, 5)
@@ -31,14 +31,11 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 		TopicToE(true).
 		Notebook(true).
 		Model(edge.ModelCreative))
-	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, nil)
+	chatResponse, err := chat.Reply(ctx.Request.Context(), text, nil)
 	if err != nil {
 		return false, err
 	}
 
-	defer func() {
-		go chat.Delete()
-	}()
 	content, err := waitMessage(chatResponse)
 	if err != nil {
 		return false, err
@@ -64,7 +61,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, req gpt.ChatCom
 
 func parseToToolCall(ctx *gin.Context, cookie, proxies string, fun *gpt.Function, messages []map[string]string, sse bool) (bool, error) {
 	logrus.Infof("parseToToolCall ...")
-	prompt, err := middle.BuildToolCallsTemplate(
+	text, err := middle.BuildToolCallsTemplate(
 		[]struct {
 			Fun gpt.Function `json:"function"`
 			T   string       `json:"type"`
@@ -85,14 +82,10 @@ func parseToToolCall(ctx *gin.Context, cookie, proxies string, fun *gpt.Function
 		TopicToE(true).
 		Notebook(true).
 		Model(edge.ModelCreative))
-	chatResponse, err := chat.Reply(ctx.Request.Context(), prompt, nil, nil)
+	chatResponse, err := chat.Reply(ctx.Request.Context(), text, nil)
 	if err != nil {
 		return false, err
 	}
-
-	defer func() {
-		go chat.Delete()
-	}()
 
 	content, err := waitMessage(chatResponse)
 	if err != nil {
