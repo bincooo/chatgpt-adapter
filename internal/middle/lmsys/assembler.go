@@ -49,7 +49,8 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 	}
 
 	ctx.Set("tokens", tokens)
-
+	retry := 3
+label:
 	ch, err := fetch(ctx, proxies, newMessages, options{
 		model:       req.Model,
 		temperature: req.Temperature,
@@ -57,6 +58,11 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 		maxTokens:   req.MaxTokens,
 	})
 	if err != nil {
+		if retry > 0 {
+			retry--
+			goto label
+		}
+
 		middle.ResponseWithE(ctx, -1, err)
 		return
 	}
@@ -67,7 +73,7 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 
 	// 违反内容中断并返回错误
 	matchers = append(matchers, &common.SymbolMatcher{
-		Find: "I did not actually provide any input that could violate",
+		Find: "I did not actually provide any input that",
 		H: func(index int, content string) (state int, result string) {
 			cancel <- errors.New("I did not actually provide any input that could violate content guidelines")
 			return common.MAT_MATCHED, ""

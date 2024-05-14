@@ -96,23 +96,8 @@ func Complete(ctx *gin.Context, req gpt.ChatCompletionRequest, matchers []common
 	}
 
 	// 自定义标记块中断
-	cancel := make(chan bool, 1)
-	matchers = append(matchers, &common.SymbolMatcher{
-		Find: "<|",
-		H: func(index int, content string) (state int, result string) {
-			if len(content) < 13 {
-				return common.MAT_MATCHING, content
-			}
-
-			for _, block := range blocks {
-				if strings.Contains(content, block) {
-					cancel <- true
-					return common.MAT_MATCHED, ""
-				}
-			}
-			return common.MAT_DEFAULT, content
-		},
-	})
+	cancel, matcher := common.NewCancelMather()
+	matchers = append(matchers, matcher)
 
 	waitResponse(ctx, matchers, cancel, chatResponse, req.Stream)
 }
@@ -204,7 +189,7 @@ func waitMessage(chatResponse chan string) (content string, err error) {
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan bool, chatResponse chan string, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error, chatResponse chan string, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
@@ -212,7 +197,11 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan bool,
 
 	for {
 		select {
-		case <-cancel:
+		case err := <-cancel:
+			if err != nil {
+				middle.ResponseWithE(ctx, -1, err)
+				return
+			}
 			goto label
 		default:
 			raw, ok := <-chatResponse
