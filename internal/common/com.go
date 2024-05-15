@@ -7,6 +7,7 @@ import (
 
 func Init() {
 	fileInit()
+	clashInit()
 }
 
 // 删除子元素

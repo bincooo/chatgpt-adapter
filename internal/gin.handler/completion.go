@@ -13,6 +13,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/lmsys"
 	pg "github.com/bincooo/chatgpt-adapter/v2/internal/middle/playground"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/sd"
+	v1 "github.com/bincooo/chatgpt-adapter/v2/internal/middle/v1"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/bincooo/cohere-api"
 	"github.com/gin-gonic/gin"
@@ -72,6 +73,8 @@ func completions(ctx *gin.Context) {
 		cohere.COMMAND_NIGHTLY,
 		cohere.COMMAND_R_PLUS:
 		coh.Complete(ctx, chatCompletionRequest, matchers)
+	case "freeGpt35":
+		v1.Complete(ctx, chatCompletionRequest, matchers)
 	default:
 		if strings.HasPrefix(chatCompletionRequest.Model, "lmsys/") {
 			lmsys.Complete(ctx, chatCompletionRequest, matchers)

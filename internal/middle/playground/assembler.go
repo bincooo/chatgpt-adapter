@@ -10,7 +10,6 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	"github.com/bincooo/gio.emits"
-	"github.com/bincooo/gio.emits/common"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -104,7 +103,7 @@ var (
 )
 
 func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
-	hash := emits.SessionHash()
+	hash := emits.GioHash()
 	var (
 		cookie = ctx.GetString("token")
 		domain = pkg.Config.GetString("domain")
@@ -215,7 +214,7 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 	}
 
 	baseUrl := "https://playground.com"
-	return common.ClientBuilder().
+	return emits.ClientBuilder().
 		Proxies(proxies).
 		Context(ctx).
 		POST(baseUrl+"/api/models").
@@ -224,9 +223,9 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 		Header("referer", "https://playground.com/create").
 		Header("accept-language", "en-US,en;q=0.9").
 		Header("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36").
-		Header("x-forwarded-for", common.RandIP()).
+		Header("x-forwarded-for", emits.RandIP()).
 		Header("cookie", cookie).
 		JHeader().
 		Bytes(marshal).
-		DoWith(http.StatusOK)
+		DoS(http.StatusOK)
 }

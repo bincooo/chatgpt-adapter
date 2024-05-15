@@ -244,7 +244,7 @@ func buildConversation(pad bool, max int, messages []map[string]string) (pMessag
 			defer buffer.Reset()
 			var result []edge.ChatMessage
 			if previous == "system" {
-				result = append(result, edge.BuildSwitchMessage(condition(previous), buffer.String()))
+				result = append(result, edge.BuildUserMessage(buffer.String()))
 				result = append(result, edge.BuildBotMessage("<|assistant|>ok ~<|end|>\n"))
 				buffer.Reset()
 			}
@@ -284,18 +284,6 @@ func buildConversation(pad bool, max int, messages []map[string]string) (pMessag
 		}))
 		pMessages = append(pMessages, message)
 		newMessages = newMessages[len(newMessages)-max*2:]
-		if newMessages[0]["author"] == "user" {
-			newMessages[0] = edge.BuildMessage("CurrentWebpageContextRequest", newMessages[0]["text"])
-		}
-	} else {
-		if newMessages[0]["author"] == "user" && strings.HasPrefix(newMessages[0]["text"], "<|system|>") {
-			message := edge.BuildPageMessage(newMessages[0]["text"])
-			pMessages = append(pMessages, message)
-			newMessages = newMessages[1:]
-			if newMessages[0]["author"] == "user" {
-				newMessages[0] = edge.BuildMessage("CurrentWebpageContextRequest", newMessages[0]["text"])
-			}
-		}
 	}
 
 	pMessages = append(pMessages, newMessages...)

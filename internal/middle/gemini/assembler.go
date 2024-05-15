@@ -11,7 +11,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	"github.com/bincooo/gio.emits/common"
+	emits "github.com/bincooo/gio.emits"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -178,7 +178,7 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 		timeout, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()
 
-		response, e := common.ClientBuilder().
+		response, e := emits.ClientBuilder().
 			Proxies(proxies).
 			POST(gLogin).
 			Context(timeout).
@@ -189,14 +189,14 @@ func extCookie15(ctx context.Context, token, proxies string) (sign, auth, key, u
 				"passwd": s[2],
 			}).
 			JHeader().
-			DoWith(http.StatusOK)
+			DoS(http.StatusOK)
 		if e != nil {
 			err = fmt.Errorf("fetch cookies failed: %v", e)
 			return
 		}
 
 		var result map[string]interface{}
-		e = common.ToObject(response, &result)
+		e = emits.ToObject(response, &result)
 		if e != nil {
 			err = errors.New(fmt.Sprintf("fetch cookies failed: %v", e))
 			return

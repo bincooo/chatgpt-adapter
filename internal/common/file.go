@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
-	"github.com/bincooo/gio.emits/common"
+	emits "github.com/bincooo/gio.emits"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -23,12 +23,12 @@ type cache struct {
 }
 
 func fileInit() {
-	magnify := pkg.Config.GetStringSlice("magnify")
-	if len(magnify) == 0 {
+	m := pkg.Config.GetStringSlice("magnify")
+	if len(m) == 0 {
 		return
 	}
 
-	for _, key := range magnify {
+	for _, key := range m {
 		cached = append(cached, cache{
 			key:     key,
 			disable: false,
@@ -98,7 +98,7 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 }
 
 func Download(proxies, url, suffix string) (file string, err error) {
-	response, err := common.ClientBuilder().
+	response, err := emits.ClientBuilder().
 		Proxies(proxies).
 		URL(url).
 		Do()

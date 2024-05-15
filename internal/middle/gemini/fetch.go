@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	"github.com/bincooo/gio.emits/common"
+	emits "github.com/bincooo/gio.emits"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -120,7 +120,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		return nil, err
 	}
 
-	res, err := common.ClientBuilder().
+	res, err := emits.ClientBuilder().
 		Proxies(proxies).
 		Context(ctx).
 		POST(burl).

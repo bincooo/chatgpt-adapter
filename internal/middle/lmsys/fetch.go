@@ -6,7 +6,6 @@ import (
 	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	emits "github.com/bincooo/gio.emits"
-	"github.com/bincooo/gio.emits/common"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net/http"
@@ -44,7 +43,7 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 		opts.maxTokens = 1024
 	}
 
-	hash := emits.SessionHash()
+	hash := emits.GioHash()
 	cookies, err := partOne(ctx, proxies, &opts, messages, hash)
 	if err != nil {
 		return nil, err
@@ -71,7 +70,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		},
 	}
 
-	response, err := common.ClientBuilder().
+	response, err := emits.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
@@ -80,14 +79,14 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
-		Header("X-Forwarded-For", common.RandIP()).
+		Header("X-Forwarded-For", emits.RandIP()).
 		Body(obj).
-		DoWith(http.StatusOK)
+		DoS(http.StatusOK)
 	if err != nil {
 		return nil, err
 	}
 
-	obj, err = common.ToMap(response)
+	obj, err = emits.ToMap(response)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +97,8 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		return nil, errors.New("fetch failed")
 	}
 
-	cookies = common.MergeCookies(cookies, common.GetCookies(response))
-	response, err = common.ClientBuilder().
+	cookies = emits.MergeCookies(cookies, emits.GetCookies(response))
+	response, err = emits.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/queue/data").
@@ -108,13 +107,13 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
-		Header("X-Forwarded-For", common.RandIP()).
-		DoWith(http.StatusOK)
+		Header("X-Forwarded-For", emits.RandIP()).
+		DoS(http.StatusOK)
 	if err != nil {
 		return nil, err
 	}
 
-	e, err := emits.New(ctx, response)
+	e, err := emits.NewGio(ctx, response)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +125,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	//	logrus.Infof("%s", j.InitialBytes)
 	//	return nil
 	//})
-	e.Event("process_generating", func(j emits.JoinCompleted) interface{} {
+	e.Event("process_generating", func(j emits.JoinEvent) interface{} {
 		data := j.Output.Data
 		if len(data) < 2 {
 			return nil
@@ -207,7 +206,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		obj["fn_index"] = fn[0]
 		obj["trigger_id"] = fn[1]
 
-		response, err = common.ClientBuilder().
+		response, err = emits.ClientBuilder().
 			Context(ctx).
 			Proxies(proxies).
 			POST(baseUrl+"/queue/join?").
@@ -217,7 +216,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 			Header("Origin", "https://arena.lmsys.org").
 			Header("Referer", "https://arena.lmsys.org/").
 			Body(obj).
-			DoWith(http.StatusOK)
+			DoS(http.StatusOK)
 		if err == nil {
 			break
 		}
@@ -227,7 +226,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		return "", err
 	}
 
-	obj, err = common.ToMap(response)
+	obj, err = emits.ToMap(response)
 	if err != nil {
 		return "", err
 	}
@@ -238,8 +237,8 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		return "", errors.New("fetch failed")
 	}
 
-	cookies = common.MergeCookies(cookies, common.GetCookies(response))
-	response, err = common.ClientBuilder().
+	cookies = emits.MergeCookies(cookies, emits.GetCookies(response))
+	response, err = emits.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/queue/data").
@@ -248,19 +247,19 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
-		DoWith(http.StatusOK)
+		DoS(http.StatusOK)
 	if err != nil {
 		return "", err
 	}
 
-	cookies = common.MergeCookies(cookies, common.GetCookies(response))
-	e, err := emits.New(ctx, response)
+	cookies = emits.MergeCookies(cookies, emits.GetCookies(response))
+	e, err := emits.NewGio(ctx, response)
 	if err != nil {
 		return "", err
 	}
 
 	next := false
-	e.Event("process_completed", func(j emits.JoinCompleted) interface{} {
+	e.Event("process_completed", func(j emits.JoinEvent) interface{} {
 		next = true
 		return nil
 	})

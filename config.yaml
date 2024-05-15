@@ -14,3 +14,13 @@ llm:
 # 目前注册没有限制，可配置多个key轮询
 #magnify:
 #  - "xxx"
+
+# 用于429限流时切换代理ip，proxies/xxx 为 策略组，names 为组内的线路名称 （clash需开启webapi）
+# names 修改自己的节点
+clash:
+  url: http://127.0.0.1:7891/proxies/xxx
+  names:
+    - "英国"
+    - "美国"
+    - "日本"
+    - "xxx"

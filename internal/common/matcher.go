@@ -5,9 +5,9 @@ import (
 )
 
 const (
-	MAT_DEFAULT  int = iota // 接收字符，并执行下一个匹配器
-	MAT_MATCHING            // 匹配中
-	MAT_MATCHED             // 匹配器命中
+	MAT_DEFAULT  int = iota // 执行下一个匹配器
+	MAT_MATCHING            // 匹配中, 字符被缓存
+	MAT_MATCHED             // 匹配器命中，不再执行下一个
 )
 
 var (
@@ -20,16 +20,17 @@ var (
 	}
 )
 
-// 匹配器，匹配常量符号流式结果处理
+// 匹配器接口
 type Matcher interface {
 	match(content string) (state int, result string)
 }
 
-// 符号串符号适配器
+// 字符块匹配器，只向后匹配
 type SymbolMatcher struct {
-	cache string
-	Find  string
-	H     func(index int, content string) (state int, result string)
+	cache string // 缓存的字符
+	Find  string // 字符块匹配前置，'*'则匹配任意
+	// 具体的匹配实现
+	H func(index int, content string) (state int, result string)
 }
 
 func NewMatchers() []Matcher {
@@ -38,6 +39,7 @@ func NewMatchers() []Matcher {
 	return slice
 }
 
+// 中断匹配器，返回一个error channel，用于控制是否终止输出
 func NewCancelMather() (chan error, Matcher) {
 	count := 0
 	cancel := make(chan error, 1)
@@ -58,16 +60,18 @@ func NewCancelMather() (chan error, Matcher) {
 					return MAT_MATCHED, ""
 				}
 			}
-			return MAT_DEFAULT, content
+			return MAT_MATCHED, content
 		},
 	}
 }
 
 func ExecMatchers(matchers []Matcher, raw string) string {
+	// MAT_DEFAULT	没有命中，继续执行下一个
+	// MAT_MATCHING 匹配中，缓存消息不执行下一个
+	// MAT_MATCHED 	命中，不再执行下一个
 	for _, mat := range matchers {
 		state, result := mat.match(raw)
 		if state == MAT_DEFAULT {
-			raw = result
 			continue
 		}
 		if state == MAT_MATCHING {

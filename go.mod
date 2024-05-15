@@ -6,8 +6,8 @@ require (
 	github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71
 	github.com/bincooo/cohere-api v0.0.0-20240408053055-744e6f22b310
 	github.com/bincooo/coze-api v1.0.2-0.20240510042405-0f4058f868f3
-	github.com/bincooo/edge-api v1.0.4-0.20240513025500-6634798bd70c
-	github.com/bincooo/gio.emits v0.0.0-20240509021256-cd7ba8cf5f33
+	github.com/bincooo/edge-api v1.0.4-0.20240514224459-9c5b7df21536
+	github.com/bincooo/gio.emits v0.0.0-20240515122257-0d8f88abdca0
 	github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/gin-gonic/gin v1.9.1
@@ -16,6 +16,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
+	golang.org/x/crypto v0.22.0
 )
 
 require (
@@ -62,7 +63,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect

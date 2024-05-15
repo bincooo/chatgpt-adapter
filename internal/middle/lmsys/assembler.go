@@ -73,7 +73,7 @@ label:
 
 	// 违反内容中断并返回错误
 	matchers = append(matchers, &common.SymbolMatcher{
-		Find: "I did not actually provide any input that",
+		Find: "I did not actually provide",
 		H: func(index int, content string) (state int, result string) {
 			cancel <- errors.New("I did not actually provide any input that could violate content guidelines")
 			return common.MAT_MATCHED, ""

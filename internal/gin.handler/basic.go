@@ -176,6 +176,11 @@ func models(ctx *gin.Context) {
 				"created":  1686935002,
 				"owned_by": "gemini-adapter",
 			}, {
+				"id":       "freeGpt35",
+				"object":   "model",
+				"created":  1686935002,
+				"owned_by": "chatgpt-adapter",
+			}, {
 				"id":       "command",
 				"object":   "model",
 				"created":  1686935002,

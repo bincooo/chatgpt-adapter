@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/bincooo/gio.emits/common"
+	emits "github.com/bincooo/gio.emits"
 	"net/http"
 	"time"
 )
@@ -31,19 +31,19 @@ func magnify(ctx context.Context, url, key, style, x2 string) (string, error) {
 		"input": url,
 	}
 
-	response, err := common.ClientBuilder().
+	response, err := emits.ClientBuilder().
 		Context(ctx).
 		URL(baseURL).
 		Method(http.MethodPost).
 		JHeader().
 		Header("X-API-KEY", key).
 		Body(payload).
-		DoWith(http.StatusOK)
+		DoS(http.StatusOK)
 	if err != nil {
 		return "", err
 	}
 
-	if err = common.ToObject(response, &payload); err != nil {
+	if err = emits.ToObject(response, &payload); err != nil {
 		return "", err
 	}
 
@@ -64,15 +64,15 @@ func magnify(ctx context.Context, url, key, style, x2 string) (string, error) {
 		}
 		retry--
 
-		response, err = common.ClientBuilder().
+		response, err = emits.ClientBuilder().
 			Context(ctx).
 			URL(baseURL + taskId).
-			DoWith(http.StatusOK)
+			DoS(http.StatusOK)
 		if err != nil {
 			return "", err
 		}
 
-		if err = common.ToObject(response, &payload); err != nil {
+		if err = emits.ToObject(response, &payload); err != nil {
 			return "", err
 		}
 

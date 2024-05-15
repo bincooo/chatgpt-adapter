@@ -10,8 +10,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	emits "github.com/bincooo/gio.emits"
-	"github.com/bincooo/gio.emits/common"
+	"github.com/bincooo/gio.emits"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -123,8 +122,8 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		return
 	}
 
-	var c *emits.Emits
-	hash := emits.SessionHash()
+	var c *emits.GioEmits
+	hash := emits.GioHash()
 	value := ""
 	var eventError error
 
@@ -148,16 +147,16 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		models = xlModels
 		baseUrl = "wss://prodia-sdxl-stable-diffusion-xl.hf.space"
 
-		conn, e := common.SocketBuilder().
+		conn, e := emits.SocketBuilder().
 			Proxies(proxies).
 			URL(baseUrl + "/queue/join").
-			DoWith(http.StatusSwitchingProtocols)
+			DoS(http.StatusSwitchingProtocols)
 		if e != nil {
 			middle.ResponseWithE(ctx, -1, e)
 			return
 		}
 
-		c, err = emits.New(ctx.Request.Context(), conn)
+		c, err = emits.NewGio(ctx.Request.Context(), conn)
 		if err != nil {
 			middle.ResponseWithE(ctx, -1, err)
 			return
@@ -165,33 +164,33 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 
 	default:
 		models = sdModels
-		response, e := common.ClientBuilder().
+		response, e := emits.ClientBuilder().
 			Context(ctx.Request.Context()).
 			Proxies(proxies).
 			GET(baseUrl+"/queue/join").
 			Query("fn_index", strconv.Itoa(index)).
 			Query("session_hash", hash).
-			DoWith(http.StatusOK)
+			DoS(http.StatusOK)
 		if e != nil {
 			middle.ResponseWithE(ctx, -1, e)
 			return
 		}
 
-		c, err = emits.New(ctx.Request.Context(), response)
+		c, err = emits.NewGio(ctx.Request.Context(), response)
 		if err != nil {
 			middle.ResponseWithE(ctx, -1, err)
 			return
 		}
 	}
 
-	c.Event("send_hash", func(j emits.JoinCompleted) interface{} {
+	c.Event("send_hash", func(j emits.JoinEvent) interface{} {
 		return map[string]interface{}{
 			"fn_index":     index,
 			"session_hash": hash,
 		}
 	})
 
-	c.Event("send_data", func(j emits.JoinCompleted) interface{} {
+	c.Event("send_data", func(j emits.JoinEvent) interface{} {
 		obj := map[string]interface{}{
 			"data":         params,
 			"event_data":   nil,
@@ -204,13 +203,13 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		case "xl":
 			return obj
 		default:
-			_, err = common.ClientBuilder().
+			_, err = emits.ClientBuilder().
 				Proxies(proxies).
 				Context(ctx.Request.Context()).
 				POST(baseUrl + "/queue/data").
 				JHeader().
 				Body(obj).
-				DoWith(http.StatusOK)
+				DoS(http.StatusOK)
 			if err != nil {
 				eventError = err
 			}
@@ -218,7 +217,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		}
 	})
 
-	c.Event("process_completed", func(j emits.JoinCompleted) interface{} {
+	c.Event("process_completed", func(j emits.JoinEvent) interface{} {
 		d := j.Output.Data
 		if len(d) > 0 {
 			switch space {
@@ -378,7 +377,7 @@ func fetch(ctx context.Context, proxies, baseUrl, cookie string, marshal []byte)
 		proxies = ""
 	}
 
-	return common.ClientBuilder().
+	return emits.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		POST(fmt.Sprintf("%s/v1/chat/completions", baseUrl)).
