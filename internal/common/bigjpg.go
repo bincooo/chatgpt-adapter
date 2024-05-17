@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	emits "github.com/bincooo/gio.emits"
+	"github.com/bincooo/emit.io"
 	"net/http"
 	"time"
 )
@@ -31,7 +31,7 @@ func magnify(ctx context.Context, url, key, style, x2 string) (string, error) {
 		"input": url,
 	}
 
-	response, err := emits.ClientBuilder().
+	response, err := emit.ClientBuilder().
 		Context(ctx).
 		URL(baseURL).
 		Method(http.MethodPost).
@@ -43,7 +43,7 @@ func magnify(ctx context.Context, url, key, style, x2 string) (string, error) {
 		return "", err
 	}
 
-	if err = emits.ToObject(response, &payload); err != nil {
+	if err = emit.ToObject(response, &payload); err != nil {
 		return "", err
 	}
 
@@ -64,7 +64,7 @@ func magnify(ctx context.Context, url, key, style, x2 string) (string, error) {
 		}
 		retry--
 
-		response, err = emits.ClientBuilder().
+		response, err = emit.ClientBuilder().
 			Context(ctx).
 			URL(baseURL + taskId).
 			DoS(http.StatusOK)
@@ -72,7 +72,7 @@ func magnify(ctx context.Context, url, key, style, x2 string) (string, error) {
 			return "", err
 		}
 
-		if err = emits.ToObject(response, &payload); err != nil {
+		if err = emit.ToObject(response, &payload); err != nil {
 			return "", err
 		}
 

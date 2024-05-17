@@ -1,12 +1,10 @@
 package middle
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -14,22 +12,43 @@ import (
 )
 
 var (
-	ContentCanceled = errors.New("request canceled")
-	stop            = "stop"
-	toolCalls       = "tool_calls"
+	stop      = "stop"
+	toolCalls = "tool_calls"
+
+	Delta = &struct {
+		Role      string                  `json:"role"`
+		Content   string                  `json:"content"`
+		ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
+	}{}
 )
 
-func IsCanceled(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ContentCanceled
-	default:
-		return nil
+func MessageValidator(ctx *gin.Context) bool {
+	completion := common.GetGinCompletion(ctx)
+	messageL := len(completion.Messages)
+	if messageL == 0 {
+		ErrResponse(ctx, -1, "[] is too short - 'messages'")
+		return false
 	}
-}
 
-func ResponseWithE(ctx *gin.Context, code int, err error) {
-	ResponseWithV(ctx, code, err.Error())
+	condition := func(expr string) string {
+		switch expr {
+		case "user", "system", "function", "assistant":
+			return expr
+		default:
+			return ""
+		}
+	}
+
+	for index := 0; index < messageL; index++ {
+		message := completion.Messages[index]
+		role := condition(message.GetString("role"))
+		if role == "" {
+			str := fmt.Sprintf("'%s' is not in ['system', 'assistant', 'user', 'function'] - 'messages.[%d].role'", message["role"], index)
+			ErrResponse(ctx, -1, str)
+			return false
+		}
+	}
+	return true
 }
 
 // one-api 重试机制
@@ -43,33 +62,51 @@ func ResponseWithE(ctx *gin.Context, code int, err error) {
 //	https://github.com/songquanpeng/one-api/blob/5e81e19bc81e88d5df15a04f6a6268886127e002/controller/relay.go#L118
 //	code 401 http.StatusUnauthorized
 //	err.Type ...
-func ResponseWithV(ctx *gin.Context, code int, error string) {
-	logrus.Errorf("response error: %s", error)
+func ErrResponse(ctx *gin.Context, code int, err interface{}) {
+	logrus.Errorf("response error: %v", err)
 	if code == -1 {
 		code = http.StatusInternalServerError
 	}
+
+	if str, ok := err.(string); ok {
+		ctx.JSON(code, gin.H{
+			"error": map[string]string{
+				"message": str,
+			},
+		})
+		return
+	}
+
+	if e, ok := err.(error); ok {
+		ctx.JSON(code, gin.H{
+			"error": map[string]string{
+				"message": e.Error(),
+			},
+		})
+		return
+	}
+
 	ctx.JSON(code, gin.H{
-		// "code": "invalid_api_key",
 		"error": map[string]string{
-			"message": error,
+			"message": fmt.Sprintf("%v", err),
 		},
 	})
 }
 
-func ResponseWith(ctx *gin.Context, model, content string) {
+func Response(ctx *gin.Context, model, content string) {
 	created := time.Now().Unix()
-	ctx.JSON(http.StatusOK, gpt.ChatCompletionResponse{
+	ctx.JSON(http.StatusOK, pkg.ChatResponse{
 		Model:   model,
 		Created: created,
-		Id:      "chatcmpl-completion",
+		Id:      fmt.Sprintf("chatcmpl-%d", created),
 		Object:  "chat.completion",
-		Choices: []gpt.ChatCompletionResponseChoice{
+		Choices: []pkg.ChatChoice{
 			{
 				Index: 0,
 				Message: &struct {
-					Role      string                   `json:"role"`
-					Content   string                   `json:"content"`
-					ToolCalls []map[string]interface{} `json:"tool_calls"`
+					Role      string                  `json:"role"`
+					Content   string                  `json:"content"`
+					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
 				}{"assistant", content, nil},
 				FinishReason: &stop,
 			},
@@ -77,15 +114,8 @@ func ResponseWith(ctx *gin.Context, model, content string) {
 	})
 }
 
-func ResponseWithSSE(ctx *gin.Context, model, content string, usage map[string]int, created int64) {
-	w := ctx.Writer
-	if w.Header().Get("Content-Type") == "" {
-		ctx.Writer.Header().Set("Content-Type", "text/event-stream")
-		ctx.Writer.Header().Set("Transfer-Encoding", "chunked")
-		ctx.Writer.Header().Set("Cache-Control", "no-cache")
-		ctx.Writer.Header().Set("Connection", "keep-alive")
-		ctx.Writer.Header().Set("X-Accel-Buffering", "no")
-	}
+func SSEResponse(ctx *gin.Context, model, content string, usage map[string]int, created int64) {
+	setSSEHeader(ctx)
 
 	done := false
 	finishReason := ""
@@ -96,20 +126,19 @@ func ResponseWithSSE(ctx *gin.Context, model, content string, usage map[string]i
 		finishReason = "stop"
 	}
 
-	response := gpt.ChatCompletionResponse{
+	response := pkg.ChatResponse{
 		Model:   model,
 		Created: created,
-		Id:      "chatcmpl-completion",
+		Id:      fmt.Sprintf("chatcmpl-%d", created),
 		Object:  "chat.completion.chunk",
-		Choices: []gpt.ChatCompletionResponseChoice{
+		Choices: []pkg.ChatChoice{
 			{
 				Index: 0,
 				Delta: &struct {
-					Role      string                   `json:"role"`
-					Content   string                   `json:"content"`
-					ToolCalls []map[string]interface{} `json:"tool_calls"`
+					Role      string                  `json:"role"`
+					Content   string                  `json:"content"`
+					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
 				}{"assistant", content, nil},
-				// FinishReason: finishReason,
 			},
 		},
 		Usage: usage,
@@ -119,35 +148,33 @@ func ResponseWithSSE(ctx *gin.Context, model, content string, usage map[string]i
 		response.Choices[0].FinishReason = &finishReason
 	}
 
-	marshal, _ := json.Marshal(response)
-	_, _ = fmt.Fprintf(w, "data: %s\n\n", marshal)
-	w.Flush()
+	event(ctx.Writer, response)
 
 	if done {
-		_, _ = fmt.Fprintf(w, "data: [DONE]")
-		w.Flush()
+		time.Sleep(100 * time.Millisecond)
+		event(ctx.Writer, "[DONE]")
 	}
 }
 
-func ResponseWithToolCalls(ctx *gin.Context, model, name, args string) {
+func ToolCallResponse(ctx *gin.Context, model, name, args string) {
 	created := time.Now().Unix()
-	ctx.JSON(http.StatusOK, gpt.ChatCompletionResponse{
+	ctx.JSON(http.StatusOK, pkg.ChatResponse{
 		Model:   model,
 		Created: created,
-		Id:      "chatcmpl-completion",
+		Id:      fmt.Sprintf("chatcmpl-%d", created),
 		Object:  "chat.completion",
-		Choices: []gpt.ChatCompletionResponseChoice{
+		Choices: []pkg.ChatChoice{
 			{
 				Index: 0,
 				Message: &struct {
-					Role      string                   `json:"role"`
-					Content   string                   `json:"content"`
-					ToolCalls []map[string]interface{} `json:"tool_calls"`
+					Role      string                  `json:"role"`
+					Content   string                  `json:"content"`
+					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
 				}{
 					Role: "assistant",
-					ToolCalls: []map[string]interface{}{
+					ToolCalls: []pkg.Keyv[interface{}]{
 						{
-							"id":   "call_" + common.RandStr(5),
+							"id":   "call" + common.RandStr(5),
 							"type": "function",
 							"function": map[string]string{
 								"name":      name,
@@ -162,78 +189,88 @@ func ResponseWithToolCalls(ctx *gin.Context, model, name, args string) {
 	})
 }
 
-func ResponseWithSSEToolCalls(ctx *gin.Context, model, name, args string, created int64) {
-	w := ctx.Writer
-	if w.Header().Get("Content-Type") == "" {
-		ctx.Writer.Header().Set("Content-Type", "text/event-stream")
-		ctx.Writer.Header().Set("Transfer-Encoding", "chunked")
-		ctx.Writer.Header().Set("Cache-Control", "no-cache")
-		ctx.Writer.Header().Set("Connection", "keep-alive")
-		ctx.Writer.Header().Set("X-Accel-Buffering", "no")
-	}
-
-	index := 0
-	response := gpt.ChatCompletionResponse{
+func SSEToolCallResponse(ctx *gin.Context, model, name, args string, created int64) {
+	setSSEHeader(ctx)
+	response := pkg.ChatResponse{
 		Model:   model,
 		Created: created,
-		Id:      "chatcmpl-completion",
+		Id:      fmt.Sprintf("chatcmpl-%d", created),
 		Object:  "chat.completion.chunk",
-		Choices: []gpt.ChatCompletionResponseChoice{
+		Choices: []pkg.ChatChoice{
 			{
-				Index: index,
+				Index: 0,
 				Delta: &struct {
-					Role      string                   `json:"role"`
-					Content   string                   `json:"content"`
-					ToolCalls []map[string]interface{} `json:"tool_calls"`
+					Role      string                  `json:"role"`
+					Content   string                  `json:"content"`
+					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
 				}{
 					Role:      "assistant",
-					ToolCalls: make([]map[string]interface{}, 1),
+					ToolCalls: make([]pkg.Keyv[interface{}], 1),
 				},
 			},
 		},
 	}
 
 	toolCall := make(map[string]interface{})
-	toolCall["index"] = index
+	toolCall["index"] = 0
 	toolCall["type"] = "function"
-	toolCall["id"] = "call_" + common.RandStr(5)
+	toolCall["id"] = "call" + common.RandStr(5)
 	toolCall["function"] = map[string]string{"name": name}
-	response.Choices[index].Delta.ToolCalls[index] = toolCall
+	response.Choices[0].Delta.ToolCalls[0] = toolCall
 
-	marshal, _ := json.Marshal(response)
-	_, err := fmt.Fprintf(w, "data: %s\n\n", marshal)
-	if err != nil {
-		return
-	}
-	w.Flush()
+	event(ctx.Writer, response)
 	time.Sleep(100 * time.Millisecond)
 
 	delete(toolCall, "id")
 	delete(toolCall, "type")
 	toolCall["function"] = map[string]string{"arguments": args}
-	response.Choices[index].Delta.ToolCalls[index] = toolCall
-	marshal, _ = json.Marshal(response)
-	_, err = fmt.Fprintf(w, "data: %s\n\n", marshal)
-	if err != nil {
-		return
-	}
-	w.Flush()
+	response.Choices[0].Delta.ToolCalls[0] = toolCall
+
+	event(ctx.Writer, response)
 	time.Sleep(100 * time.Millisecond)
 
-	response.Choices[index].FinishReason = &toolCalls
-	response.Choices[index].Delta = &struct {
-		Role      string                   `json:"role"`
-		Content   string                   `json:"content"`
-		ToolCalls []map[string]interface{} `json:"tool_calls"`
-	}{}
-	marshal, _ = json.Marshal(response)
-	_, err = fmt.Fprintf(w, "data: %s\n\n", marshal)
-	if err != nil {
+	response.Choices[0].FinishReason = &toolCalls
+	response.Choices[0].Delta = Delta
+
+	event(ctx.Writer, response)
+	time.Sleep(100 * time.Millisecond)
+	event(ctx.Writer, "[DONE]")
+}
+
+func setSSEHeader(ctx *gin.Context) {
+	h := ctx.Writer.Header()
+	if h.Get("Content-Type") == "" {
+		h.Set("Content-Type", "text/event-stream")
+		h.Set("Transfer-Encoding", "chunked")
+		h.Set("Cache-Control", "no-cache")
+		h.Set("Connection", "keep-alive")
+		h.Set("X-Accel-Buffering", "no")
+	}
+}
+
+func event(w gin.ResponseWriter, data interface{}) {
+	str, ok := data.(string)
+	if ok {
+		_, err := fmt.Fprintf(w, "data: %s\n\n", str)
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+
+		w.Flush()
 		return
 	}
-	w.Flush()
-	time.Sleep(100 * time.Millisecond)
 
-	_, _ = fmt.Fprintf(w, "data: [DONE]")
+	marshal, err := json.Marshal(data)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	_, err = fmt.Fprintf(w, "data: %s\n\n", marshal)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 	w.Flush()
 }

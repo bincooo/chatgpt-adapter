@@ -3,7 +3,7 @@ package v1
 import (
 	"bufio"
 	"bytes"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"testing"
@@ -14,9 +14,9 @@ func TestGpt35(t *testing.T) {
 	ctx := new(gin.Context)
 	ctx.Request, _ = http.NewRequest("POST", "http://localhost:3000", nil)
 	ctx.Set("proxies", "http://127.0.0.1:7890")
-	response, err := fetchGpt35(ctx, gpt.ChatCompletionRequest{
+	response, err := fetchGpt35(ctx, pkg.ChatCompletion{
 		Model: "text-davinci-002-render-sha",
-		Messages: []map[string]string{
+		Messages: []pkg.Keyv[interface{}]{
 			{
 				"role":    "user",
 				"content": "hi",

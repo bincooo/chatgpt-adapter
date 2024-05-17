@@ -8,14 +8,14 @@ import (
 	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	"github.com/bincooo/gio.emits"
+	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -56,7 +56,8 @@ type modelCompleted struct {
 }
 
 var (
-	models = []string{
+	Adapter = API{}
+	models  = []string{
 		"none",
 		"Realism_Engine_SDXL",
 		"Real_Cartoon_XL",
@@ -102,14 +103,28 @@ var (
 	}
 )
 
-func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
-	hash := emits.GioHash()
+type API struct {
+	middle.BaseAdapter
+}
+
+func (API) Match(ctx *gin.Context, model string) (ok bool) {
+	token := ctx.GetString("token")
+	if model == "dall-e-3" {
+		ok, _ = regexp.MatchString(`\w{8,10}-\w{4}-\w{4}-\w{4}-\w{10,15}`, token)
+	}
+	return
+}
+
+func (API) Generation(ctx *gin.Context) {
+
 	var (
-		cookie = ctx.GetString("token")
-		domain = pkg.Config.GetString("domain")
+		hash       = emit.GioHash()
+		cookie     = ctx.GetString("token")
+		domain     = pkg.Config.GetString("domain")
+		generation = com.GetGinGeneration(ctx)
 	)
 
-	model := convertToModel(req.Style)
+	model := convertToModel(generation.Style)
 	var payload = modelPayload{
 		BatchId:                 hash,
 		CfgScale:                8,
@@ -125,7 +140,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		BoothModel:              model,
 		NegativePrompt:          "ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, photo, realistic, text, watermark, signature, username, artist name",
 		NumImages:               1,
-		Prompt:                  req.Prompt,
+		Prompt:                  generation.Prompt,
 		Sampler:                 9,
 		Seed:                    int32(rand.Intn(100000000) + 429650152),
 		StatusUUID:              uuid.NewString(),
@@ -136,45 +151,36 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 	marshal, _ := json.Marshal(payload)
 	response, err := fetch(ctx.Request.Context(), "", cookie, marshal)
 	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
-	}
-
-	if err = middle.IsCanceled(ctx); err != nil {
-		middle.ResponseWithE(ctx, -1, err)
+		middle.ErrResponse(ctx, -1, err)
 		return
 	}
 
 	data, err := io.ReadAll(response.Body)
 	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
+		middle.ErrResponse(ctx, -1, err)
 		return
 	}
 
 	// {"errorCode":
 	if bytes.HasPrefix(data, []byte("{\"errorCode\":")) {
-		middle.ResponseWithV(ctx, -1, string(data))
+		middle.ErrResponse(ctx, -1, string(data))
 		return
 	}
 
 	var mc modelCompleted
 	if err = json.Unmarshal(data, &mc); err != nil {
-		middle.ResponseWithE(ctx, -1, err)
+		middle.ErrResponse(ctx, -1, err)
 		return
 	}
 
 	if len(mc.Images) == 0 {
-		middle.ResponseWithV(ctx, -1, "generate images failed")
+		middle.ErrResponse(ctx, -1, "generate images failed")
 		return
 	}
 
-	if err = middle.IsCanceled(ctx); err != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
-	}
 	file, err := com.SaveBase64(mc.Images[0].Url, "jpg")
 	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
+		middle.ErrResponse(ctx, -1, err)
 		return
 	}
 
@@ -182,7 +188,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 	file = fmt.Sprintf("%s/file/%s", domain, file)
-	if (req.Size == "HD" || strings.HasPrefix(req.Size, "1792x")) && com.HasMfy() {
+	if (generation.Size == "HD" || strings.HasPrefix(generation.Size, "1792x")) && com.HasMfy() {
 		v, e := com.Magnify(ctx, file)
 		if e != nil {
 			logrus.Error(e)
@@ -214,7 +220,7 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 	}
 
 	baseUrl := "https://playground.com"
-	return emits.ClientBuilder().
+	return emit.ClientBuilder().
 		Proxies(proxies).
 		Context(ctx).
 		POST(baseUrl+"/api/models").
@@ -223,7 +229,7 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 		Header("referer", "https://playground.com/create").
 		Header("accept-language", "en-US,en;q=0.9").
 		Header("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36").
-		Header("x-forwarded-for", emits.RandIP()).
+		Header("x-forwarded-for", emit.RandIP()).
 		Header("cookie", cookie).
 		JHeader().
 		Bytes(marshal).

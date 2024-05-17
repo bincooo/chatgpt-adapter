@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	emits "github.com/bincooo/gio.emits"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/sha3"
@@ -72,7 +72,7 @@ type chatSSEResponse struct {
 }
 
 // reference https://github.com/hominsu/freegpt35
-func fetchGpt35(ctx *gin.Context, req gpt.ChatCompletionRequest) (*http.Response, error) {
+func fetchGpt35(ctx *gin.Context, req pkg.ChatCompletion) (*http.Response, error) {
 	proxies := ctx.GetString("proxies")
 	session, err := partOne(ctx.Request.Context(), proxies)
 	if err != nil {
@@ -85,7 +85,7 @@ func partOne(ctx context.Context, proxies string) (*chatSession, error) {
 	retry := 3
 label:
 	deviceId := uuid.NewString()
-	response, err := emits.ClientBuilder().
+	response, err := emit.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		POST("https://chat.openai.com/backend-api/sentinel/chat-requirements").
@@ -95,7 +95,7 @@ label:
 		Header("origin", "https://chat.openai.com").
 		Header("referer", "https://chat.openai.com").
 		Header("user-agent", ua).
-		DoC(emits.Status(http.StatusOK), emits.IsJSON)
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
 		if retry > 0 {
 			retry--
@@ -105,7 +105,7 @@ label:
 	}
 
 	var session chatSession
-	if err = emits.ToObject(response, &session); err != nil {
+	if err = emit.ToObject(response, &session); err != nil {
 		return nil, err
 	}
 
@@ -113,9 +113,9 @@ label:
 	return &session, nil
 }
 
-func partTwo(ctx *gin.Context, session *chatSession, req gpt.ChatCompletionRequest) (*http.Response, error) {
+func partTwo(ctx *gin.Context, session *chatSession, req pkg.ChatCompletion) (*http.Response, error) {
 	proxies := ctx.GetString("proxies")
-	return emits.ClientBuilder().
+	return emit.ClientBuilder().
 		Context(ctx.Request.Context()).
 		Proxies(proxies).
 		POST("https://chat.openai.com/backend-api/conversation").
@@ -128,22 +128,22 @@ func partTwo(ctx *gin.Context, session *chatSession, req gpt.ChatCompletionReque
 		Header("referer", "https://chat.openai.com").
 		Header("user-agent", ua).
 		Body(makePayload(req)).
-		DoC(emits.Status(http.StatusOK), emits.IsSTREAM)
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
 }
 
-func makePayload(req gpt.ChatCompletionRequest) map[string]interface{} {
+func makePayload(req pkg.ChatCompletion) map[string]interface{} {
 	var messages []interface{}
 
 	for _, message := range req.Messages {
 		messages = append(messages, map[string]interface{}{
 			"id": uuid.NewString(),
 			"author": map[string]string{
-				"role": message["role"],
+				"role": message.GetString("role"),
 			},
 			"content": map[string]interface{}{
 				"content_type": "text",
 				"parts": []string{
-					message["content"],
+					message.GetString("content"),
 				},
 			},
 		})

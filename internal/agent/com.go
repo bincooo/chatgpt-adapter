@@ -1,80 +1,70 @@
 package agent
 
-const CQConditions = `我会给你几个问题类型，请参考背景知识（可能为空）和对话记录，判断我“本次问题”的类型，并返回一个问题“类型ID”:
-<问题类型>
-{{- range $index, $value := .tools}}
-{{- if eq $value.T "function" }}
-{{- setId $index (rand 5) }}
-{ "questionType": "{{$value.Fun.Description}}", "typeId": "{{$value.Fun.Id}}" }
-{{end -}}
-{{end}}
-{ "questionType": "其它问题", "typeId": "other" }
-</问题类型>
+const ToolCall = `<Instruction>
+你是一个智能机器人，除了可以回答用户问题外，你还掌握工具的使用能力。有时候，你可以依赖工具的运行结果，来更准确的回答用户。
 
-<背景知识>
-你将作为系统API协调工具，为我分析给出的question并结合对话记录来判断是否需要执行哪些工具。
-当用户询问你工具/功能执行能力时，这并不是一个执行要求，应该归类为其他，例如：
-你能做xxx事吗？
-你能执行xxx功能吗？
+工具使用了 JSON Schema 的格式声明，其中 toolId 是工具的 description 是工具的描述，parameters 是工具的参数，包括参数的类型和描述，required 是必填参数的列表。
 
----
-工具如下
-## Tools
-You can use these tools below:
-{{- range $index, $value := .tools}}
-{{- if eq $value.T "function" }}
-{{inc $index 1}}. [{{$value.Fun.Name}}] {{$value.Fun.Description}};
-{{end -}}
-{{end -}}
-##
-</背景知识>
+请你根据工具描述，决定回答问题或是使用工具。在完成任务过程中，USER代表用户的输入，TOOL_RESPONSE代表工具运行结果。ASSISTANT 代表你的输出。
+你的每次输出都必须以0,1开头，代表是否需要调用工具：
+0: 不使用工具，直接回答内容。
+1: 使用工具，返回工具调用的参数。
 
-<对话记录>
+例如：
+
+USER: 你好呀
+ANSWER: 0: 你好，有什么可以帮助你的么？
+USER: 今天杭州的天气如何
+ANSWER: 1: {"toolId":"testToolId",arguments:{"city": "杭州"}}
+TOOL_RESPONSE: """
+晴天......
+"""
+ANSWER: 0: 今天杭州是晴天。
+USER: 今天杭州的天气适合去哪里玩？
+ANSWER: 1: {"toolId":"testToolId2",arguments:{"query": "杭州 天气 去哪里玩"}}
+TOOL_RESPONSE: """
+晴天. 西湖、灵隐寺、千岛湖……
+"""
+ANSWER: 0: 今天杭州是晴天，适合去西湖、灵隐寺、千岛湖等地玩。
+</Instruction>
+
+现在，我们开始吧！下面是你本次可以使用的工具：
+
+"""
+[
+    {{- range $index, $value := .tools}}
+    {{- if eq $value.type "function" }}
+    {
+        "toolId": "{{$value.function.id}}",
+        "description": "{{$value.function.description}}",
+        "parameters": {
+             "type": "object",
+             "properties": {
+{{- range $key, $v := $value.function.parameters.properties}}
+                 "{{$key}}": {
+                     "type": "{{$v.type}}",
+                     "description": "{{$v.description}}"
+                 }
+{{end -}}
+             }
+        },
+        "required": {{$value.function.parameters.required}}
+    },
+    {{end -}}
+    {{end -}}
+]
+"""
+
+下面是正式的对话内容：
 {{- range $index, $value := .pMessages}}
 {{if eq $value.role "user" -}}
-Human: {{$value.content}}
+USER: {{$value.content}}
 {{- else -}}
-Assistant: {{$value.content}}
+ANSWER: {{$value.content}}
 {{- end -}}
 {{end}}
-</对话记录>
-
-question= "{{.content}}"
-
-类型ID=？
-请补充类型ID=`
-
-const ExtractJson = `你可以从 <对话记录></对话记录> 中提取指定 JSON 信息，你仅需返回 JSON 字符串，无需回答问题。
-<提取要求>
-你将作为系统API协调工具，为我分析给出对话记录来提取需要执行“xxx”工具所需要的参数。
-</提取要求>
-
-<字段说明>
-1. 下面的 JSON 字符串均按照 JSON Schema 的规则描述。
-2. key 代表字段名；description 代表字段的描述；required 代表是否必填(true|false)；type 代表数据类型；
-3. 如果没有可提取的内容，忽略该字段，如果是必填项就必须提取出一个值。
-4. 当无法提取必填项时，请提醒用户提供必填项的信息（精简回复），不返回 JSON 字符串。
-5. 本次需提取的JSON Schema：
-{{- range $index, $value := .tools}}
-{{- if eq $value.T "function" }}
-{{- range $key, $v := $value.Fun.Params.Properties}}
-{ "key":"{{$key}}", "description":"{{$v.description}}", "required": {{contains $value.Fun.Params.Required $key}}, "type": "{{$v.type}}" }
-{{end -}}
-{{end -}}
-{{end -}}
-</字段说明>
-
-<对话记录>
-{{- range $index, $value := .pMessages}}
-{{if eq $value.role "user" -}}
-Human: {{$value.content}}
-{{- else -}}
-Assistant: {{$value.content}}
-{{- end -}}
-{{end}}
-</对话记录>
-
-content: "{{.content}}"`
+USER: {{.content}}
+ANSWER: `
 
 const SDWords = `作为stable diffusion绘画构图专家为我生成提示词。
 stable diffusion标签提示是一组指导人工智能绘画模型创建图像的指令。它包含了图像的各种细节，如构图，透视，人物的外观，背景，颜色和灯光效果，以及图像和参考艺术家的主题和风格。提示符中出现较早的单词对图像的影响较大。提示格式通常包括括号中的加权数字，以指定或强调某些细节的重要性。默认权重为1.0，大于1.0的值表示权重增加，小于1.0的值表示权重减少。例如，“{{{masterpiece}}}”表示这个词的权重是1.3倍，是杰作。多个括号也有类似的效果。

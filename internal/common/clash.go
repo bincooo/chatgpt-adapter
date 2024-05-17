@@ -3,7 +3,7 @@ package common
 import (
 	"context"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
-	emits "github.com/bincooo/gio.emits"
+	"github.com/bincooo/emit.io"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"sync"
@@ -43,7 +43,7 @@ func ChangeClashIP() {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 
-		_, err := emits.ClientBuilder().
+		_, err := emit.ClientBuilder().
 			PUT(url).
 			Context(ctx).
 			JHeader().

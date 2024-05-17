@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	emits "github.com/bincooo/gio.emits"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/emit.io"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -25,7 +25,7 @@ type funcDecl struct {
 }
 
 // 构建请求，返回响应
-func build(ctx context.Context, proxies, token string, messages []map[string]interface{}, req gpt.ChatCompletionRequest) (*http.Response, error) {
+func build(ctx context.Context, proxies, token string, messages []map[string]interface{}, req pkg.ChatCompletion) (*http.Response, error) {
 	var (
 		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.0-pro-latest:streamGenerateContent", token)
 	)
@@ -54,10 +54,24 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	_funcDecls := make([]funcDecl, 0)
 	if toolsL := len(req.Tools); toolsL > 0 {
 		for _, v := range req.Tools {
+			kv := v.GetKeyv("function").GetKeyv("parameters")
+			required, ok := kv.Get("required")
+			if !ok {
+				required = []string{}
+			}
+
 			_funcDecls = append(_funcDecls, funcDecl{
-				Name:        strings.Replace(v.Fun.Name, "-", "_", -1),
-				Description: v.Fun.Description,
-				Params:      v.Fun.Params,
+				Name:        strings.Replace(v.GetKeyv("function").GetString("name"), "-", "_", -1),
+				Description: v.GetKeyv("function").GetString("description"),
+				Params: struct {
+					Properties map[string]interface{} `json:"properties"`
+					Required   []string               `json:"required"`
+					Type       string                 `json:"type"`
+				}{
+					Properties: kv.GetKeyv("properties"),
+					Required:   required.([]string),
+					Type:       kv.GetString("function"),
+				},
 			})
 		}
 	}
@@ -120,7 +134,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		return nil, err
 	}
 
-	res, err := emits.ClientBuilder().
+	res, err := emit.ClientBuilder().
 		Proxies(proxies).
 		Context(ctx).
 		POST(burl).

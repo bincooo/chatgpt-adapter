@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
-	emits "github.com/bincooo/gio.emits"
+	"github.com/bincooo/emit.io"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -98,7 +98,7 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 }
 
 func Download(proxies, url, suffix string) (file string, err error) {
-	response, err := emits.ClientBuilder().
+	response, err := emit.ClientBuilder().
 		Proxies(proxies).
 		URL(url).
 		Do()

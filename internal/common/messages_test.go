@@ -3,11 +3,12 @@ package common
 import (
 	"bytes"
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"testing"
 )
 
 func TestMessageCombiner(t *testing.T) {
-	messages := []map[string]string{
+	messages := []pkg.Keyv[interface{}]{
 		{
 			"role":    "user",
 			"content": "hello~",
@@ -36,7 +37,7 @@ func TestMessageCombiner(t *testing.T) {
 			return ""
 		}
 	}
-	messages = MessageCombiner[map[string]string](messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []map[string]string {
+	nMessages := MessageCombiner[map[string]string](messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []map[string]string {
 		role := message["role"]
 		if condition(role) != condition(next) {
 			if buffer.Len() != 0 {
@@ -59,7 +60,7 @@ func TestMessageCombiner(t *testing.T) {
 		return nil
 	})
 
-	for _, msg := range messages {
+	for _, msg := range nMessages {
 		fmt.Printf("<|%s|>\n%s\n<|end|>", msg["role"], msg["content"])
 		fmt.Println()
 	}

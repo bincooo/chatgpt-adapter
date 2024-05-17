@@ -1,13 +1,8 @@
-package common
+package pkg
 
 import (
+	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
 	"strings"
-)
-
-const (
-	MAT_DEFAULT  int = iota // 执行下一个匹配器
-	MAT_MATCHING            // 匹配中, 字符被缓存
-	MAT_MATCHED             // 匹配器命中，不再执行下一个
 )
 
 var (
@@ -47,20 +42,20 @@ func NewCancelMather() (chan error, Matcher) {
 		Find: "<|",
 		H: func(index int, content string) (state int, result string) {
 			if len(content) < 13 {
-				return MAT_MATCHING, content
+				return vars.MatMatching, content
 			}
 
 			for _, block := range blocks {
 				if strings.Contains(content, block) {
 					if block == "<|assistant|>" && count == 0 {
 						count++
-						return MAT_MATCHED, strings.ReplaceAll(content, "<|assistant|>", "")
+						return vars.MatMatched, strings.ReplaceAll(content, "<|assistant|>", "")
 					}
 					cancel <- nil
-					return MAT_MATCHED, ""
+					return vars.MatMatched, ""
 				}
 			}
-			return MAT_MATCHED, content
+			return vars.MatMatched, content
 		},
 	}
 }
@@ -71,14 +66,14 @@ func ExecMatchers(matchers []Matcher, raw string) string {
 	// MAT_MATCHED 	命中，不再执行下一个
 	for _, mat := range matchers {
 		state, result := mat.match(raw)
-		if state == MAT_DEFAULT {
+		if state == vars.MatDefault {
 			continue
 		}
-		if state == MAT_MATCHING {
+		if state == vars.MatMatching {
 			raw = result
 			break
 		}
-		if state == MAT_MATCHED {
+		if state == vars.MatMatched {
 			raw = result
 			break
 		}
@@ -88,7 +83,7 @@ func ExecMatchers(matchers []Matcher, raw string) string {
 
 func (mat *SymbolMatcher) match(content string) (state int, result string) {
 	content = mat.cache + content
-	state = MAT_DEFAULT
+	state = vars.MatDefault
 
 	var (
 		index = 0
@@ -100,14 +95,14 @@ func (mat *SymbolMatcher) match(content string) (state int, result string) {
 	)
 
 	if mat.Find == "" || mat.Find == "*" {
-		state = MAT_MATCHED
+		state = vars.MatMatched
 		goto state
 	}
 
 	for index = range rc {
 		var ch rune
 		if len(find) <= pos {
-			state = MAT_MATCHED
+			state = vars.MatMatched
 			if mat.H != nil {
 				break
 			}
@@ -117,50 +112,48 @@ func (mat *SymbolMatcher) match(content string) (state int, result string) {
 		if ch != rc[index] {
 			pos = 0
 			idx = -1
-			state = MAT_DEFAULT
+			state = vars.MatDefault
 			continue
 		}
 		if idx == -1 || idx == index-1 {
 			pos++
 			idx = index
-			state = MAT_MATCHING
+			state = vars.MatMatching
 			continue
 		}
 	}
 
 state:
-	if state == MAT_DEFAULT {
+	if state == vars.MatDefault {
 		mat.cache = ""
 		result = content
 		return
 	}
 
-	if state == MAT_MATCHING {
+	if state == vars.MatMatching {
 		mat.cache = content
 		if strings.HasSuffix(content, mat.Find) {
-			state = MAT_MATCHED
+			state = vars.MatMatched
 		} else {
 			result = ""
 			return
 		}
 	}
 
-	if state == MAT_MATCHED {
-		if mat.H != nil {
-			state, result = mat.H(index, content)
-			if state == MAT_MATCHED {
-				mat.cache = ""
-				return
-			}
-			if state == MAT_MATCHING {
-				mat.cache = result
-				return state, ""
-			}
-			return state, content
-		} else {
-			result = content
+	if mat.H != nil {
+		state, result = mat.H(index, content)
+		if state == vars.MatMatched {
 			mat.cache = ""
+			return
 		}
+		if state == vars.MatMatching {
+			mat.cache = result
+			return state, ""
+		}
+		return state, content
+	} else {
+		result = content
+		mat.cache = ""
 	}
 
 	return

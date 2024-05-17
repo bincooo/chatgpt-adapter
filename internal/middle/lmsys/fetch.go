@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	emits "github.com/bincooo/gio.emits"
+	"github.com/bincooo/emit.io"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net/http"
@@ -43,7 +43,7 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 		opts.maxTokens = 1024
 	}
 
-	hash := emits.GioHash()
+	hash := emit.GioHash()
 	cookies, err := partOne(ctx, proxies, &opts, messages, hash)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		},
 	}
 
-	response, err := emits.ClientBuilder().
+	response, err := emit.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
@@ -79,14 +79,14 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
-		Header("X-Forwarded-For", emits.RandIP()).
+		Header("X-Forwarded-For", emit.RandIP()).
 		Body(obj).
 		DoS(http.StatusOK)
 	if err != nil {
 		return nil, err
 	}
 
-	obj, err = emits.ToMap(response)
+	obj, err = emit.ToMap(response)
 	if err != nil {
 		return nil, err
 	}
@@ -97,8 +97,8 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		return nil, errors.New("fetch failed")
 	}
 
-	cookies = emits.MergeCookies(cookies, emits.GetCookies(response))
-	response, err = emits.ClientBuilder().
+	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
+	response, err = emit.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/queue/data").
@@ -107,13 +107,13 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
-		Header("X-Forwarded-For", emits.RandIP()).
+		Header("X-Forwarded-For", emit.RandIP()).
 		DoS(http.StatusOK)
 	if err != nil {
 		return nil, err
 	}
 
-	e, err := emits.NewGio(ctx, response)
+	e, err := emit.NewGio(ctx, response)
 	if err != nil {
 		return nil, err
 	}
@@ -121,11 +121,11 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	ch := make(chan string)
 	pos := 0
 
-	//e.Event("*", func(j emits.JoinCompleted) interface{} {
+	//e.Event("*", func(j emit.JoinEvent) interface{} {
 	//	logrus.Infof("%s", j.InitialBytes)
 	//	return nil
 	//})
-	e.Event("process_generating", func(j emits.JoinEvent) interface{} {
+	e.Event("process_generating", func(j emit.JoinEvent) interface{} {
 		data := j.Output.Data
 		if len(data) < 2 {
 			return nil
@@ -206,7 +206,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		obj["fn_index"] = fn[0]
 		obj["trigger_id"] = fn[1]
 
-		response, err = emits.ClientBuilder().
+		response, err = emit.ClientBuilder().
 			Context(ctx).
 			Proxies(proxies).
 			POST(baseUrl+"/queue/join?").
@@ -226,7 +226,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		return "", err
 	}
 
-	obj, err = emits.ToMap(response)
+	obj, err = emit.ToMap(response)
 	if err != nil {
 		return "", err
 	}
@@ -237,8 +237,8 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		return "", errors.New("fetch failed")
 	}
 
-	cookies = emits.MergeCookies(cookies, emits.GetCookies(response))
-	response, err = emits.ClientBuilder().
+	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
+	response, err = emit.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/queue/data").
@@ -252,14 +252,14 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		return "", err
 	}
 
-	cookies = emits.MergeCookies(cookies, emits.GetCookies(response))
-	e, err := emits.NewGio(ctx, response)
+	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
+	e, err := emit.NewGio(ctx, response)
 	if err != nil {
 		return "", err
 	}
 
 	next := false
-	e.Event("process_completed", func(j emits.JoinEvent) interface{} {
+	e.Event("process_completed", func(j emit.JoinEvent) interface{} {
 		next = true
 		return nil
 	})

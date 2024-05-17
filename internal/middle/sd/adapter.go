@@ -9,8 +9,7 @@ import (
 	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
-	"github.com/bincooo/gio.emits"
+	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -22,11 +21,10 @@ import (
 )
 
 var (
-	EMPTRY_EVENT_RETURN map[string]interface{} = nil
-)
-
-var (
-	sdModels = []string{
+	Adapter                         = API{}
+	ginSpace                        = "__prodia_space__"
+	Nil      map[string]interface{} = nil
+	sdModels                        = []string{
 		"3Guofeng3_v34.safetensors [50f420de]",
 		"absolutereality_V16.safetensors [37db0fc3]",
 		"absolutereality_v181.safetensors [3d9d4d2b]",
@@ -103,32 +101,56 @@ var (
 	}
 )
 
-func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
+type API struct {
+	middle.BaseAdapter
+}
+
+func (API) Match(ctx *gin.Context, model string) bool {
+	if model != "dall-e-3" {
+		return false
+	}
+
+	token := ctx.GetString("token")
+	if token == "sk-prodia-sd" {
+		ctx.Set(ginSpace, "sd")
+		return true
+	}
+
+	if token == "sk-prodia-xl" {
+		ctx.Set(ginSpace, "xl")
+		return true
+	}
+
+	return false
+}
+
+func (API) Generation(ctx *gin.Context) {
 	var (
-		index   = 0
-		baseUrl = "https://prodia-fast-stable-diffusion.hf.space"
-		domain  = pkg.Config.GetString("domain")
-		proxies = ctx.GetString("proxies")
-		space   = ctx.GetString("prodia.space")
+		index      = 0
+		baseUrl    = "https://prodia-fast-stable-diffusion.hf.space"
+		domain     = pkg.Config.GetString("domain")
+		proxies    = ctx.GetString("proxies")
+		space      = ctx.GetString(ginSpace)
+		generation = com.GetGinGeneration(ctx)
 	)
 
 	if domain == "" {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	prompt, err := completeTagsGenerator(ctx, req.Prompt)
+	prompt, err := completeTagsGenerator(ctx, generation.Prompt)
 	if err != nil {
-		middle.ResponseWithE(ctx, -1, err)
+		middle.ErrResponse(ctx, -1, err)
 		return
 	}
 
-	var c *emits.GioEmits
-	hash := emits.GioHash()
+	var c *emit.GioEmits
+	hash := emit.GioHash()
 	value := ""
 	var eventError error
 
 	var models []string
-	model := convertToModel(req.Style, space)
+	model := convertToModel(generation.Style, space)
 	negativePrompt := "(deformed eyes, nose, ears, nose, leg, head), bad anatomy, ugly"
 	params := []interface{}{
 		prompt + ", {{{{by famous artist}}}, beautiful, 4k",
@@ -147,24 +169,24 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		models = xlModels
 		baseUrl = "wss://prodia-sdxl-stable-diffusion-xl.hf.space"
 
-		conn, e := emits.SocketBuilder().
+		conn, e := emit.SocketBuilder().
 			Proxies(proxies).
 			URL(baseUrl + "/queue/join").
 			DoS(http.StatusSwitchingProtocols)
 		if e != nil {
-			middle.ResponseWithE(ctx, -1, e)
+			middle.ErrResponse(ctx, -1, e)
 			return
 		}
 
-		c, err = emits.NewGio(ctx.Request.Context(), conn)
+		c, err = emit.NewGio(ctx.Request.Context(), conn)
 		if err != nil {
-			middle.ResponseWithE(ctx, -1, err)
+			middle.ErrResponse(ctx, -1, err)
 			return
 		}
 
 	default:
 		models = sdModels
-		response, e := emits.ClientBuilder().
+		response, e := emit.ClientBuilder().
 			Context(ctx.Request.Context()).
 			Proxies(proxies).
 			GET(baseUrl+"/queue/join").
@@ -172,25 +194,25 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 			Query("session_hash", hash).
 			DoS(http.StatusOK)
 		if e != nil {
-			middle.ResponseWithE(ctx, -1, e)
+			middle.ErrResponse(ctx, -1, e)
 			return
 		}
 
-		c, err = emits.NewGio(ctx.Request.Context(), response)
+		c, err = emit.NewGio(ctx.Request.Context(), response)
 		if err != nil {
-			middle.ResponseWithE(ctx, -1, err)
+			middle.ErrResponse(ctx, -1, err)
 			return
 		}
 	}
 
-	c.Event("send_hash", func(j emits.JoinEvent) interface{} {
+	c.Event("send_hash", func(j emit.JoinEvent) interface{} {
 		return map[string]interface{}{
 			"fn_index":     index,
 			"session_hash": hash,
 		}
 	})
 
-	c.Event("send_data", func(j emits.JoinEvent) interface{} {
+	c.Event("send_data", func(j emit.JoinEvent) interface{} {
 		obj := map[string]interface{}{
 			"data":         params,
 			"event_data":   nil,
@@ -203,7 +225,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		case "xl":
 			return obj
 		default:
-			_, err = emits.ClientBuilder().
+			_, err = emit.ClientBuilder().
 				Proxies(proxies).
 				Context(ctx.Request.Context()).
 				POST(baseUrl + "/queue/data").
@@ -213,11 +235,11 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 			if err != nil {
 				eventError = err
 			}
-			return EMPTRY_EVENT_RETURN
+			return Nil
 		}
 	})
 
-	c.Event("process_completed", func(j emits.JoinEvent) interface{} {
+	c.Event("process_completed", func(j emit.JoinEvent) interface{} {
 		d := j.Output.Data
 		if len(d) > 0 {
 			switch space {
@@ -225,7 +247,7 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 				file, e := com.SaveBase64(d[0].(string), "png")
 				if e != nil {
 					eventError = fmt.Errorf("image save failed: %s", j.InitialBytes)
-					return EMPTRY_EVENT_RETURN
+					return Nil
 				}
 				value = fmt.Sprintf("%s/file/%s", domain, file)
 			default:
@@ -239,25 +261,20 @@ func Generation(ctx *gin.Context, req gpt.ChatGenerationRequest) {
 		} else {
 			eventError = fmt.Errorf("image generate failed: %s", j.InitialBytes)
 		}
-		return EMPTRY_EVENT_RETURN
+		return Nil
 	})
 
-	if err = middle.IsCanceled(ctx.Request.Context()); err != nil {
-		middle.ResponseWithE(ctx, -1, err)
-		return
-	}
-
 	if err = c.Do(); err != nil {
-		middle.ResponseWithE(ctx, -1, err)
+		middle.ErrResponse(ctx, -1, err)
 		return
 	}
 
 	if eventError != nil {
-		middle.ResponseWithE(ctx, -1, err)
+		middle.ErrResponse(ctx, -1, err)
 		return
 	}
 
-	if (req.Size == "HD" || strings.HasPrefix(req.Size, "1792x")) && com.HasMfy() {
+	if (generation.Size == "HD" || strings.HasPrefix(generation.Size, "1792x")) && com.HasMfy() {
 		v, e := com.Magnify(ctx, value)
 		if e != nil {
 			logrus.Error(e)
@@ -329,7 +346,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		return "", err
 	}
 
-	var r gpt.ChatCompletionResponse
+	var r pkg.ChatResponse
 	if err = json.Unmarshal(data, &r); err != nil {
 		return "", err
 	}
@@ -377,7 +394,7 @@ func fetch(ctx context.Context, proxies, baseUrl, cookie string, marshal []byte)
 		proxies = ""
 	}
 
-	return emits.ClientBuilder().
+	return emit.ClientBuilder().
 		Context(ctx).
 		Proxies(proxies).
 		POST(fmt.Sprintf("%s/v1/chat/completions", baseUrl)).

@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
@@ -8,11 +8,11 @@ import (
 )
 
 var (
-	version = "v2.0.0"
+	version = "v2.1.0"
 	proxies string
 	port    int
 
-	Cmd = &cobra.Command{
+	cmd = &cobra.Command{
 		Use:   "ChatGPT-Adapter",
 		Short: "GPT接口适配器",
 		Long: "GPT接口适配器。统一适配接口规范，集成了bing、claude-2，gemini...\n" +
@@ -24,14 +24,11 @@ var (
 	}
 )
 
-func Init() {
+func main() {
 	pkg.Init()
 	common.Init()
-	Cmd.PersistentFlags().StringVar(&proxies, "proxies", "", "本地代理 proxies")
-	Cmd.PersistentFlags().IntVar(&port, "port", 8080, "服务端口 port")
-}
-
-func Exec() {
-	Init()
-	_ = Cmd.Execute()
+	handler.InitExtensions()
+	cmd.PersistentFlags().StringVar(&proxies, "proxies", "", "本地代理 proxies")
+	cmd.PersistentFlags().IntVar(&port, "port", 8080, "服务端口 port")
+	_ = cmd.Execute()
 }

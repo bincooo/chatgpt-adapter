@@ -5,32 +5,31 @@ import (
 	"text/template"
 )
 
-type TemplateWrapper struct {
+type TempWrapper struct {
 	t       *template.Template
 	context map[string]interface{}
-	funcMap template.FuncMap
+	funcM   template.FuncMap
 }
 
-func NewTemplateWrapper() *TemplateWrapper {
+func templateBuilder() *TempWrapper {
 	t := template.New("root")
 	context := make(map[string]interface{})
 	funcMap := template.FuncMap{}
-	return &TemplateWrapper{t, context, funcMap}
+	return &TempWrapper{t, context, funcMap}
 }
 
-func (tpl *TemplateWrapper) Variables(key string, value interface{}) *TemplateWrapper {
+func (tpl *TempWrapper) Vars(key string, value interface{}) *TempWrapper {
 	tpl.context[key] = value
 	return tpl
 }
 
-func (tpl *TemplateWrapper) Func(key string, fun interface{}) *TemplateWrapper {
-	tpl.funcMap[key] = fun
+func (tpl *TempWrapper) Func(key string, fun interface{}) *TempWrapper {
+	tpl.funcM[key] = fun
 	return tpl
 }
 
-func (tpl *TemplateWrapper) Build() func(templateVar string) (string, error) {
-	tpl.t.Funcs(tpl.funcMap)
-
+func (tpl *TempWrapper) Do() func(templateVar string) (string, error) {
+	tpl.t.Funcs(tpl.funcM)
 	return func(templateVar string) (string, error) {
 		t, err := tpl.t.Parse(templateVar)
 		if err != nil {

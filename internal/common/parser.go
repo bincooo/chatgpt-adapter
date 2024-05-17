@@ -3,8 +3,8 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg/gpt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -376,8 +376,8 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 	return recursive(value)
 }
 
-func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
-	matchers := NewMatchers()
+func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []pkg.Matcher {
+	matchers := pkg.NewMatchers()
 	flags := pkg.Config.GetBool("flags")
 	if !flags {
 		return matchers
@@ -417,7 +417,7 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 			c := regexp.MustCompile(cmp, regexp.Compiled)
 			for idx, message := range req.Messages {
 				if idx < pos && message["role"] != "system" {
-					replace, err := c.Replace(message["content"], value, -1, -1)
+					replace, err := c.Replace(message.GetString("content"), value, -1, -1)
 					if err != nil {
 						logrus.Warn("compile failed: "+cmp, err)
 						continue
@@ -451,13 +451,10 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 			}
 
 			if h['r'] == "" {
-				req.Messages[pos]["content"] += "\n\n" + h['v']
+				req.Messages[pos]["content"] = req.Messages[pos].GetString("content") + "\n\n" + h['v']
 			} else {
-				req.Messages = append(req.Messages[:pos+1], append([]map[string]string{
-					{
-						"role":    h['r'],
-						"content": h['v'],
-					},
+				req.Messages = append(req.Messages[:pos+1], append([]pkg.Keyv[interface{}]{
+					{"role": h['r'], "content": h['v']},
 				}, req.Messages[pos+1:]...)...)
 			}
 		}
@@ -473,7 +470,7 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 			if len(content) < 2 || content[0] != '[' || content[len(content)-1] != ']' {
 				continue
 			}
-			var baseMessages []map[string]string
+			var baseMessages []pkg.Keyv[interface{}]
 			if err := json.Unmarshal([]byte(content), &baseMessages); err != nil {
 				logrus.Error("histories flags handle failed: ", err)
 				continue
@@ -484,7 +481,7 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 			}
 
 			for idx := 0; idx < len(req.Messages); idx++ {
-				if !strings.Contains("|system|function|", req.Messages[idx]["role"]) {
+				if !strings.Contains("|system|function|", req.Messages[idx].GetString("role")) {
 					req.Messages = append(req.Messages[:idx], append(baseMessages, req.Messages[idx:]...)...)
 					break
 				}
@@ -496,7 +493,7 @@ func XmlFlags(ctx *gin.Context, req *gpt.ChatCompletionRequest) []Matcher {
 }
 
 // matcher 流响应干预
-func handleMatcher(h map[uint8]string, matchers []Matcher) {
+func handleMatcher(h map[uint8]string, matchers []pkg.Matcher) {
 	find := ""
 	if f, ok := h['f']; ok {
 		find = f
@@ -518,24 +515,24 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 	c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
 	join := strings.TrimSpace(values[1])
 
-	matchers = append(matchers, &SymbolMatcher{
+	matchers = append(matchers, &pkg.SymbolMatcher{
 		Find: find,
 		H: func(index int, content string) (state int, result string) {
 			r := []rune(content)
 			if index+findL > len(r)-1 {
-				return MAT_MATCHING, content
+				return vars.MatMatching, content
 			}
 			replace, err := c.Replace(content, join, -1, -1)
 			if err != nil {
 				logrus.Warn("compile failed: "+values[0], err)
-				return MAT_MATCHED, content
+				return vars.MatMatched, content
 			}
-			return MAT_MATCHED, replace
+			return vars.MatMatched, replace
 		},
 	})
 }
 
-func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles []map[uint8]string) {
+func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (handles []map[uint8]string) {
 	var (
 		parser = NewParser([]string{
 			"regex",
@@ -555,10 +552,10 @@ func xmlFlagsToContents(ctx *gin.Context, messages []map[string]string) (handles
 		}
 
 		clean := func(ctx string) {
-			message["content"] = strings.Replace(message["content"], ctx, "", -1)
+			message["content"] = strings.Replace(message.GetString("content"), ctx, "", -1)
 		}
 
-		content := message["content"]
+		content := message.GetString("content")
 		nodes := parser.Parse(content)
 		if len(nodes) == 0 {
 			continue
