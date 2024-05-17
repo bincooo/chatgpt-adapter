@@ -67,6 +67,7 @@ func ExecMatchers(matchers []Matcher, raw string) string {
 	for _, mat := range matchers {
 		state, result := mat.match(raw)
 		if state == vars.MatDefault {
+			raw = result
 			continue
 		}
 		if state == vars.MatMatching {
