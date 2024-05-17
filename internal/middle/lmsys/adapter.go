@@ -261,7 +261,7 @@ func (API) Completion(ctx *gin.Context) {
 	)
 
 	completion.Model = completion.Model[6:]
-	if middle.MessageValidator(ctx) {
+	if common.NeedToToolCall(completion) {
 		if completeToolCalls(ctx, proxies, completion) {
 			return
 		}
