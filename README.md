@@ -116,7 +116,10 @@ coze:
 
 lmsys:
 > 无需cookie， model参数为 `lmsys/` 前缀，例：`lmsys/claude-3-haiku-20240307`
-> 该接口有第三方监管，但用来进行正向对话还是不错的
+> 该接口有第三方监管，但用来进行正向对话还是不错的。对ip严苛
+
+freeGpt35:
+> 无需cookie， model参数为 `freeGpt35`。对ip严苛，最好配置clash切换ip配置以解决429限流问题
 
 #### free画图接口
 
