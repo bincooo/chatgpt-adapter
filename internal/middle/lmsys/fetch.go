@@ -18,9 +18,10 @@ const (
 )
 
 var (
+	ver = "S2"
 	fns = [][]int{
-		{39, 94},
-		{41, 95},
+		{42, 94},
+		{44, 95},
 	}
 )
 
@@ -200,16 +201,22 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 	var fn []int
 	var response *http.Response
 	var err error
+	cookies := ""
 
-	cookies := fmt.Sprintf("SERVERID=S%d|%s", rand.Intn(97)+2, com.RandStr(5))
 	for _, fn = range fns {
 		obj["fn_index"] = fn[0]
 		obj["trigger_id"] = fn[1]
+		postVer(ctx, proxies, fn)
+
+		cookies = fmt.Sprintf("SERVERID=S%d|%s", rand.Intn(97)+2, com.RandStr(5))
+		if ver != "" {
+			cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandStr(5))
+		}
 
 		response, err = emit.ClientBuilder().
 			Context(ctx).
 			Proxies(proxies).
-			POST(baseUrl+"/queue/join?").
+			POST(baseUrl+"/queue/join").
 			JHeader().
 			Header("User-Agent", ua).
 			Header("Cookie", cookies).
@@ -223,6 +230,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 	}
 
 	if err != nil {
+		ver = ""
 		return "", err
 	}
 
@@ -274,4 +282,57 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 
 	opts.fn = fn
 	return cookies, nil
+}
+
+func postVer(ctx context.Context, proxies string, fn []int) {
+	if ver != "" {
+		return
+	}
+
+	obj := map[string]interface{}{
+		"event_data":   nil,
+		"session_hash": emit.GioHash(),
+		"data": []interface{}{
+			nil,
+			"llama-2-7b-chat",
+			"hi",
+			nil,
+		},
+		"fn_index":   fn[0],
+		"trigger_id": fn[1],
+	}
+
+	for index := 2; index <= 20; index++ {
+		cookies := fmt.Sprintf("SERVERID=S%d|%s", index, com.RandStr(5))
+		response, err := emit.ClientBuilder().
+			Context(ctx).
+			Proxies(proxies).
+			POST(baseUrl+"/queue/join").
+			JHeader().
+			Header("User-Agent", ua).
+			Header("Cookie", cookies).
+			Header("Origin", "https://arena.lmsys.org").
+			Header("Referer", "https://arena.lmsys.org/").
+			Body(obj).
+			DoS(http.StatusOK)
+		if err != nil {
+			continue
+		}
+
+		cookie := emit.GetCookie(response, "SERVERID")
+		if cookie == "" {
+			continue
+		}
+
+		co := strings.Split(cookie, "|")
+		if len(co) < 2 {
+			continue
+		}
+
+		if len(co[0]) < 1 || co[0][0] != 'S' {
+			continue
+		}
+
+		ver = co[0]
+	}
 }
