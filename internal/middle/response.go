@@ -16,11 +16,6 @@ import (
 var (
 	stop      = "stop"
 	toolCalls = "tool_calls"
-	delta     = &struct {
-		Role      string                  `json:"role"`
-		Content   string                  `json:"content"`
-		ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
-	}{}
 )
 
 func MessageValidator(ctx *gin.Context) bool {

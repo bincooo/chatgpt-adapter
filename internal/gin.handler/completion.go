@@ -77,7 +77,7 @@ func generations(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Set(vars.GinCompletion, generation)
+	ctx.Set(vars.GinGeneration, generation)
 	logrus.Infof("generate images text[ %s ]: %s", generation.Model, generation.Prompt)
 	if !GlobalExtension.Match(ctx, generation.Model) {
 		middle.ErrResponse(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))

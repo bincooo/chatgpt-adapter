@@ -65,7 +65,7 @@ func (adapter ExtensionAdapter) Completion(ctx *gin.Context) {
 }
 
 func (adapter ExtensionAdapter) Generation(ctx *gin.Context) {
-	completion := common.GetGinCompletion(ctx)
+	completion := common.GetGinGeneration(ctx)
 	for _, extension := range adapter.Extensions {
 		if extension.Match(ctx, completion.Model) {
 			extension.Generation(ctx)
