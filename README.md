@@ -99,19 +99,20 @@ curl -i -X POST \
  'http://127.0.0.1:8080/v1/chat/completions'
 ```
 
-<datails>
-<summary> * 效果预览 1 * </summary>
-<p>
+<details>
+<summary> 效果预览 1 </summary>
+  -
+<pre>
     <img width="451" alt="Screenshot 2024-05-19 at 01 53 05" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/e055af22-38c4-4a05-bc1b-9f5e9e89beeb">
-</p>
-</datails>
-
-<datails>
-<summary> * 效果预览 2 * </summary>
-<p>
+</pre>
+</details>
+<details>
+<summary> 效果预览 2 </summary>
+  -
+<pre>
     <img width="451" alt="Screenshot 2024-05-19 at 01 54 26" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/a41a15c2-5d81-4029-ad43-72ac7e92e93c">
-</p>
-</datails>
+</pre>
+</details>
 
 #### Authorization 获取
 
