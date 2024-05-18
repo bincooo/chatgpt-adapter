@@ -123,19 +123,19 @@ func parseToToolCall(ctx *gin.Context, content string, req pkg.ChatCompletion) b
 }
 
 func ToolCallCancel(str string) bool {
-	if strings.HasPrefix(str, "<|tool|>") {
+	if strings.Contains(str, "<|tool|>") {
 		return true
 	}
-	if strings.HasPrefix(str, "<|assistant|>") {
+	if strings.Contains(str, "<|assistant|>") {
 		return true
 	}
-	if strings.HasPrefix(str, "<|user|>") {
+	if strings.Contains(str, "<|user|>") {
 		return true
 	}
-	if strings.HasPrefix(str, "<|system|>") {
+	if strings.Contains(str, "<|system|>") {
 		return true
 	}
-	if strings.HasPrefix(str, "<|end|>") {
+	if strings.Contains(str, "<|end|>") {
 		return true
 	}
 	return len(str) > 1 && !strings.HasPrefix(str, "1:")
