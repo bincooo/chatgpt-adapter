@@ -287,18 +287,31 @@ label:
 		return
 	}
 
+	cancel, matchers := joinMatchers(matchers)
+	waitResponse(ctx, matchers, ch, cancel, completion.Stream)
+}
+
+func joinMatchers(matchers []pkg.Matcher) (chan error, []pkg.Matcher) {
 	// 自定义标记块中断
 	cancel, matcher := pkg.NewCancelMather()
 	matchers = append(matchers, matcher)
 
-	// 违反内容中断并返回错误
+	// 违反内容中断并返回错误1
 	matchers = append(matchers, &pkg.SymbolMatcher{
 		Find: "I did not actually provide",
 		H: func(index int, content string) (state int, result string) {
-			cancel <- errors.New("I did not actually provide any input that could violate content guidelines")
+			cancel <- errors.New("SECURITY POLICY INTERCEPTION")
 			return vars.MatMatched, ""
 		},
 	})
 
-	waitResponse(ctx, matchers, ch, cancel, completion.Stream)
+	// 违反内容中断并返回错误2
+	matchers = append(matchers, &pkg.SymbolMatcher{
+		Find: "I apologize",
+		H: func(index int, content string) (state int, result string) {
+			cancel <- errors.New("SECURITY POLICY INTERCEPTION")
+			return vars.MatMatched, ""
+		},
+	})
+	return cancel, matchers
 }

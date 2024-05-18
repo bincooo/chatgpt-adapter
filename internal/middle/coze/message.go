@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/coze-api"
 	"github.com/gin-gonic/gin"
@@ -55,7 +56,10 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, cancel chan error, c
 		select {
 		case err := <-cancel:
 			if err != nil {
-				middle.ErrResponse(ctx, -1, err)
+				logrus.Error(err)
+				if middle.NotSSEHeader(ctx) {
+					middle.ErrResponse(ctx, -1, err)
+				}
 				return
 			}
 			goto label
@@ -66,7 +70,11 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, cancel chan error, c
 			}
 
 			if strings.HasPrefix(raw, "error: ") {
-				logrus.Error(strings.TrimPrefix(raw, "error: "))
+				err := strings.TrimPrefix(raw, "error: ")
+				logrus.Error(err)
+				if middle.NotSSEHeader(ctx) {
+					middle.ErrResponse(ctx, -1, err)
+				}
 				return
 			}
 
@@ -79,17 +87,18 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, cancel chan error, c
 			fmt.Printf("----- raw -----\n %s\n", raw)
 			raw = pkg.ExecMatchers(matchers, raw)
 			if sse {
-				middle.SSEResponse(ctx, Model, raw, nil, created)
+				middle.SSEResponse(ctx, Model, raw, created)
 			}
 			content += raw
 		}
 	}
 
 label:
+	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, tokens))
 	if !sse {
 		middle.Response(ctx, Model, content)
 	} else {
-		middle.SSEResponse(ctx, Model, "[DONE]", common.CalcUsageTokens(content, tokens), created)
+		middle.SSEResponse(ctx, Model, "[DONE]", created)
 	}
 }
 

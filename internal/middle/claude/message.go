@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/claude-api/types"
 	"github.com/gin-gonic/gin"
@@ -51,22 +52,26 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, chatResponse chan ty
 		}
 
 		if message.Error != nil {
-			middle.ErrResponse(ctx, -1, message.Error)
+			logrus.Error(message.Error)
+			if middle.NotSSEHeader(ctx) {
+				middle.ErrResponse(ctx, -1, message.Error)
+			}
 			return
 		}
 
 		fmt.Printf("----- raw -----\n %s\n", message.Text)
 		raw := pkg.ExecMatchers(matchers, message.Text)
 		if sse {
-			middle.SSEResponse(ctx, Model, raw, nil, created)
+			middle.SSEResponse(ctx, Model, raw, created)
 		}
 		content += raw
 	}
 
+	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, tokens))
 	if !sse {
 		middle.Response(ctx, Model, content)
 	} else {
-		middle.SSEResponse(ctx, Model, "[DONE]", common.CalcUsageTokens(content, tokens), created)
+		middle.SSEResponse(ctx, Model, "[DONE]", created)
 	}
 }
 

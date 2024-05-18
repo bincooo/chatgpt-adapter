@@ -32,24 +32,24 @@ type ChatResponse struct {
 	Error   *struct {
 		Message string `json:"message"`
 		Type    string `json:"type"`
-	} `json:"error"`
-	Usage map[string]int `json:"usage"`
+	} `json:"error,omitempty"`
+	Usage map[string]int `json:"usage,omitempty"`
 }
 
 type ChatChoice struct {
 	Index   int `json:"index"`
 	Message *struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
+		Role    string `json:"role,omitempty"`
+		Content string `json:"content,omitempty"`
 
-		ToolCalls []Keyv[interface{}] `json:"tool_calls"`
-	} `json:"message"`
+		ToolCalls []Keyv[interface{}] `json:"tool_calls,omitempty"`
+	} `json:"message,omitempty"`
 	Delta *struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
+		Role    string `json:"role,omitempty"`
+		Content string `json:"content,omitempty"`
 
-		ToolCalls []Keyv[interface{}] `json:"tool_calls"`
-	} `json:"delta"`
+		ToolCalls []Keyv[interface{}] `json:"tool_calls,omitempty"`
+	} `json:"delta,omitempty"`
 	FinishReason *string `json:"finish_reason"`
 }
 

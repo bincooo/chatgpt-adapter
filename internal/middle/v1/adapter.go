@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -185,13 +186,14 @@ func waitResponse(ctx *gin.Context, response *http.Response, matchers []pkg.Matc
 		raw = pkg.ExecMatchers(matchers, raw)
 
 		if sse {
-			middle.SSEResponse(ctx, Model, raw, nil, created)
+			middle.SSEResponse(ctx, Model, raw, created)
 		}
 	}
 
+	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, tokens))
 	if !sse {
 		middle.Response(ctx, Model, content)
 	} else {
-		middle.SSEResponse(ctx, Model, "[DONE]", common.CalcUsageTokens(content, tokens), created)
+		middle.SSEResponse(ctx, Model, "[DONE]", created)
 	}
 }

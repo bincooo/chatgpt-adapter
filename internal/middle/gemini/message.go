@@ -7,6 +7,7 @@ import (
 	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	goole "github.com/bincooo/goole15"
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,6 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, partialResponse *htt
 	var original []byte
 	var block = []byte("data: ")
 	var functionCall interface{}
-	isError := false
 
 	for {
 		line, hm, err := reader.ReadLine()
@@ -37,15 +37,14 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, partialResponse *htt
 		}
 
 		if err == io.EOF {
-			if isError {
-				logrus.Error(string(original))
-				return
-			}
 			break
 		}
 
 		if err != nil {
-			middle.ErrResponse(ctx, -1, err)
+			logrus.Error(err)
+			if middle.NotSSEHeader(ctx) {
+				middle.ErrResponse(ctx, -1, err)
+			}
 			return
 		}
 
@@ -53,13 +52,13 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, partialResponse *htt
 			continue
 		}
 
-		if isError {
-			continue
-		}
-
 		if bytes.Contains(original, []byte(`"error":`)) {
-			isError = true
-			continue
+			err = fmt.Errorf("%s", original)
+			logrus.Error(err)
+			if middle.NotSSEHeader(ctx) {
+				middle.ErrResponse(ctx, -1, err)
+			}
+			return
 		}
 
 		if !bytes.HasPrefix(original, block) {
@@ -69,8 +68,8 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, partialResponse *htt
 		var c candidatesResponse
 		original = bytes.TrimPrefix(original, block)
 		if err = json.Unmarshal(original, &c); err != nil {
-			middle.ErrResponse(ctx, -1, err)
-			return
+			logrus.Error(err)
+			continue
 		}
 
 		cond := c.Candidates[0]
@@ -95,7 +94,7 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, partialResponse *htt
 		raw = pkg.ExecMatchers(matchers, raw.(string))
 
 		if sse {
-			middle.SSEResponse(ctx, MODEL, raw.(string), nil, created)
+			middle.SSEResponse(ctx, MODEL, raw.(string), created)
 		}
 		content += raw.(string)
 
@@ -112,10 +111,11 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, partialResponse *htt
 		return
 	}
 
+	ctx.Set(vars.GinCompletionUsage, com.CalcUsageTokens(content, tokens))
 	if !sse {
 		middle.Response(ctx, MODEL, content)
 	} else {
-		middle.SSEResponse(ctx, MODEL, "[DONE]", com.CalcUsageTokens(content, tokens), created)
+		middle.SSEResponse(ctx, MODEL, "[DONE]", created)
 	}
 }
 
@@ -132,7 +132,11 @@ func waitResponse15(ctx *gin.Context, matchers []pkg.Matcher, ch chan string, ss
 		}
 
 		if strings.HasPrefix(tex, "error: ") {
-			logrus.Error(strings.TrimPrefix(tex, "error: "))
+			err := strings.TrimPrefix(tex, "error: ")
+			logrus.Error(err)
+			if middle.NotSSEHeader(ctx) {
+				middle.ErrResponse(ctx, -1, err)
+			}
 			return
 		}
 
@@ -141,16 +145,17 @@ func waitResponse15(ctx *gin.Context, matchers []pkg.Matcher, ch chan string, ss
 			fmt.Printf("----- raw -----\n %s\n", raw)
 			raw = pkg.ExecMatchers(matchers, raw)
 			if sse {
-				middle.SSEResponse(ctx, MODEL+"-1.5", raw, nil, created)
+				middle.SSEResponse(ctx, MODEL+"-1.5", raw, created)
 			}
 			content += raw
 		}
 	}
 
+	ctx.Set(vars.GinCompletionUsage, com.CalcUsageTokens(content, tokens))
 	if !sse {
 		middle.Response(ctx, MODEL+"-1.5", content)
 	} else {
-		middle.SSEResponse(ctx, MODEL+"-1.5", "[DONE]", com.CalcUsageTokens(content, tokens), created)
+		middle.SSEResponse(ctx, MODEL+"-1.5", "[DONE]", created)
 	}
 }
 

@@ -164,7 +164,7 @@ func makePayload(req pkg.ChatCompletion) map[string]interface{} {
 		//"force_paragen":            false,
 		//"force_nulligen":           false,
 		//"force_rate_limit":         false,
-		//"reset_rate_limits":        false,
+		"reset_rate_limits":    true,
 		"websocket_request_id": uuid.NewString(),
 	}
 	return obj

@@ -1,8 +1,10 @@
 package middle
 
 import (
+	"encoding/json"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -58,25 +60,35 @@ func CompleteToolCalls(ctx *gin.Context, req pkg.ChatCompletion, callback func(m
 	}
 	logrus.Infof("completeTools response: \n%s", content)
 
+	previousTokens := common.CalcTokens(message)
+	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, previousTokens))
+
 	// 解析参数
 	return parseToToolCall(ctx, content, req), nil
 }
 
 func parseToToolCall(ctx *gin.Context, content string, req pkg.ChatCompletion) bool {
+	j := ""
 	created := time.Now().Unix()
-	left := strings.Index(content, "{")
-	right := strings.LastIndex(content, "}")
-	argv := ""
-	if left >= 0 && right > left {
-		argv = content[left : right+1]
-	} else {
+	slice := strings.Split(content, "TOOL_RESPONSE")
+
+	for _, value := range slice {
+		left := strings.Index(value, "{")
+		right := strings.LastIndex(value, "}")
+		if left >= 0 && right > left {
+			j = value[left : right+1]
+			break
+		}
+	}
+
+	if j == "" {
 		// 没有解析出 JSON
 		return false
 	}
 
 	name := ""
 	for _, t := range req.Tools {
-		if strings.Contains(argv, t.GetKeyv("function").GetString("id")) {
+		if strings.Contains(j, t.GetKeyv("function").GetString("id")) {
 			name = t.GetKeyv("function").GetString("name")
 			break
 		}
@@ -87,11 +99,25 @@ func parseToToolCall(ctx *gin.Context, content string, req pkg.ChatCompletion) b
 		return false
 	}
 
+	// 解析参数
+	var js map[string]interface{}
+	if err := json.Unmarshal([]byte(j), &js); err != nil {
+		logrus.Error(err)
+		return false
+	}
+
+	obj, ok := js["arguments"]
+	if !ok {
+		delete(js, "toolId")
+		obj = js
+	}
+	bytes, _ := json.Marshal(obj)
+
 	if req.Stream {
-		SSEToolCallResponse(ctx, req.Model, name, argv, created)
+		SSEToolCallResponse(ctx, req.Model, name, string(bytes), created)
 		return true
 	} else {
-		ToolCallResponse(ctx, req.Model, name, argv)
+		ToolCallResponse(ctx, req.Model, name, string(bytes))
 		return true
 	}
 }

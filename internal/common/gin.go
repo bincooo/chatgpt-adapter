@@ -20,3 +20,11 @@ func GetGinMatchers(ctx *gin.Context) []pkg.Matcher {
 	obj, _ := ctx.Get(vars.GinMatchers)
 	return obj.([]pkg.Matcher)
 }
+
+func GetGinCompletionUsage(ctx *gin.Context) map[string]int {
+	obj, exists := ctx.Get(vars.GinCompletionUsage)
+	if exists {
+		return obj.(map[string]int)
+	}
+	return nil
+}

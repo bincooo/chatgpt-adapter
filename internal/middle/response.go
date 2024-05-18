@@ -1,6 +1,7 @@
 package middle
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
@@ -8,14 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 	"time"
 )
 
 var (
 	stop      = "stop"
 	toolCalls = "tool_calls"
-
-	Delta = &struct {
+	delta     = &struct {
 		Role      string                  `json:"role"`
 		Content   string                  `json:"content"`
 		ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
@@ -32,7 +33,7 @@ func MessageValidator(ctx *gin.Context) bool {
 
 	condition := func(expr string) string {
 		switch expr {
-		case "user", "system", "function", "assistant":
+		case "user", "system", "assistant", "tool", "function":
 			return expr
 		default:
 			return ""
@@ -49,6 +50,15 @@ func MessageValidator(ctx *gin.Context) bool {
 		}
 	}
 	return true
+}
+
+func IsCanceled(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
 }
 
 // one-api 重试机制
@@ -95,6 +105,7 @@ func ErrResponse(ctx *gin.Context, code int, err interface{}) {
 
 func Response(ctx *gin.Context, model, content string) {
 	created := time.Now().Unix()
+	usage := common.GetGinCompletionUsage(ctx)
 	ctx.JSON(http.StatusOK, pkg.ChatResponse{
 		Model:   model,
 		Created: created,
@@ -104,21 +115,23 @@ func Response(ctx *gin.Context, model, content string) {
 			{
 				Index: 0,
 				Message: &struct {
-					Role      string                  `json:"role"`
-					Content   string                  `json:"content"`
-					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
+					Role      string                  `json:"role,omitempty"`
+					Content   string                  `json:"content,omitempty"`
+					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls,omitempty"`
 				}{"assistant", content, nil},
 				FinishReason: &stop,
 			},
 		},
+		Usage: usage,
 	})
 }
 
-func SSEResponse(ctx *gin.Context, model, content string, usage map[string]int, created int64) {
+func SSEResponse(ctx *gin.Context, model, content string, created int64) {
 	setSSEHeader(ctx)
 
 	done := false
 	finishReason := ""
+	usage := common.GetGinCompletionUsage(ctx)
 
 	if content == "[DONE]" {
 		done = true
@@ -135,16 +148,16 @@ func SSEResponse(ctx *gin.Context, model, content string, usage map[string]int, 
 			{
 				Index: 0,
 				Delta: &struct {
-					Role      string                  `json:"role"`
-					Content   string                  `json:"content"`
-					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
+					Role      string                  `json:"role,omitempty"`
+					Content   string                  `json:"content,omitempty"`
+					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls,omitempty"`
 				}{"assistant", content, nil},
 			},
 		},
-		Usage: usage,
 	}
 
 	if finishReason != "" {
+		response.Usage = usage
 		response.Choices[0].FinishReason = &finishReason
 	}
 
@@ -158,6 +171,8 @@ func SSEResponse(ctx *gin.Context, model, content string, usage map[string]int, 
 
 func ToolCallResponse(ctx *gin.Context, model, name, args string) {
 	created := time.Now().Unix()
+	usage := common.GetGinCompletionUsage(ctx)
+
 	ctx.JSON(http.StatusOK, pkg.ChatResponse{
 		Model:   model,
 		Created: created,
@@ -167,14 +182,14 @@ func ToolCallResponse(ctx *gin.Context, model, name, args string) {
 			{
 				Index: 0,
 				Message: &struct {
-					Role      string                  `json:"role"`
-					Content   string                  `json:"content"`
-					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
+					Role      string                  `json:"role,omitempty"`
+					Content   string                  `json:"content,omitempty"`
+					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls,omitempty"`
 				}{
 					Role: "assistant",
 					ToolCalls: []pkg.Keyv[interface{}]{
 						{
-							"id":   "call" + common.RandStr(5),
+							"id":   "call_" + common.RandStr(5),
 							"type": "function",
 							"function": map[string]string{
 								"name":      name,
@@ -186,55 +201,62 @@ func ToolCallResponse(ctx *gin.Context, model, name, args string) {
 				FinishReason: &stop,
 			},
 		},
+		Usage: usage,
 	})
 }
 
 func SSEToolCallResponse(ctx *gin.Context, model, name, args string, created int64) {
 	setSSEHeader(ctx)
+	usage := common.GetGinCompletionUsage(ctx)
+
 	response := pkg.ChatResponse{
 		Model:   model,
 		Created: created,
 		Id:      fmt.Sprintf("chatcmpl-%d", created),
 		Object:  "chat.completion.chunk",
 		Choices: []pkg.ChatChoice{
-			{
-				Index: 0,
-				Delta: &struct {
-					Role      string                  `json:"role"`
-					Content   string                  `json:"content"`
-					ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls"`
-				}{
-					Role:      "assistant",
-					ToolCalls: make([]pkg.Keyv[interface{}], 1),
-				},
-			},
+			{Index: 0},
 		},
 	}
 
 	toolCall := make(map[string]interface{})
 	toolCall["index"] = 0
 	toolCall["type"] = "function"
-	toolCall["id"] = "call" + common.RandStr(5)
-	toolCall["function"] = map[string]string{"name": name}
-	response.Choices[0].Delta.ToolCalls[0] = toolCall
+	toolCall["id"] = "call_" + common.RandStr(5)
+	toolCall["function"] = map[string]string{"name": name, "arguments": ""}
+	response.Choices[0].Delta = &struct {
+		Role      string                  `json:"role,omitempty"`
+		Content   string                  `json:"content,omitempty"`
+		ToolCalls []pkg.Keyv[interface{}] `json:"tool_calls,omitempty"`
+	}{
+		Role:      "assistant",
+		ToolCalls: []pkg.Keyv[interface{}]{toolCall},
+	}
 
 	event(ctx.Writer, response)
-	time.Sleep(100 * time.Millisecond)
 
 	delete(toolCall, "id")
 	delete(toolCall, "type")
 	toolCall["function"] = map[string]string{"arguments": args}
 	response.Choices[0].Delta.ToolCalls[0] = toolCall
-
+	response.Choices[0].Delta.Role = ""
 	event(ctx.Writer, response)
-	time.Sleep(100 * time.Millisecond)
 
 	response.Choices[0].FinishReason = &toolCalls
-	response.Choices[0].Delta = Delta
-
+	response.Choices[0].Delta = nil
+	response.Usage = usage
 	event(ctx.Writer, response)
-	time.Sleep(100 * time.Millisecond)
+
 	event(ctx.Writer, "[DONE]")
+}
+
+func NotSSEHeader(ctx *gin.Context) bool {
+	h := ctx.Writer.Header()
+	t := h.Get("Content-Type")
+	if t == "" {
+		return true
+	}
+	return !strings.Contains(t, "text/event-stream")
 }
 
 func setSSEHeader(ctx *gin.Context) {
@@ -251,7 +273,8 @@ func setSSEHeader(ctx *gin.Context) {
 func event(w gin.ResponseWriter, data interface{}) {
 	str, ok := data.(string)
 	if ok {
-		_, err := fmt.Fprintf(w, "data: %s\n\n", str)
+		layout := "data: %s\n\n"
+		_, err := fmt.Fprintf(w, layout, str)
 		if err != nil {
 			logrus.Error(err)
 			return
