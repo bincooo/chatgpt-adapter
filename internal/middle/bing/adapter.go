@@ -53,7 +53,7 @@ func (API) Completion(ctx *gin.Context) {
 		return
 	}
 
-	if common.NeedToToolCall(completion) {
+	if common.NeedToToolCall(ctx) {
 		if completeToolCalls(ctx, cookie, proxies, completion) {
 			return
 		}

@@ -3,10 +3,13 @@ package agent
 const ToolCall = `{{- range $index, $value := .pMessages}}
 {{- if eq $value.role "tool" }}
 <|tool|>
-tool: {{$value.name}}
-output: {{$value.content}}
+TOOL_RESPONSE:
+  name: "{{ $value.name }}"
+  description: "{{ ToolDesc $value.name }}"
+
+output: {{ $value.content }}
 <|end|>
-{{- else if ne $value.content "" }}
+{{- else }}
 <|{{$value.role}}|>
 {{$value.content}}
 <|end|>
@@ -52,6 +55,7 @@ ANSWER: 0: <|end|>
 ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 {{- end }}
 
+
 现在，我们开始吧！下面是你本次可以使用的工具：
 
 """
@@ -72,7 +76,7 @@ ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 {{- end }}
              }
         },
-        "required": [{{join $value.function.parameters.required ", " }}]
+        "required": [{{Join $value.function.parameters.required ", " }}]
     },
     {{- end -}}
     {{- end}}

@@ -74,7 +74,7 @@ func (API) Completion(ctx *gin.Context) {
 	options := claude2.NewDefaultOptions(cookie, model)
 	options.Proxies = proxies
 
-	if common.NeedToToolCall(completion) {
+	if common.NeedToToolCall(ctx) {
 		if completeToolCalls(ctx, cookie, proxies, completion) {
 			return
 		}

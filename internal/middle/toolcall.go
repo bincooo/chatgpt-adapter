@@ -14,22 +14,18 @@ import (
 )
 
 func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template string, max int) (message string, err error) {
-	toolDef := ctx.GetString("tool")
-	if toolDef == "" {
-		toolDef = "-1"
+	pMessages := completion.Messages
+	messageL := len(pMessages)
+	content := "continue"
+
+	if messageL > max {
+		pMessages = pMessages[messageL-max:]
+		messageL = len(pMessages)
 	}
 
-	pMessages := completion.Messages
-	content := "continue"
-	if messageL := len(pMessages); messageL > 0 && pMessages[messageL-1]["role"] == "user" {
+	if messageL > 0 && pMessages[messageL-1]["role"] == "user" {
 		content = pMessages[messageL-1].GetString("content")
-		if max == 0 {
-			pMessages = make([]pkg.Keyv[interface{}], 0)
-		} else if max > 0 && messageL > max {
-			pMessages = pMessages[messageL-max : messageL-1]
-		} else {
-			pMessages = pMessages[:messageL-1]
-		}
+		pMessages = pMessages[:messageL-1]
 	}
 
 	for _, t := range completion.Tools {
@@ -40,20 +36,17 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 		} else {
 			id = fn.GetString("id")
 		}
-
-		if toolDef != "-1" && fn.Has("name") {
-			if toolDef == fn.GetString("name") {
-				toolDef = id
-			}
-		}
 	}
 
 	parser := templateBuilder().
-		Vars("toolDef", toolDef).
+		Vars("toolDef", toolDef(ctx, completion.Tools)).
 		Vars("tools", completion.Tools).
 		Vars("pMessages", pMessages).
 		Vars("content", content).
-		Func("join", func(slice []interface{}, sep string) string {
+		Func("IsE", func(value interface{}) bool {
+			return value == nil || strings.TrimSpace(fmt.Sprintf("%v", value)) == ""
+		}).
+		Func("Join", func(slice []interface{}, sep string) string {
 			if len(slice) == 0 {
 				return ""
 			}
@@ -62,6 +55,18 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 				result = append(result, fmt.Sprintf("\"%v\"", v))
 			}
 			return strings.Join(result, sep)
+		}).
+		Func("ToolDesc", func(value string) string {
+			for _, t := range completion.Tools {
+				fn := t.GetKeyv("function")
+				if !fn.Has("name") {
+					continue
+				}
+				if value == fn.GetString("name") {
+					return fn.GetString("description")
+				}
+			}
+			return ""
 		}).Do()
 	return parser(template)
 }
@@ -72,7 +77,7 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 //		bool  > 是否执行了工具
 //		error > 执行异常
 func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (bool, error) {
-	message, err := buildTemplate(ctx, completion, agent.ToolCall, 5)
+	message, err := buildTemplate(ctx, completion, agent.ToolCall, 10)
 	if err != nil {
 		return false, err
 	}
@@ -104,8 +109,14 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 		}
 	}
 
+	// 非-1值则为有默认选项
+	valueDef := nameWithToolDef(ctx.GetString("tool"), completion.Tools)
+
+	// 没有解析出 JSON
 	if j == "" {
-		// 没有解析出 JSON
+		if valueDef != "-1" {
+			return toolCallResponse(ctx, completion, valueDef, "{}", created)
+		}
 		return false
 	}
 
@@ -128,6 +139,9 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 
 	// 没有匹配到工具
 	if name == "" {
+		if valueDef != "-1" {
+			return toolCallResponse(ctx, completion, valueDef, "{}", created)
+		}
 		return false
 	}
 
@@ -135,6 +149,9 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 	var js map[string]interface{}
 	if err := json.Unmarshal([]byte(j), &js); err != nil {
 		logrus.Error(err)
+		if valueDef != "-1" {
+			return toolCallResponse(ctx, completion, valueDef, "{}", created)
+		}
 		return false
 	}
 
@@ -143,15 +160,9 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 		delete(js, "toolId")
 		obj = js
 	}
-	bytes, _ := json.Marshal(obj)
 
-	if completion.Stream {
-		SSEToolCallResponse(ctx, completion.Model, name, string(bytes), created)
-		return true
-	} else {
-		ToolCallResponse(ctx, completion.Model, name, string(bytes))
-		return true
-	}
+	bytes, _ := json.Marshal(obj)
+	return toolCallResponse(ctx, completion, name, string(bytes), created)
 }
 
 func ToolCallCancel(str string) bool {
@@ -171,4 +182,51 @@ func ToolCallCancel(str string) bool {
 		return true
 	}
 	return len(str) > 1 && !strings.HasPrefix(str, "1:")
+}
+
+func toolCallResponse(ctx *gin.Context, completion pkg.ChatCompletion, name string, value string, created int64) bool {
+	if completion.Stream {
+		SSEToolCallResponse(ctx, completion.Model, name, value, created)
+		return true
+	} else {
+		ToolCallResponse(ctx, completion.Model, name, value)
+		return true
+	}
+}
+
+func toolDef(ctx *gin.Context, tools []pkg.Keyv[interface{}]) (value string) {
+	value = ctx.GetString("tool")
+	if value == "" {
+		return "-1"
+	}
+
+	for _, t := range tools {
+		fn := t.GetKeyv("function")
+		id := fn.GetString("id")
+		if fn.Has("name") {
+			if value == fn.GetString("name") {
+				value = id
+				return
+			}
+		}
+	}
+	return "-1"
+}
+
+func nameWithToolDef(name string, tools []pkg.Keyv[interface{}]) (value string) {
+	value = name
+	if value == "" {
+		return "-1"
+	}
+
+	for _, t := range tools {
+		fn := t.GetKeyv("function")
+		if fn.Has("name") {
+			if value == fn.GetString("name") {
+				return
+			}
+		}
+	}
+
+	return "-1"
 }

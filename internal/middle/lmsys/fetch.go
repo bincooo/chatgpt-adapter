@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/emit.io"
 	"github.com/sirupsen/logrus"
-	"math/rand"
 	"net/http"
 	"strings"
 )
@@ -282,67 +280,47 @@ func fetchCookies(ctx context.Context, proxies string) (cookies string) {
 		cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandStr(5))
 		return
 	}
-
-	for _, fn := range fns {
-		obj := map[string]interface{}{
-			"event_data":   nil,
-			"session_hash": emit.GioHash(),
-			"data": []interface{}{
-				nil,
-				"llama-2-7b-chat",
-				"hi",
-				nil,
-			},
-			"fn_index":   fn[0],
-			"trigger_id": fn[1],
-		}
-
-		for index := 1; index <= 16; index++ {
-			if middle.IsCanceled(ctx) {
-				logrus.Error("fetch canceled")
-				return
-			}
-			cookies = fmt.Sprintf("SERVERID=S%d|%s", index, com.RandStr(5))
-			response, err := emit.ClientBuilder().
-				Context(ctx).
-				Proxies(proxies).
-				POST(baseUrl+"/queue/join").
-				JHeader().
-				Header("User-Agent", ua).
-				Header("Cookie", cookies).
-				Header("Origin", "https://arena.lmsys.org").
-				Header("Referer", "https://arena.lmsys.org/").
-				Body(obj).
-				DoS(http.StatusOK)
-			if err != nil {
-				var e emit.Error
-				logrus.Errorf("retry[%d]: %v", index, err)
-				if errors.As(err, &e) && e.Code == 429 {
-					return
-				}
-				continue
-			}
-
-			cookie := emit.GetCookie(response, "SERVERID")
-			if cookie == "" {
-				continue
-			}
-
-			co := strings.Split(cookie, "|")
-			if len(co) < 2 {
-				continue
-			}
-
-			if len(co[0]) < 1 || co[0][0] != 'S' {
-				continue
-			}
-
-			ver = co[0]
-			cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandStr(5))
-			return
-		}
+	retry := 3
+label:
+	if retry <= 0 {
+		return
+	}
+	retry--
+	response, err := emit.ClientBuilder().
+		Context(ctx).
+		Proxies(proxies).
+		GET(baseUrl+"/info").
+		Header("pragma", "no-cache").
+		Header("cache-control", "no-cache").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Origin", "https://arena.lmsys.org").
+		Header("Referer", "https://arena.lmsys.org/").
+		Header("priority", "u=1, i").
+		Header("User-Agent", ua).
+		DoS(http.StatusOK)
+	if err != nil {
+		logrus.Error(err)
+		return
 	}
 
-	cookies = fmt.Sprintf("SERVERID=S%d|%s", rand.Intn(15)+1, com.RandStr(5))
+	cookie := emit.GetCookie(response, "SERVERID")
+	if cookie == "" {
+		goto label
+	}
+
+	co := strings.Split(cookie, "|")
+	if len(co) < 2 {
+		goto label
+	}
+
+	if len(co[0]) < 1 || co[0][0] != 'S' {
+		goto label
+	}
+
+	if co[0] == "S0" {
+		goto label
+	}
+	ver = co[0]
+	cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandStr(5))
 	return
 }
