@@ -34,22 +34,22 @@ USER: 你好呀 <|end|>
 {{- if eq .toolDef "-1" }}
 ANSWER: 0: <|end|>
 {{- else }}
-ANSWER: 1: {"toolId":"{{.toolDef}}",arguments:{}} <|end|>
+ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 {{- end }}
 USER: 今天杭州的天气如何 <|end|>
-ANSWER: 1: {"toolId":"testToolId",arguments:{"city": "杭州"}} <|end|>
+ANSWER: 1: {"toolId":"testToolId","arguments":{"city": "杭州"}} <|end|>
 TOOL_RESPONSE: """
 晴天......
 """
 USER: 今天杭州的天气适合去哪里玩？ <|end|>
-ANSWER: 1: {"toolId":"testToolId2",arguments:{"query": "杭州 天气 去哪里玩"}} <|end|>
+ANSWER: 1: {"toolId":"testToolId2","arguments":{"query": "杭州 天气 去哪里玩"}} <|end|>
 TOOL_RESPONSE: """
 晴天. 西湖、灵隐寺、千岛湖……
 """
 {{- if eq .toolDef "-1" }}
 ANSWER: 0: <|end|>
 {{- else }}
-ANSWER: 1: {"toolId":"{{.toolDef}}",arguments:{}} <|end|>
+ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 {{- end }}
 
 现在，我们开始吧！下面是你本次可以使用的工具：

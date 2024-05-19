@@ -111,9 +111,18 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 
 	name := ""
 	for _, t := range completion.Tools {
+		// id 匹配
 		if strings.Contains(j, t.GetKeyv("function").GetString("id")) {
 			name = t.GetKeyv("function").GetString("name")
 			break
+		}
+		// name 匹配
+		if t.GetKeyv("function").Has("name") {
+			n := t.GetKeyv("function").GetString("name")
+			if strings.Contains(j, n) {
+				name = n
+				break
+			}
 		}
 	}
 
