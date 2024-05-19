@@ -276,3 +276,13 @@ flag: histories
   "stream": false
 }
 ```
+
+#### tools 工具 开启 默认选中模式，作用是让工具选择在不匹配时默认选择一个，仅支持无参工具
+```text
+flag: tool
+
+attribute:
+    id: (string) 指定tool_function里的name值，默认-1
+
+<tool id="xxx">
+```

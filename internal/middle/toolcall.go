@@ -2,6 +2,7 @@ package middle
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/agent"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
@@ -12,31 +13,56 @@ import (
 	"time"
 )
 
-func buildTemplate(tools []pkg.Keyv[interface{}], messages []pkg.Keyv[interface{}], template string, max int) (message string, err error) {
-	pMessages := messages
+func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template string, max int) (message string, err error) {
+	toolDef := ctx.GetString("tool")
+	if toolDef == "" {
+		toolDef = "-1"
+	}
+
+	pMessages := completion.Messages
 	content := "continue"
-	if messageL := len(messages); messageL > 0 && messages[messageL-1]["role"] == "user" {
-		content = messages[messageL-1].GetString("content")
+	if messageL := len(pMessages); messageL > 0 && pMessages[messageL-1]["role"] == "user" {
+		content = pMessages[messageL-1].GetString("content")
 		if max == 0 {
 			pMessages = make([]pkg.Keyv[interface{}], 0)
 		} else if max > 0 && messageL > max {
-			pMessages = messages[messageL-max : messageL-1]
+			pMessages = pMessages[messageL-max : messageL-1]
 		} else {
-			pMessages = messages[:messageL-1]
+			pMessages = pMessages[:messageL-1]
 		}
 	}
 
-	for _, t := range tools {
-		if !t.GetKeyv("function").Has("id") {
-			t.GetKeyv("function").Set("id", common.RandStr(5))
+	for _, t := range completion.Tools {
+		id := common.RandStr(5)
+		fn := t.GetKeyv("function")
+		if !fn.Has("id") {
+			t.GetKeyv("function").Set("id", id)
+		} else {
+			id = fn.GetString("id")
+		}
+
+		if toolDef != "-1" && fn.Has("name") {
+			if toolDef == fn.GetString("name") {
+				toolDef = id
+			}
 		}
 	}
 
 	parser := templateBuilder().
-		Vars("tools", tools).
+		Vars("toolDef", toolDef).
+		Vars("tools", completion.Tools).
 		Vars("pMessages", pMessages).
 		Vars("content", content).
-		Do()
+		Func("join", func(slice []interface{}, sep string) string {
+			if len(slice) == 0 {
+				return ""
+			}
+			var result []string
+			for _, v := range slice {
+				result = append(result, fmt.Sprintf("\"%v\"", v))
+			}
+			return strings.Join(result, sep)
+		}).Do()
 	return parser(template)
 }
 
@@ -45,11 +71,8 @@ func buildTemplate(tools []pkg.Keyv[interface{}], messages []pkg.Keyv[interface{
 //	return:
 //		bool  > 是否执行了工具
 //		error > 执行异常
-func CompleteToolCalls(ctx *gin.Context, req pkg.ChatCompletion, callback func(message string) (string, error)) (bool, error) {
-	message, err := buildTemplate(
-		req.Tools,
-		req.Messages,
-		agent.ToolCall, 5)
+func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (bool, error) {
+	message, err := buildTemplate(ctx, completion, agent.ToolCall, 5)
 	if err != nil {
 		return false, err
 	}
@@ -64,10 +87,10 @@ func CompleteToolCalls(ctx *gin.Context, req pkg.ChatCompletion, callback func(m
 	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, previousTokens))
 
 	// 解析参数
-	return parseToToolCall(ctx, content, req), nil
+	return parseToToolCall(ctx, content, completion), nil
 }
 
-func parseToToolCall(ctx *gin.Context, content string, req pkg.ChatCompletion) bool {
+func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatCompletion) bool {
 	j := ""
 	created := time.Now().Unix()
 	slice := strings.Split(content, "TOOL_RESPONSE")
@@ -87,7 +110,7 @@ func parseToToolCall(ctx *gin.Context, content string, req pkg.ChatCompletion) b
 	}
 
 	name := ""
-	for _, t := range req.Tools {
+	for _, t := range completion.Tools {
 		if strings.Contains(j, t.GetKeyv("function").GetString("id")) {
 			name = t.GetKeyv("function").GetString("name")
 			break
@@ -113,11 +136,11 @@ func parseToToolCall(ctx *gin.Context, content string, req pkg.ChatCompletion) b
 	}
 	bytes, _ := json.Marshal(obj)
 
-	if req.Stream {
-		SSEToolCallResponse(ctx, req.Model, name, string(bytes), created)
+	if completion.Stream {
+		SSEToolCallResponse(ctx, completion.Model, name, string(bytes), created)
 		return true
 	} else {
-		ToolCallResponse(ctx, req.Model, name, string(bytes))
+		ToolCallResponse(ctx, completion.Model, name, string(bytes))
 		return true
 	}
 }

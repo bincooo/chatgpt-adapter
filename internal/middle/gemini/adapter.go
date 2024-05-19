@@ -20,7 +20,6 @@ import (
 )
 
 const MODEL = "gemini"
-const GOOGLE_BASE = "https://generativelanguage.googleapis.com/%s?alt=sse&key=%s"
 const login = "http://127.0.0.1:8081/v1/login"
 
 var (
@@ -55,7 +54,7 @@ type API struct {
 
 func (API) Match(_ *gin.Context, model string) bool {
 	switch model {
-	case "gemini-1.0", "gemini-1.5":
+	case "gemini-1.0-pro-latest", "gemini-1.5-pro-latest", "gemini-1.5-flash-latest":
 		return true
 	default:
 		return false
@@ -65,12 +64,17 @@ func (API) Match(_ *gin.Context, model string) bool {
 func (API) Models() []middle.Model {
 	return []middle.Model{
 		{
-			Id:      "gemini-1.0",
+			Id:      "gemini-1.0-pro-latest",
 			Object:  "model",
 			Created: 1686935002,
 			By:      "gemini-adapter",
 		}, {
-			Id:      "gemini-1.5",
+			Id:      "gemini-1.5-pro-latest",
+			Object:  "model",
+			Created: 1686935002,
+			By:      "gemini-adapter",
+		}, {
+			Id:      "gemini-1.5-flash-latest",
 			Object:  "model",
 			Created: 1686935002,
 			By:      "gemini-adapter",

@@ -316,6 +316,7 @@ func fetchCookies(ctx context.Context, proxies string) (cookies string) {
 				DoS(http.StatusOK)
 			if err != nil {
 				var e emit.Error
+				logrus.Errorf("retry[%d]: %v", index, err)
 				if errors.As(err, &e) && e.Code == 429 {
 					return
 				}

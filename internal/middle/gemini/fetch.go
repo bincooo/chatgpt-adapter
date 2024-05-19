@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+const GOOGLE_BASE_FORMAT = "https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s"
+
 type funcDecl struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -25,35 +27,29 @@ type funcDecl struct {
 }
 
 // 构建请求，返回响应
-func build(ctx context.Context, proxies, token string, messages []map[string]interface{}, req pkg.ChatCompletion) (*http.Response, error) {
-	var (
-		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.0-pro-latest:streamGenerateContent", token)
-	)
+func build(ctx context.Context, proxies, token string, messages []map[string]interface{}, completion pkg.ChatCompletion) (*http.Response, error) {
+	gURL := fmt.Sprintf(GOOGLE_BASE_FORMAT, completion.Model, token)
 
-	if req.Model == "gemini-1.5" {
-		burl = fmt.Sprintf(GOOGLE_BASE, "v1beta/models/gemini-1.5-pro-latest:streamGenerateContent", token)
+	if completion.Temperature < 0.1 {
+		completion.Temperature = 1
 	}
 
-	if req.Temperature < 0.1 {
-		req.Temperature = 1
+	if completion.MaxTokens == 0 {
+		completion.MaxTokens = 2048
 	}
 
-	if req.MaxTokens == 0 {
-		req.MaxTokens = 2048
+	if completion.TopK == 0 {
+		completion.TopK = 100
 	}
 
-	if req.TopK == 0 {
-		req.TopK = 100
-	}
-
-	if req.TopP == 0 {
-		req.TopP = 0.95
+	if completion.TopP == 0 {
+		completion.TopP = 0.95
 	}
 
 	// 参数基本与openai对齐
 	_funcDecls := make([]funcDecl, 0)
-	if toolsL := len(req.Tools); toolsL > 0 {
-		for _, v := range req.Tools {
+	if toolsL := len(completion.Tools); toolsL > 0 {
+		for _, v := range completion.Tools {
 			kv := v.GetKeyv("function").GetKeyv("parameters")
 			required, ok := kv.Get("required")
 			if !ok {
@@ -93,10 +89,10 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	payload := map[string]any{
 		"contents": messages, // [ { role: user, parts: [ { text: 'xxx' } ] } ]
 		"generationConfig": map[string]any{
-			"topK":            req.TopK,
-			"topP":            req.TopP,
-			"temperature":     req.Temperature, // 0.8
-			"maxOutputTokens": req.MaxTokens,
+			"topK":            completion.TopK,
+			"topP":            completion.TopP,
+			"temperature":     completion.Temperature, // 0.8
+			"maxOutputTokens": completion.MaxTokens,
 			"stopSequences":   []string{},
 		},
 		// 安全级别
@@ -137,7 +133,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	res, err := emit.ClientBuilder().
 		Proxies(proxies).
 		Context(ctx).
-		POST(burl).
+		POST(gURL).
 		JHeader().
 		Bytes(marshal).
 		Do()

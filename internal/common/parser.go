@@ -542,6 +542,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 			"pad",      // bing中使用的标记：填充引导对话，尝试避免道歉
 			"notebook", // notebook模式
 			"histories",
+			"tool",
 		})
 	)
 
@@ -668,6 +669,20 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 				if len(str) >= 2 && str[0] == '[' && str[len(str)-1] == ']' {
 					handles = append(handles, map[uint8]string{'v': str, 't': "histories"})
 					clean(content[node.index:node.end])
+				}
+				continue
+			}
+
+			if node.t == XML_TYPE_X && node.tag == "tool" {
+				id := "-1"
+				if e, ok := node.attr["id"]; ok {
+					if o, k := e.(string); k {
+						id = o
+					}
+				}
+				clean(content[node.index:node.end])
+				if id != "-1" {
+					ctx.Set("tool", id)
 				}
 				continue
 			}
