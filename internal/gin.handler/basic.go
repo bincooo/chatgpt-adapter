@@ -1,8 +1,6 @@
 package handler
 
 import (
-	_ "embed"
-
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/gin-gonic/gin"
@@ -14,9 +12,6 @@ import (
 	"strconv"
 	"strings"
 )
-
-//go:embed index.html
-var html string
 
 func Bind(port int, version, proxies string) {
 	gin.SetMode(gin.ReleaseMode)

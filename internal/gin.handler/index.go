@@ -1,4 +1,6 @@
-<!doctype html>
+package handler
+
+const html = `<!doctype html>
 <html lang="ch">
 <head>
     <meta charset="UTF-8">
@@ -36,4 +38,4 @@ github: https://github.com/bincooo/chatgpt-adapter
         </div>
     </div>
 </body>
-</html>
+</html>`
