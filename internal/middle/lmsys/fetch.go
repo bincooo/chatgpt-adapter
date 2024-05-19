@@ -315,6 +315,10 @@ func fetchCookies(ctx context.Context, proxies string) (cookies string) {
 				Body(obj).
 				DoS(http.StatusOK)
 			if err != nil {
+				var e emit.Error
+				if errors.As(err, &e) && e.Code == 429 {
+					return
+				}
 				continue
 			}
 
