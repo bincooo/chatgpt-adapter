@@ -284,5 +284,5 @@ flag: tool
 attribute:
     id: (string) 指定tool_function里的name值，默认-1
 
-<tool id="xxx">
+<tool id="xxx" />
 ```
