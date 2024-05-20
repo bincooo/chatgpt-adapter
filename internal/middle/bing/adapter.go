@@ -77,7 +77,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	// 清理多余的标签
 	var cancel chan error
-	cancel, matchers = addMatchers(matchers)
+	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set("tokens", tokens)
 	chatResponse, err := chat.Reply(ctx.Request.Context(), currMessage, pMessages)
 	if err != nil {
@@ -92,7 +92,7 @@ func (API) Completion(ctx *gin.Context) {
 	waitResponse(ctx, matchers, cancel, chatResponse, completion.Stream)
 }
 
-func addMatchers(matchers []pkg.Matcher) (chan error, []pkg.Matcher) {
+func joinMatchers(ctx *gin.Context, matchers []pkg.Matcher) (chan error, []pkg.Matcher) {
 	// 清理 [1]、[2] 标签
 	// 清理 [^1^]、[^2^] 标签
 	// 清理 [^1^ 标签
@@ -151,7 +151,7 @@ func addMatchers(matchers []pkg.Matcher) (chan error, []pkg.Matcher) {
 	})
 
 	// 自定义标记块中断
-	cancel, matcher := pkg.NewCancelMather()
+	cancel, matcher := pkg.NewCancelMather(ctx)
 	matchers = append(matchers, matcher)
 	return cancel, matchers
 }

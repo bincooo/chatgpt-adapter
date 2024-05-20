@@ -287,13 +287,13 @@ label:
 		return
 	}
 
-	cancel, matchers := joinMatchers(matchers)
+	cancel, matchers := joinMatchers(ctx, matchers)
 	waitResponse(ctx, matchers, ch, cancel, completion.Stream)
 }
 
-func joinMatchers(matchers []pkg.Matcher) (chan error, []pkg.Matcher) {
+func joinMatchers(ctx *gin.Context, matchers []pkg.Matcher) (chan error, []pkg.Matcher) {
 	// 自定义标记块中断
-	cancel, matcher := pkg.NewCancelMather()
+	cancel, matcher := pkg.NewCancelMather(ctx)
 	matchers = append(matchers, matcher)
 
 	// 违反内容中断并返回错误1

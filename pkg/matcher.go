@@ -1,7 +1,9 @@
 package pkg
 
 import (
+	"context"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
+	"github.com/gin-gonic/gin"
 	"strings"
 )
 
@@ -36,12 +38,17 @@ func NewMatchers() []Matcher {
 }
 
 // 中断匹配器，返回一个error channel，用于控制是否终止输出
-func NewCancelMather() (chan error, Matcher) {
+func NewCancelMather(ctx *gin.Context) (chan error, Matcher) {
 	count := 0
 	cancel := make(chan error, 1)
 	return cancel, &SymbolMatcher{
 		Find: "<|",
 		H: func(index int, content string) (state int, result string) {
+			if ctx.GetBool(vars.GinClose) {
+				cancel <- context.Canceled
+				return vars.MatMatched, ""
+			}
+
 			if len(content) < 13 {
 				return vars.MatMatching, content
 			}

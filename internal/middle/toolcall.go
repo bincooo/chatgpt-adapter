@@ -16,6 +16,109 @@ import (
 
 var excludeToolNames = "__EXCLUDE_TOOL_NAMES__"
 
+func ToolCallCancel(str string) bool {
+	if strings.Contains(str, "<|tool|>") {
+		return true
+	}
+	if strings.Contains(str, "<|assistant|>") {
+		return true
+	}
+	if strings.Contains(str, "<|user|>") {
+		return true
+	}
+	if strings.Contains(str, "<|system|>") {
+		return true
+	}
+	if strings.Contains(str, "<|end|>") {
+		return true
+	}
+	return len(str) > 1 && !strings.HasPrefix(str, "1:")
+}
+
+// 执行工具选择器
+//
+//	return:
+//	bool  > 是否执行了工具
+//	error > 执行异常
+func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (bool, error) {
+	// 是否开启任务拆解
+	if t := ginTool(ctx); t.Is("tasks", true) {
+		completion.Messages = completeToolTasks(ctx, completion, callback)
+	}
+
+	message, err := buildTemplate(ctx, completion, agent.ToolCall, 10)
+	if err != nil {
+		return false, err
+	}
+
+	content, err := callback(message)
+	if err != nil {
+		return false, err
+	}
+	logrus.Infof("completeTools response: \n%s", content)
+
+	previousTokens := common.CalcTokens(message)
+	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, previousTokens))
+
+	// 解析参数
+	return parseToToolCall(ctx, content, completion), nil
+}
+
+// 拆解任务, 组装任务提示并返回上下文
+func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (messages []pkg.Keyv[interface{}]) {
+	messages = completion.Messages
+	message, err := buildTemplate(ctx, completion, agent.ToolTasks, 10)
+	if err != nil {
+		return
+	}
+
+	content, err := callback(message)
+	if err != nil {
+		return
+	}
+	logrus.Infof("completeTasks response: \n%s", content)
+
+	// 解析参数
+	tasks := parseToToolTasks(content, completion)
+	if len(tasks) == 0 {
+		return
+	}
+
+	// 任务提示组装
+	var excludeTasks []string
+	var contents []string
+	for pos := range tasks {
+		task := tasks[pos]
+		if task.Is("exclude", "true") {
+			toolId := task.GetString("toolId")
+			excludeTasks = append(excludeTasks, fmt.Sprintf("工具%s已执行", toolId))
+		} else {
+			contents = append(contents, task.GetString("task"))
+		}
+	}
+
+	if len(contents) == 0 {
+		contents = append(contents, "continue")
+	}
+
+	if len(excludeTasks) > 0 {
+		contents = append([]string{fmt.Sprintf("(%s)", strings.Join(excludeTasks, ", "))}, contents...)
+	}
+
+	// 拼接任务信息
+	if pos := len(messages) - 1; messages[pos].Is("role", "user") {
+		messages[pos] = pkg.Keyv[interface{}]{
+			"role": "user", "content": strings.Join(contents, "\n"),
+		}
+	} else {
+		messages = append(messages, pkg.Keyv[interface{}]{
+			"role": "user", "content": strings.Join(contents, "\n"),
+		})
+	}
+
+	return
+}
+
 func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template string, max int) (message string, err error) {
 	pMessages := completion.Messages
 	messageL := len(pMessages)
@@ -46,12 +149,6 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 		Vars("tools", completion.Tools).
 		Vars("pMessages", pMessages).
 		Vars("content", content).
-		//Func("ContainsT", func(value interface{}) bool {
-		//	if len(excludeToolNames) == 0 || value == nil || value == "" {
-		//		return false
-		//	}
-		//	return slices.Contains(excludeToolNames, value)
-		//}).
 		Func("Join", func(slice []interface{}, sep string) string {
 			if len(slice) == 0 {
 				return ""
@@ -75,30 +172,6 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 			return ""
 		}).Do()
 	return parser(template)
-}
-
-// 执行工具选择器
-//
-//	return:
-//	bool  > 是否执行了工具
-//	error > 执行异常
-func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (bool, error) {
-	message, err := buildTemplate(ctx, completion, agent.ToolCall, 10)
-	if err != nil {
-		return false, err
-	}
-
-	content, err := callback(message)
-	if err != nil {
-		return false, err
-	}
-	logrus.Infof("completeTools response: \n%s", content)
-
-	previousTokens := common.CalcTokens(message)
-	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, previousTokens))
-
-	// 解析参数
-	return parseToToolCall(ctx, content, completion), nil
 }
 
 // 工具参数解析
@@ -181,25 +254,56 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 	return toolCallResponse(ctx, completion, name, string(bytes), created)
 }
 
-func ToolCallCancel(str string) bool {
-	if strings.Contains(str, "<|tool|>") {
-		return true
+// 解析任务
+func parseToToolTasks(content string, completion pkg.ChatCompletion) (tasks []pkg.Keyv[string]) {
+	j := ""
+	slice := strings.Split(content, "TOOL_RESPONSE")
+	for _, value := range slice {
+		left := strings.Index(value, "[{")
+		right := strings.LastIndex(value, "}]")
+		if left >= 0 && right > left {
+			j = value[left : right+2]
+			break
+		}
 	}
-	if strings.Contains(str, "<|assistant|>") {
-		return true
+
+	// 没有解析出 JSON
+	if j == "" {
+		return
 	}
-	if strings.Contains(str, "<|user|>") {
-		return true
+
+	// 解析参数
+	var js []pkg.Keyv[string]
+	if err := json.Unmarshal([]byte(j), &js); err != nil {
+		logrus.Error(err)
+		return
 	}
-	if strings.Contains(str, "<|system|>") {
-		return true
+
+	// 检查任务列表
+	excludeNames := extractToolNames(completion.Messages)
+	for pos := range js {
+		task := js[pos]
+		if !task.Has("toolId") {
+			continue
+		}
+
+		toolId := nameWithToolDef(task.GetString("toolId"), completion.Tools)
+		if toolId == "-1" || !task.Has("task") {
+			continue
+		}
+
+		if slices.Contains(excludeNames, toolId) {
+			task.Set("exclude", "true")
+			task.Set("toolId", toolId)
+		}
+
+		tasks = append(tasks, task)
 	}
-	if strings.Contains(str, "<|end|>") {
-		return true
-	}
-	return len(str) > 1 && !strings.HasPrefix(str, "1:")
+
+	return
 }
 
+// 提取对话中的tool-names
 func extractToolNames(messages []pkg.Keyv[interface{}]) (slice []string) {
 	for pos := range messages {
 		message := messages[pos]
@@ -221,17 +325,17 @@ func toolCallResponse(ctx *gin.Context, completion pkg.ChatCompletion, name stri
 }
 
 func toolDef(ctx *gin.Context, tools []pkg.Keyv[interface{}]) (value string) {
-	value = ctx.GetString("tool")
-	if value == "" {
-		return "-1"
+	value = ginTool(ctx).GetString("id")
+	if value == "-1" {
+		return
 	}
 
 	for _, t := range tools {
 		fn := t.GetKeyv("function")
-		id := fn.GetString("id")
+		toolId := fn.GetString("id")
 		if fn.Has("name") {
 			if value == fn.GetString("name") {
-				value = id
+				value = toolId
 				return
 			}
 		}
@@ -239,6 +343,7 @@ func toolDef(ctx *gin.Context, tools []pkg.Keyv[interface{}]) (value string) {
 	return "-1"
 }
 
+// 工具名是否存在工具集中，"-1" 不存在，否则返回具体名字
 func nameWithToolDef(name string, tools []pkg.Keyv[interface{}]) (value string) {
 	value = name
 	if value == "" {
@@ -252,7 +357,22 @@ func nameWithToolDef(name string, tools []pkg.Keyv[interface{}]) (value string) 
 				return
 			}
 		}
+
+		if fn.Has("id") {
+			if value == fn.GetString("id") {
+				value = fn.GetString("name")
+				return
+			}
+		}
 	}
 
 	return "-1"
+}
+
+func ginTool(ctx *gin.Context) pkg.Keyv[interface{}] {
+	tool, ok := common.GetGinValue[pkg.Keyv[interface{}]](ctx, "tool")
+	if !ok {
+		tool = make(pkg.Keyv[interface{}])
+	}
+	return tool
 }

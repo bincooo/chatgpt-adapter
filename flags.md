@@ -283,6 +283,9 @@ flag: tool
 
 attribute:
     id: (string) 指定tool_function里的name值，默认-1
+    tasks: (bool) 是否任务拆解，默认 false
 
+使用示例
 <tool id="xxx" />
+<tool id="xxx" tasks />
 ```

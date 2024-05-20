@@ -89,7 +89,15 @@ func StringCombiner[T any](messages []T, iter func(message T) string) string {
 }
 
 func NeedToToolCall(ctx *gin.Context) bool {
-	tool := ctx.GetString("tool")
+	var tool = "-1"
+	if t, ok := ctx.Get("tool"); ok {
+		keyv := t.(pkg.Keyv[interface{}])
+		tool = keyv.GetString("id")
+		if tool == "-1" && keyv.Is("tasks", true) {
+			tool = "tasks"
+		}
+	}
+
 	completion := GetGinCompletion(ctx)
 	messageL := len(completion.Messages)
 	if messageL == 0 {

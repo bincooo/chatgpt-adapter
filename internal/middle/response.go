@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -156,11 +157,11 @@ func SSEResponse(ctx *gin.Context, model, content string, created int64) {
 		response.Choices[0].FinishReason = &finishReason
 	}
 
-	event(ctx.Writer, response)
+	event(ctx, response)
 
 	if done {
 		time.Sleep(100 * time.Millisecond)
-		event(ctx.Writer, "[DONE]")
+		event(ctx, "[DONE]")
 	}
 }
 
@@ -228,21 +229,21 @@ func SSEToolCallResponse(ctx *gin.Context, model, name, args string, created int
 		ToolCalls: []pkg.Keyv[interface{}]{toolCall},
 	}
 
-	event(ctx.Writer, response)
+	event(ctx, response)
 
 	delete(toolCall, "id")
 	delete(toolCall, "type")
 	toolCall["function"] = map[string]string{"arguments": args}
 	response.Choices[0].Delta.ToolCalls[0] = toolCall
 	response.Choices[0].Delta.Role = ""
-	event(ctx.Writer, response)
+	event(ctx, response)
 
 	response.Choices[0].FinishReason = &toolCalls
 	response.Choices[0].Delta = nil
 	response.Usage = usage
-	event(ctx.Writer, response)
+	event(ctx, response)
 
-	event(ctx.Writer, "[DONE]")
+	event(ctx, "[DONE]")
 }
 
 func NotSSEHeader(ctx *gin.Context) bool {
@@ -265,13 +266,15 @@ func setSSEHeader(ctx *gin.Context) {
 	}
 }
 
-func event(w gin.ResponseWriter, data interface{}) {
+func event(ctx *gin.Context, data interface{}) {
+	w := ctx.Writer
 	str, ok := data.(string)
 	if ok {
 		layout := "data: %s\n\n"
 		_, err := fmt.Fprintf(w, layout, str)
 		if err != nil {
 			logrus.Error(err)
+			ctx.Set(vars.GinClose, true)
 			return
 		}
 
@@ -282,12 +285,14 @@ func event(w gin.ResponseWriter, data interface{}) {
 	marshal, err := json.Marshal(data)
 	if err != nil {
 		logrus.Error(err)
+		ctx.Set(vars.GinClose, true)
 		return
 	}
 
 	_, err = fmt.Fprintf(w, "data: %s\n\n", marshal)
 	if err != nil {
 		logrus.Error(err)
+		ctx.Set(vars.GinClose, true)
 		return
 	}
 	w.Flush()

@@ -680,10 +680,17 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 						id = o
 					}
 				}
-				clean(content[node.index:node.end])
-				if id != "-1" {
-					ctx.Set("tool", id)
+				tasks := false
+				if e, ok := node.attr["tasks"]; ok {
+					if o, k := e.(bool); k {
+						tasks = o
+					}
 				}
+				clean(content[node.index:node.end])
+				ctx.Set("tool", pkg.Keyv[interface{}]{
+					"id":    id,
+					"tasks": tasks,
+				})
 				continue
 			}
 		}

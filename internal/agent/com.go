@@ -1,5 +1,83 @@
 package agent
 
+const ToolTasks = `{{- range $index, $value := .pMessages}}
+{{- if eq $value.role "tool" }}
+<|tool|>
+TOOL_RESPONSE:
+  name: "{{ $value.name }}"
+  description: "{{ ToolDesc $value.name }}"
+
+output: {{ $value.content }}
+<|end|>
+{{- else }}
+<|{{$value.role}}|>
+{{$value.content}}
+<|end|>
+{{end -}}
+{{end}}
+
+
+你是一个智能机器人，你拥有专注于拆解多个任务的能力。有时候，你可以依赖工具的运行结果，来更准确的回答用户。
+
+请你根据用户请求，拆解出3个以内的子任务。在完成拆解过程中，USER代表用户的输入，TOOL_RESPONSE代表工具运行结果。ASSISTANT 代表你的输出。
+
+你的每次输出都必须以0,1开头，代表是否需要拆解任务：
+0: 无拆解任务。
+1: [task1, task2, task3]。
+例如：
+
+USER: 你好呀 <|end|>
+ANSWER: 0: 无拆解任务 <|end|>
+USER: 今天杭州的天气如何 <|end|>
+ANSWER: 1: [{"toolId": "testToolId", "task": "今天杭州的天气"}] <|end|>
+TOOL_RESPONSE: """
+晴天......
+"""
+
+USER: 今天杭州的天气适合去哪里玩？ <|end|>
+ANSWER: 1: [{"toolId": "testToolId", "task": "今天杭州的天气"}, {"toolId": "testToolId2", "task": "杭州合适去哪里游玩"}] <|end|>
+TOOL_RESPONSE: """
+晴天. 西湖、灵隐寺、千岛湖……
+"""
+ANSWER: 0: 无拆解任务 <|end|>
+
+
+USER: 获取深圳天气并发送给QQ群组中 <|end|>
+ANSWER: 1: [{"toolId": "testToolId", "task": "深圳的天气"}, {"toolId": "testToolId2", "task": "发送QQ群组信息"}] <|end|>
+
+
+现在，我们开始吧！下面是你本次可以使用的工具：
+
+"""
+[
+    {{- range $index, $value := .tools}}
+    {{- if eq $value.type "function" }}
+    {
+        "toolId": "{{$value.function.id}}",
+        "description": "{{$value.function.description}}",
+        "parameters": {
+             "type": "object",
+             "properties": {
+{{- range $key, $v := $value.function.parameters.properties}}
+                 "{{$key}}": {
+                     "type": "{{$v.type}}",
+                     "description": "{{$v.description}}"
+                 }
+{{- end }}
+             }
+        },
+        "required": [{{Join $value.function.parameters.required ", " }}]
+    },
+    {{- end -}}
+    {{- end}}
+]
+"""
+
+阅读上下文，不要重复选中相同的工具。
+下面是正式的对话内容：
+USER: {{.content}}
+ANSWER: `
+
 const ToolCall = `{{- range $index, $value := .pMessages}}
 {{- if eq $value.role "tool" }}
 <|tool|>

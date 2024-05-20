@@ -97,7 +97,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	// 自定义标记块中断
-	cancel, matcher := pkg.NewCancelMather()
+	cancel, matcher := pkg.NewCancelMather(ctx)
 	matchers = append(matchers, matcher)
 
 	waitResponse(ctx, matchers, cancel, chatResponse, completion.Stream)
