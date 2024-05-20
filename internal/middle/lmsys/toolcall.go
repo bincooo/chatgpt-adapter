@@ -10,7 +10,7 @@ import (
 func completeToolCalls(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) bool {
 	logrus.Infof("completeTools ...")
 	exec, err := middle.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
-		ch, err := fetch(ctx, proxies, message, options{
+		ch, err := fetch(ctx.Request.Context(), proxies, message, options{
 			model:       completion.Model,
 			temperature: completion.Temperature,
 			topP:        completion.TopP,
