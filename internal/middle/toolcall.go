@@ -14,7 +14,10 @@ import (
 	"time"
 )
 
-var excludeToolNames = "__EXCLUDE_TOOL_NAMES__"
+var (
+	excludeToolNames = "__EXCLUDE_TOOL_NAMES__"
+	MaxMessages      = 10
+)
 
 func ToolCallCancel(str string) bool {
 	if strings.Contains(str, "<|tool|>") {
@@ -46,7 +49,7 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 		completion.Messages = completeToolTasks(ctx, completion, callback)
 	}
 
-	message, err := buildTemplate(ctx, completion, agent.ToolCall, 10)
+	message, err := buildTemplate(ctx, completion, agent.ToolCall)
 	if err != nil {
 		return false, err
 	}
@@ -67,7 +70,7 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 // 拆解任务, 组装任务提示并返回上下文
 func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (messages []pkg.Keyv[interface{}]) {
 	messages = completion.Messages
-	message, err := buildTemplate(ctx, completion, agent.ToolTasks, 10)
+	message, err := buildTemplate(ctx, completion, agent.ToolTasks)
 	if err != nil {
 		return
 	}
@@ -119,13 +122,13 @@ func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback
 	return
 }
 
-func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template string, max int) (message string, err error) {
+func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template string) (message string, err error) {
 	pMessages := completion.Messages
 	messageL := len(pMessages)
 	content := "continue"
 
-	if messageL > max {
-		pMessages = pMessages[messageL-max:]
+	if messageL > MaxMessages {
+		pMessages = pMessages[messageL-MaxMessages:]
 		messageL = len(pMessages)
 	}
 
@@ -305,8 +308,9 @@ func parseToToolTasks(content string, completion pkg.ChatCompletion) (tasks []pk
 
 // 提取对话中的tool-names
 func extractToolNames(messages []pkg.Keyv[interface{}]) (slice []string) {
-	for pos := range messages {
-		message := messages[pos]
+	index := len(messages) - MaxMessages
+	for pos := range messages[index:] {
+		message := messages[index+pos]
 		if message.Is("role", "tool") {
 			slice = append(slice, message.GetString("name"))
 		}
