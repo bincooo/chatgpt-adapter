@@ -6,7 +6,7 @@
   <h2 align="center">Adapter for ChatGPT</h2>
   <p align="center">
     一款将免费服务整合到一起的ChatGPT接口服务！<br />
-    *添加实验性toolCall能力*
+    *添加实验性toolCall能力，尝试让没有toolCall能力的AI也能执行任务*
   </p>
 </p>
 
