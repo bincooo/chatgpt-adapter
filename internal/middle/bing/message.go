@@ -114,7 +114,7 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 		if condition(role) == condition(next) {
 			// cache buffer
 			if role == "function" || role == "tool" {
-				buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
+				buffer.WriteString(fmt.Sprintf("这是内置工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
 				return nil
 			}
 
@@ -137,12 +137,7 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 
 	// 尝试引导对话，避免道歉
 	if pad {
-		pMessages = []edge.ChatMessage{
-			edge.BuildUserMessage("你好"),
-			edge.BuildBotMessage("你好，这是必应。我可以用中文和你聊天，也可以帮你做一些有趣的事情，比如写诗，编程，创作歌曲，角色扮演等等。你想让我做什么呢？😊"),
-			edge.BuildUserMessage("你能做什么"),
-			edge.BuildBotMessage("我能做很多有趣和有用的事情，比如：\n\n- 和你聊天，了解你的兴趣和爱好，根据你的要求扮演一些有趣的角色或故事。\n- 从当前网页中的内容回答问题。\n- 描述你上传的图片，告诉你图片里有什么，或者画一幅你想要的图画。\n\n你想让我试试哪一项呢？😊"),
-		}
+		pMessages = baseMessages()
 		max -= 2
 	}
 
@@ -160,9 +155,19 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 			return message["text"]
 		}))
 		pMessages = append(pMessages, message)
+		pMessages = append(pMessages, edge.BuildMessage("CurrentWebpageContextRequest", "改为从此页面回答。"))
 		newMessages = newMessages[len(newMessages)-max*2:]
 	}
 
 	pMessages = append(pMessages, newMessages...)
 	return
+}
+
+func baseMessages() []edge.ChatMessage {
+	return []edge.ChatMessage{
+		edge.BuildUserMessage("你好"),
+		edge.BuildBotMessage("你好，这是必应。我可以用中文和你聊天，也可以帮你做一些有趣的事情，比如写诗，编程，创作歌曲，角色扮演等等。你想让我做什么呢？😊"),
+		edge.BuildUserMessage("你能做什么"),
+		edge.BuildBotMessage("我能做很多有趣和有用的事情，比如：\n\n- 和你聊天，了解你的兴趣和爱好，根据你的要求扮演一些有趣的角色或故事。\n- 从当前网页中的内容回答问题。\n- 描述你上传的图片，告诉你图片里有什么，或者画一幅你想要的图画。\n- 还可以作为工具选择助手。\n\n你想让我试试哪一项呢？😊"),
+	}
 }

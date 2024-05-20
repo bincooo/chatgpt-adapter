@@ -6,7 +6,7 @@ require (
 	github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71
 	github.com/bincooo/cohere-api v0.0.0-20240408053055-744e6f22b310
 	github.com/bincooo/coze-api v1.0.2-0.20240510042405-0f4058f868f3
-	github.com/bincooo/edge-api v1.0.4-0.20240514224459-9c5b7df21536
+	github.com/bincooo/edge-api v1.0.4-0.20240520172657-975ecf296160
 	github.com/bincooo/emit.io v0.0.0-20240518034137-35bda374e272
 	github.com/bincooo/goole15 v0.0.0-20240410222503-7e0cbb57020b
 	github.com/dlclark/regexp2 v1.7.0

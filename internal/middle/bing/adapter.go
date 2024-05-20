@@ -63,7 +63,8 @@ func (API) Completion(ctx *gin.Context) {
 		Proxies(proxies).
 		TopicToE(true).
 		Model(edge.ModelSydney).
-		Temperature(completion.Temperature))
+		Temperature(completion.Temperature).
+		JoinOptionSets())
 	if notebook {
 		chat.Notebook(true)
 	}
@@ -79,15 +80,16 @@ func (API) Completion(ctx *gin.Context) {
 	var cancel chan error
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set("tokens", tokens)
+
 	chatResponse, err := chat.Reply(ctx.Request.Context(), currMessage, pMessages)
 	if err != nil {
 		middle.ErrResponse(ctx, -1, err)
 		return
 	}
 
-	slices := strings.Split(chat.GetSession().ConversationId, "|")
-	if len(slices) > 1 {
-		logrus.Infof("bing status: [%s]", slices[1])
+	slice := strings.Split(chat.GetSession().ConversationId, "|")
+	if len(slice) > 1 {
+		logrus.Infof("bing status: [%s]", slice[1])
 	}
 	waitResponse(ctx, matchers, cancel, chatResponse, completion.Stream)
 }

@@ -3,6 +3,7 @@ package common
 import (
 	"hash/fnv"
 	"math/rand"
+	"time"
 )
 
 func Init() {
@@ -55,10 +56,11 @@ func ContainFor[T comparable](slice []T, condition func(item T) bool) bool {
 }
 
 func RandStr(n int) string {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	var runes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 	bytes := make([]rune, n)
 	for i := range bytes {
-		bytes[i] = runes[rand.Intn(len(runes))]
+		bytes[i] = runes[r.Intn(len(runes))]
 	}
 	return string(bytes)
 }
@@ -73,6 +75,6 @@ func Abs(n int) int {
 
 func Hash(str string) uint32 {
 	h := fnv.New32a()
-	h.Write([]byte(str))
+	_, _ = h.Write([]byte(str))
 	return h.Sum32()
 }

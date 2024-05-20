@@ -183,7 +183,11 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 	}
 
 	for _, t := range completion.Tools {
-		t.GetKeyv("function").Set("id", common.RandStr(5))
+		fn := t.GetKeyv("function")
+		// 避免重复使用时被替换
+		if !fn.Has("id") {
+			fn.Set("id", common.RandStr(5))
+		}
 	}
 
 	parser := templateBuilder().
