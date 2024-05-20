@@ -39,7 +39,7 @@ func MessageValidator(ctx *gin.Context) bool {
 		message := completion.Messages[index]
 		role := condition(message.GetString("role"))
 		if role == "" {
-			str := fmt.Sprintf("'%s' is not in ['system', 'assistant', 'user', 'function'] - 'messages.[%d].role'", message["role"], index)
+			str := fmt.Sprintf("'%s' is not in ['system', 'assistant', 'user', 'tool', 'function'] - 'messages.[%d].role'", message["role"], index)
 			ErrResponse(ctx, -1, str)
 			return false
 		}

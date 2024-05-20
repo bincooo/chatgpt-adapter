@@ -110,13 +110,9 @@ func panicHandler(ctx *gin.Context) {
 func welcome(version string) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		w := context.Writer
-		//format := "Start by http[s]://%s\n\nversion: %s\nproject: https://github.com/bincooo/chatgpt-adapter"
-		//if _, err := w.Write([]byte(fmt.Sprintf(format, context.Request.Host, version))); err != nil {
-		//	logrus.Error(err)
-		//}
 		str := strings.ReplaceAll(html, "VERSION", version)
 		str = strings.ReplaceAll(str, "HOST", context.Request.Host)
-		w.WriteString(str)
+		_, _ = w.WriteString(str)
 	}
 }
 

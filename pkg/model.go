@@ -1,5 +1,7 @@
 package pkg
 
+import "reflect"
+
 type ChatCompletion struct {
 	Messages      []Keyv[interface{}] `json:"messages"`
 	Tools         []Keyv[interface{}] `json:"tools"`
@@ -86,4 +88,13 @@ func (kv Keyv[V]) GetString(key string) (out string) {
 		}
 	}
 	return
+}
+
+func (kv Keyv[V]) Is(key string, value V) (out bool) {
+	if !kv.Has(key) {
+		return
+	}
+
+	v, _ := kv.Get(key)
+	return reflect.DeepEqual(v, value)
 }

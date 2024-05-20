@@ -11,6 +11,7 @@ var (
 		"<|user|>",
 		"<|assistant|>",
 		"<|function|>",
+		"<|tool|>",
 		"<|end|>",
 	}
 )

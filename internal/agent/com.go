@@ -83,6 +83,7 @@ ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 ]
 """
 
+阅读上下文，不要重复选中相同的工具。
 下面是正式的对话内容：
 USER: {{.content}}
 ANSWER: `

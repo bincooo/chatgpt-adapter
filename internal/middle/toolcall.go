@@ -9,9 +9,12 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"slices"
 	"strings"
 	"time"
 )
+
+var excludeToolNames = "__EXCLUDE_TOOL_NAMES__"
 
 func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template string, max int) (message string, err error) {
 	pMessages := completion.Messages
@@ -23,19 +26,19 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 		messageL = len(pMessages)
 	}
 
-	if messageL > 0 && pMessages[messageL-1]["role"] == "user" {
-		content = pMessages[messageL-1].GetString("content")
-		pMessages = pMessages[:messageL-1]
+	if messageL > 0 {
+		if keyv := pMessages[messageL-1]; keyv.Is("role", "user") {
+			content = keyv.GetString("content")
+			pMessages = pMessages[:messageL-1]
+		}
+	}
+
+	if content == "continue" {
+		ctx.Set(excludeToolNames, extractToolNames(completion.Messages))
 	}
 
 	for _, t := range completion.Tools {
-		id := common.RandStr(5)
-		fn := t.GetKeyv("function")
-		if !fn.Has("id") {
-			t.GetKeyv("function").Set("id", id)
-		} else {
-			id = fn.GetString("id")
-		}
+		t.GetKeyv("function").Set("id", common.RandStr(5))
 	}
 
 	parser := templateBuilder().
@@ -43,9 +46,12 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 		Vars("tools", completion.Tools).
 		Vars("pMessages", pMessages).
 		Vars("content", content).
-		Func("IsE", func(value interface{}) bool {
-			return value == nil || strings.TrimSpace(fmt.Sprintf("%v", value)) == ""
-		}).
+		//Func("ContainsT", func(value interface{}) bool {
+		//	if len(excludeToolNames) == 0 || value == nil || value == "" {
+		//		return false
+		//	}
+		//	return slices.Contains(excludeToolNames, value)
+		//}).
 		Func("Join", func(slice []interface{}, sep string) string {
 			if len(slice) == 0 {
 				return ""
@@ -74,8 +80,8 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 // 执行工具选择器
 //
 //	return:
-//		bool  > 是否执行了工具
-//		error > 执行异常
+//	bool  > 是否执行了工具
+//	error > 执行异常
 func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (bool, error) {
 	message, err := buildTemplate(ctx, completion, agent.ToolCall, 10)
 	if err != nil {
@@ -95,6 +101,10 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 	return parseToToolCall(ctx, content, completion), nil
 }
 
+// 工具参数解析
+//
+//	return:
+//	bool  > 是否执行了工具
 func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatCompletion) bool {
 	j := ""
 	created := time.Now().Unix()
@@ -122,18 +132,17 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 
 	name := ""
 	for _, t := range completion.Tools {
+		fn := t.GetKeyv("function")
+		n := fn.GetString("name")
 		// id 匹配
-		if strings.Contains(j, t.GetKeyv("function").GetString("id")) {
-			name = t.GetKeyv("function").GetString("name")
+		if strings.Contains(j, fn.GetString("id")) {
+			name = n
 			break
 		}
 		// name 匹配
-		if t.GetKeyv("function").Has("name") {
-			n := t.GetKeyv("function").GetString("name")
-			if strings.Contains(j, n) {
-				name = n
-				break
-			}
+		if strings.Contains(j, n) {
+			name = n
+			break
 		}
 	}
 
@@ -143,6 +152,13 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 			return toolCallResponse(ctx, completion, valueDef, "{}", created)
 		}
 		return false
+	}
+
+	// 避免AI重复选择相同的工具
+	if names, ok := common.GetGinValues[string](ctx, excludeToolNames); ok {
+		if slices.Contains(names, name) {
+			return valueDef != "-1" && toolCallResponse(ctx, completion, valueDef, "{}", created)
+		}
 	}
 
 	// 解析参数
@@ -182,6 +198,16 @@ func ToolCallCancel(str string) bool {
 		return true
 	}
 	return len(str) > 1 && !strings.HasPrefix(str, "1:")
+}
+
+func extractToolNames(messages []pkg.Keyv[interface{}]) (slice []string) {
+	for pos := range messages {
+		message := messages[pos]
+		if message.Is("role", "tool") {
+			slice = append(slice, message.GetString("name"))
+		}
+	}
+	return
 }
 
 func toolCallResponse(ctx *gin.Context, completion pkg.ChatCompletion, name string, value string, created int64) bool {
