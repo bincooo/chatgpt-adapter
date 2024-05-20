@@ -29,6 +29,16 @@ func GetGinCompletionUsage(ctx *gin.Context) map[string]int {
 	return nil
 }
 
+func GetGinToolValue(ctx *gin.Context) pkg.Keyv[interface{}] {
+	tool, ok := GetGinValue[pkg.Keyv[interface{}]](ctx, vars.GinTool)
+	if !ok {
+		tool = pkg.Keyv[interface{}]{
+			"id": "-1",
+		}
+	}
+	return tool
+}
+
 func GetGinValue[T any](ctx *gin.Context, key string) (t T, ok bool) {
 	value, exists := ctx.Get(key)
 	if !exists {

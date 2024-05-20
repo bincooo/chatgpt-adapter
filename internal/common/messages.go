@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
-	"github.com/gin-gonic/gin"
 	"math/rand"
 	"strings"
 	"time"
@@ -86,30 +85,6 @@ func StringCombiner[T any](messages []T, iter func(message T) string) string {
 		buffer.WriteString(str)
 	}
 	return buffer.String()
-}
-
-func NeedToToolCall(ctx *gin.Context) bool {
-	var tool = "-1"
-	if t, ok := ctx.Get("tool"); ok {
-		keyv := t.(pkg.Keyv[interface{}])
-		tool = keyv.GetString("id")
-		if tool == "-1" && keyv.Is("tasks", true) {
-			tool = "tasks"
-		}
-	}
-
-	completion := GetGinCompletion(ctx)
-	messageL := len(completion.Messages)
-	if messageL == 0 {
-		return false
-	}
-
-	if len(completion.Tools) == 0 {
-		return false
-	}
-
-	role := completion.Messages[messageL-1]["role"]
-	return (role != "function" && role != "tool") || tool != "-1"
 }
 
 func PadText(length int, message string) string {

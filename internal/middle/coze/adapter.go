@@ -70,7 +70,7 @@ func (API) Completion(ctx *gin.Context) {
 		matchers   = common.GetGinMatchers(ctx)
 	)
 
-	if common.NeedToToolCall(ctx) {
+	if middle.NeedToToolCall(ctx) {
 		if completeToolCalls(ctx, cookie, proxies, completion) {
 			return
 		}

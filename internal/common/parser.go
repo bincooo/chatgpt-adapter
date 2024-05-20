@@ -687,7 +687,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 					}
 				}
 				clean(content[node.index:node.end])
-				ctx.Set("tool", pkg.Keyv[interface{}]{
+				ctx.Set(vars.GinTool, pkg.Keyv[interface{}]{
 					"id":    id,
 					"tasks": tasks,
 				})

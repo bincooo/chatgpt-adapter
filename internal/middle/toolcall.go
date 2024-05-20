@@ -19,6 +19,30 @@ var (
 	MaxMessages      = 10
 )
 
+func NeedToToolCall(ctx *gin.Context) bool {
+	var tool = "-1"
+	{
+		t := common.GetGinToolValue(ctx)
+		tool = t.GetString("id")
+		if tool == "-1" && t.Is("tasks", true) {
+			tool = "tasks"
+		}
+	}
+
+	completion := common.GetGinCompletion(ctx)
+	messageL := len(completion.Messages)
+	if messageL == 0 {
+		return false
+	}
+
+	if len(completion.Tools) == 0 {
+		return false
+	}
+
+	role := completion.Messages[messageL-1]["role"]
+	return (role != "function" && role != "tool") || tool != "-1"
+}
+
 func ToolCallCancel(str string) bool {
 	if strings.Contains(str, "<|tool|>") {
 		return true
@@ -45,7 +69,7 @@ func ToolCallCancel(str string) bool {
 //	error > 执行异常
 func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (bool, error) {
 	// 是否开启任务拆解
-	if t := ginTool(ctx); t.Is("tasks", true) {
+	if toolIsEnabled(ctx) {
 		completion.Messages = completeToolTasks(ctx, completion, callback)
 	}
 
@@ -196,9 +220,9 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 	}
 
 	// 非-1值则为有默认选项
-	valueDef := nameWithToolDef(ctx.GetString("tool"), completion.Tools)
+	valueDef := nameWithToolDef(common.GetGinToolValue(ctx).GetString("id"), completion.Tools)
 
-	// 没有解析出 JSON
+	// 没有解析出 JSONz
 	if j == "" {
 		if valueDef != "-1" {
 			return toolCallResponse(ctx, completion, valueDef, "{}", created)
@@ -309,6 +333,10 @@ func parseToToolTasks(content string, completion pkg.ChatCompletion) (tasks []pk
 // 提取对话中的tool-names
 func extractToolNames(messages []pkg.Keyv[interface{}]) (slice []string) {
 	index := len(messages) - MaxMessages
+	if index < 0 {
+		index = 0
+	}
+
 	for pos := range messages[index:] {
 		message := messages[index+pos]
 		if message.Is("role", "tool") {
@@ -329,7 +357,7 @@ func toolCallResponse(ctx *gin.Context, completion pkg.ChatCompletion, name stri
 }
 
 func toolDef(ctx *gin.Context, tools []pkg.Keyv[interface{}]) (value string) {
-	value = ginTool(ctx).GetString("id")
+	value = common.GetGinToolValue(ctx).GetString("id")
 	if value == "-1" {
 		return
 	}
@@ -373,10 +401,7 @@ func nameWithToolDef(name string, tools []pkg.Keyv[interface{}]) (value string) 
 	return "-1"
 }
 
-func ginTool(ctx *gin.Context) pkg.Keyv[interface{}] {
-	tool, ok := common.GetGinValue[pkg.Keyv[interface{}]](ctx, "tool")
-	if !ok {
-		tool = make(pkg.Keyv[interface{}])
-	}
-	return tool
+func toolIsEnabled(ctx *gin.Context) bool {
+	t := common.GetGinToolValue(ctx)
+	return t.Is("tasks", true)
 }
