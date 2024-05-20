@@ -98,7 +98,7 @@ label:
 func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessages []edge.ChatMessage, text string, tokens int) {
 	condition := func(expr string) string {
 		switch expr {
-		case "system", "user", "function":
+		case "system", "user", "function", "tool":
 			return "user"
 		case "assistant":
 			return "bot"
@@ -113,7 +113,7 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 		tokens += common.CalcTokens(message["content"])
 		if condition(role) == condition(next) {
 			// cache buffer
-			if role == "function" {
+			if role == "function" || role == "tool" {
 				buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
 				return nil
 			}

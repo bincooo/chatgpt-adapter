@@ -78,7 +78,7 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, chatResponse chan ty
 func mergeMessages(messages []pkg.Keyv[interface{}]) (attachment []types.Attachment, tokens int) {
 	condition := func(expr string) string {
 		switch expr {
-		case "system", "function", "assistant":
+		case "system", "assistant", "function", "tool":
 			return expr
 		case "user":
 			return "human"
@@ -93,7 +93,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (attachment []types.Attachm
 		tokens += common.CalcTokens(message["content"])
 		if condition(role) == condition(next) {
 			// cache buffer
-			if role == "function" {
+			if role == "function" || role == "tool" {
 				buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
 				return nil
 			}
