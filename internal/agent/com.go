@@ -61,7 +61,7 @@ ANSWER: 1: [{"toolId": "testToolId", "task": "深圳的天气"}, {"toolId": "tes
 {{- range $key, $v := $value.function.parameters.properties}}
                  "{{$key}}": {
                      "type": "{{$v.type}}",
-                     "description": "{{$v.description}}"
+                     "description": "{{ Enc $v.description }}"
                  }
 {{- end }}
              }
@@ -149,7 +149,7 @@ ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 {{- range $key, $v := $value.function.parameters.properties}}
                  "{{$key}}": {
                      "type": "{{$v.type}}",
-                     "description": "{{$v.description}}"
+                     "description": "{{ Enc $v.description }}"
                  }
 {{- end }}
              }

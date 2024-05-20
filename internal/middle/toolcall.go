@@ -59,6 +59,15 @@ func ToolCallCancel(str string) bool {
 	if strings.Contains(str, "<|end|>") {
 		return true
 	}
+	if strings.Contains(str, "USER: ") {
+		return true
+	}
+	if strings.Contains(str, "ANSWER: ") {
+		return true
+	}
+	if strings.Contains(str, "TOOL_RESPONSE: ") {
+		return true
+	}
 	return len(str) > 1 && !strings.HasPrefix(str, "1:")
 }
 
@@ -70,7 +79,11 @@ func ToolCallCancel(str string) bool {
 func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (bool, error) {
 	// 是否开启任务拆解
 	if toolIsEnabled(ctx) {
-		completion.Messages = completeToolTasks(ctx, completion, callback)
+		var hasTasks = false
+		completion.Messages, hasTasks = completeToolTasks(ctx, completion, callback)
+		if !hasTasks {
+			return false, nil
+		}
 	}
 
 	message, err := buildTemplate(ctx, completion, agent.ToolCall)
@@ -92,7 +105,7 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 }
 
 // 拆解任务, 组装任务提示并返回上下文
-func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (messages []pkg.Keyv[interface{}]) {
+func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (messages []pkg.Keyv[interface{}], hasTasks bool) {
 	messages = completion.Messages
 	message, err := buildTemplate(ctx, completion, agent.ToolTasks)
 	if err != nil {
@@ -125,9 +138,11 @@ func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback
 	}
 
 	if len(contents) == 0 {
-		contents = append(contents, "continue")
+		return messages, false
+		//contents = append(contents, "continue")
 	}
 
+	hasTasks = true
 	if len(excludeTasks) > 0 {
 		contents = append([]string{fmt.Sprintf("(%s)", strings.Join(excludeTasks, ", "))}, contents...)
 	}
@@ -185,6 +200,9 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 				result = append(result, fmt.Sprintf("\"%v\"", v))
 			}
 			return strings.Join(result, sep)
+		}).
+		Func("Enc", func(value interface{}) string {
+			return strings.ReplaceAll(fmt.Sprintf("%s", value), "\n", "\\n")
 		}).
 		Func("ToolDesc", func(value string) string {
 			for _, t := range completion.Tools {
