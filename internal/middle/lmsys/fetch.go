@@ -17,8 +17,9 @@ const (
 )
 
 var (
-	ver = ""
-	fns = [][]int{
+	baseCookies = "_gid=GA1.2.1675936366.1715937287; __cf_bm=U_jdXMip8z7eBl.QKt1mmvq_.Uevlr83qwyiVopdSbY-1716261505-1.0.1.1-udiw08hES_yHNRINd2ZUF07UMV52A.ene4w4ErjaTbt6WTGwyzvpTVfWQFpflvXZ5sqRRAGwxnf4JXxQ2mQgSg; cf_clearance=QxJsSKT9tsnKT_g8gNESW6SJ7hrBZZ8ipGPVnmGkoXk-1716261535-1.0.1.1-evXJdhL4WQRRDF5TpfToQV3xD73hQoIU15Vu7oOuByH2bnqbSqFlmfZ4UcJOJ8X4JLL0F24Lp1Wl.EEnWFZ9.g; _ga_K6D24EE9ED=GS1.1.1716261498.16.1.1716261539.0.0.0; _ga_R1FN4KJKJH=GS1.1.1716261498.30.1.1716261539.0.0.0; _ga=GA1.1.1320014795.1715641484"
+	ver         = ""
+	fns         = [][]int{
 		{42, 94},
 		{44, 95},
 	}
@@ -79,7 +80,9 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
-		Header("X-Forwarded-For", emit.RandIP()).
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Cache-Control", "no-cache").
+		Header("Priority", "u=1, i").
 		Body(obj).
 		DoS(http.StatusOK)
 	if err != nil {
@@ -107,7 +110,9 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
-		Header("X-Forwarded-For", emit.RandIP()).
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Cache-Control", "no-cache").
+		Header("Priority", "u=1, i").
 		DoS(http.StatusOK)
 	if err != nil {
 		return nil, err
@@ -121,10 +126,6 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	ch := make(chan string)
 	pos := 0
 
-	//e.Event("*", func(j emit.JoinEvent) interface{} {
-	//	logrus.Infof("%s", j.InitialBytes)
-	//	return nil
-	//})
 	e.Event("process_generating", func(j emit.JoinEvent) interface{} {
 		data := j.Output.Data
 		if len(data) < 2 {
@@ -213,6 +214,9 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 			Header("Cookie", cookies).
 			Header("Origin", "https://arena.lmsys.org").
 			Header("Referer", "https://arena.lmsys.org/").
+			Header("Accept-Language", "en-US,en;q=0.9").
+			Header("Cache-Control", "no-cache").
+			Header("Priority", "u=1, i").
 			Body(obj).
 			DoS(http.StatusOK)
 		if err == nil {
@@ -246,6 +250,9 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Cache-Control", "no-cache").
+		Header("Priority", "u=1, i").
 		DoS(http.StatusOK)
 	if err != nil {
 		return "", err
@@ -277,7 +284,8 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 
 func fetchCookies(ctx context.Context, proxies string) (cookies string) {
 	if ver != "" {
-		cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandStr(5))
+		cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandString(5))
+		cookies = emit.MergeCookies(baseCookies, cookies)
 		return
 	}
 	retry := 3
@@ -296,6 +304,7 @@ label:
 		Header("Origin", "https://arena.lmsys.org").
 		Header("Referer", "https://arena.lmsys.org/").
 		Header("priority", "u=1, i").
+		Header("cookie", baseCookies).
 		Header("User-Agent", ua).
 		DoS(http.StatusOK)
 	if err != nil {
@@ -321,6 +330,7 @@ label:
 		goto label
 	}
 	ver = co[0]
-	cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandStr(5))
+	cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandString(5))
+	cookies = emit.MergeCookies(baseCookies, cookies)
 	return
 }

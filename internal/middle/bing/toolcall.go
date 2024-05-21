@@ -18,7 +18,6 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			return "", err
 		}
 
-		// message = strings.ReplaceAll(message, "<|system|>", "<|user|>")
 	label:
 		retry--
 		chat := edge.New(options.

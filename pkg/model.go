@@ -1,6 +1,9 @@
 package pkg
 
-import "reflect"
+import (
+	"encoding/json"
+	"reflect"
+)
 
 type ChatCompletion struct {
 	Messages      []Keyv[interface{}] `json:"messages"`
@@ -97,4 +100,9 @@ func (kv Keyv[V]) Is(key string, value V) (out bool) {
 
 	v, _ := kv.Get(key)
 	return reflect.DeepEqual(v, value)
+}
+
+func (kv Keyv[V]) String() string {
+	bytes, _ := json.Marshal(kv)
+	return string(bytes)
 }

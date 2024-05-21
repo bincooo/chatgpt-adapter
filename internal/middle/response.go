@@ -185,7 +185,7 @@ func ToolCallResponse(ctx *gin.Context, model, name, args string) {
 					Role: "assistant",
 					ToolCalls: []pkg.Keyv[interface{}]{
 						{
-							"id":   "call_" + common.RandStr(5),
+							"id":   "call_" + common.RandString(5),
 							"type": "function",
 							"function": map[string]string{
 								"name":      name,
@@ -218,7 +218,7 @@ func SSEToolCallResponse(ctx *gin.Context, model, name, args string, created int
 	toolCall := make(map[string]interface{})
 	toolCall["index"] = 0
 	toolCall["type"] = "function"
-	toolCall["id"] = "call_" + common.RandStr(5)
+	toolCall["id"] = "call_" + common.RandString(5)
 	toolCall["function"] = map[string]string{"name": name, "arguments": ""}
 	response.Choices[0].Delta = &struct {
 		Role      string                  `json:"role,omitempty"`

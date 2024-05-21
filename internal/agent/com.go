@@ -4,7 +4,7 @@ const ToolTasks = `{{- range $index, $value := .pMessages}}
 {{- if eq $value.role "tool" }}
 <|tool|>
 TOOL_RESPONSE:
-  name: "{{ $value.name }}"
+  name: "{{ ToolId $value.name }}"
   description: "{{ ToolDesc $value.name }}"
 
 output: {{ $value.content }}
@@ -35,19 +35,17 @@ TOOL_RESPONSE: """
 """
 
 USER: 今天杭州的天气适合去哪里玩？ <|end|>
-ANSWER: 1: [{"toolId": "testToolId", "task": "今天杭州的天气"}, {"toolId": "testToolId2", "task": "杭州合适去哪里游玩"}] <|end|>
+ANSWER: 1: [{"toolId": "testToolId", "task": "今天杭州的天气"}, {"toolId": "testToolId2", "task": "杭州的天气合适去哪里游玩"}] <|end|>
 TOOL_RESPONSE: """
 晴天. 西湖、灵隐寺、千岛湖……
 """
 ANSWER: 0: 无拆解任务 <|end|>
 
-
 USER: 获取深圳天气并发送给QQ群组中 <|end|>
-ANSWER: 1: [{"toolId": "testToolId", "task": "深圳的天气"}, {"toolId": "testToolId2", "task": "发送QQ群组信息"}] <|end|>
+ANSWER: 1: [{"toolId": "testToolId", "task": "深圳的天气"}, {"toolId": "testToolId2", "task": "将深圳的天气发送到QQ群组"}] <|end|>
 
 
 现在，我们开始吧！下面是你本次可以使用的工具：
-
 """
 [
     {{- range $index, $value := .tools}}
@@ -73,8 +71,7 @@ ANSWER: 1: [{"toolId": "testToolId", "task": "深圳的天气"}, {"toolId": "tes
 ]
 """
 
-阅读上下文，不要重复选中相同的工具。
-下面是正式的对话内容：
+下面是正式的对话内容，请你直接输出拆解任务列表：
 USER: {{.content}}
 ANSWER: `
 
@@ -82,7 +79,7 @@ const ToolCall = `{{- range $index, $value := .pMessages}}
 {{- if eq $value.role "tool" }}
 <|tool|>
 TOOL_RESPONSE:
-  name: "{{ $value.name }}"
+  name: "{{ ToolId $value.name }}"
   description: "{{ ToolDesc $value.name }}"
 
 output: {{ $value.content }}
@@ -95,7 +92,7 @@ output: {{ $value.content }}
 {{end}}
 
 
-你是一个智能机器人，你专注于选择工具的给用户使用的能力。有时候，你可以依赖工具的运行结果，来更准确的回答用户。
+你是一个智能机器人，你专注于选择工具的给用户使用的能力，你在一个脱机环境，不应该直接输出工具的结果。有时候，你可以依赖工具的运行结果，来更准确的回答用户。
 
 工具使用了 JSON Schema 的格式声明，其中 toolId 是工具的 description 是工具的描述，parameters 是工具的参数，包括参数的类型和描述，required 是必填参数的列表。
 
@@ -117,11 +114,13 @@ ANSWER: 0: <|end|>
 {{- else }}
 ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 {{- end }}
+
 USER: 今天杭州的天气如何 <|end|>
 ANSWER: 1: {"toolId":"testToolId","arguments":{"city": "杭州"}} <|end|>
 TOOL_RESPONSE: """
 晴天......
 """
+
 USER: 今天杭州的天气适合去哪里玩？ <|end|>
 ANSWER: 1: {"toolId":"testToolId2","arguments":{"query": "杭州 天气 去哪里玩"}} <|end|>
 TOOL_RESPONSE: """
@@ -135,7 +134,6 @@ ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 
 
 现在，我们开始吧！下面是你本次可以使用的工具：
-
 """
 [
     {{- range $index, $value := .tools}}
@@ -161,8 +159,10 @@ ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 ]
 """
 
-阅读上下文，不要重复选中相同的工具。
-下面是正式的对话内容：
+{{ if gt (len .excludeTaskContents) 0 }}
+其中：{{ .excludeTaskContents }}。
+{{- end }}
+下面是正式的对话内容，请你直接输出工具：
 USER: {{.content}}
 ANSWER: `
 

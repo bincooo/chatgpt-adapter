@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/bincooo/chatgpt-adapter/v2/internal/cache"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
@@ -26,6 +27,7 @@ var (
 
 func main() {
 	pkg.Init()
+	cache.Init()
 	common.Init()
 	handler.InitExtensions()
 	cmd.PersistentFlags().StringVar(&proxies, "proxies", "", "本地代理 proxies")
