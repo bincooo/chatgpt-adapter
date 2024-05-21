@@ -376,8 +376,8 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 	return recursive(value)
 }
 
-func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []pkg.Matcher {
-	matchers := pkg.NewMatchers()
+func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
+	matchers := NewMatchers()
 	flags := pkg.Config.GetBool("flags")
 	if !flags {
 		return matchers
@@ -493,7 +493,7 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []pkg.Matcher {
 }
 
 // matcher 流响应干预
-func handleMatcher(h map[uint8]string, matchers []pkg.Matcher) {
+func handleMatcher(h map[uint8]string, matchers []Matcher) {
 	find := ""
 	if f, ok := h['f']; ok {
 		find = f
@@ -515,7 +515,7 @@ func handleMatcher(h map[uint8]string, matchers []pkg.Matcher) {
 	c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
 	join := strings.TrimSpace(values[1])
 
-	matchers = append(matchers, &pkg.SymbolMatcher{
+	matchers = append(matchers, &SymbolMatcher{
 		Find: find,
 		H: func(index int, content string) (state int, result string) {
 			r := []rune(content)

@@ -370,7 +370,7 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 // 解析任务
 func parseToToolTasks(content string, completion pkg.ChatCompletion) (tasks []pkg.Keyv[string]) {
 	j := ""
-	slice := strings.Split(content, "TOOL_RESPONSE")
+	slice := strings.Split(content, "1: ")
 	for _, value := range slice {
 		left := strings.Index(value, "[")
 		right := strings.LastIndex(value, "]")

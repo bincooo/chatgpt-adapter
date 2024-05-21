@@ -46,7 +46,7 @@ func waitMessage(chatResponse chan string, cancel func(str string) bool) (conten
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, cancel chan error, chatResponse chan string, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error, chatResponse chan string, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
@@ -85,7 +85,7 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, cancel chan error, c
 			}
 
 			fmt.Printf("----- raw -----\n %s\n", raw)
-			raw = pkg.ExecMatchers(matchers, raw)
+			raw = common.ExecMatchers(matchers, raw)
 			if sse {
 				middle.SSEResponse(ctx, Model, raw, created)
 			}

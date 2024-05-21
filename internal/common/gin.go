@@ -16,8 +16,8 @@ func GetGinGeneration(ctx *gin.Context) (value pkg.ChatGeneration) {
 	return
 }
 
-func GetGinMatchers(ctx *gin.Context) (values []pkg.Matcher) {
-	values, _ = GetGinValues[pkg.Matcher](ctx, vars.GinMatchers)
+func GetGinMatchers(ctx *gin.Context) (values []Matcher) {
+	values, _ = GetGinValues[Matcher](ctx, vars.GinMatchers)
 	return
 }
 

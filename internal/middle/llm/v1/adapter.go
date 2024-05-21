@@ -8,7 +8,6 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -120,7 +119,7 @@ func waitMessage(response *http.Response, cancel func(str string) bool) (content
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, response *http.Response, matchers []pkg.Matcher, sse bool) {
+func waitResponse(ctx *gin.Context, response *http.Response, matchers []common.Matcher, sse bool) {
 	tokens := ctx.GetInt("tokens")
 	scanner := bufio.NewScanner(response.Body)
 	scanner.Split(func(data []byte, eof bool) (advance int, token []byte, err error) {
@@ -183,7 +182,7 @@ func waitResponse(ctx *gin.Context, response *http.Response, matchers []pkg.Matc
 		content = raw
 		raw = raw[pos:]
 		fmt.Printf("----- raw -----\n %s\n", raw)
-		raw = pkg.ExecMatchers(matchers, raw)
+		raw = common.ExecMatchers(matchers, raw)
 
 		if sse {
 			middle.SSEResponse(ctx, Model, raw, created)

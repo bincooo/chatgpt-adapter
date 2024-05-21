@@ -4,7 +4,6 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -63,8 +62,7 @@ func (API) Completion(ctx *gin.Context) {
 		Proxies(proxies).
 		TopicToE(true).
 		Model(edge.ModelSydney).
-		Temperature(completion.Temperature).
-		JoinOptionSets())
+		Temperature(completion.Temperature))
 	if notebook {
 		chat.Notebook(true)
 	}
@@ -94,11 +92,11 @@ func (API) Completion(ctx *gin.Context) {
 	waitResponse(ctx, matchers, cancel, chatResponse, completion.Stream)
 }
 
-func joinMatchers(ctx *gin.Context, matchers []pkg.Matcher) (chan error, []pkg.Matcher) {
+func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []common.Matcher) {
 	// 清理 [1]、[2] 标签
 	// 清理 [^1^]、[^2^] 标签
 	// 清理 [^1^ 标签
-	matchers = append(matchers, &pkg.SymbolMatcher{
+	matchers = append(matchers, &common.SymbolMatcher{
 		Find: "[",
 		H: func(index int, content string) (state int, result string) {
 			r := []rune(content)
@@ -126,7 +124,7 @@ func joinMatchers(ctx *gin.Context, matchers []pkg.Matcher) (chan error, []pkg.M
 		},
 	})
 	// (^1^) (^1^ (^1^^ 标签
-	matchers = append(matchers, &pkg.SymbolMatcher{
+	matchers = append(matchers, &common.SymbolMatcher{
 		Find: "(",
 		H: func(index int, content string) (state int, result string) {
 			r := []rune(content)
@@ -153,7 +151,7 @@ func joinMatchers(ctx *gin.Context, matchers []pkg.Matcher) (chan error, []pkg.M
 	})
 
 	// 自定义标记块中断
-	cancel, matcher := pkg.NewCancelMather(ctx)
+	cancel, matcher := common.NewCancelMather(ctx)
 	matchers = append(matchers, matcher)
 	return cancel, matchers
 }

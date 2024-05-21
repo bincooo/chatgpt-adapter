@@ -3,7 +3,6 @@ package coze
 import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/coze-api"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -97,7 +96,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	// 自定义标记块中断
-	cancel, matcher := pkg.NewCancelMather(ctx)
+	cancel, matcher := common.NewCancelMather(ctx)
 	matchers = append(matchers, matcher)
 
 	waitResponse(ctx, matchers, cancel, chatResponse, completion.Stream)

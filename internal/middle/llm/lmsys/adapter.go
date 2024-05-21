@@ -5,7 +5,6 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
 	"strings"
 )
@@ -291,13 +290,13 @@ label:
 	waitResponse(ctx, matchers, ch, cancel, completion.Stream)
 }
 
-func joinMatchers(ctx *gin.Context, matchers []pkg.Matcher) (chan error, []pkg.Matcher) {
+func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []common.Matcher) {
 	// 自定义标记块中断
-	cancel, matcher := pkg.NewCancelMather(ctx)
+	cancel, matcher := common.NewCancelMather(ctx)
 	matchers = append(matchers, matcher)
 
 	// 违反内容中断并返回错误1
-	matchers = append(matchers, &pkg.SymbolMatcher{
+	matchers = append(matchers, &common.SymbolMatcher{
 		Find: "I did not actually provide",
 		H: func(index int, content string) (state int, result string) {
 			cancel <- errors.New("SECURITY POLICY INTERCEPTION")
@@ -306,7 +305,7 @@ func joinMatchers(ctx *gin.Context, matchers []pkg.Matcher) (chan error, []pkg.M
 	})
 
 	// 违反内容中断并返回错误2
-	matchers = append(matchers, &pkg.SymbolMatcher{
+	matchers = append(matchers, &common.SymbolMatcher{
 		Find: "I apologize",
 		H: func(index int, content string) (state int, result string) {
 			cancel <- errors.New("SECURITY POLICY INTERCEPTION")

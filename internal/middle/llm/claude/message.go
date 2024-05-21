@@ -37,7 +37,7 @@ func waitMessage(chatResponse chan types.PartialResponse, cancel func(str string
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, chatResponse chan types.PartialResponse, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan types.PartialResponse, sse bool) {
 	var (
 		content = ""
 		created = time.Now().Unix()
@@ -60,7 +60,7 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, chatResponse chan ty
 		}
 
 		fmt.Printf("----- raw -----\n %s\n", message.Text)
-		raw := pkg.ExecMatchers(matchers, message.Text)
+		raw := common.ExecMatchers(matchers, message.Text)
 		if sse {
 			middle.SSEResponse(ctx, Model, raw, created)
 		}

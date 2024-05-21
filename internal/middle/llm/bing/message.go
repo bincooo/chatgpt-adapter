@@ -36,7 +36,7 @@ func waitMessage(chatResponse chan edge.ChatResponse, cancel func(str string) bo
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, cancel chan error, chatResponse chan edge.ChatResponse, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error, chatResponse chan edge.ChatResponse, sse bool) {
 	var (
 		pos     = 0
 		content = ""
@@ -77,7 +77,7 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, cancel chan error, c
 				fmt.Printf("----- raw -----\n %s\n", raw)
 			}
 			pos = contentL
-			raw = pkg.ExecMatchers(matchers, raw)
+			raw = common.ExecMatchers(matchers, raw)
 
 			if sse {
 				middle.SSEResponse(ctx, Model, raw, created)
@@ -142,11 +142,12 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 	}
 
 	// 获取最后一条用户消息
-	if pos := len(newMessages) - 1; newMessages[pos]["author"] == "user" {
-		text = newMessages[pos]["text"]
-		newMessages = newMessages[:pos]
-	} else {
-		text = "continue"
+	for pos := len(newMessages) - 1; pos > 0; pos-- {
+		message := newMessages[pos]
+		if message["author"] == "user" {
+			newMessages = append(newMessages[:pos], newMessages[pos+1:]...)
+			text = message["text"]
+		}
 	}
 
 	// 超出最大轮次改为WebPage
@@ -158,8 +159,23 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 		pMessages = append(pMessages, edge.BuildMessage("CurrentWebpageContextRequest", "改为从此页面回答。"))
 		newMessages = newMessages[len(newMessages)-max*2:]
 	}
-
 	pMessages = append(pMessages, newMessages...)
+
+	//var previousMessages []string
+	//for pos := range newMessages {
+	//	message := newMessages[pos]
+	//	previousMessages = append(previousMessages, message["text"])
+	//}
+	//
+	//if len(previousMessages) > 0 {
+	//	pMessages = append(pMessages, edge.BuildPageMessage(strings.Join(previousMessages, "\n\n")))
+	//	if text != "continue" {
+	//		pMessages = append(pMessages, edge.BuildMessage("CurrentWebpageContextRequest", "改为从此页面回答。"))
+	//	} else {
+	//		text = "改为从此页面回答。\n\n" + text
+	//	}
+	//}
+
 	return
 }
 

@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, partialResponse *http.Response, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *http.Response, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
@@ -91,7 +91,7 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, partialResponse *htt
 		}
 		fmt.Printf("----- raw -----\n %s\n", raw)
 		original = nil
-		raw = pkg.ExecMatchers(matchers, raw.(string))
+		raw = com.ExecMatchers(matchers, raw.(string))
 
 		if sse {
 			middle.SSEResponse(ctx, MODEL, raw.(string), created)
@@ -119,7 +119,7 @@ func waitResponse(ctx *gin.Context, matchers []pkg.Matcher, partialResponse *htt
 	}
 }
 
-func waitResponse15(ctx *gin.Context, matchers []pkg.Matcher, ch chan string, sse bool) {
+func waitResponse15(ctx *gin.Context, matchers []com.Matcher, ch chan string, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logrus.Infof("waitResponse ...")
@@ -143,7 +143,7 @@ func waitResponse15(ctx *gin.Context, matchers []pkg.Matcher, ch chan string, ss
 		if strings.HasPrefix(tex, "text: ") {
 			raw := strings.TrimPrefix(tex, "text: ")
 			fmt.Printf("----- raw -----\n %s\n", raw)
-			raw = pkg.ExecMatchers(matchers, raw)
+			raw = com.ExecMatchers(matchers, raw)
 			if sse {
 				middle.SSEResponse(ctx, MODEL+"-1.5", raw, created)
 			}
