@@ -4,33 +4,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/hf"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/bing"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/claude"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/cohere"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/coze"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/gemini"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/lmsys"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/v1"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/playground"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin/hf"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin/llm/bing"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin/llm/claude"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin/llm/cohere"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin/llm/coze"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin/llm/gemini"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin/llm/lmsys"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin/llm/v1"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin/playground"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
+	"github.com/bincooo/chatgpt-adapter/v2/logger"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	GlobalExtension = middle.ExtensionAdapter{
-		Extensions: make([]middle.Adapter, 0),
+	GlobalExtension = plugin.ExtensionAdapter{
+		Extensions: make([]plugin.Adapter, 0),
 	}
 )
 
 func InitExtensions() {
-	GlobalExtension.Extensions = []middle.Adapter{
+	GlobalExtension.Extensions = []plugin.Adapter{
 		bing.Adapter,
 		claude.Adapter,
-		coh.Adapter,
+		cohere.Adapter,
 		coze.Adapter,
 		gemini.Adapter,
 		lmsys.Adapter,
@@ -43,27 +44,22 @@ func InitExtensions() {
 func completions(ctx *gin.Context) {
 	var completion pkg.ChatCompletion
 	if err := ctx.BindJSON(&completion); err != nil {
-		middle.ErrResponse(ctx, -1, err)
+		response.Error(ctx, -1, err)
 		return
 	}
 	ctx.Set(vars.GinCompletion, completion)
 	matchers := common.XmlFlags(ctx, &completion)
 	ctx.Set(vars.GinMatchers, matchers)
-	if ctx.GetBool("debug") {
-		indent, err := json.MarshalIndent(completion, "", "  ")
-		if err != nil {
-			logrus.Warn(err)
-		} else {
-			fmt.Printf("requset: \n%s", indent)
-		}
+	if common.GinDebugger(ctx) {
+		bodyLogger(completion)
 	}
 
-	if !middle.MessageValidator(ctx) {
+	if !response.MessageValidator(ctx) {
 		return
 	}
 
 	if !GlobalExtension.Match(ctx, completion.Model) {
-		middle.ErrResponse(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", completion.Model))
+		response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", completion.Model))
 		return
 	}
 
@@ -73,16 +69,25 @@ func completions(ctx *gin.Context) {
 func generations(ctx *gin.Context) {
 	var generation pkg.ChatGeneration
 	if err := ctx.BindJSON(&generation); err != nil {
-		middle.ErrResponse(ctx, -1, err)
+		response.Error(ctx, -1, err)
 		return
 	}
 
 	ctx.Set(vars.GinGeneration, generation)
-	logrus.Infof("generate images text[ %s ]: %s", generation.Model, generation.Message)
+	logger.Infof("generate images text[ %s ]: %s", generation.Model, generation.Message)
 	if !GlobalExtension.Match(ctx, generation.Model) {
-		middle.ErrResponse(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
+		response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
 		return
 	}
 
 	GlobalExtension.Generation(ctx)
+}
+
+func bodyLogger(completion pkg.ChatCompletion) {
+	bytes, err := json.MarshalIndent(completion, "", "  ")
+	if err != nil {
+		logger.Warn(err)
+	} else {
+		fmt.Printf("requset: \n%s", bytes)
+	}
 }

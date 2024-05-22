@@ -4,7 +4,9 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/cache"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler"
+	"github.com/bincooo/chatgpt-adapter/v2/logger"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +32,7 @@ func main() {
 	cache.Init()
 	common.Init()
 	handler.InitExtensions()
+	logger.Init(logrus.InfoLevel)
 	cmd.PersistentFlags().StringVar(&proxies, "proxies", "", "本地代理 proxies")
 	cmd.PersistentFlags().IntVar(&port, "port", 8080, "服务端口 port")
 	_ = cmd.Execute()

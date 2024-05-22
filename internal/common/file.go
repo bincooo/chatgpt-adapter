@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"github.com/bincooo/chatgpt-adapter/v2/logger"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/emit.io"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
@@ -76,21 +76,21 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 	if os.IsNotExist(err) {
 		err = os.Mkdir("tmp", os.ModePerm)
 		if err != nil {
-			logrus.Error("save base64 failed: ", err)
+			logger.Error("save base64 failed: ", err)
 			return "", err
 		}
 	}
 
 	tempFile, err := os.CreateTemp("tmp", "*."+suffix)
 	if err != nil {
-		logrus.Error("save base64 failed: ", err)
+		logger.Error("save base64 failed: ", err)
 		return "", err
 	}
 	defer tempFile.Close()
 
 	_, err = tempFile.Write(dec)
 	if err != nil {
-		logrus.Error("save base64 failed: ", err)
+		logger.Error("save base64 failed: ", err)
 		return "", err
 	}
 
@@ -103,18 +103,18 @@ func Download(proxies, url, suffix string) (file string, err error) {
 		URL(url).
 		Do()
 	if err != nil {
-		logrus.Error("download failed: ", err)
+		logger.Error("download failed: ", err)
 		return "", err
 	}
 
 	if response.StatusCode != http.StatusOK {
-		logrus.Error("download failed: ", response.Status)
+		logger.Error("download failed: ", response.Status)
 		return "", errors.New(response.Status)
 	}
 
 	dec, err := io.ReadAll(response.Body)
 	if err != nil {
-		logrus.Error("download failed: ", err)
+		logger.Error("download failed: ", err)
 		return "", err
 	}
 
@@ -122,21 +122,21 @@ func Download(proxies, url, suffix string) (file string, err error) {
 	if os.IsNotExist(err) {
 		err = os.Mkdir("tmp", os.ModePerm)
 		if err != nil {
-			logrus.Error("download failed: ", err)
+			logger.Error("download failed: ", err)
 			return "", err
 		}
 	}
 
 	tempFile, err := os.CreateTemp("tmp", "*."+suffix)
 	if err != nil {
-		logrus.Error("download failed: ", err)
+		logger.Error("download failed: ", err)
 		return "", err
 	}
 	defer tempFile.Close()
 
 	_, err = tempFile.Write(dec)
 	if err != nil {
-		logrus.Error("download failed: ", err)
+		logger.Error("download failed: ", err)
 		return "", err
 	}
 

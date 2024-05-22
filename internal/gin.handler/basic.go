@@ -2,10 +2,10 @@ package handler
 
 import (
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/v2/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -37,9 +37,9 @@ func Bind(port int, version, proxies string) {
 	route.Static("/file/tmp/", "tmp")
 
 	addr := ":" + strconv.Itoa(port)
-	logrus.Info(fmt.Sprintf("server start by http://0.0.0.0%s/v1", addr))
+	logger.Info(fmt.Sprintf("server start by http://0.0.0.0%s/v1", addr))
 	if err := route.Run(addr); err != nil {
-		logrus.Error(err)
+		logger.Error(err)
 		os.Exit(1)
 	}
 }
@@ -83,7 +83,7 @@ func crosHandler(context *gin.Context) {
 	// 请求打印
 	data, err := httputil.DumpRequest(context.Request, false)
 	if err != nil {
-		logrus.Error(err)
+		logger.Error(err)
 	} else {
 		fmt.Printf("\n\n\n\n------ Start request %s  ---------\n%s\n", uid, data)
 	}
@@ -98,8 +98,8 @@ func crosHandler(context *gin.Context) {
 func panicHandler(ctx *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			logrus.Errorf("response error: %v", r)
-			middle.ErrResponse(ctx, -1, fmt.Sprintf("%v", r))
+			logger.Errorf("response error: %v", r)
+			response.Error(ctx, -1, fmt.Sprintf("%v", r))
 		}
 	}()
 

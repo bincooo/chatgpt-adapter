@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
+	"github.com/bincooo/chatgpt-adapter/v2/logger"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"sort"
 	"strconv"
 	"strings"
@@ -321,7 +321,7 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 							c := regexp.MustCompile(cmp, regexp.Compiled)
 							matched, err := c.MatchString(tag)
 							if err != nil {
-								logrus.Warn("compile failed: "+cmp, err)
+								logger.Warn("compile failed: "+cmp, err)
 								return false
 							}
 							return matched
@@ -419,7 +419,7 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 				if idx < pos && message["role"] != "system" {
 					replace, err := c.Replace(message.GetString("content"), value, -1, -1)
 					if err != nil {
-						logrus.Warn("compile failed: "+cmp, err)
+						logger.Warn("compile failed: "+cmp, err)
 						continue
 					}
 					message["content"] = replace
@@ -472,7 +472,7 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 			}
 			var baseMessages []pkg.Keyv[interface{}]
 			if err := json.Unmarshal([]byte(content), &baseMessages); err != nil {
-				logrus.Error("histories flags handle failed: ", err)
+				logger.Error("histories flags handle failed: ", err)
 				continue
 			}
 
@@ -524,7 +524,7 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 			}
 			replace, err := c.Replace(content, join, -1, -1)
 			if err != nil {
-				logrus.Warn("compile failed: "+values[0], err)
+				logger.Warn("compile failed: "+values[0], err)
 				return vars.MatMatched, content
 			}
 			return vars.MatMatched, replace
@@ -658,7 +658,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 
 			// debug 模式
 			if node.t == XML_TYPE_X && node.tag == "debug" {
-				ctx.Set("debug", true)
+				ctx.Set(vars.GinDebugger, true)
 				clean(content[node.index:node.end])
 				continue
 			}

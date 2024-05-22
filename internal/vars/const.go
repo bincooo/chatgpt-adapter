@@ -9,6 +9,7 @@ const (
 	GinGeneration      = "__generation__"
 	GinMatchers        = "__matchers__"
 	GinCompletionUsage = "__completion-usage__"
+	GinDebugger        = "__debug__"
 	GinTool            = "__tool__"
 	GinClose           = "__close__"
 )

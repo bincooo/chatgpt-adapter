@@ -6,6 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func GinDebugger(ctx *gin.Context) bool {
+	if value, ok := GetGinValue[bool](ctx, vars.GinDebugger); ok {
+		return value
+	}
+
+	return false
+}
+
 func GetGinCompletion(ctx *gin.Context) (value pkg.ChatCompletion) {
 	value, _ = GetGinValue[pkg.ChatCompletion](ctx, vars.GinCompletion)
 	return
