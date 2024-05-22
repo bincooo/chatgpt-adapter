@@ -82,12 +82,10 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 func mergeMessages(messages []pkg.Keyv[interface{}]) (attachment []types.Attachment, tokens int) {
 	condition := func(expr string) string {
 		switch expr {
-		case "system", "assistant", "function", "tool":
+		case "system", "assistant", "function", "tool", "end":
 			return expr
-		case "user":
-			return "human"
 		default:
-			return ""
+			return "human"
 		}
 	}
 

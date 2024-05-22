@@ -171,12 +171,12 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 	// role类型转换
 	condition := func(expr string) string {
 		switch expr {
-		case "user", "system", "function":
-			return "user"
+		case "end":
+			return expr
 		case "assistant":
 			return "model"
 		default:
-			return ""
+			return "user"
 		}
 	}
 

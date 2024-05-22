@@ -137,12 +137,10 @@ func partTwo(ctx *gin.Context, session *chatSession, messages map[string]interfa
 func mergeMessages(messages []pkg.Keyv[interface{}]) (result map[string]interface{}, tokens int) {
 	condition := func(expr string) string {
 		switch expr {
-		case "user", "function", "tool":
-			return "user"
-		case "system", "assistant":
+		case "system", "assistant", "end":
 			return expr
 		default:
-			return ""
+			return "user"
 		}
 	}
 

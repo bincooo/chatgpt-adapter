@@ -132,10 +132,14 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (content string) {
 func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.Message, system, content string, tokens int) {
 	condition := func(expr string) string {
 		switch expr {
+		case "end":
+			return expr
 		case "assistant":
-			return "Chatbot"
+			return "CHATBOT"
+		case "system":
+			return "SYSTEM"
 		default:
-			return "User"
+			return "USER"
 		}
 	}
 
@@ -186,8 +190,9 @@ func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.M
 	})
 
 	content = "continue"
-	if idx := len(newMessages) - 1; idx >= 0 && newMessages[idx].Role == "User" {
-		content = newMessages[idx].Message
+	if pos := len(newMessages) - 1; pos >= 0 && newMessages[pos].Role == "USER" {
+		content = newMessages[pos].Message
+		newMessages = newMessages[:pos]
 	}
 	return
 }

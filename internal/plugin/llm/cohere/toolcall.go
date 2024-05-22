@@ -14,7 +14,6 @@ import (
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.ChatCompletion) bool {
 	logger.Info("completeTools ...")
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
-		pMessages := make([]cohere.Message, 0)
 		chat := cohere.New(cookie, 0.4, completion.Model, false)
 		chat.Proxies(proxies)
 		chat.TopK(completion.TopK)
@@ -25,7 +24,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			"system:",
 		})
 
-		chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, "", message)
+		chatResponse, err := chat.Reply(ctx.Request.Context(), make([]cohere.Message, 0), "", message)
 		if err != nil {
 			return "", err
 		}

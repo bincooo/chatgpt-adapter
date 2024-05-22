@@ -109,10 +109,10 @@ label:
 func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []coze.Message, tokens int) {
 	condition := func(expr string) string {
 		switch expr {
-		case "system", "user", "assistant", "function", "tool":
+		case "system", "assistant", "function", "tool", "end":
 			return expr
 		default:
-			return ""
+			return "user"
 		}
 	}
 

@@ -296,7 +296,7 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 	// 非-1值则为有默认选项
 	valueDef := nameWithTools(common.GetGinToolValue(ctx).GetString("id"), completion.Tools)
 
-	// 没有解析出 JSONz
+	// 没有解析出 JSON
 	if j == "" {
 		if valueDef != "-1" {
 			return toolCallResponse(ctx, completion, valueDef, "{}", created)

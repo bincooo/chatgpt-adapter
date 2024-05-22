@@ -101,10 +101,10 @@ label:
 func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages string) {
 	condition := func(expr string) string {
 		switch expr {
-		case "system", "user", "tool", "function", "assistant":
+		case "system", "tool", "function", "assistant", "end":
 			return expr
 		default:
-			return ""
+			return "user"
 		}
 	}
 
