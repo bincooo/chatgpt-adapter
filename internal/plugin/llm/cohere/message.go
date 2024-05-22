@@ -189,7 +189,7 @@ func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.M
 		}
 
 		defer buffer.Reset()
-		buffer.WriteString(fmt.Sprintf(message["content"]))
+		buffer.WriteString(message["content"])
 
 		var result []cohere.Message
 		if role == "system" {
@@ -207,7 +207,7 @@ func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.M
 		if role == "function" || role == "tool" {
 			buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
 			result = append(result, cohere.Message{
-				Role:    "User",
+				Role:    condition(role),
 				Message: buffer.String(),
 			})
 			return result

@@ -82,10 +82,11 @@ func (API) Completion(ctx *gin.Context) {
 		message   string
 		pMessages []coh.Message
 		chat      coh.Chat
-		tools     = convertTools(completion)
+		//tools     = convertTools(completion)
 	)
 
-	if notebook && plugin.NeedToToolCall(ctx) {
+	// 官方的文档toolCall描述十分模糊，简测功能不佳，改回提示词实现
+	if /*notebook &&*/ plugin.NeedToToolCall(ctx) {
 		if completeToolCalls(ctx, cookie, proxies, completion) {
 			return
 		}
@@ -113,7 +114,7 @@ func (API) Completion(ctx *gin.Context) {
 		chat.Proxies(proxies)
 	}
 
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, message, tools)
+	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, message, nil)
 	if err != nil {
 		response.Error(ctx, -1, err)
 		return

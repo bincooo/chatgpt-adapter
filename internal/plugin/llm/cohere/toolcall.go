@@ -8,6 +8,7 @@ import (
 	"github.com/bincooo/cohere-api"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -24,6 +25,8 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			"system:",
 		})
 
+		message = regexp.MustCompile("工具推荐： toolId = .{5}").
+			ReplaceAllString(message, "")
 		chatResponse, err := chat.Reply(ctx.Request.Context(), make([]cohere.Message, 0), "", message, nil)
 		if err != nil {
 			return "", err
