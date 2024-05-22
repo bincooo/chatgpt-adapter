@@ -171,7 +171,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 	// role类型转换
 	condition := func(expr string) string {
 		switch expr {
-		case "end":
+		case "function", "tool", "end":
 			return expr
 		case "assistant":
 			return "model"
@@ -185,18 +185,57 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 		tokens += com.CalcTokens(message["content"])
 		if condition(role) == condition(next) {
 			// cache buffer
-			if role == "function" {
-				buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-				return nil
-			}
 			buffer.WriteString(message["content"])
 			return nil
 		}
 
 		defer buffer.Reset()
 		buffer.WriteString(fmt.Sprintf(message["content"]))
+		var result []map[string]interface{}
+
+		if role == "tool" || role == "function" {
+			var args interface{}
+			if err := json.Unmarshal([]byte(message["content"]), &args); err != nil {
+				logger.Error(err)
+				return nil
+			}
+
+			result = append(result, map[string]interface{}{
+				"role": "user",
+				"parts": []interface{}{
+					map[string]interface{}{
+						"functionResponse": map[string]interface{}{
+							"name":     message["name"],
+							"response": args,
+						},
+					},
+				},
+			})
+			return result
+		}
+
+		if toolCalls, ok := message["tool_calls"]; ok && role == "assistant" && toolCalls == "yes" {
+			var args interface{}
+			if err := json.Unmarshal([]byte(message["content"]), &args); err != nil {
+				logger.Error(err)
+				return nil
+			}
+
+			result = append(result, map[string]interface{}{
+				"role": "assistant",
+				"parts": []interface{}{
+					map[string]interface{}{
+						"functionCall": map[string]interface{}{
+							"name": message["name"],
+							"args": args,
+						},
+					},
+				},
+			})
+			return result
+		}
+
 		if role == "system" {
-			var result []map[string]interface{}
 			result = append(result, map[string]interface{}{
 				"role": "user",
 				"parts": []interface{}{

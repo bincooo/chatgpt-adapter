@@ -46,17 +46,55 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		completion.TopP = 0.95
 	}
 
+	toStrings := func(slice []interface{}) (values []string) {
+		for _, v := range slice {
+			values = append(values, v.(string))
+		}
+		return
+	}
+
+	condition := func(str string) string {
+		switch str {
+		case "string":
+			return "STRING"
+		case "boolean":
+			return "BOOLEAN"
+		case "number":
+			return "NUMBER"
+		default:
+			if strings.HasPrefix(str, "array") {
+				return "ARRAY"
+			}
+			return "OBJECT"
+		}
+	}
+
+	// fix: type 枚举必须符合google定义，否则报错400
+	// https://ai.google.dev/api/rest/v1beta/Schema?hl=zh-cn#type
+	var fix func(keyv pkg.Keyv[interface{}]) pkg.Keyv[interface{}]
+	{
+		fix = func(keyv pkg.Keyv[interface{}]) pkg.Keyv[interface{}] {
+			if keyv.Has("type") {
+				keyv.Set("type", condition(keyv.GetString("type")))
+			}
+			for k, _ := range keyv {
+				child := keyv.GetKeyv(k)
+				if child != nil {
+					keyv.Set(k, fix(child))
+				}
+			}
+			return keyv
+		}
+	}
+
 	// 参数基本与openai对齐
 	_funcDecls := make([]funcDecl, 0)
 	if toolsL := len(completion.Tools); toolsL > 0 {
 		for _, v := range completion.Tools {
 			kv := v.GetKeyv("function").GetKeyv("parameters")
-			required, ok := kv.Get("required")
-			if !ok {
-				required = []string{}
-			}
-
+			required := kv.GetSlice("required")
 			_funcDecls = append(_funcDecls, funcDecl{
+				// 必须为 a-z、A-Z、0-9，或包含下划线和短划线，长度上限为 63 个字符
 				Name:        strings.Replace(v.GetKeyv("function").GetString("name"), "-", "_", -1),
 				Description: v.GetKeyv("function").GetString("description"),
 				Params: struct {
@@ -64,9 +102,9 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 					Required   []string               `json:"required"`
 					Type       string                 `json:"type"`
 				}{
-					Properties: kv.GetKeyv("properties"),
-					Required:   required.([]string),
-					Type:       kv.GetString("function"),
+					Properties: fix(kv.GetKeyv("properties")),
+					Required:   toStrings(required),
+					Type:       condition(kv.GetString("type")),
 				},
 			})
 		}
@@ -120,7 +158,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		// 函数调用
 		payload["tools"] = []map[string]interface{}{
 			{
-				"function_declarations": _funcDecls,
+				"functionDeclarations": _funcDecls,
 			},
 		}
 	}
@@ -148,10 +186,10 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 
 	if res.StatusCode != http.StatusOK {
 		h := res.Header
-		if c := h.Get("content-type"); strings.Contains(c, "application/json") {
+		if c := h.Get("content-type"); !strings.Contains(c, "text/html") {
 			bts, e := io.ReadAll(res.Body)
 			if e == nil {
-				return nil, fmt.Errorf("%s: %s", res.Status, bts)
+				logger.Errorf("%s", bts)
 			}
 		}
 		return nil, errors.New(res.Status)

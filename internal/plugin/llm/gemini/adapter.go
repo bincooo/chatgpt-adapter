@@ -12,6 +12,7 @@ import (
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 	"sync"
@@ -104,6 +105,10 @@ func complete(ctx *gin.Context) {
 	ctx.Set(ginTokens, tokens)
 	r, err := build(ctx.Request.Context(), proxies, cookie, newMessages, completion)
 	if err != nil {
+		var urlError *url.Error
+		if errors.As(err, &urlError) {
+			urlError.URL = strings.ReplaceAll(urlError.URL, cookie, "AIzaSy***")
+		}
 		response.Error(ctx, -1, err)
 		return
 	}

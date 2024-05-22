@@ -205,7 +205,7 @@ func toolCacheHash(completion pkg.ChatCompletion) (hash string) {
 		return "-1"
 	}
 
-	return common.HashString(hash)
+	return common.HashString(completion.Model + hash)
 }
 
 func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template string) (message string, err error) {

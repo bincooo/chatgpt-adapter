@@ -18,6 +18,51 @@ func MessageCombiner[T any](
 	buffer := new(bytes.Buffer)
 	msgs := make([]map[string]string, 0)
 	for _, message := range messages {
+		if message.Is("role", "assistant") && message.Has("tool_calls") {
+			if buffer.Len() > 0 {
+				msgs = append(msgs, map[string]string{
+					"role":    previous,
+					"content": buffer.String(),
+				})
+				buffer.Reset()
+			}
+
+			previous = message.GetString("role")
+			toolCalls := message.GetSlice("tool_calls")
+			if len(toolCalls) == 0 {
+				continue
+			}
+
+			var toolCall pkg.Keyv[interface{}] = toolCalls[0].(map[string]interface{})
+			keyv := toolCall.GetKeyv("function")
+
+			msgs = append(msgs, map[string]string{
+				"tool_calls": "yes",
+				"role":       previous,
+				"name":       keyv.GetString("name"),
+				"content":    keyv.GetString("arguments"),
+			})
+			continue
+		}
+
+		if message.Is("role", "tool") || message.Is("role", "function") {
+			if buffer.Len() > 0 {
+				msgs = append(msgs, map[string]string{
+					"role":    previous,
+					"content": buffer.String(),
+				})
+				buffer.Reset()
+			}
+
+			previous = message.GetString("role")
+			msgs = append(msgs, map[string]string{
+				"role":    previous,
+				"name":    message.GetString("name"),
+				"content": message.GetString("content"),
+			})
+			continue
+		}
+
 		str := strings.TrimSpace(message.GetString("content"))
 		if str == "" {
 			continue
@@ -33,7 +78,7 @@ func MessageCombiner[T any](
 			continue
 		}
 
-		if previous == message["role"] {
+		if message.Is("role", previous) {
 			buffer.WriteString(str)
 			continue
 		}
