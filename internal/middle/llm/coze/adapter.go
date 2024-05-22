@@ -113,7 +113,7 @@ func (API) Generation(ctx *gin.Context) {
 	options := coze.NewDefaultOptions(botId35_16k, version35_16k, scene35_16k, proxies)
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)
-	image, err := chat.Images(ctx.Request.Context(), generation.Prompt)
+	image, err := chat.Images(ctx.Request.Context(), generation.Message)
 	if err != nil {
 		middle.ErrResponse(ctx, -1, err)
 		return

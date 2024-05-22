@@ -124,7 +124,7 @@ func (API) Generation(ctx *gin.Context) {
 		generation = com.GetGinGeneration(ctx)
 	)
 
-	model := convertToModel(generation.Style)
+	model := matchModel(generation.Style)
 	var payload = modelPayload{
 		BatchId:                 hash,
 		CfgScale:                8,
@@ -140,7 +140,7 @@ func (API) Generation(ctx *gin.Context) {
 		BoothModel:              model,
 		NegativePrompt:          "ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, photo, realistic, text, watermark, signature, username, artist name",
 		NumImages:               1,
-		Prompt:                  generation.Prompt,
+		Prompt:                  generation.Message,
 		Sampler:                 9,
 		Seed:                    int32(rand.Intn(100000000) + 429650152),
 		StatusUUID:              uuid.NewString(),
@@ -207,7 +207,7 @@ func (API) Generation(ctx *gin.Context) {
 	})
 }
 
-func convertToModel(style string) string {
+func matchModel(style string) string {
 	if com.Contains(models, style) {
 		return style
 	}

@@ -19,11 +19,12 @@ type ChatCompletion struct {
 }
 
 type ChatGeneration struct {
-	Model  string `json:"model"`
-	Prompt string `json:"prompt"`
-	N      int    `json:"n"`
-	Size   string `json:"size"`
-	Style  string `json:"style"`
+	Model   string `json:"model"`
+	Message string `json:"prompt"`
+	N       int    `json:"n"`
+	Size    string `json:"size"`
+	Style   string `json:"style"`
+	Quality string `json:"quality"`
 }
 
 type Keyv[V any] map[string]V

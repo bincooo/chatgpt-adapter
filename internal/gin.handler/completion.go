@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/hf"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/bing"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/claude"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/cohere"
@@ -13,7 +14,6 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/lmsys"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/llm/v1"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/playground"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/middle/sd"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/gin-gonic/gin"
@@ -35,7 +35,7 @@ func InitExtensions() {
 		gemini.Adapter,
 		lmsys.Adapter,
 		pg.Adapter,
-		sd.Adapter,
+		hf.Adapter,
 		v1.Adapter,
 	}
 }
@@ -78,7 +78,7 @@ func generations(ctx *gin.Context) {
 	}
 
 	ctx.Set(vars.GinGeneration, generation)
-	logrus.Infof("generate images text[ %s ]: %s", generation.Model, generation.Prompt)
+	logrus.Infof("generate images text[ %s ]: %s", generation.Model, generation.Message)
 	if !GlobalExtension.Match(ctx, generation.Model) {
 		middle.ErrResponse(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
 		return
