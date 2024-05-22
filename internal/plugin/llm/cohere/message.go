@@ -2,6 +2,7 @@ package cohere
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
@@ -46,6 +47,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
+	var functionCall []pkg.Keyv[interface{}]
 
 	for {
 		raw, ok := <-chatResponse
@@ -62,6 +64,18 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 			return
 		}
 
+		if strings.HasPrefix(raw, "tool: ") {
+			t := strings.TrimPrefix(raw, "tool: ")
+			if err := json.Unmarshal([]byte(t), &functionCall); err != nil {
+				logger.Error(err)
+				if response.NotSSEHeader(ctx) {
+					response.Error(ctx, -1, err)
+				}
+				return
+			}
+			continue
+		}
+
 		raw = strings.TrimPrefix(raw, "text: ")
 		contentL := len(raw)
 		if contentL <= 0 {
@@ -76,6 +90,17 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 			response.SSEResponse(ctx, Model, raw, created)
 		}
 		content += raw
+	}
+
+	if functionCall != nil && len(functionCall) > 0 {
+		// TODO 一次返回多个暂时这么处理吧
+		args, _ := json.Marshal(functionCall[0].GetKeyv("parameters"))
+		if sse {
+			response.SSEToolCallResponse(ctx, Model, functionCall[0].GetString("name"), string(args), created)
+		} else {
+			response.ToolCallResponse(ctx, Model, functionCall[0].GetString("name"), string(args))
+		}
+		return
 	}
 
 	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, tokens))
@@ -138,6 +163,8 @@ func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.M
 			return "CHATBOT"
 		case "system":
 			return "SYSTEM"
+		case "tool":
+			return "TOOL"
 		default:
 			return "USER"
 		}
@@ -157,10 +184,6 @@ func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.M
 
 		if condition(role) == condition(next) {
 			// cache buffer
-			if role == "function" {
-				buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-				return nil
-			}
 			buffer.WriteString(message["content"])
 			return nil
 		}
@@ -168,8 +191,8 @@ func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.M
 		defer buffer.Reset()
 		buffer.WriteString(fmt.Sprintf(message["content"]))
 
+		var result []cohere.Message
 		if role == "system" {
-			var result []cohere.Message
 			result = append(result, cohere.Message{
 				Role:    "User",
 				Message: buffer.String(),
@@ -177,6 +200,15 @@ func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.M
 			result = append(result, cohere.Message{
 				Role:    "Chatbot",
 				Message: "ok ~",
+			})
+			return result
+		}
+
+		if role == "function" || role == "tool" {
+			buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
+			result = append(result, cohere.Message{
+				Role:    "User",
+				Message: buffer.String(),
 			})
 			return result
 		}

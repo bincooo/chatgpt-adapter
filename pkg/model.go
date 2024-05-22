@@ -84,6 +84,17 @@ func (kv Keyv[V]) GetKeyv(key string) (out Keyv[interface{}]) {
 	return nil
 }
 
+func (kv Keyv[V]) GetSlice(key string) (values []interface{}) {
+	if value, ok := kv[key]; ok {
+		var v interface{} = value
+		values, ok = v.([]interface{})
+		if ok {
+			return
+		}
+	}
+	return nil
+}
+
 func (kv Keyv[V]) GetString(key string) (out string) {
 	if value, ok := kv[key]; ok {
 		var v interface{} = value

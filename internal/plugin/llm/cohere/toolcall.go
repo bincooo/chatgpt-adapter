@@ -24,7 +24,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			"system:",
 		})
 
-		chatResponse, err := chat.Reply(ctx.Request.Context(), make([]cohere.Message, 0), "", message)
+		chatResponse, err := chat.Reply(ctx.Request.Context(), make([]cohere.Message, 0), "", message, nil)
 		if err != nil {
 			return "", err
 		}

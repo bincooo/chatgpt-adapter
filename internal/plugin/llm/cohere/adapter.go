@@ -4,6 +4,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	coh "github.com/bincooo/cohere-api"
 	"github.com/gin-gonic/gin"
 )
@@ -76,16 +77,21 @@ func (API) Completion(ctx *gin.Context) {
 		matchers   = common.GetGinMatchers(ctx)
 	)
 
-	if plugin.NeedToToolCall(ctx) {
+	var (
+		system    string
+		message   string
+		pMessages []coh.Message
+		chat      coh.Chat
+		tools     = convertTools(completion)
+	)
+
+	if notebook && plugin.NeedToToolCall(ctx) {
 		if completeToolCalls(ctx, cookie, proxies, completion) {
 			return
 		}
 	}
 
-	var system string
-	var message string
-	var pMessages []coh.Message
-	var chat coh.Chat
+	// TODO - 官方Go库出了，后续修改
 	if notebook {
 		message = mergeMessages(completion.Messages)
 		ctx.Set(ginTokens, common.CalcTokens(message))
@@ -99,6 +105,7 @@ func (API) Completion(ctx *gin.Context) {
 			"system:",
 		})
 	} else {
+		// chat模式已实现toolCall
 		var tokens = 0
 		pMessages, system, message, tokens = mergeChatMessages(completion.Messages)
 		ctx.Set(ginTokens, tokens)
@@ -106,11 +113,67 @@ func (API) Completion(ctx *gin.Context) {
 		chat.Proxies(proxies)
 	}
 
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, message)
+	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, message, tools)
 	if err != nil {
 		response.Error(ctx, -1, err)
 		return
 	}
 
 	waitResponse(ctx, matchers, chatResponse, completion.Stream)
+}
+
+func convertTools(completion pkg.ChatCompletion) (tools []coh.Tool) {
+	if len(completion.Tools) == 0 {
+		return
+	}
+
+	condition := func(str string) string {
+		switch str {
+		case "string":
+			return "str"
+		case "boolean":
+			return "bool"
+		case "number":
+			return str
+		default:
+			return "object"
+		}
+	}
+
+	contains := func(slice []interface{}, str string) bool {
+		for _, v := range slice {
+			if v == str {
+				return true
+			}
+		}
+		return false
+	}
+
+	for pos := range completion.Tools {
+		t := completion.Tools[pos]
+		if !t.Is("type", "function") {
+			continue
+		}
+
+		fn := t.GetKeyv("function")
+		params := make(map[string]interface{})
+		if fn.Has("parameters") {
+			keyv := fn.GetKeyv("parameters")
+			properties := keyv.GetKeyv("properties")
+			required := keyv.GetSlice("required")
+			for k, v := range properties {
+				value := v.(map[string]interface{})
+				value["required"] = contains(required, k)
+				value["type"] = condition(value["type"].(string))
+				params[k] = value
+			}
+		}
+
+		tools = append(tools, coh.Tool{
+			Name:        fn.GetString("name"),
+			Description: fn.GetString("description"),
+			Param:       params,
+		})
+	}
+	return
 }
