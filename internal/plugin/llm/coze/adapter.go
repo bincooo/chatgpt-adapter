@@ -77,7 +77,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	pMessages, tokens := mergeMessages(completion.Messages)
-	ctx.Set("tokens", tokens)
+	ctx.Set(ginTokens, tokens)
 	options := newOptions(proxies, pMessages)
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)

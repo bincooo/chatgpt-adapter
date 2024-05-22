@@ -78,7 +78,7 @@ func (API) Completion(ctx *gin.Context) {
 	// 清理多余的标签
 	var cancel chan error
 	cancel, matchers = joinMatchers(ctx, matchers)
-	ctx.Set("tokens", tokens)
+	ctx.Set(ginTokens, tokens)
 
 	r, err := chat.Reply(ctx.Request.Context(), currMessage, pMessages)
 	if err != nil {

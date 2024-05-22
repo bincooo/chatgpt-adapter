@@ -1,10 +1,13 @@
 package v1
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
@@ -72,13 +75,13 @@ type chatSSEResponse struct {
 }
 
 // reference https://github.com/hominsu/freegpt35
-func fetchGpt35(ctx *gin.Context, req pkg.ChatCompletion) (*http.Response, error) {
+func fetchGpt35(ctx *gin.Context, messages map[string]interface{}) (*http.Response, error) {
 	proxies := ctx.GetString("proxies")
 	session, err := partOne(ctx.Request.Context(), proxies)
 	if err != nil {
 		return nil, err
 	}
-	return partTwo(ctx, session, req)
+	return partTwo(ctx, session, messages)
 }
 
 func partOne(ctx context.Context, proxies string) (*chatSession, error) {
@@ -113,13 +116,12 @@ label:
 	return &session, nil
 }
 
-func partTwo(ctx *gin.Context, session *chatSession, req pkg.ChatCompletion) (*http.Response, error) {
+func partTwo(ctx *gin.Context, session *chatSession, messages map[string]interface{}) (*http.Response, error) {
 	proxies := ctx.GetString("proxies")
 	return emit.ClientBuilder().
 		Context(ctx.Request.Context()).
 		Proxies(proxies).
 		POST("https://chat.openai.com/backend-api/conversation").
-		JHeader().
 		Header("oai-device-id", session.deviceId).
 		Header("openai-sentinel-chat-requirements-token", session.Token).
 		Header("openai-sentinel-proof-token", generateToken(session.Pow.Seed, session.Pow.Diff)).
@@ -127,33 +129,61 @@ func partTwo(ctx *gin.Context, session *chatSession, req pkg.ChatCompletion) (*h
 		Header("origin", "https://chat.openai.com").
 		Header("referer", "https://chat.openai.com").
 		Header("user-agent", ua).
-		Body(makePayload(req)).
+		JHeader().
+		Body(messages).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
 }
 
-func makePayload(req pkg.ChatCompletion) map[string]interface{} {
-	var messages []interface{}
-
-	for _, message := range req.Messages {
-		messages = append(messages, map[string]interface{}{
-			"id": uuid.NewString(),
-			"author": map[string]string{
-				"role": message.GetString("role"),
-			},
-			"content": map[string]interface{}{
-				"content_type": "text",
-				"parts": []string{
-					message.GetString("content"),
-				},
-			},
-		})
+func mergeMessages(messages []pkg.Keyv[interface{}]) (result map[string]interface{}, tokens int) {
+	condition := func(expr string) string {
+		switch expr {
+		case "user", "function", "tool":
+			return "user"
+		case "system", "assistant":
+			return expr
+		default:
+			return ""
+		}
 	}
 
-	obj := map[string]interface{}{
+	messages = common.MessageCombiner(messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []pkg.Keyv[interface{}] {
+		role := message["role"]
+		tokens += common.CalcTokens(message["content"])
+
+		if condition(role) == condition(next) {
+			// cache buffer
+			if role == "function" || role == "tool" {
+				buffer.WriteString(fmt.Sprintf("这是内置工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
+				return nil
+			}
+
+			buffer.WriteString(message["content"])
+			return nil
+		}
+
+		defer buffer.Reset()
+		buffer.WriteString(message["content"])
+		return []pkg.Keyv[interface{}]{
+			{
+				"id": uuid.NewString(),
+				"author": map[string]string{
+					"role": condition(role),
+				},
+				"content": map[string]interface{}{
+					"content_type": "text",
+					"parts": []string{
+						buffer.String(),
+					},
+				},
+			},
+		}
+	})
+
+	result = map[string]interface{}{
 		"action":                        "next",
 		"messages":                      messages,
 		"parent_message_id":             uuid.NewString(),
-		"model":                         req.Model,
+		"model":                         "text-davinci-002-render-sha",
 		"timezone_offset_min":           -180,
 		"suggestions":                   make([]string, 0),
 		"history_and_training_disabled": true,
@@ -164,10 +194,10 @@ func makePayload(req pkg.ChatCompletion) map[string]interface{} {
 		//"force_paragen":            false,
 		//"force_nulligen":           false,
 		//"force_rate_limit":         false,
-		"reset_rate_limits":    true,
+		//"reset_rate_limits":    	  true,
 		"websocket_request_id": uuid.NewString(),
 	}
-	return obj
+	return
 }
 
 func generateToken(seed, diff string) string {

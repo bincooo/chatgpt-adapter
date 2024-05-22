@@ -101,7 +101,7 @@ func complete(ctx *gin.Context) {
 	)
 
 	newMessages, tokens := mergeMessages(completion.Messages)
-	ctx.Set("tokens", tokens)
+	ctx.Set(ginTokens, tokens)
 	r, err := build(ctx.Request.Context(), proxies, cookie, newMessages, completion)
 	if err != nil {
 		response.Error(ctx, -1, err)
@@ -120,7 +120,7 @@ func complete15(ctx *gin.Context) {
 	)
 
 	newMessages, tokens := mergeMessages15(completion.Messages)
-	ctx.Set("tokens", tokens)
+	ctx.Set(ginTokens, tokens)
 
 	// 解析cookie
 	sign, auth, key, user, co, err := extCookie15(ctx.Request.Context(), token, proxies)

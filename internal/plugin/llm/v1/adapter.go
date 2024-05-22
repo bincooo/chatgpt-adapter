@@ -25,6 +25,8 @@ type API struct {
 	plugin.BaseAdapter
 }
 
+const ginTokens = "__tokens__"
+
 func (API) Match(_ *gin.Context, model string) bool {
 	return Model == model
 }
@@ -45,11 +47,16 @@ func (API) Completion(ctx *gin.Context) {
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
 	)
-	if completion.Model == "freeGpt35" {
-		completion.Model = "text-davinci-002-render-sha"
+
+	if plugin.NeedToToolCall(ctx) {
+		if completeToolCalls(ctx, completion) {
+			return
+		}
 	}
 
-	r, err := fetchGpt35(ctx, completion)
+	messages, tokens := mergeMessages(completion.Messages)
+	ctx.Set(ginTokens, tokens)
+	r, err := fetchGpt35(ctx, messages)
 	if err != nil {
 		code := -1
 		if strings.Contains(err.Error(), "429 Too Many Requests") {
@@ -121,7 +128,7 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 }
 
 func waitResponse(ctx *gin.Context, r *http.Response, matchers []common.Matcher, sse bool) {
-	tokens := ctx.GetInt("tokens")
+	tokens := ctx.GetInt(ginTokens)
 	scanner := bufio.NewScanner(r.Body)
 	scanner.Split(func(data []byte, eof bool) (advance int, token []byte, err error) {
 		if eof && len(data) == 0 {

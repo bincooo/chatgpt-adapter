@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const ginTokens = "__tokens__"
+
 func waitMessage(chatResponse chan edge.ChatResponse, cancel func(str string) bool) (content string, err error) {
 
 	for {
@@ -41,7 +43,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 		pos     = 0
 		content = ""
 		created = time.Now().Unix()
-		tokens  = ctx.GetInt("tokens")
+		tokens  = ctx.GetInt(ginTokens)
 	)
 
 	logger.Info("waitResponse ...")

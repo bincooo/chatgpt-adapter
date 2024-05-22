@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+const ginTokens = "__tokens__"
+
 func calcTokens(messages []coze.Message) (tokensL int) {
 	for _, message := range messages {
 		tokensL += common.CalcTokens(message.Content)
@@ -50,7 +52,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 	content := ""
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
-	tokens := ctx.GetInt("tokens")
+	tokens := ctx.GetInt(ginTokens)
 
 	for {
 		select {

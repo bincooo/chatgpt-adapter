@@ -268,7 +268,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	newMessages := mergeMessages(completion.Messages)
-	ctx.Set("tokens", common.CalcTokens(newMessages))
+	ctx.Set(ginTokens, common.CalcTokens(newMessages))
 	retry := 3
 label:
 	ch, err := fetch(ctx, proxies, newMessages, options{

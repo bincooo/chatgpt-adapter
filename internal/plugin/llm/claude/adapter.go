@@ -82,7 +82,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	attachments, tokens := mergeMessages(completion.Messages)
-	ctx.Set("tokens", tokens)
+	ctx.Set(ginTokens, tokens)
 	chat, err := claude2.New(options)
 	if err != nil {
 		response.Error(ctx, -1, err)

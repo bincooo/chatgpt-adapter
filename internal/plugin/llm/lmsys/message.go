@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const ginTokens = "__tokens__"
+
 func waitMessage(chatResponse chan string, cancel func(str string) bool) (content string, err error) {
 
 	for {
@@ -42,7 +44,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	content := ""
 	created := time.Now().Unix()
 	logger.Info("waitResponse ...")
-	tokens := ctx.GetInt("tokens")
+	tokens := ctx.GetInt(ginTokens)
 
 	for {
 		select {

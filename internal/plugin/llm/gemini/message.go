@@ -18,11 +18,13 @@ import (
 	"time"
 )
 
+const ginTokens = "__tokens__"
+
 func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *http.Response, sse bool) {
 	content := ""
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
-	tokens := ctx.GetInt("tokens")
+	tokens := ctx.GetInt(ginTokens)
 
 	reader := bufio.NewReader(partialResponse.Body)
 	var original []byte
@@ -126,7 +128,7 @@ func waitResponse15(ctx *gin.Context, matchers []com.Matcher, ch chan string, ss
 	content := ""
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
-	tokens := ctx.GetInt("tokens")
+	tokens := ctx.GetInt(ginTokens)
 
 	for {
 		tex, ok := <-ch

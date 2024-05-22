@@ -88,7 +88,7 @@ func (API) Completion(ctx *gin.Context) {
 	var chat coh.Chat
 	if notebook {
 		message = mergeMessages(completion.Messages)
-		ctx.Set("tokens", common.CalcTokens(message))
+		ctx.Set(ginTokens, common.CalcTokens(message))
 		chat = coh.New(cookie, completion.Temperature, completion.Model, false)
 		chat.Proxies(proxies)
 		chat.TopK(completion.TopK)
@@ -101,7 +101,7 @@ func (API) Completion(ctx *gin.Context) {
 	} else {
 		var tokens = 0
 		pMessages, system, message, tokens = mergeChatMessages(completion.Messages)
-		ctx.Set("tokens", tokens)
+		ctx.Set(ginTokens, tokens)
 		chat = coh.New(cookie, completion.Temperature, completion.Model, true)
 		chat.Proxies(proxies)
 	}
