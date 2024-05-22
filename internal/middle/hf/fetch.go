@@ -168,3 +168,78 @@ func sd(ctx *gin.Context, model, samples, message string) (value string, err err
 	err = c.Do()
 	return
 }
+
+func google(ctx *gin.Context, model, message string) (value string, err error) {
+	var (
+		index   = 3
+		hash    = emit.GioHash()
+		proxies = ctx.GetString("proxies")
+		baseUrl = "wss://google-sdxl.hf.space"
+		domain  = pkg.Config.GetString("domain")
+	)
+
+	if domain == "" {
+		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
+	}
+
+	conn, err := emit.SocketBuilder().
+		Proxies(proxies).
+		URL(baseUrl + "/queue/join").
+		DoS(http.StatusSwitchingProtocols)
+	if err != nil {
+		return
+	}
+
+	c, err := emit.NewGio(ctx.Request.Context(), conn)
+	if err != nil {
+		return
+	}
+
+	c.Event("send_hash", func(j emit.JoinEvent) interface{} {
+		return map[string]interface{}{
+			"fn_index":     index,
+			"session_hash": hash,
+		}
+	})
+
+	c.Event("send_data", func(j emit.JoinEvent) interface{} {
+		return map[string]interface{}{
+			"fn_index":     index,
+			"session_hash": hash,
+			"data": []interface{}{
+				message + ", {{{{by famous artist}}}, beautiful, 4k",
+				negative,
+				25,
+				model,
+			},
+		}
+	})
+
+	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
+		var file string
+		d := j.Output.Data
+
+		if len(d) == 0 {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		values, ok := d[0].([]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		if file, err = com.SaveBase64(values[r.Intn(len(values))].(string), "jpg"); err != nil {
+			c.Failed(fmt.Errorf("image save failed: %s", j.InitialBytes))
+			return
+		}
+
+		value = fmt.Sprintf("%s/file/%s", domain, file)
+		return
+	})
+
+	err = c.Do()
+	return
+}

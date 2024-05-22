@@ -145,3 +145,18 @@ var (
 		"UniPC",
 	}
 )
+
+var (
+	googleModels = []string{
+		"(No style)",
+		"Cinematic",
+		"Photographic",
+		"Anime",
+		"Manga",
+		"Digital Art",
+		"Pixel art",
+		"Fantasy art",
+		"Neonpunk",
+		"3D Model",
+	}
+)

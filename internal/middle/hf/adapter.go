@@ -44,6 +44,11 @@ func (API) Match(ctx *gin.Context, model string) bool {
 		return true
 	}
 
+	if token == "sk-google-xl" {
+		ctx.Set(ginSpace, "google")
+		return true
+	}
+
 	return false
 }
 
@@ -70,10 +75,19 @@ func (API) Generation(ctx *gin.Context) {
 		modelSlice = xlModels
 		samplesSlice = xlSamples
 		value, err = xl(ctx, model, samples, message)
+	case "google":
+		modelSlice = googleModels
+		value, err = google(ctx, model, message)
 	default:
 		modelSlice = sdModels
 		samplesSlice = sdSamples
 		value, err = sd(ctx, model, samples, message)
+	}
+
+	if err != nil {
+		logrus.Error(err)
+		middle.ErrResponse(ctx, -1, err)
+		return
 	}
 
 	if (generation.Size == "HD" || strings.HasPrefix(generation.Size, "1792x")) && com.HasMfy() {
@@ -105,6 +119,7 @@ func matchSamples(samples, spase string) string {
 			return samples
 		}
 		return "Euler a"
+
 	default:
 		if com.Contains(sdSamples, samples) {
 			return samples
@@ -120,6 +135,13 @@ func matchModel(style, spase string) string {
 			return style
 		}
 		return xlModels[rand.Intn(len(xlModels))]
+
+	case "google":
+		if com.Contains(googleModels, style) {
+			return style
+		}
+		return googleModels[rand.Intn(len(googleModels))]
+
 	default:
 		if com.Contains(sdModels, style) {
 			return style
