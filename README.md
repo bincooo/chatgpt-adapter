@@ -101,16 +101,30 @@ curl -i -X POST \
 
 <details>
 <summary> 效果预览 1 </summary>
-  -
+
+  - LobeChat
 <pre>
     <img width="451" alt="Screenshot 2024-05-19 at 01 53 05" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/e055af22-38c4-4a05-bc1b-9f5e9e89beeb">
 </pre>
 </details>
 <details>
 <summary> 效果预览 2 </summary>
-  -
+
+  - FastGPT
 <pre>
     <img width="451" alt="Screenshot 2024-05-19 at 01 54 26" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/a41a15c2-5d81-4029-ad43-72ac7e92e93c">
+</pre>
+</details>
+<details>
+<summary> 效果预览 3 </summary>
+
+  - google模型原生toolCall运行良好，其它皆为提示词实现toolCall。
+
+  - 若想达到多个工具执行效果，请开启 < tool tasks />。
+<pre>
+<img width="451" alt="Screenshot 2024-05-23 at 03 13 09" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/faa16d95-a082-4e90-826e-73b7055fad8f">
+<img width="451" alt="Screenshot 2024-05-23 at 03 21 34" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/a59cfba6-11b7-419e-bb3e-84d28c018fbd">
+<img width="451" alt="Screenshot 2024-05-23 at 03 30 29" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/baa0020c-1da3-4302-8705-8d8abdbbff97">
 </pre>
 </details>
 
