@@ -3,6 +3,7 @@ module github.com/bincooo/chatgpt-adapter
 go 1.21.6
 
 require (
+	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/claude-api v1.0.4-0.20240323131054-e8068584fb71
 	github.com/bincooo/cohere-api v0.0.0-20240522224901-0b18f9a58f49
 	github.com/bincooo/coze-api v1.0.2-0.20240510042405-0f4058f868f3
@@ -14,6 +15,7 @@ require (
 	github.com/eko/gocache/store/go_cache/v4 v4.2.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.6.0
+	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/samber/go-gpt-3-encoder v0.3.1
 	github.com/sirupsen/logrus v1.9.3
@@ -45,10 +47,12 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
+	github.com/lestrrat-go/strftime v1.0.6 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
@@ -56,6 +60,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
