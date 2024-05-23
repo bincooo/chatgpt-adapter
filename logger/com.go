@@ -14,14 +14,17 @@ import (
 	"time"
 )
 
-var projectDir string
+var (
+	project    = "github.com/bincooo/chatgpt-adapter/"
+	projectDir = ""
+)
 
 func Init(basePath string, level logrus.Level) {
 	dir, err := os.Getwd()
 	if err != nil {
 		Fatal(err)
 	}
-	projectDir = dir
+	projectDir = dir + "/"
 
 	logrus.SetLevel(level)
 	if len(basePath) == 0 {
@@ -74,13 +77,42 @@ func CustomCallerFormatter(frame *runtime.Frame) string {
 		return file
 	}
 
-	slice := strings.Split(frame.File, trimPKG(path.Dir(frame.Function)))
-	if len(slice) > 1 {
-		return " <" + path.Dir(frame.Function) + "> " + trimLS(slice[1]) + ":" + strconv.Itoa(frame.Line) + " |"
+	trimR := func(file string) string {
+		if !strings.HasPrefix(file, project) {
+			return file
+		}
+		return file[len(project):]
 	}
 
-	file := strings.TrimLeft(frame.File, projectDir)
-	return " <" + path.Dir(frame.Function) + "> " + file + ":" + strconv.Itoa(frame.Line) + " |"
+	// 尝试获取上层栈
+	pcs := make([]uintptr, 3)
+	depth := runtime.Callers(10, pcs)
+	frames := runtime.CallersFrames(pcs[:depth])
+	for f, next := frames.Next(); next; f, next = frames.Next() {
+		if f.PC == frame.PC {
+			if f, next = frames.Next(); next {
+				frame = &f
+			}
+		}
+	}
+
+	main := strings.HasPrefix(frame.Function, "main.")
+	slice := strings.Split(frame.File, trimPKG(path.Dir(frame.Function)))
+	if !main && len(slice) > 1 {
+		return " <" + trimR(path.Dir(frame.Function)) + "> " + trimLS(slice[1]) + ":" + strconv.Itoa(frame.Line) + " |"
+	}
+
+	root := path.Dir(frame.Function)
+	if main {
+		root = "main"
+	}
+
+	file := frame.File
+	if strings.HasPrefix(file, projectDir) {
+		file = file[len(projectDir):]
+	}
+
+	return " <" + trimR(root) + "> " + file + ":" + strconv.Itoa(frame.Line) + " |"
 }
 
 func Debug(args ...interface{}) {

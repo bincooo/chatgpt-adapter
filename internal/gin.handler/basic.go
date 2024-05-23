@@ -85,14 +85,14 @@ func crosHandler(context *gin.Context) {
 	if err != nil {
 		logger.Error(err)
 	} else {
-		fmt.Printf("\n\n\n\n------ Start request %s  ---------\n%s\n", uid, data)
+		logger.Infof("\n------ START REQUEST %s ---------\n%s", uid, data)
 	}
 
 	//处理请求
 	context.Next()
 
 	// 结束处理
-	fmt.Printf("------ End request %s  ---------\n", uid)
+	logger.Infof("\n------ END REQUEST %s ---------", uid)
 }
 
 func panicHandler(ctx *gin.Context) {
