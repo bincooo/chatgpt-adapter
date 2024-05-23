@@ -86,8 +86,8 @@ func generations(ctx *gin.Context) {
 func bodyLogger(completion pkg.ChatCompletion) {
 	bytes, err := json.MarshalIndent(completion, "", "  ")
 	if err != nil {
-		logger.Warn(err)
+		logger.Error(err)
 	} else {
-		fmt.Printf("requset: \n%s", bytes)
+		logger.Infof("requset: \n%s", bytes)
 	}
 }

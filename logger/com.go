@@ -85,13 +85,14 @@ func CustomCallerFormatter(frame *runtime.Frame) string {
 	}
 
 	// 尝试获取上层栈
-	pcs := make([]uintptr, 3)
+	pcs := make([]uintptr, 10)
 	depth := runtime.Callers(10, pcs)
 	frames := runtime.CallersFrames(pcs[:depth])
 	for f, next := frames.Next(); next; f, next = frames.Next() {
 		if f.PC == frame.PC {
 			if f, next = frames.Next(); next {
 				frame = &f
+				break
 			}
 		}
 	}
