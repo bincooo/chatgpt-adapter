@@ -27,7 +27,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 
 		message = regexp.MustCompile("工具推荐： toolId = .{5}").
 			ReplaceAllString(message, "")
-		chatResponse, err := chat.Reply(ctx.Request.Context(), make([]cohere.Message, 0), "", message, nil)
+		chatResponse, err := chat.Reply(ctx.Request.Context(), make([]cohere.Message, 0), "", message, cohere.ToolObject{})
 		if err != nil {
 			return "", err
 		}

@@ -1,9 +1,11 @@
 package cohere
 
 import (
+	"encoding/json"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/v2/logger"
 	"github.com/bincooo/chatgpt-adapter/v2/pkg"
 	coh "github.com/bincooo/cohere-api"
 	"github.com/gin-gonic/gin"
@@ -82,7 +84,10 @@ func (API) Completion(ctx *gin.Context) {
 		message   string
 		pMessages []coh.Message
 		chat      coh.Chat
-		//tools     = convertTools(completion)
+		//toolObject = coh.ToolObject{
+		//	Tools:   convertTools(completion),
+		//	Results: convertToolResults(completion),
+		//}
 	)
 
 	// 官方的文档toolCall描述十分模糊，简测功能不佳，改回提示词实现
@@ -94,6 +99,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	// TODO - 官方Go库出了，后续修改
 	if notebook {
+		//toolObject = coh.ToolObject{}
 		message = mergeMessages(completion.Messages)
 		ctx.Set(ginTokens, common.CalcTokens(message))
 		chat = coh.New(cookie, completion.Temperature, completion.Model, false)
@@ -114,7 +120,7 @@ func (API) Completion(ctx *gin.Context) {
 		chat.Proxies(proxies)
 	}
 
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, message, nil)
+	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, message, coh.ToolObject{})
 	if err != nil {
 		response.Error(ctx, -1, err)
 		return
@@ -123,7 +129,69 @@ func (API) Completion(ctx *gin.Context) {
 	waitResponse(ctx, matchers, chatResponse, completion.Stream)
 }
 
-func convertTools(completion pkg.ChatCompletion) (tools []coh.Tool) {
+func convertToolResults(completion pkg.ChatCompletion) (toolResults []coh.ToolResult) {
+	find := func(name string) map[string]interface{} {
+		for pos := range completion.Messages {
+			message := completion.Messages[pos]
+			if !message.Is("role", "assistant") || !message.Has("tool_calls") {
+				continue
+			}
+
+			toolCalls := message.GetSlice("tool_calls")
+			if len(toolCalls) == 0 {
+				continue
+			}
+
+			var toolCall pkg.Keyv[interface{}] = toolCalls[0].(map[string]interface{})
+			if !toolCall.Has("function") {
+				continue
+			}
+
+			var args interface{}
+			fn := toolCall.GetKeyv("function")
+			if !fn.Is("name", name) {
+				continue
+			}
+
+			if err := json.Unmarshal([]byte(fn.GetString("arguments")), &args); err != nil {
+				logger.Error(err)
+				continue
+			}
+
+			return map[string]interface{}{
+				"name":       name,
+				"parameters": args,
+			}
+		}
+		return nil
+	}
+
+	for pos := range completion.Messages {
+		message := completion.Messages[pos]
+		if message.Is("role", "tool") {
+			call := find(message.GetString("name"))
+			if call == nil {
+				continue
+			}
+
+			var output interface{}
+			if err := json.Unmarshal([]byte(message.GetString("content")), &output); err != nil {
+				logger.Error(err)
+				continue
+			}
+
+			toolResults = append(toolResults, coh.ToolResult{
+				Call: call,
+				Outputs: []interface{}{
+					output,
+				},
+			})
+		}
+	}
+	return
+}
+
+func convertTools(completion pkg.ChatCompletion) (tools []coh.ToolCall) {
 	if len(completion.Tools) == 0 {
 		return
 	}
@@ -170,7 +238,7 @@ func convertTools(completion pkg.ChatCompletion) (tools []coh.Tool) {
 			}
 		}
 
-		tools = append(tools, coh.Tool{
+		tools = append(tools, coh.ToolCall{
 			Name:        fn.GetString("name"),
 			Description: fn.GetString("description"),
 			Param:       params,

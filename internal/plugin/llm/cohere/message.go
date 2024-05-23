@@ -194,22 +194,26 @@ func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.M
 		var result []cohere.Message
 		if role == "system" {
 			result = append(result, cohere.Message{
-				Role:    "User",
+				Role:    "USER",
 				Message: buffer.String(),
 			})
 			result = append(result, cohere.Message{
-				Role:    "Chatbot",
+				Role:    "CHATBOT",
 				Message: "ok ~",
 			})
 			return result
 		}
 
+		if _, ok := message["tool_calls"]; role == "assistant" && ok {
+			return result
+		}
+
 		if role == "function" || role == "tool" {
-			buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-			result = append(result, cohere.Message{
-				Role:    condition(role),
-				Message: buffer.String(),
-			})
+			//buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
+			//result = append(result, cohere.Message{
+			//	Role:    condition(role),
+			//	Message: buffer.String(),
+			//})
 			return result
 		}
 
