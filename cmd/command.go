@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/cache"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler"
@@ -15,6 +16,7 @@ var (
 	proxies  string
 	port     int
 	logLevel = "info"
+	vms      bool
 
 	cmd = &cobra.Command{
 		Use:   "ChatGPT-Adapter",
@@ -23,6 +25,13 @@ var (
 			"项目地址：https://github.com/bincooo/chatgpt-adapter",
 		Version: version,
 		Run: func(cmd *cobra.Command, args []string) {
+			if vms {
+				fmt.Println("模型可用列表:")
+				for _, model := range handler.GlobalExtension.Models() {
+					fmt.Println("- " + model.Id)
+				}
+				return
+			}
 			handler.Bind(port, version, proxies)
 		},
 	}
@@ -36,6 +45,7 @@ func main() {
 	cmd.PersistentFlags().StringVar(&proxies, "proxies", "", "本地代理 proxies")
 	cmd.PersistentFlags().IntVar(&port, "port", 8080, "服务端口 port")
 	cmd.PersistentFlags().StringVar(&logLevel, "log", logLevel, "日志级别: debug|info|warn|error")
+	cmd.PersistentFlags().BoolVar(&vms, "models", false, "查看所有模型")
 	logger.Init(switchLogLevel())
 	_ = cmd.Execute()
 }
