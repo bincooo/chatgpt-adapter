@@ -2,8 +2,8 @@ package common
 
 import (
 	"context"
-	"github.com/bincooo/chatgpt-adapter/v2/logger"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"net/http"
 	"sync"

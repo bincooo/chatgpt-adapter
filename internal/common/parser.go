@@ -3,9 +3,9 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/v2/logger"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
+	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	"sort"

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/bincooo/chatgpt-adapter/v2/internal/cache"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler"
-	"github.com/bincooo/chatgpt-adapter/v2/logger"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/internal/cache"
+	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/gin.handler"
+	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

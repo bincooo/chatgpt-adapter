@@ -2,7 +2,7 @@ package common
 
 import (
 	"context"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/gin-gonic/gin"
 	"strings"
 )

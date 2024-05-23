@@ -1,8 +1,8 @@
 package common
 
 import (
-	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 )
 

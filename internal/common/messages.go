@@ -3,7 +3,7 @@ package common
 import (
 	"bytes"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"math/rand"
 	"strings"
 	"time"

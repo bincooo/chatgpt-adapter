@@ -1,11 +1,11 @@
 package claude
 
 import (
-	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/v2/logger"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	api "github.com/bincooo/claude-api"
 	"github.com/bincooo/claude-api/types"
 	"github.com/bincooo/claude-api/vars"

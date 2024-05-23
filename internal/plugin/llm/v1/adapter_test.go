@@ -3,7 +3,7 @@ package v1
 import (
 	"bufio"
 	"bytes"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"testing"

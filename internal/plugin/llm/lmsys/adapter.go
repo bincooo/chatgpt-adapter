@@ -2,10 +2,10 @@ package lmsys
 
 import (
 	"errors"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/vars"
+	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/gin-gonic/gin"
 	"strings"
 )

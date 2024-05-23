@@ -2,11 +2,11 @@ package cohere
 
 import (
 	"encoding/json"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/v2/logger"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	coh "github.com/bincooo/cohere-api"
 	"github.com/gin-gonic/gin"
 )

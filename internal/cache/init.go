@@ -2,7 +2,7 @@ package cache
 
 import (
 	"context"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/eko/gocache/lib/v4/cache"
 	"github.com/eko/gocache/lib/v4/store"
 	gocacheStore "github.com/eko/gocache/store/go_cache/v4"

@@ -2,8 +2,8 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	"github.com/bincooo/chatgpt-adapter/v2/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/gin-gonic/gin"
 )
 

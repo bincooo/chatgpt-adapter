@@ -2,8 +2,8 @@ package hf
 
 import (
 	"fmt"
-	com "github.com/bincooo/chatgpt-adapter/v2/internal/common"
-	"github.com/bincooo/chatgpt-adapter/v2/pkg"
+	com "github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"math/rand"

@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/bincooo/chatgpt-adapter/v2/logger"
+	"github.com/bincooo/chatgpt-adapter/logger"
 	encoder "github.com/samber/go-gpt-3-encoder"
 )
 
