@@ -10,11 +10,9 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
-	goole "github.com/bincooo/goole15"
 	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -124,49 +122,6 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 	}
 }
 
-func waitResponse15(ctx *gin.Context, matchers []com.Matcher, ch chan string, sse bool) {
-	content := ""
-	created := time.Now().Unix()
-	logger.Infof("waitResponse ...")
-	tokens := ctx.GetInt(ginTokens)
-
-	for {
-		tex, ok := <-ch
-		if !ok {
-			break
-		}
-
-		if strings.HasPrefix(tex, "error: ") {
-			err := strings.TrimPrefix(tex, "error: ")
-			logger.Error(err)
-			if response.NotSSEHeader(ctx) {
-				response.Error(ctx, -1, err)
-			}
-			return
-		}
-
-		if strings.HasPrefix(tex, "text: ") {
-			raw := strings.TrimPrefix(tex, "text: ")
-
-			logger.Debug("----- raw -----")
-			logger.Debug(raw)
-
-			raw = com.ExecMatchers(matchers, raw)
-			if sse {
-				response.SSEResponse(ctx, MODEL+"-1.5", raw, created)
-			}
-			content += raw
-		}
-	}
-
-	ctx.Set(vars.GinCompletionUsage, com.CalcUsageTokens(content, tokens))
-	if !sse {
-		response.Response(ctx, MODEL+"-1.5", content)
-	} else {
-		response.SSEResponse(ctx, MODEL+"-1.5", "[DONE]", created)
-	}
-}
-
 func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]interface{}, tokens int) {
 	// role类型转换
 	condition := func(expr string) string {
@@ -266,51 +221,6 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 			},
 		}
 	})
-
-	return
-}
-
-func mergeMessages15(messages []pkg.Keyv[interface{}]) (newMessages []goole.Message, tokens int) {
-	condition := func(expr string) string {
-		switch expr {
-		case "user", "system", "function", "assistant":
-			return expr
-		default:
-			return ""
-		}
-	}
-
-	newMessages = com.MessageCombiner(messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []goole.Message {
-		role := message["role"]
-		tokens += com.CalcTokens(message["content"])
-		if condition(role) == condition(next) {
-			// cache buffer
-			if role == "function" {
-				buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-				return nil
-			}
-			buffer.WriteString(message["content"])
-			return nil
-		}
-
-		defer buffer.Reset()
-		buffer.WriteString(fmt.Sprintf(message["content"]))
-		return []goole.Message{
-			{
-				Role:    role,
-				Content: buffer.String(),
-			},
-		}
-	})
-
-	if newMessages[0].Role != "user" {
-		newMessages = append([]goole.Message{
-			{
-				Role:    "user",
-				Content: "hi ~",
-			},
-		}, newMessages...)
-	}
 
 	return
 }

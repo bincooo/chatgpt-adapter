@@ -19,7 +19,7 @@ import (
 var (
 	excludeToolNames    = "__exclude-tool-names__"
 	excludeTaskContents = "__exclude-task-contents__"
-	MaxMessages         = 10
+	MaxMessages         = 20
 )
 
 func NeedToToolCall(ctx *gin.Context) bool {
@@ -121,6 +121,7 @@ func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback
 	}
 
 	toolCache := toolCacheHash(completion)
+	logger.Infof("completeTasks calc hash - %s", toolCache)
 	tasks, err := cache.GetToolTasksCache(toolCache)
 	if err != nil {
 		logger.Error(err)
@@ -194,10 +195,15 @@ func toolCacheHash(completion pkg.ChatCompletion) (hash string) {
 		messageL = len(messages)
 	}
 
-	for pos := range messages {
+	count := 3 // 只获取3条
+	for pos := messageL - 1; pos > 0; pos-- {
 		message := messages[pos]
 		if message.Is("role", "user") {
-			hash += message.GetString("role")
+			hash += message.GetString("content")
+			count--
+			if count == 0 {
+				break
+			}
 		}
 	}
 

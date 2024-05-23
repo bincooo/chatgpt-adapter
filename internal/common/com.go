@@ -1,9 +1,11 @@
 package common
 
 import (
-	"hash/fnv"
+	"crypto/sha1"
+	"encoding/hex"
+	"github.com/bincooo/chatgpt-adapter/logger"
+	"io"
 	"math/rand"
-	"strconv"
 	"time"
 )
 
@@ -74,12 +76,11 @@ func Abs(n int) int {
 	return n
 }
 
-func Hash(str string) uint32 {
-	h := fnv.New32a()
-	_, _ = h.Write([]byte(str))
-	return h.Sum32()
-}
-
 func HashString(str string) string {
-	return strconv.FormatUint(uint64(Hash(str)), 10)
+	h := sha1.New()
+	if _, err := io.WriteString(h, str); err != nil {
+		logger.Error(err)
+		return "-1"
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
