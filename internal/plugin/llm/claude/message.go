@@ -111,7 +111,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (attachment []types.Attachm
 	})
 
 	join := strings.Join(nMessages, "\n\n")
-	join = common.PadText(padMaxCount-len(join), join)
+	join = common.PadJunkMessage(padMaxCount-len(join), join)
 
 	tokens = common.CalcTokens(join)
 	attachment = append(attachment, types.Attachment{

@@ -66,3 +66,7 @@ func TestMessageCombiner(t *testing.T) {
 	}
 	t.Log("over")
 }
+
+func TestPadJunkMessage(t *testing.T) {
+	println(PadJunkMessage(100, "hi"))
+}

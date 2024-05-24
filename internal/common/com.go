@@ -68,14 +68,6 @@ func RandString(n int) string {
 	return string(bytes)
 }
 
-// int 取绝对值
-func Abs(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
-}
-
 func HashString(str string) string {
 	h := sha1.New()
 	if _, err := io.WriteString(h, str); err != nil {

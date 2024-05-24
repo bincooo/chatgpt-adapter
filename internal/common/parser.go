@@ -389,6 +389,13 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 
 	handles := xmlFlagsToContents(ctx, req.Messages)
 
+	abs := func(n int) int {
+		if n < 0 {
+			return -n
+		}
+		return n
+	}
+
 	for _, h := range handles {
 		// 正则替换
 		if h['t'] == "regex" {
@@ -431,7 +438,7 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 		if h['t'] == "insert" {
 			i, _ := strconv.Atoi(h['i'])
 			messageL := len(req.Messages)
-			if h['m'] == "true" && messageL-1 < Abs(i) {
+			if h['m'] == "true" && messageL-1 < abs(i) {
 				continue
 			}
 

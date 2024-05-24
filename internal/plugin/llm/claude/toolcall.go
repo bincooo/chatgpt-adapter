@@ -29,7 +29,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			return "", err
 		}
 
-		message = common.PadText(padMaxCount-len(message), message)
+		message = common.PadJunkMessage(padMaxCount-len(message), message)
 		chatResponse, err := chat.Reply(ctx.Request.Context(), "", []types.Attachment{
 			{
 				Content:  message,

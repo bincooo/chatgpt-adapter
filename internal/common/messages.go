@@ -2,11 +2,8 @@ package common
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/bincooo/chatgpt-adapter/pkg"
-	"math/rand"
 	"strings"
-	"time"
 )
 
 func MessageCombiner[T any](
@@ -132,21 +129,27 @@ func StringCombiner[T any](messages []T, iter func(message T) string) string {
 	return buffer.String()
 }
 
-func PadText(length int, message string) string {
+// 填充垃圾消息
+func PadJunkMessage(length int, message string) (str string) {
 	if length <= 0 {
 		return message
 	}
 
-	s := "abcdefghijklmnopqrstuvwsyz0123456789!@#$%^&*()_+,.?/\\"
-	bin := make([]byte, length)
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	for idx := 0; idx < length; idx++ {
-		pos := r.Intn(len(s))
-		u := s[pos]
-		bin[idx] = u
+	tokens := CalcTokens(message)
+	if tokens >= length {
+		return message
 	}
 
-	layout := "%s\n------\n\n%s"
-	return fmt.Sprintf(layout, string(bin), message)
+	placeholder := ""
+	for {
+		content := RandString(100)
+		tokens += CalcTokens(content)
+		placeholder += content
+
+		if tokens >= length {
+			break
+		}
+	}
+
+	return placeholder + "\n\n\n" + message
 }
