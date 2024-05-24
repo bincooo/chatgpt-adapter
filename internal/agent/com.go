@@ -9,7 +9,15 @@ TOOL_RESPONSE:
 
 output: {{ $value.content }}
 <|end|>
-{{- else }}
+{{- else if and (eq $value.role "assistant") (gt (Len $value.tool_calls) 0) }}
+<|assistant|>
+{{- range $toolCall := $value.tool_calls }}
+TOOL_CALL:
+  name: "{{ ToolId $toolCall.function.name }}"
+  arguments: "{{ $toolCall.function.arguments }}"
+{{- end }}
+<|end|>
+{{ else }}
 <|{{$value.role}}|>
 {{$value.content}}
 <|end|>
@@ -84,7 +92,15 @@ TOOL_RESPONSE:
 
 output: {{ $value.content }}
 <|end|>
-{{- else }}
+{{- else if and (eq $value.role "assistant") (gt (Len $value.tool_calls) 0) }}
+<|assistant|>
+{{- range $toolCall := $value.tool_calls }}
+TOOL_CALL:
+  name: "{{ ToolId $toolCall.function.name }}"
+  arguments: "{{ $toolCall.function.arguments }}"
+{{- end }}
+<|end|>
+{{ else }}
 <|{{$value.role}}|>
 {{$value.content}}
 <|end|>

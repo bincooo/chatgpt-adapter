@@ -149,14 +149,14 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 		message := newMessages[pos]
 		if message["author"] == "user" {
 			newMessages = append(newMessages[:pos], newMessages[pos+1:]...)
-			text = message["text"]
+			text = message["text"].(string)
 		}
 	}
 
 	// 超出最大轮次改为WebPage
 	if len(newMessages)/2 > max {
 		message := edge.BuildPageMessage(common.StringCombiner(newMessages[:len(newMessages)-max*2], func(message edge.ChatMessage) string {
-			return message["text"]
+			return message["text"].(string)
 		}))
 		pMessages = append(pMessages, message)
 		pMessages = append(pMessages, edge.BuildMessage("CurrentWebpageContextRequest", "改为从此页面回答。"))

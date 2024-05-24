@@ -117,6 +117,7 @@ func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback
 	messages = completion.Messages
 	message, err := buildTemplate(ctx, completion, agent.ToolTasks)
 	if err != nil {
+		logger.Error(err)
 		return
 	}
 
@@ -262,6 +263,13 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 				result = append(result, fmt.Sprintf("\"%v\"", v))
 			}
 			return strings.Join(result, sep)
+		}).
+		Func("Has", func(obj map[string]interface{}, key string) bool {
+			_, exists := obj[key]
+			return exists
+		}).
+		Func("Len", func(slice []interface{}) int {
+			return len(slice)
 		}).
 		Func("Enc", func(value interface{}) string {
 			return strings.ReplaceAll(fmt.Sprintf("%s", value), "\n", "\\n")
