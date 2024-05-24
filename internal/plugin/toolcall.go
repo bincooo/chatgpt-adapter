@@ -95,6 +95,31 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 		}
 	}
 
+	// toolChoice自推荐toolId处理
+	if completion.ToolChoice != "" && completion.ToolChoice != "auto" {
+		var (
+			keyv       pkg.Keyv[interface{}]
+			toolChoice pkg.Keyv[interface{}]
+			ok         = false
+		)
+		toolChoice, ok = completion.ToolChoice.(map[string]interface{})
+		if !ok || !toolChoice.Is("type", "function") {
+			goto label
+		}
+
+		keyv = toolChoice.GetKeyv("function")
+		if !keyv.Has("name") {
+			goto label
+		}
+
+		if toolId := toolIdWithTools(keyv.GetString("name"), completion.Tools); toolId != "-1" {
+			completion.Messages = append(completion.Messages, pkg.Keyv[interface{}]{
+				"role": "user", "content": "continue。 工具推荐： toolId = " + toolId,
+			})
+		}
+	label:
+	}
+
 	message, err := buildTemplate(ctx, completion, agent.ToolCall)
 	if err != nil {
 		return false, err
@@ -503,14 +528,16 @@ func toolIdWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) 
 
 	for _, t := range tools {
 		fn := t.GetKeyv("function")
+		if fn.Has("id") && value == fn.GetString("id") {
+			return
+		}
+
 		if fn.Has("name") {
 			if fn.Has("id") && value == fn.GetString("name") {
 				value = fn.GetString("id")
 				return
 			}
-		}
-
-		if fn.Has("id") && value == fn.GetString("id") {
+			value = fn.GetString("name")
 			return
 		}
 	}
@@ -543,6 +570,11 @@ func nameWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) {
 }
 
 func toolIsEnabled(ctx *gin.Context) bool {
+	completion := common.GetGinCompletion(ctx)
+	if completion.ToolChoice != "" && completion.ToolChoice != "auto" {
+		return false
+	}
+
 	t := common.GetGinToolValue(ctx)
 	return t.Is("tasks", true)
 }

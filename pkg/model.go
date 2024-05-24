@@ -15,7 +15,7 @@ type ChatCompletion struct {
 	TopK          int                 `json:"topK"`
 	TopP          float32             `json:"topP"`
 	Stream        bool                `json:"stream"`
-	ToolChoice    string              `json:"tool_choice"`
+	ToolChoice    interface{}         `json:"tool_choice"`
 }
 
 type ChatGeneration struct {
