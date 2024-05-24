@@ -23,7 +23,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		}
 
 		co, msToken := extCookie(cookie)
-		options := newOptions(proxies, pMessages)
+		options := newOptions(proxies, "", pMessages)
 		chat := coze.New(co, msToken, options)
 
 		query := ""

@@ -142,6 +142,11 @@ gemini:
 coze:
 > 在 `www.coze.com` 官网中登陆，浏览器 `cookies` 中复制完整的 `cookie` 就是 `Authorization` 参数
 
+> 支持指定bot模型：
+> 
+> 格式 -> coze/botId-version-scene;
+> 例子 -> coze/7353052833752694791-1712016747307-2
+
 lmsys:
 > 无需cookie， model参数为 `lmsys/` 前缀，例：`lmsys/claude-3-haiku-20240307`
 > 该接口有第三方监管，但用来进行正向对话还是不错的。对ip严苛

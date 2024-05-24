@@ -8,6 +8,7 @@ import (
 	"github.com/bincooo/coze-api"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -39,6 +40,15 @@ type API struct {
 func (API) Match(ctx *gin.Context, model string) bool {
 	if Model == model {
 		return true
+	}
+
+	if strings.HasPrefix(model, "coze/") {
+		// coze/botId-version-scene
+		values := strings.Split(model[5:], "-")
+		if len(values) == 3 {
+			_, err := strconv.Atoi(values[2])
+			return err == nil
+		}
 	}
 
 	token := ctx.GetString("token")
@@ -78,7 +88,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	pMessages, tokens := mergeMessages(completion.Messages)
 	ctx.Set(ginTokens, tokens)
-	options := newOptions(proxies, pMessages)
+	options := newOptions(proxies, completion.Model, pMessages)
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)
 
@@ -138,15 +148,26 @@ func (API) Generation(ctx *gin.Context) {
 	})
 }
 
-func newOptions(proxies string, pMessages []coze.Message) (options coze.Options) {
-	opts8k := coze.NewDefaultOptions(botId8k, version8k, scene8k, proxies)
-	opts128k := coze.NewDefaultOptions(botId128k, version128k, scene128k, proxies)
-
-	options = opts8k
-	tokensL := calcTokens(pMessages)
-	if tokensL > 7000 { // 大于7k token 使用 gpt-128k
-		options = opts128k
+func newOptions(proxies string, model string, pMessages []coze.Message) (options coze.Options) {
+	if strings.HasPrefix(model, "coze/") {
+		values := strings.Split(model[5:], "-")
+		if len(values) == 3 {
+			scene, err := strconv.Atoi(values[2])
+			if err == nil {
+				options = coze.NewDefaultOptions(values[0], values[1], scene, proxies)
+				logger.Infof("using custom coze options: botId = %s, version = %s, scene = %d", values[0], values[1], scene)
+				return
+			}
+			logger.Error(err)
+		}
 	}
+
+	options = coze.NewDefaultOptions(botId8k, version8k, scene8k, proxies)
+	// 大于7k token 使用 gpt-128k
+	if token := calcTokens(pMessages); token > 7000 {
+		options = coze.NewDefaultOptions(botId128k, version128k, scene128k, proxies)
+	}
+
 	return
 }
 
