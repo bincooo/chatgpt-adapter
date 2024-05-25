@@ -118,3 +118,13 @@ func (kv Keyv[V]) String() string {
 	bytes, _ := json.Marshal(kv)
 	return string(bytes)
 }
+
+func (kv Keyv[V]) IsString(key string) bool {
+	if value, ok := kv[key]; ok {
+		var v interface{} = value
+		if _, ok = v.(string); ok {
+			return true
+		}
+	}
+	return false
+}

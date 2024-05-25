@@ -3,63 +3,127 @@ package common
 import (
 	"bytes"
 	"github.com/bincooo/chatgpt-adapter/pkg"
+	"github.com/google/uuid"
 	"strings"
 )
 
-func MessageCombiner[T any](
+func TextMessageCombiner[T any](
 	messages []pkg.Keyv[interface{}],
-	iter func(previous, next string, message map[string]string, buffer *bytes.Buffer) []T,
-) (newMessages []T) {
-
+	iterator func(opts struct {
+		Previous string
+		Next     string
+		Message  map[string]string
+		Buffer   *bytes.Buffer
+		Initial  func() pkg.Keyv[interface{}]
+	}) ([]T, error),
+) (newMessages []T, err error) {
+	// 要命，当时为什么要做消息合并
 	previous := "start"
 	buffer := new(bytes.Buffer)
-	msgs := make([]map[string]string, 0)
-	for _, message := range messages {
-		if message.Is("role", "assistant") && message.Has("tool_calls") {
-			if buffer.Len() > 0 {
-				msgs = append(msgs, map[string]string{
-					"role":    previous,
-					"content": buffer.String(),
-				})
-				buffer.Reset()
-			}
+	tempMessages := make([]map[string]string, 0)
+	sources := make(map[string]pkg.Keyv[interface{}])
 
-			previous = message.GetString("role")
-			toolCalls := message.GetSlice("tool_calls")
-			if len(toolCalls) == 0 {
+	cleanBuffer := func() {
+		if buffer.Len() > 0 {
+			tempMessages = append(tempMessages, map[string]string{
+				"role":    previous,
+				"content": buffer.String(),
+			})
+			buffer.Reset()
+		}
+	}
+
+	toolCallMessages := func(message pkg.Keyv[interface{}]) {
+		cleanBuffer()
+		previous = message.GetString("role")
+		toolCalls := message.GetSlice("tool_calls")
+		if len(toolCalls) == 0 {
+			return
+		}
+
+		var toolCall pkg.Keyv[interface{}] = toolCalls[0].(map[string]interface{})
+		keyv := toolCall.GetKeyv("function")
+
+		id := uuid.NewString()
+		sources[id] = message
+		tempMessages = append(tempMessages, map[string]string{
+			"role":      previous,
+			"name":      keyv.GetString("name"),
+			"content":   keyv.GetString("arguments"),
+			"toolCalls": "yes",
+			"id":        id,
+		})
+	}
+
+	toolResponses := func(message pkg.Keyv[interface{}]) {
+		cleanBuffer()
+		previous = message.GetString("role")
+		id := uuid.NewString()
+		sources[id] = message
+		tempMessages = append(tempMessages, map[string]string{
+			"role":    previous,
+			"name":    message.GetString("name"),
+			"content": message.GetString("content"),
+			"tool":    "yes",
+			"id":      id,
+		})
+	}
+
+	multiResponses := func(message pkg.Keyv[interface{}]) {
+		cleanBuffer()
+		previous = message.GetString("role")
+		values := message.GetSlice("content")
+		if len(values) == 0 {
+			return
+		}
+
+		var (
+			contents []string
+			keyv     pkg.Keyv[interface{}]
+			ok       bool
+		)
+
+		for _, value := range values {
+			keyv, ok = value.(map[string]interface{})
+			if !ok {
 				continue
 			}
-
-			var toolCall pkg.Keyv[interface{}] = toolCalls[0].(map[string]interface{})
-			keyv := toolCall.GetKeyv("function")
-
-			msgs = append(msgs, map[string]string{
-				"tool_calls": "yes",
-				"role":       previous,
-				"name":       keyv.GetString("name"),
-				"content":    keyv.GetString("arguments"),
-			})
-			continue
-		}
-
-		if message.Is("role", "tool") || message.Is("role", "function") {
-			if buffer.Len() > 0 {
-				msgs = append(msgs, map[string]string{
-					"role":    previous,
-					"content": buffer.String(),
-				})
-				buffer.Reset()
+			if !keyv.Is("type", "text") {
+				continue
 			}
+			contents = append(contents, keyv.GetString("text"))
+		}
 
-			previous = message.GetString("role")
-			msgs = append(msgs, map[string]string{
-				"role":    previous,
-				"name":    message.GetString("name"),
-				"content": message.GetString("content"),
-			})
+		id := uuid.NewString()
+		sources[id] = message
+		tempMessages = append(tempMessages, map[string]string{
+			"role":    previous,
+			"content": strings.Join(contents, "\n\n"),
+			"multi":   "yes",
+			"id":      id,
+		})
+	}
+
+	for _, message := range messages {
+		// toolCalls
+		if message.Is("role", "assistant") && message.Has("tool_calls") {
+			toolCallMessages(message)
 			continue
 		}
 
+		// tool
+		if message.Is("role", "tool") || message.Is("role", "function") {
+			toolResponses(message)
+			continue
+		}
+
+		// multi content
+		if message.Is("role", "user") && !message.IsString("content") {
+			multiResponses(message)
+			continue
+		}
+
+		// is str content
 		str := strings.TrimSpace(message.GetString("content"))
 		if str == "" {
 			continue
@@ -69,48 +133,66 @@ func MessageCombiner[T any](
 			buffer.WriteString("\n\n")
 		}
 
-		if previous == "start" {
+		{ // 相同类型消息合并
+			if previous == "start" {
+				previous = message.GetString("role")
+				buffer.WriteString(str)
+				continue
+			}
+
+			if message.Is("role", previous) {
+				buffer.WriteString(str)
+				continue
+			}
+
+			tempMessages = append(tempMessages, map[string]string{
+				"role":    previous,
+				"content": buffer.String(),
+			})
+
+			buffer.Reset()
 			previous = message.GetString("role")
 			buffer.WriteString(str)
-			continue
 		}
-
-		if message.Is("role", previous) {
-			buffer.WriteString(str)
-			continue
-		}
-
-		msgs = append(msgs, map[string]string{
-			"role":    previous,
-			"content": buffer.String(),
-		})
-
-		buffer.Reset()
-		previous = message.GetString("role")
-		buffer.WriteString(str)
 	}
 
 	if buffer.Len() > 0 {
-		msgs = append(msgs, map[string]string{
+		tempMessages = append(tempMessages, map[string]string{
 			"role":    previous,
 			"content": buffer.String(),
 		})
 	}
 
 	buffer = new(bytes.Buffer)
-	messageL := len(msgs)
+	messageL := len(tempMessages)
 	previous = "start"
-	for idx, message := range msgs {
+	for idx, message := range tempMessages {
 		next := "end"
 		if idx+1 < messageL-1 {
-			next = msgs[idx+1]["role"]
+			next = tempMessages[idx+1]["role"]
 		}
 
 		if buffer.Len() != 0 {
 			buffer.WriteByte('\n')
 		}
 
-		nextMessages := iter(previous, next, message, buffer)
+		nextMessages, err := iterator(struct {
+			Previous string
+			Next     string
+			Message  map[string]string
+			Buffer   *bytes.Buffer
+			Initial  func() pkg.Keyv[interface{}]
+		}{Previous: previous, Next: previous, Message: message, Buffer: buffer, Initial: func() pkg.Keyv[interface{}] {
+			if id, ok := message["id"]; ok {
+				return sources[id]
+			}
+			return nil
+		}})
+
+		if err != nil {
+			return nil, err
+		}
+
 		if len(next) > 0 {
 			newMessages = append(newMessages, nextMessages...)
 		}

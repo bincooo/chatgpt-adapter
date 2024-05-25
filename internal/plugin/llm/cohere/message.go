@@ -121,28 +121,36 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (content string) {
 		}
 	}
 
-	newMessages := common.MessageCombiner(messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []map[string]string {
-		role := message["role"]
-		if condition(role) == condition(next) {
+	iterator := func(opts struct {
+		Previous string
+		Next     string
+		Message  map[string]string
+		Buffer   *bytes.Buffer
+		Initial  func() pkg.Keyv[interface{}]
+	}) (messages []map[string]string, _ error) {
+		role := opts.Message["role"]
+		if condition(role) == condition(opts.Next) {
 			// cache buffer
 			if role == "function" || role == "tool" {
-				buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-				return nil
+				opts.Buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
+				return
 			}
-			buffer.WriteString(message["content"])
-			return nil
+			opts.Buffer.WriteString(opts.Message["content"])
+			return
 		}
 
-		defer buffer.Reset()
-		buffer.WriteString(fmt.Sprintf(message["content"]))
-		return []map[string]string{
+		defer opts.Buffer.Reset()
+		opts.Buffer.WriteString(fmt.Sprintf(opts.Message["content"]))
+		messages = []map[string]string{
 			{
 				"role":    condition(role),
-				"content": buffer.String(),
+				"content": opts.Buffer.String(),
 			},
 		}
-	})
+		return
+	}
 
+	newMessages, _ := common.TextMessageCombiner(messages, iterator)
 	// 尾部添加一个assistant空消息
 	if newMessages[len(newMessages)-1]["role"] != "assistant" {
 		newMessages = append(newMessages, map[string]string{
@@ -163,68 +171,71 @@ func mergeChatMessages(messages []pkg.Keyv[interface{}]) (newMessages []cohere.M
 			return "CHATBOT"
 		case "system":
 			return "SYSTEM"
-		case "tool":
-			return "TOOL"
 		default:
 			return "USER"
 		}
 	}
 
-	index := 0
-	newMessages = common.MessageCombiner(messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []cohere.Message {
-		role := message["role"]
-		tokens += common.CalcTokens(message["content"])
-		if index == 0 {
-			index++
+	iterator := func(opts struct {
+		Previous string
+		Next     string
+		Message  map[string]string
+		Buffer   *bytes.Buffer
+		Initial  func() pkg.Keyv[interface{}]
+	}) (result []cohere.Message, _ error) {
+		role := opts.Message["role"]
+		tokens += common.CalcTokens(opts.Message["content"])
+		if opts.Previous == "start" {
 			if role == "system" {
-				system = message["content"]
-				return nil
+				system = opts.Message["content"]
+				return
 			}
 		}
 
-		if condition(role) == condition(next) {
+		if condition(role) == condition(opts.Next) {
 			// cache buffer
-			buffer.WriteString(message["content"])
-			return nil
+			opts.Buffer.WriteString(opts.Message["content"])
+			return
 		}
 
-		defer buffer.Reset()
-		buffer.WriteString(message["content"])
+		defer opts.Buffer.Reset()
+		opts.Buffer.WriteString(opts.Message["content"])
 
-		var result []cohere.Message
 		if role == "system" {
 			result = append(result, cohere.Message{
 				Role:    "USER",
-				Message: buffer.String(),
+				Message: opts.Buffer.String(),
 			})
 			result = append(result, cohere.Message{
 				Role:    "CHATBOT",
 				Message: "ok ~",
 			})
-			return result
+			return
 		}
 
-		if _, ok := message["tool_calls"]; role == "assistant" && ok {
-			return result
+		if _, ok := opts.Message["toolCalls"]; ok && role == "assistant" {
+			return
 		}
 
 		if role == "function" || role == "tool" {
-			//buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-			//result = append(result, cohere.Message{
-			//	Role:    condition(role),
-			//	Message: buffer.String(),
-			//})
-			return result
+			opts.Buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
+			result = append(result, cohere.Message{
+				Role:    condition(role),
+				Message: opts.Buffer.String(),
+			})
+			return
 		}
 
-		return []cohere.Message{
+		result = []cohere.Message{
 			{
 				Role:    condition(role),
-				Message: buffer.String(),
+				Message: opts.Buffer.String(),
 			},
 		}
-	})
+		return
+	}
 
+	newMessages, _ = common.TextMessageCombiner(messages, iterator)
 	content = "continue"
 	if pos := len(newMessages) - 1; pos >= 0 && newMessages[pos].Role == "USER" {
 		content = newMessages[pos].Message

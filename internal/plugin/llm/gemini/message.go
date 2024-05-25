@@ -135,59 +135,64 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 		}
 	}
 
-	newMessages = com.MessageCombiner(messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []map[string]interface{} {
-		role := message["role"]
-		tokens += com.CalcTokens(message["content"])
-		if condition(role) == condition(next) {
+	iterator := func(opts struct {
+		Previous string
+		Next     string
+		Message  map[string]string
+		Buffer   *bytes.Buffer
+		Initial  func() pkg.Keyv[interface{}]
+	}) (result []map[string]interface{}, err error) {
+		role := opts.Message["role"]
+		tokens += com.CalcTokens(opts.Message["content"])
+		if condition(role) == condition(opts.Next) {
 			// cache buffer
-			buffer.WriteString(message["content"])
-			return nil
+			opts.Buffer.WriteString(opts.Message["content"])
+			return
 		}
 
-		defer buffer.Reset()
-		buffer.WriteString(fmt.Sprintf(message["content"]))
-		var result []map[string]interface{}
+		defer opts.Buffer.Reset()
+		opts.Buffer.WriteString(fmt.Sprintf(opts.Message["content"]))
 
-		if role == "tool" || role == "function" {
+		// 工具执行结果消息
+		if role == "tool" {
 			var args interface{}
-			if err := json.Unmarshal([]byte(message["content"]), &args); err != nil {
-				logger.Error(err)
-				return nil
+			if err = json.Unmarshal([]byte(opts.Message["content"]), &args); err != nil {
+				return
 			}
 
 			result = append(result, map[string]interface{}{
-				"role": "user",
+				"role": condition("user"),
 				"parts": []interface{}{
 					map[string]interface{}{
 						"functionResponse": map[string]interface{}{
-							"name":     message["name"],
+							"name":     opts.Message["name"],
 							"response": args,
 						},
 					},
 				},
 			})
-			return result
+			return
 		}
 
-		if toolCalls, ok := message["tool_calls"]; ok && role == "assistant" && toolCalls == "yes" {
+		// 工具参数消息
+		if _, ok := opts.Message["toolCalls"]; ok && role == "assistant" {
 			var args interface{}
-			if err := json.Unmarshal([]byte(message["content"]), &args); err != nil {
-				logger.Error(err)
-				return nil
+			if err = json.Unmarshal([]byte(opts.Message["content"]), &args); err != nil {
+				return
 			}
 
 			result = append(result, map[string]interface{}{
-				"role": "assistant",
+				"role": condition("assistant"),
 				"parts": []interface{}{
 					map[string]interface{}{
 						"functionCall": map[string]interface{}{
-							"name": message["name"],
+							"name": opts.Message["name"],
 							"args": args,
 						},
 					},
 				},
 			})
-			return result
+			return
 		}
 
 		if role == "system" {
@@ -195,7 +200,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 				"role": "user",
 				"parts": []interface{}{
 					map[string]string{
-						"text": buffer.String(),
+						"text": opts.Buffer.String(),
 					},
 				},
 			})
@@ -207,20 +212,22 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 					},
 				},
 			})
-			return result
+			return
 		}
 
-		return []map[string]interface{}{
+		result = []map[string]interface{}{
 			{
 				"role": condition(role),
 				"parts": []interface{}{
 					map[string]string{
-						"text": buffer.String(),
+						"text": opts.Buffer.String(),
 					},
 				},
 			},
 		}
-	})
+		return
+	}
 
+	newMessages, _ = com.TextMessageCombiner(messages, iterator)
 	return
 }

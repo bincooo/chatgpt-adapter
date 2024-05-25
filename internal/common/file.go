@@ -142,3 +142,39 @@ func Download(proxies, url, suffix string) (file string, err error) {
 
 	return tempFile.Name(), nil
 }
+
+func LoadImageMeta(url string) (mime string, data string, err error) {
+	// base64
+	if strings.HasPrefix(url, "data:image/") {
+		pos := strings.Index(url, ";")
+		if pos == -1 {
+			err = errors.New("invalid base64 url")
+			return
+		}
+
+		mime = url[5:pos]
+		url = url[pos+1:]
+
+		if !strings.HasPrefix(url, "base64,") {
+			err = errors.New("invalid base64 url")
+			return
+		}
+		data = url[7:]
+		return
+	}
+
+	// url
+	response, err := http.Get(url)
+	if err != nil {
+		return
+	}
+
+	dataBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+
+	mime = response.Header.Get("content-type")
+	data = base64.StdEncoding.EncodeToString(dataBytes)
+	return
+}

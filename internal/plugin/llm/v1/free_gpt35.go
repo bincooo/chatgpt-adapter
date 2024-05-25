@@ -144,24 +144,28 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (result map[string]interfac
 		}
 	}
 
-	messages = common.MessageCombiner(messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []pkg.Keyv[interface{}] {
-		role := message["role"]
-		tokens += common.CalcTokens(message["content"])
-
-		if condition(role) == condition(next) {
+	iterator := func(opts struct {
+		Previous string
+		Next     string
+		Message  map[string]string
+		Buffer   *bytes.Buffer
+		Initial  func() pkg.Keyv[interface{}]
+	}) (messages []pkg.Keyv[interface{}], _ error) {
+		role := opts.Message["role"]
+		tokens += common.CalcTokens(opts.Message["content"])
+		if condition(role) == condition(opts.Next) {
 			// cache buffer
 			if role == "function" || role == "tool" {
-				buffer.WriteString(fmt.Sprintf("这是内置工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-				return nil
+				opts.Buffer.WriteString(fmt.Sprintf("这是内置工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
+				return
 			}
-
-			buffer.WriteString(message["content"])
-			return nil
+			opts.Buffer.WriteString(opts.Message["content"])
+			return
 		}
 
-		defer buffer.Reset()
-		buffer.WriteString(message["content"])
-		return []pkg.Keyv[interface{}]{
+		defer opts.Buffer.Reset()
+		opts.Buffer.WriteString(opts.Message["content"])
+		messages = []pkg.Keyv[interface{}]{
 			{
 				"id": uuid.NewString(),
 				"author": map[string]string{
@@ -170,13 +174,15 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (result map[string]interfac
 				"content": map[string]interface{}{
 					"content_type": "text",
 					"parts": []string{
-						buffer.String(),
+						opts.Buffer.String(),
 					},
 				},
 			},
 		}
-	})
+		return
+	}
 
+	messages, _ = common.TextMessageCombiner(messages, iterator)
 	result = map[string]interface{}{
 		"action":                        "next",
 		"messages":                      messages,
@@ -188,11 +194,6 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (result map[string]interfac
 		"conversation_mode": map[string]string{
 			"kind": "primary_assistant",
 		},
-		//"force_paragen_model_slug": "",
-		//"force_paragen":            false,
-		//"force_nulligen":           false,
-		//"force_rate_limit":         false,
-		//"reset_rate_limits":    	  true,
 		"websocket_request_id": uuid.NewString(),
 	}
 	return
@@ -211,8 +212,10 @@ func generateToken(seed, diff string) string {
 		0,
 		ua,
 	}
+
 	l := len(diff) / 2
 	h := sha3.New512()
+
 	for i := 0; i < HASH_ATTEMPTS; i++ {
 		config[3] = i
 		marshal, _ := json.Marshal(config)
@@ -224,5 +227,6 @@ func generateToken(seed, diff string) string {
 			return BASE64_PREFIX + b64
 		}
 	}
+
 	return BASE64_PREFIX + "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + base64.StdEncoding.EncodeToString([]byte(`"`+seed+`"`))
 }

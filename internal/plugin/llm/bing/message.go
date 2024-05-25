@@ -111,32 +111,38 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 	}
 
 	// 合并历史对话
-	newMessages := common.MessageCombiner(messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []edge.ChatMessage {
-		role := message["role"]
-		tokens += common.CalcTokens(message["content"])
-		if condition(role) == condition(next) {
+	iterator := func(opts struct {
+		Previous string
+		Next     string
+		Message  map[string]string
+		Buffer   *bytes.Buffer
+		Initial  func() pkg.Keyv[interface{}]
+	}) (result []edge.ChatMessage, _ error) {
+		role := opts.Message["role"]
+		tokens += common.CalcTokens(opts.Message["content"])
+		if condition(role) == condition(opts.Next) {
 			// cache buffer
 			if role == "function" || role == "tool" {
-				buffer.WriteString(fmt.Sprintf("这是内置工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-				return nil
+				opts.Buffer.WriteString(fmt.Sprintf("这是内置工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
+				return
 			}
 
-			buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, message["content"]))
-			return nil
+			opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, opts.Message["content"]))
+			return
 		}
 
-		defer buffer.Reset()
-		var result []edge.ChatMessage
-		if previous == "system" {
-			result = append(result, edge.BuildUserMessage(buffer.String()))
+		defer opts.Buffer.Reset()
+		if opts.Previous == "system" {
+			result = append(result, edge.BuildUserMessage(opts.Buffer.String()))
 			result = append(result, edge.BuildBotMessage("<|assistant|>ok ~<|end|>\n"))
-			buffer.Reset()
+			opts.Buffer.Reset()
 		}
 
-		buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, message["content"]))
-		result = append(result, edge.BuildSwitchMessage(condition(role), buffer.String()))
-		return result
-	})
+		opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, opts.Message["content"]))
+		result = append(result, edge.BuildSwitchMessage(condition(role), opts.Buffer.String()))
+		return
+	}
+	newMessages, _ := common.TextMessageCombiner(messages, iterator)
 
 	// 尝试引导对话，避免道歉
 	if pad {

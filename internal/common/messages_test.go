@@ -37,7 +37,7 @@ func TestMessageCombiner(t *testing.T) {
 			return ""
 		}
 	}
-	nMessages := MessageCombiner[map[string]string](messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []map[string]string {
+	nMessages := TextMessageCombiner[map[string]string](messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []map[string]string {
 		role := message["role"]
 		if condition(role) != condition(next) {
 			if buffer.Len() != 0 {

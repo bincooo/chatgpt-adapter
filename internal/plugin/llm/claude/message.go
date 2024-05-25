@@ -90,26 +90,34 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (attachment []types.Attachm
 	}
 
 	// 合并历史对话
-	nMessages := common.MessageCombiner(messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []string {
-		role := message["role"]
-		tokens += common.CalcTokens(message["content"])
-		if condition(role) == condition(next) {
+	iterator := func(opts struct {
+		Previous string
+		Next     string
+		Message  map[string]string
+		Buffer   *bytes.Buffer
+		Initial  func() pkg.Keyv[interface{}]
+	}) (messages []string, _ error) {
+		role := opts.Message["role"]
+		tokens += common.CalcTokens(opts.Message["content"])
+		if condition(role) == condition(opts.Next) {
 			// cache buffer
 			if role == "function" || role == "tool" {
-				buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-				return nil
+				opts.Buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
+				return
 			}
-			buffer.WriteString(message["content"])
-			return nil
+			opts.Buffer.WriteString(opts.Message["content"])
+			return
 		}
 
-		defer buffer.Reset()
-		buffer.WriteString(fmt.Sprintf(message["content"]))
-		return []string{
-			fmt.Sprintf("%s： %s", condition(role), buffer.String()),
+		defer opts.Buffer.Reset()
+		opts.Buffer.WriteString(fmt.Sprintf(opts.Message["content"]))
+		messages = []string{
+			fmt.Sprintf("%s： %s", condition(role), opts.Buffer.String()),
 		}
-	})
+		return
+	}
 
+	nMessages, _ := common.TextMessageCombiner(messages, iterator)
 	join := strings.Join(nMessages, "\n\n")
 	join = common.PadJunkMessage(padMaxCount-len(join), join)
 

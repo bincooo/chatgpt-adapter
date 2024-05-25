@@ -108,31 +108,39 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages string) {
 		}
 	}
 
-	slices := common.MessageCombiner(messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []string {
-		role := message["role"]
-		if condition(role) == condition(next) {
+	iterator := func(opts struct {
+		Previous string
+		Next     string
+		Message  map[string]string
+		Buffer   *bytes.Buffer
+		Initial  func() pkg.Keyv[interface{}]
+	}) (messages []string, _ error) {
+		role := opts.Message["role"]
+		if condition(role) == condition(opts.Next) {
 			// cache buffer
 			if role == "function" || role == "tool" {
-				buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", message["name"], message["content"]))
-				return nil
+				opts.Buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
+				return
 			}
 
-			buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, message["content"]))
-			return nil
+			opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, opts.Message["content"]))
+			return
 		}
 
-		defer buffer.Reset()
+		defer opts.Buffer.Reset()
 		var result []string
-		if previous == "system" {
-			result = append(result, fmt.Sprintf("<|system|>\n%s\n<|end|>", buffer.String()))
+		if opts.Previous == "system" {
+			result = append(result, fmt.Sprintf("<|system|>\n%s\n<|end|>", opts.Buffer.String()))
 			result = append(result, "<|assistant|>ok ~<|end|>\n")
-			buffer.Reset()
+			opts.Buffer.Reset()
 		}
 
-		buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, message["content"]))
-		return append(result, buffer.String())
-	})
+		opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, opts.Message["content"]))
+		messages = append(result, opts.Buffer.String())
+		return
+	}
 
+	slices, _ := common.TextMessageCombiner(messages, iterator)
 	newMessages = strings.Join(slices, "\n\n")
 	newMessages += "\n<|assistant|>"
 	return
