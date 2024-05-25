@@ -79,7 +79,12 @@ func (API) Completion(ctx *gin.Context) {
 		matchers   = com.GetGinMatchers(ctx)
 	)
 
-	newMessages, tokens := mergeMessages(completion.Messages)
+	newMessages, tokens, err := mergeMessages(completion.Messages)
+	if err != nil {
+		response.Error(ctx, -1, err)
+		return
+	}
+
 	ctx.Set(ginTokens, tokens)
 	r, err := build(ctx.Request.Context(), proxies, cookie, newMessages, completion)
 	if err != nil {

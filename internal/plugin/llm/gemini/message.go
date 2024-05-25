@@ -122,7 +122,7 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 	}
 }
 
-func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]interface{}, tokens int) {
+func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]interface{}, tokens int, err error) {
 	// role类型转换
 	condition := func(expr string) string {
 		switch expr {
@@ -195,6 +195,55 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 			return
 		}
 
+		// 复合消息
+		if _, ok := opts.Message["multi"]; ok && role == "user" {
+			message := opts.Initial()
+			values := message.GetSlice("content")
+			if len(values) == 0 {
+				return
+			}
+
+			var multi []interface{}
+			for _, value := range values {
+				var keyv pkg.Keyv[interface{}]
+				keyv, ok = value.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				if keyv.Is("type", "text") {
+					multi = append(multi, map[string]interface{}{
+						"text": keyv.GetString("text"),
+					})
+				}
+
+				if keyv.Is("type", "image_url") {
+					o := keyv.GetKeyv("image_url")
+					mime, data, e := com.LoadImageMeta(o.GetString("url"))
+					if e != nil {
+						err = e
+						return
+					}
+					multi = append(multi, map[string]interface{}{
+						"inlineData": map[string]interface{}{
+							"mimeType": mime,
+							"data":     data,
+						},
+					})
+				}
+			}
+
+			if len(multi) == 0 {
+				return
+			}
+
+			result = append(result, map[string]interface{}{
+				"role":  condition("user"),
+				"parts": multi,
+			})
+			return
+		}
+
 		if role == "system" {
 			result = append(result, map[string]interface{}{
 				"role": "user",
@@ -228,6 +277,6 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 		return
 	}
 
-	newMessages, _ = com.TextMessageCombiner(messages, iterator)
+	newMessages, err = com.TextMessageCombiner(messages, iterator)
 	return
 }

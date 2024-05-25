@@ -182,7 +182,7 @@ func TextMessageCombiner[T any](
 			Message  map[string]string
 			Buffer   *bytes.Buffer
 			Initial  func() pkg.Keyv[interface{}]
-		}{Previous: previous, Next: previous, Message: message, Buffer: buffer, Initial: func() pkg.Keyv[interface{}] {
+		}{Previous: previous, Next: next, Message: message, Buffer: buffer, Initial: func() pkg.Keyv[interface{}] {
 			if id, ok := message["id"]; ok {
 				return sources[id]
 			}
@@ -193,10 +193,7 @@ func TextMessageCombiner[T any](
 			return nil, err
 		}
 
-		if len(next) > 0 {
-			newMessages = append(newMessages, nextMessages...)
-		}
-
+		newMessages = append(newMessages, nextMessages...)
 		previous = message["role"]
 	}
 	return

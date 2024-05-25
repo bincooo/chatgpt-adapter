@@ -187,9 +187,9 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	if res.StatusCode != http.StatusOK {
 		h := res.Header
 		if c := h.Get("content-type"); !strings.Contains(c, "text/html") {
-			bts, e := io.ReadAll(res.Body)
+			dataBytes, e := io.ReadAll(res.Body)
 			if e == nil {
-				logger.Errorf("%s", bts)
+				logger.Errorf("%s", dataBytes)
 			}
 		}
 		return nil, errors.New(res.Status)
