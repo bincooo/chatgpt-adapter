@@ -2,7 +2,7 @@ package logger
 
 import (
 	nested "github.com/antonfisher/nested-logrus-formatter"
-	"github.com/lestrrat-go/file-rotatelogs"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -15,16 +15,17 @@ import (
 )
 
 var (
-	project    = "github.com/bincooo/chatgpt-adapter/"
+	project    = "github.com/bincooo/chatgpt-adapter"
 	projectDir = ""
 )
 
-func Init(basePath string, level logrus.Level) {
+func InitLogger(basePath string, level logrus.Level) {
 	dir, err := os.Getwd()
 	if err != nil {
 		Fatal(err)
 	}
 	projectDir = dir + "/"
+	project += "/"
 
 	logrus.SetLevel(level)
 	if len(basePath) == 0 {
@@ -32,7 +33,7 @@ func Init(basePath string, level logrus.Level) {
 	}
 
 	writer, err := rotatelogs.New(
-		filepath.Join(basePath, "%Y-%m-%d.log"),
+		filepath.Join(basePath, "background-%Y-%m-%d.log"),
 		//日志最大保存时间
 		rotatelogs.WithMaxAge(7*24*time.Hour),
 		////设置日志切割时间间隔(1天)(隔多久分割一次)
@@ -55,7 +56,7 @@ func Init(basePath string, level logrus.Level) {
 }
 
 func CustomCallerFormatter(frame *runtime.Frame) string {
-	trimPKG := func(pkg string) string {
+	trimPackage := func(pkg string) string {
 		if pkg == "" {
 			return pkg
 		}
@@ -67,17 +68,17 @@ func CustomCallerFormatter(frame *runtime.Frame) string {
 		return slice[length-2] + "/" + slice[length-1]
 	}
 
-	trimLS := func(file string) string {
-		if file == "" {
-			return file
+	trimL := func(prefix string) string {
+		if prefix == "" {
+			return prefix
 		}
-		if strings.HasPrefix(file, "/") {
-			return file[1:]
+		if strings.HasPrefix(prefix, "/") {
+			return prefix[1:]
 		}
-		return file
+		return prefix
 	}
 
-	trimR := func(file string) string {
+	trimProject := func(file string) string {
 		if !strings.HasPrefix(file, project) {
 			return file
 		}
@@ -98,9 +99,9 @@ func CustomCallerFormatter(frame *runtime.Frame) string {
 	}
 
 	main := strings.HasPrefix(frame.Function, "main.")
-	slice := strings.Split(frame.File, trimPKG(path.Dir(frame.Function)))
+	slice := strings.Split(frame.File, trimPackage(path.Dir(frame.Function)))
 	if !main && len(slice) > 1 {
-		return " <" + trimR(path.Dir(frame.Function)) + "> " + trimLS(slice[1]) + ":" + strconv.Itoa(frame.Line) + " |"
+		return " <" + trimProject(path.Dir(frame.Function)) + "> " + trimL(slice[1]) + ":" + strconv.Itoa(frame.Line) + " |"
 	}
 
 	root := path.Dir(frame.Function)
@@ -113,7 +114,7 @@ func CustomCallerFormatter(frame *runtime.Frame) string {
 		file = file[len(projectDir):]
 	}
 
-	return " <" + trimR(root) + "> " + file + ":" + strconv.Itoa(frame.Line) + " |"
+	return " <" + trimProject(root) + "> " + file + ":" + strconv.Itoa(frame.Line) + " |"
 }
 
 func Debug(args ...interface{}) {

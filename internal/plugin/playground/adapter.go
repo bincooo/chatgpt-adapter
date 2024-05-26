@@ -152,24 +152,28 @@ func (API) Generation(ctx *gin.Context) {
 	marshal, _ := json.Marshal(payload)
 	r, err := fetch(ctx.Request.Context(), "", cookie, marshal)
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}
 
 	// {"errorCode":
 	if bytes.HasPrefix(data, []byte("{\"errorCode\":")) {
+		logger.Error(err)
 		response.Error(ctx, -1, string(data))
 		return
 	}
 
 	var mc modelCompleted
 	if err = json.Unmarshal(data, &mc); err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}
@@ -181,6 +185,7 @@ func (API) Generation(ctx *gin.Context) {
 
 	file, err := com.SaveBase64(mc.Images[0].Url, "jpg")
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}

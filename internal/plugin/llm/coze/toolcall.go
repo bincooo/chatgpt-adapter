@@ -45,8 +45,10 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 	if err != nil {
 		errMessage := err.Error()
 		if strings.Contains(errMessage, "Login verification is invalid") {
+			logger.Error(err)
 			response.Error(ctx, http.StatusUnauthorized, errMessage)
 		}
+		logger.Error(err)
 		response.Error(ctx, -1, errMessage)
 		return true
 	}

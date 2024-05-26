@@ -64,6 +64,7 @@ func (API) Generation(ctx *gin.Context) {
 
 	message, err := completeTagsGenerator(ctx, generation.Message)
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}

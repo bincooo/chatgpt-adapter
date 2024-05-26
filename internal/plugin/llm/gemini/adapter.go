@@ -5,6 +5,7 @@ import (
 	com "github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/gin-gonic/gin"
 	"net/url"
 	"strings"
@@ -81,6 +82,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	newMessages, tokens, err := mergeMessages(completion.Messages)
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}
@@ -92,6 +94,7 @@ func (API) Completion(ctx *gin.Context) {
 		if errors.As(err, &urlError) {
 			urlError.URL = strings.ReplaceAll(urlError.URL, cookie, "AIzaSy***")
 		}
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}

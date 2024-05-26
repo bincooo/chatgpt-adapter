@@ -15,7 +15,7 @@ var (
 	toolTasksCacheManager *cache.Cache[[]pkg.Keyv[string]]
 )
 
-func Init() {
+func InitCache() {
 	client := gocache.New(5*time.Minute, 5*time.Minute)
 	cacheStore := gocacheStore.NewGoCache(client)
 	toolTasksCacheManager = cache.New[[]pkg.Keyv[string]](cacheStore)

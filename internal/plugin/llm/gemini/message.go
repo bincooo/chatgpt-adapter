@@ -43,6 +43,7 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 		if err != nil {
 			logger.Error(err)
 			if response.NotSSEHeader(ctx) {
+				logger.Error(err)
 				response.Error(ctx, -1, err)
 			}
 			return
@@ -56,6 +57,7 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 			err = fmt.Errorf("%s", original)
 			logger.Error(err)
 			if response.NotSSEHeader(ctx) {
+				logger.Error(err)
 				response.Error(ctx, -1, err)
 			}
 			return

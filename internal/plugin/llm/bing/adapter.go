@@ -49,6 +49,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	options, err := edge.NewDefaultOptions(cookie, "")
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}
@@ -82,6 +83,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	r, err := chat.Reply(ctx.Request.Context(), currMessage, pMessages)
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}

@@ -59,6 +59,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 			err := strings.TrimPrefix(raw, "error: ")
 			logger.Error(err)
 			if response.NotSSEHeader(ctx) {
+				logger.Error(err)
 				response.Error(ctx, -1, err)
 			}
 			return
@@ -69,6 +70,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 			if err := json.Unmarshal([]byte(t), &functionCall); err != nil {
 				logger.Error(err)
 				if response.NotSSEHeader(ctx) {
+					logger.Error(err)
 					response.Error(ctx, -1, err)
 				}
 				return

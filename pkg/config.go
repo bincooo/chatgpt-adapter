@@ -25,7 +25,7 @@ func LoadConfig() (*viper.Viper, error) {
 	return vip, nil
 }
 
-func Init() {
+func InitConfig() {
 	config, err := LoadConfig()
 	if err != nil {
 		panic(err)

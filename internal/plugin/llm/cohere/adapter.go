@@ -122,6 +122,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, message, coh.ToolObject{})
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}

@@ -34,11 +34,11 @@ var (
 				return
 			}
 
-			pkg.Init()
-			cache.Init()
-			common.Init()
+			pkg.InitConfig()
+			cache.InitCache()
+			common.InitCommon()
 			handler.InitExtensions()
-			logger.Init(logPath, switchLogLevel())
+			logger.InitLogger(logPath, switchLogLevel())
 			handler.Bind(port, version, proxies)
 		},
 	}

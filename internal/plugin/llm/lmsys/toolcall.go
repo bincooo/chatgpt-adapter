@@ -25,6 +25,7 @@ func completeToolCalls(ctx *gin.Context, proxies string, completion pkg.ChatComp
 	})
 
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return true
 	}

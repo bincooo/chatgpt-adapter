@@ -4,6 +4,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/logger"
 	claude2 "github.com/bincooo/claude-api"
 	"github.com/bincooo/claude-api/vars"
 	"github.com/gin-gonic/gin"
@@ -85,12 +86,14 @@ func (API) Completion(ctx *gin.Context) {
 	ctx.Set(ginTokens, tokens)
 	chat, err := claude2.New(options)
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}
 
 	chatResponse, err := chat.Reply(ctx.Request.Context(), "", attachments)
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}

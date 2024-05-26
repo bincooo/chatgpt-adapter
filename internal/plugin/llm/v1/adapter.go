@@ -63,6 +63,7 @@ func (API) Completion(ctx *gin.Context) {
 			code = http.StatusTooManyRequests
 			go common.ChangeClashIP()
 		}
+		logger.Error(err)
 		response.Error(ctx, code, err)
 		return
 	}
@@ -166,6 +167,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, matchers []common.Matcher,
 
 		var r chatSSEResponse
 		if err := json.Unmarshal([]byte(text[5:]), &r); err != nil {
+			logger.Error(err)
 			response.Error(ctx, -1, err)
 			return
 		}

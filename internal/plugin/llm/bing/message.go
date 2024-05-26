@@ -53,6 +53,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 			if err != nil {
 				logger.Error(err)
 				if response.NotSSEHeader(ctx) {
+					logger.Error(err)
 					response.Error(ctx, -1, err)
 				}
 				return
@@ -67,6 +68,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 			if message.Error != nil {
 				logger.Error(message.Error)
 				if response.NotSSEHeader(ctx) {
+					logger.Error(message.Error)
 					response.Error(ctx, -1, message.Error)
 				}
 				return

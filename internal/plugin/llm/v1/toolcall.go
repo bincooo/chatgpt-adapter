@@ -24,6 +24,7 @@ func completeToolCalls(ctx *gin.Context, req pkg.ChatCompletion) bool {
 	})
 
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return true
 	}

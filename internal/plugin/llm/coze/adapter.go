@@ -102,6 +102,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	chatResponse, err := chat.Reply(ctx.Request.Context(), query)
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}
@@ -126,6 +127,7 @@ func (API) Generation(ctx *gin.Context) {
 	chat := coze.New(co, msToken, options)
 	image, err := chat.Images(ctx.Request.Context(), generation.Message)
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}

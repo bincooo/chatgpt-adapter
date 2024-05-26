@@ -49,6 +49,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 	})
 
 	if err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return true
 	}

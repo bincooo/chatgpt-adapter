@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func Init() {
+func InitCommon() {
 	fileInit()
 	clashInit()
 }

@@ -51,6 +51,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		case err := <-cancel:
 			if err != nil {
 				if response.NotSSEHeader(ctx) {
+					logger.Error(err)
 					response.Error(ctx, -1, err)
 				}
 				logger.Error(err)
@@ -67,6 +68,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 				err := strings.TrimPrefix(raw, "error: ")
 				logger.Error(err)
 				if response.NotSSEHeader(ctx) {
+					logger.Error(err)
 					response.Error(ctx, -1, err)
 				}
 				return

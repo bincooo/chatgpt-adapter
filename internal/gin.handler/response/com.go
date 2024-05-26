@@ -69,7 +69,7 @@ func IsCanceled(ctx context.Context) bool {
 //	code 401 http.StatusUnauthorized
 //	err.Type ...
 func Error(ctx *gin.Context, code int, err interface{}) {
-	logger.Errorf("response error: %v", err)
+	//logger.Errorf("response error: %v", err)
 	if code == -1 {
 		code = http.StatusInternalServerError
 	}
