@@ -127,7 +127,10 @@ func (API) Completion(ctx *gin.Context) {
 		return
 	}
 
-	waitResponse(ctx, matchers, chatResponse, completion.Stream)
+	content := waitResponse(ctx, matchers, chatResponse, completion.Stream)
+	if content == "" && response.NotSSEHeader(ctx) {
+		response.Error(ctx, -1, "EMPTY RESPONSE")
+	}
 }
 
 func convertToolResults(completion pkg.ChatCompletion) (toolResults []coh.ToolResult) {

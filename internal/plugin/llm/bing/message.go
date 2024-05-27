@@ -38,10 +38,9 @@ func waitMessage(chatResponse chan edge.ChatResponse, cancel func(str string) bo
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error, chatResponse chan edge.ChatResponse, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error, chatResponse chan edge.ChatResponse, sse bool) (content string) {
 	var (
 		pos     = 0
-		content = ""
 		created = time.Now().Unix()
 		tokens  = ctx.GetInt(ginTokens)
 	)
@@ -83,6 +82,9 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 			}
 			pos = contentL
 			raw = common.ExecMatchers(matchers, raw)
+			if len(raw) == 0 {
+				continue
+			}
 
 			if sse {
 				response.SSEResponse(ctx, Model, raw, created)
@@ -92,12 +94,18 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 	}
 
 label:
+	if content == "" && response.NotSSEHeader(ctx) {
+		return
+	}
+
 	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, tokens))
 	if !sse {
 		response.Response(ctx, Model, content)
 	} else {
 		response.SSEResponse(ctx, Model, "[DONE]", created)
 	}
+
+	return
 }
 
 func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessages []edge.ChatMessage, text string, tokens int) {

@@ -48,8 +48,7 @@ func waitMessage(chatResponse chan string, cancel func(str string) bool) (conten
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error, chatResponse chan string, sse bool) {
-	content := ""
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error, chatResponse chan string, sse bool) (content string) {
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
@@ -92,6 +91,10 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 			logger.Debug(raw)
 
 			raw = common.ExecMatchers(matchers, raw)
+			if len(raw) == 0 {
+				continue
+			}
+
 			if sse {
 				response.SSEResponse(ctx, Model, raw, created)
 			}
@@ -100,12 +103,17 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 	}
 
 label:
+	if content == "" && response.NotSSEHeader(ctx) {
+		return
+	}
+
 	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, tokens))
 	if !sse {
 		response.Response(ctx, Model, content)
 	} else {
 		response.SSEResponse(ctx, Model, "[DONE]", created)
 	}
+	return
 }
 
 func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []coze.Message, tokens int) {

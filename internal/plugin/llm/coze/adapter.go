@@ -111,7 +111,10 @@ func (API) Completion(ctx *gin.Context) {
 	cancel, matcher := common.NewCancelMather(ctx)
 	matchers = append(matchers, matcher)
 
-	waitResponse(ctx, matchers, cancel, chatResponse, completion.Stream)
+	content := waitResponse(ctx, matchers, cancel, chatResponse, completion.Stream)
+	if content == "" && response.NotSSEHeader(ctx) {
+		response.Error(ctx, -1, "EMPTY RESPONSE")
+	}
 }
 
 func (API) Generation(ctx *gin.Context) {

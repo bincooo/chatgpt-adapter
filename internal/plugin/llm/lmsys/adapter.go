@@ -290,7 +290,10 @@ label:
 	}
 
 	cancel, matchers := joinMatchers(ctx, matchers)
-	waitResponse(ctx, matchers, ch, cancel, completion.Stream)
+	content := waitResponse(ctx, matchers, ch, cancel, completion.Stream)
+	if content == "" && response.NotSSEHeader(ctx) {
+		response.Error(ctx, -1, "EMPTY RESPONSE")
+	}
 }
 
 func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []common.Matcher) {

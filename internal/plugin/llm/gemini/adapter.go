@@ -98,5 +98,10 @@ func (API) Completion(ctx *gin.Context) {
 		response.Error(ctx, -1, err)
 		return
 	}
-	waitResponse(ctx, matchers, r, completion.Stream)
+
+	// 最近似乎很容易发送空消息？
+	content := waitResponse(ctx, matchers, r, completion.Stream)
+	if content == "" && response.NotSSEHeader(ctx) {
+		response.Error(ctx, -1, "EMPTY RESPONSE")
+	}
 }

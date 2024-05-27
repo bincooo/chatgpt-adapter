@@ -18,8 +18,7 @@ import (
 
 const ginTokens = "__tokens__"
 
-func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *http.Response, sse bool) {
-	content := ""
+func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *http.Response, sse bool) (content string) {
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
@@ -74,9 +73,17 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 			continue
 		}
 
+		if len(c.Candidates) == 0 {
+			continue
+		}
+
 		cond := c.Candidates[0]
 		if cond.Content.Role != "model" {
 			original = nil
+			continue
+		}
+
+		if len(cond.Content.Parts) == 0 {
 			continue
 		}
 
@@ -97,6 +104,9 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 
 		original = nil
 		raw = com.ExecMatchers(matchers, raw.(string))
+		if len(raw.(string)) == 0 {
+			continue
+		}
 
 		if sse {
 			response.SSEResponse(ctx, MODEL, raw.(string), created)
@@ -116,12 +126,17 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 		return
 	}
 
+	if content == "" && response.NotSSEHeader(ctx) {
+		return
+	}
+
 	ctx.Set(vars.GinCompletionUsage, com.CalcUsageTokens(content, tokens))
 	if !sse {
 		response.Response(ctx, MODEL, content)
 	} else {
 		response.SSEResponse(ctx, MODEL, "[DONE]", created)
 	}
+	return
 }
 
 func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]interface{}, tokens int, err error) {

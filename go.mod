@@ -8,7 +8,7 @@ require (
 	github.com/bincooo/cohere-api v0.0.0-20240522224901-0b18f9a58f49
 	github.com/bincooo/coze-api v1.0.2-0.20240526010343-095ef2a102de
 	github.com/bincooo/edge-api v1.0.4-0.20240524081323-04128637ca26
-	github.com/bincooo/emit.io v0.0.0-20240518034137-35bda374e272
+	github.com/bincooo/emit.io v0.0.0-20240526230324-a6e1e467eb61
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/eko/gocache/lib/v4 v4.1.6
 	github.com/eko/gocache/store/go_cache/v4 v4.2.1

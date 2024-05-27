@@ -67,7 +67,11 @@ func (API) Completion(ctx *gin.Context) {
 		response.Error(ctx, code, err)
 		return
 	}
-	waitResponse(ctx, r, matchers, completion.Stream)
+
+	content := waitResponse(ctx, r, matchers, completion.Stream)
+	if content == "" && response.NotSSEHeader(ctx) {
+		response.Error(ctx, -1, "EMPTY RESPONSE")
+	}
 }
 
 func waitMessage(r *http.Response, cancel func(str string) bool) (content string, err error) {
@@ -128,7 +132,7 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, r *http.Response, matchers []common.Matcher, sse bool) {
+func waitResponse(ctx *gin.Context, r *http.Response, matchers []common.Matcher, sse bool) (content string) {
 	tokens := ctx.GetInt(ginTokens)
 	scanner := bufio.NewScanner(r.Body)
 	scanner.Split(func(data []byte, eof bool) (advance int, token []byte, err error) {
@@ -148,7 +152,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, matchers []common.Matcher,
 	})
 
 	pos := 0
-	content := ""
 	created := time.Now().Unix()
 
 	for {
@@ -165,27 +168,27 @@ func waitResponse(ctx *gin.Context, r *http.Response, matchers []common.Matcher,
 			break
 		}
 
-		var r chatSSEResponse
-		if err := json.Unmarshal([]byte(text[5:]), &r); err != nil {
+		var res chatSSEResponse
+		if err := json.Unmarshal([]byte(text[5:]), &res); err != nil {
 			logger.Error(err)
 			response.Error(ctx, -1, err)
 			return
 		}
 
-		if r.Error != nil {
-			logger.Errorf("%v", r.Error)
+		if res.Error != nil {
+			logger.Errorf("%v", res.Error)
 			return
 		}
 
-		if r.Message.Author.Role != "assistant" {
+		if res.Message.Author.Role != "assistant" {
 			continue
 		}
 
-		if len(r.Message.Content.Parts) == 0 || len(r.Message.Content.Parts[0]) == 0 {
+		if len(res.Message.Content.Parts) == 0 || len(res.Message.Content.Parts[0]) == 0 {
 			continue
 		}
 
-		raw := r.Message.Content.Parts[0]
+		raw := res.Message.Content.Parts[0]
 		if len(raw) <= pos {
 			continue
 		}
@@ -196,10 +199,17 @@ func waitResponse(ctx *gin.Context, r *http.Response, matchers []common.Matcher,
 		logger.Debug(raw)
 
 		raw = common.ExecMatchers(matchers, raw)
+		if len(raw) == 0 {
+			continue
+		}
 
 		if sse {
 			response.SSEResponse(ctx, Model, raw, created)
 		}
+	}
+
+	if content == "" && response.NotSSEHeader(ctx) {
+		return
 	}
 
 	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, tokens))
@@ -208,4 +218,5 @@ func waitResponse(ctx *gin.Context, r *http.Response, matchers []common.Matcher,
 	} else {
 		response.SSEResponse(ctx, Model, "[DONE]", created)
 	}
+	return
 }

@@ -39,9 +39,8 @@ func waitMessage(chatResponse chan types.PartialResponse, cancel func(str string
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan types.PartialResponse, sse bool) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan types.PartialResponse, sse bool) (content string) {
 	var (
-		content = ""
 		created = time.Now().Unix()
 		tokens  = ctx.GetInt(ginTokens)
 	)
@@ -66,10 +65,18 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		logger.Debug(message.Text)
 
 		raw := common.ExecMatchers(matchers, message.Text)
+		if len(raw) == 0 {
+			continue
+		}
+
 		if sse {
 			response.SSEResponse(ctx, Model, raw, created)
 		}
 		content += raw
+	}
+
+	if content == "" && response.NotSSEHeader(ctx) {
+		return
 	}
 
 	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, tokens))
@@ -78,6 +85,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	} else {
 		response.SSEResponse(ctx, Model, "[DONE]", created)
 	}
+	return
 }
 
 func mergeMessages(messages []pkg.Keyv[interface{}]) (attachment []types.Attachment, tokens int) {

@@ -92,7 +92,11 @@ func (API) Completion(ctx *gin.Context) {
 	if len(slice) > 1 {
 		logger.Infof("bing status: [%s]", slice[1])
 	}
-	waitResponse(ctx, matchers, cancel, r, completion.Stream)
+
+	content := waitResponse(ctx, matchers, cancel, r, completion.Stream)
+	if content == "" && response.NotSSEHeader(ctx) {
+		response.Error(ctx, -1, "EMPTY RESPONSE")
+	}
 }
 
 func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []common.Matcher) {

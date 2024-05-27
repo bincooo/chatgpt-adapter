@@ -97,6 +97,10 @@ func (API) Completion(ctx *gin.Context) {
 		response.Error(ctx, -1, err)
 		return
 	}
+
 	defer chat.Delete()
-	waitResponse(ctx, matchers, chatResponse, completion.Stream)
+	content := waitResponse(ctx, matchers, chatResponse, completion.Stream)
+	if content == "" && response.NotSSEHeader(ctx) {
+		response.Error(ctx, -1, "EMPTY RESPONSE")
+	}
 }
