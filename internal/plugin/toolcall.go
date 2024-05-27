@@ -333,7 +333,7 @@ func parseToToolCall(ctx *gin.Context, content string, completion pkg.ChatComple
 	}
 
 	// 非-1值则为有默认选项
-	valueDef := nameWithTools(common.GetGinToolValue(ctx).GetString("id"), completion.Tools)
+	valueDef := NameWithTools(common.GetGinToolValue(ctx).GetString("id"), completion.Tools)
 
 	// 没有解析出 JSON
 	if j == "" {
@@ -440,7 +440,7 @@ func parseToToolTasks(content string, completion pkg.ChatCompletion) (tasks []pk
 			continue
 		}
 
-		toolId := nameWithTools(task.GetString("toolId"), completion.Tools)
+		toolId := NameWithTools(task.GetString("toolId"), completion.Tools)
 		if toolId == "-1" || !task.Has("task") {
 			continue
 		}
@@ -462,7 +462,7 @@ func excludeTasks(completion pkg.ChatCompletion, tasks []pkg.Keyv[string]) {
 	for pos := range tasks {
 		task := tasks[pos]
 
-		toolId := nameWithTools(task.GetString("toolId"), completion.Tools)
+		toolId := NameWithTools(task.GetString("toolId"), completion.Tools)
 		if toolId == "-1" || !task.Has("task") {
 			continue
 		}
@@ -526,6 +526,10 @@ func toolIdWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) 
 		return "-1"
 	}
 
+	if len(tools) == 0 {
+		return "-1"
+	}
+
 	for _, t := range tools {
 		fn := t.GetKeyv("function")
 		if fn.Has("id") && value == fn.GetString("id") {
@@ -546,9 +550,13 @@ func toolIdWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) 
 }
 
 // 工具名是否存在工具集中，"-1" 不存在，否则返回具体名字
-func nameWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) {
+func NameWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) {
 	value = name
 	if value == "" {
+		return "-1"
+	}
+
+	if len(tools) == 0 {
 		return "-1"
 	}
 

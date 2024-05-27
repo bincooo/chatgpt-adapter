@@ -7,6 +7,7 @@ import (
 	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
@@ -22,6 +23,9 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
+	completion := com.GetGinCompletion(ctx)
+	toolId := com.GetGinToolValue(ctx).GetString("id")
+	toolId = plugin.NameWithTools(toolId, completion.Tools)
 
 	reader := bufio.NewReader(partialResponse.Body)
 	var original []byte
@@ -106,6 +110,14 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 		raw = com.ExecMatchers(matchers, raw.(string))
 		if len(raw.(string)) == 0 {
 			continue
+		}
+
+		if toolId != "-1" {
+			functionCall = map[string]interface{}{
+				"name": toolId,
+				"args": map[string]interface{}{},
+			}
+			break
 		}
 
 		if sse {
