@@ -291,7 +291,7 @@ label:
 
 	cancel, matchers := joinMatchers(ctx, matchers)
 	content := waitResponse(ctx, matchers, ch, cancel, completion.Stream)
-	if content == "" && response.NotSSEHeader(ctx) {
+	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
 }

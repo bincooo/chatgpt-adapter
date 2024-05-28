@@ -10,6 +10,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
+	"strings"
 	"time"
 )
 
@@ -67,7 +68,6 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 			if message.Error != nil {
 				logger.Error(message.Error)
 				if response.NotSSEHeader(ctx) {
-					logger.Error(message.Error)
 					response.Error(ctx, -1, message.Error)
 				}
 				return
@@ -108,7 +108,8 @@ label:
 	return
 }
 
-func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessages []edge.ChatMessage, text string, tokens int) {
+func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompletion) (pMessages []edge.ChatMessage, text string, tokens int) {
+	var messages = completion.Messages
 	condition := func(expr string) string {
 		switch expr {
 		case "system", "user", "function", "tool":
@@ -127,9 +128,22 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 		Message  map[string]string
 		Buffer   *bytes.Buffer
 		Initial  func() pkg.Keyv[interface{}]
-	}) (result []edge.ChatMessage, _ error) {
+	}) (result []edge.ChatMessage, err error) {
 		role := opts.Message["role"]
 		tokens += common.CalcTokens(opts.Message["content"])
+
+		// 复合消息
+		if _, ok := opts.Message["multi"]; ok && role == "user" && completion.Model == Model+"-vision" {
+			message := opts.Initial()
+			content, e := processMultiMessage(ctx, message)
+			if e != nil {
+				return nil, e
+			}
+			opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, content))
+			result = append(result, edge.BuildUserMessage(opts.Buffer.String()))
+			return
+		}
+
 		if condition(role) == condition(opts.Next) {
 			// cache buffer
 			if role == "function" || role == "tool" {
@@ -161,11 +175,13 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 	}
 
 	// 获取最后一条用户消息
-	for pos := len(newMessages) - 1; pos > 0; pos-- {
+	for pos := len(newMessages) - 1; pos >= 0; pos-- {
 		message := newMessages[pos]
 		if message["author"] == "user" {
 			newMessages = append(newMessages[:pos], newMessages[pos+1:]...)
-			text = message["text"].(string)
+			text = strings.TrimSpace(message["text"].(string))
+			text = strings.TrimLeft(text, "<|user|>")
+			break
 		}
 	}
 
@@ -196,6 +212,72 @@ func mergeMessages(pad bool, max int, messages []pkg.Keyv[interface{}]) (pMessag
 	//}
 
 	return
+}
+
+func processMultiMessage(ctx *gin.Context, message pkg.Keyv[interface{}]) (string, error) {
+	var (
+		cookie  = ctx.GetString("token")
+		proxies = ctx.GetString("proxies")
+	)
+	contents := make([]string, 0)
+	values := message.GetSlice("content")
+	if len(values) == 0 {
+		return "", nil
+	}
+	for _, value := range values {
+		var keyv pkg.Keyv[interface{}]
+		keyv, ok := value.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		if keyv.Is("type", "text") {
+			contents = append(contents, keyv.GetString("text"))
+			continue
+		}
+
+		if keyv.Is("type", "image_url") {
+			o := keyv.GetKeyv("image_url")
+			options, err := edge.NewDefaultOptions(cookie, "")
+			if err != nil {
+				return "", err
+			}
+
+			chat := edge.New(options.Proxies(proxies).
+				Model(edge.ModelSydney).
+				TopicToE(true))
+			kb, err := chat.LoadImage(o.GetString("url"))
+			if err != nil {
+				return "", err
+			}
+
+			chat.KBlob(kb)
+			partialResponse, err := chat.Reply(ctx.Request.Context(), "请你使用json代码块中文描述这张图片，不必说明直接输出结果", nil)
+			if err != nil {
+				return "", err
+			}
+
+			content, err := waitMessage(partialResponse, nil)
+			if err != nil {
+				return "", err
+			}
+
+			left := strings.Index(content, "{")
+			right := strings.Index(content, "}")
+			if left == -1 || left > right {
+				return "", nil
+			}
+
+			contents = append(contents, fmt.Sprintf("*这是内置image工具的返回结果*： %s\n%s\n----", o.GetString("url"), content))
+		}
+	}
+
+	if len(contents) == 0 {
+		return "", nil
+	}
+
+	join := strings.Join(contents, "\n\n")
+	return fmt.Sprintf("<|user|>\n%s<|end|>", join), nil
 }
 
 func baseMessages() []edge.ChatMessage {

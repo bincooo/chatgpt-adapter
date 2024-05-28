@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	stop      = "stop"
-	toolCalls = "tool_calls"
+	stop        = "stop"
+	toolCalls   = "tool_calls"
+	canResponse = "__can-response__"
 )
 
 func MessageValidator(ctx *gin.Context) bool {
@@ -69,6 +70,7 @@ func IsCanceled(ctx context.Context) bool {
 //	code 401 http.StatusUnauthorized
 //	err.Type ...
 func Error(ctx *gin.Context, code int, err interface{}) {
+	ctx.Set(canResponse, "No!")
 	//logger.Errorf("response error: %v", err)
 	if code == -1 {
 		code = http.StatusInternalServerError
@@ -244,6 +246,10 @@ func SSEToolCallResponse(ctx *gin.Context, model, name, args string, created int
 	event(ctx, response)
 
 	event(ctx, "[DONE]")
+}
+
+func NotResponse(ctx *gin.Context) bool {
+	return ctx.GetString(canResponse) == "" && NotSSEHeader(ctx)
 }
 
 func NotSSEHeader(ctx *gin.Context) bool {

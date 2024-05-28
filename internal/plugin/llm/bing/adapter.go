@@ -22,13 +22,30 @@ type API struct {
 }
 
 func (API) Match(_ *gin.Context, model string) bool {
-	return Model == model
+	switch model {
+	case Model, Model + "-online", Model + "-vision":
+		return true
+	default:
+		return false
+	}
 }
 
 func (API) Models() []plugin.Model {
 	return []plugin.Model{
 		{
 			Id:      Model,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      Model + "-online",
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      Model + "-vision",
 			Object:  "model",
 			Created: 1686935002,
 			By:      Model + "-adapter",
@@ -46,6 +63,10 @@ func (API) Completion(ctx *gin.Context) {
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
 	)
+
+	if completion.Model == Model+"-vision" {
+		pad = true
+	}
 
 	options, err := edge.NewDefaultOptions(cookie, "")
 	if err != nil {
@@ -69,12 +90,16 @@ func (API) Completion(ctx *gin.Context) {
 		chat.Notebook(true)
 	}
 
-	maxCount := 8
+	if completion.Model == "bing-online" {
+		chat.Plugins(edge.PluginSearch)
+	}
+
+	maxCount := 2
 	if chat.IsLogin() {
 		maxCount = 28
 	}
 
-	pMessages, currMessage, tokens := mergeMessages(pad, maxCount, completion.Messages)
+	pMessages, currMessage, tokens := mergeMessages(ctx, pad, maxCount, completion)
 
 	// 清理多余的标签
 	var cancel chan error
@@ -94,7 +119,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	content := waitResponse(ctx, matchers, cancel, r, completion.Stream)
-	if content == "" && response.NotSSEHeader(ctx) {
+	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
 }

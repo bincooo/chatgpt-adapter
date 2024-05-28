@@ -128,7 +128,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	content := waitResponse(ctx, matchers, chatResponse, completion.Stream)
-	if content == "" && response.NotSSEHeader(ctx) {
+	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
 }
