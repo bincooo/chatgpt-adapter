@@ -16,13 +16,16 @@ var (
 	clashOnce  sync.Once
 )
 
-func clashInit() {
-	names := pkg.Config.GetStringSlice("clash.names")
-	if len(names) == 0 {
-		return
-	}
-	clashNames = names
-	clashPos = 0
+func init() {
+	// 将初始化时机转移，而不是包引用则执行
+	AddInitialized(func() {
+		names := pkg.Config.GetStringSlice("clash.names")
+		if len(names) == 0 {
+			return
+		}
+		clashNames = names
+		clashPos = 0
+	})
 }
 
 func ChangeClashIP() {

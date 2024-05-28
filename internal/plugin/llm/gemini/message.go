@@ -12,6 +12,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"time"
@@ -55,6 +56,9 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 		if len(original) == 0 {
 			continue
 		}
+
+		logrus.Tracef("--------- ORIGINAL MESSAGE ---------")
+		logrus.Tracef("%s", original)
 
 		if bytes.Contains(original, []byte(`"error":`)) {
 			err = fmt.Errorf("%s", original)

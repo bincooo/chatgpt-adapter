@@ -22,18 +22,21 @@ type cache struct {
 	disable bool
 }
 
-func fileInit() {
-	m := pkg.Config.GetStringSlice("magnify")
-	if len(m) == 0 {
-		return
-	}
+func init() {
+	// 将初始化时机转移，而不是包引用则执行
+	AddInitialized(func() {
+		m := pkg.Config.GetStringSlice("magnify")
+		if len(m) == 0 {
+			return
+		}
 
-	for _, key := range m {
-		cached = append(cached, cache{
-			key:     key,
-			disable: false,
-		})
-	}
+		for _, key := range m {
+			cached = append(cached, cache{
+				key:     key,
+				disable: false,
+			})
+		}
+	})
 }
 
 func HasMfy() bool {

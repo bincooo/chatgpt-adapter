@@ -1,7 +1,10 @@
 # 图片访问
 domain: "http://127.0.0.1:8080"
-# goole15
-goole: ""
+# gemini 自定义安全设置
+google:
+  safes:
+    - category: HARM_CATEGORY_DEROGATORY
+      threshold: BLOCK_NONE
 # 开启特殊标记增强
 flags: true
 # 内调llm，用于绘图时文本转tags

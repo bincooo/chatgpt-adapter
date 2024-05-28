@@ -100,7 +100,7 @@ func (API) Completion(ctx *gin.Context) {
 		query = coze.MergeMessages(pMessages)
 	}
 
-	chatResponse, err := chat.Reply(ctx.Request.Context(), query)
+	chatResponse, err := chat.Reply(ctx.Request.Context(), coze.Text, query)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)

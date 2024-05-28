@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/eko/gocache/lib/v4/cache"
 	"github.com/eko/gocache/lib/v4/store"
@@ -15,10 +16,12 @@ var (
 	toolTasksCacheManager *cache.Cache[[]pkg.Keyv[string]]
 )
 
-func InitCache() {
-	client := gocache.New(5*time.Minute, 5*time.Minute)
-	cacheStore := gocacheStore.NewGoCache(client)
-	toolTasksCacheManager = cache.New[[]pkg.Keyv[string]](cacheStore)
+func init() {
+	common.AddInitialized(func() {
+		client := gocache.New(5*time.Minute, 5*time.Minute)
+		cacheStore := gocacheStore.NewGoCache(client)
+		toolTasksCacheManager = cache.New[[]pkg.Keyv[string]](cacheStore)
+	})
 }
 
 func GetToolTasksCacheManager() *cache.Cache[[]pkg.Keyv[string]] {

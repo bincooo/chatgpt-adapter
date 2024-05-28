@@ -5,16 +5,57 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 )
 
 const GOOGLE_BASE_FORMAT = "https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s"
+
+var safetySettings = []map[string]interface{}{
+	//{
+	//	"category":  "HARM_CATEGORY_DEROGATORY",
+	//	"threshold": "BLOCK_NONE",
+	//},
+	//{
+	//	"category":  "HARM_CATEGORY_TOXICITY",
+	//	"threshold": "BLOCK_NONE",
+	//},
+	//{
+	//	"category":  "HARM_CATEGORY_VIOLENCE",
+	//	"threshold": "BLOCK_NONE",
+	//},
+	//{
+	//	"category":  "HARM_CATEGORY_SEXUAL",
+	//	"threshold": "BLOCK_NONE",
+	//},
+	//{
+	//	"category":  "HARM_CATEGORY_DANGEROUS",
+	//	"threshold": "BLOCK_NONE",
+	//},
+	{
+		"category":  "HARM_CATEGORY_HARASSMENT",
+		"threshold": "BLOCK_NONE",
+	},
+	{
+		"category":  "HARM_CATEGORY_HATE_SPEECH",
+		"threshold": "BLOCK_NONE",
+	},
+	{
+		"category":  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+		"threshold": "BLOCK_NONE",
+	},
+	{
+		"category":  "HARM_CATEGORY_DANGEROUS_CONTENT",
+		"threshold": "BLOCK_NONE",
+	},
+}
 
 type funcDecl struct {
 	Name        string `json:"name"`
@@ -24,6 +65,10 @@ type funcDecl struct {
 		Required   []string               `json:"required"`
 		Type       string                 `json:"type"`
 	} `json:"parameters"`
+}
+
+func init() {
+	common.AddInitialized(initSafetySettings)
 }
 
 // 构建请求，返回响应
@@ -134,24 +179,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 			"stopSequences":   []string{},
 		},
 		// 安全级别
-		"safetySettings": []map[string]string{
-			{
-				"category":  "HARM_CATEGORY_HARASSMENT",
-				"threshold": "BLOCK_NONE",
-			},
-			{
-				"category":  "HARM_CATEGORY_HATE_SPEECH",
-				"threshold": "BLOCK_NONE",
-			},
-			{
-				"category":  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-				"threshold": "BLOCK_NONE",
-			},
-			{
-				"category":  "HARM_CATEGORY_DANGEROUS_CONTENT",
-				"threshold": "BLOCK_NONE",
-			},
-		},
+		"safetySettings": safetySettings,
 	}
 
 	if len(_funcDecls) > 0 {
@@ -196,4 +224,50 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	}
 
 	return res, nil
+}
+
+func initSafetySettings() {
+	harmBlocks := []string{
+		"HARM_BLOCK_THRESHOLD_UNSPECIFIED",
+		"BLOCK_LOW_AND_ABOVE",
+		"BLOCK_MEDIUM_AND_ABOVE",
+		"BLOCK_ONLY_HIGH",
+		"BLOCK_NONE",
+	}
+
+	if safes := pkg.Config.Get("google.safes"); safes != nil {
+		values, ok := safes.([]map[string]interface{})
+		pass := true
+		if !ok {
+			return
+		}
+
+		for _, value := range values {
+			var (
+				category  = ""
+				threshold = ""
+			)
+
+			if v, o := value["category"]; o {
+				category = fmt.Sprintf("%s", v)
+			}
+			if v, o := value["threshold"]; o {
+				threshold = fmt.Sprintf("%s", v)
+			}
+
+			for _, setting := range safetySettings {
+				if setting["category"] == category {
+					if !slices.Contains(harmBlocks, threshold) {
+						logger.Errorf("%s is not in %+v", threshold, harmBlocks)
+						pass = false
+						break
+					}
+				}
+			}
+			if !pass {
+				return
+			}
+		}
+		safetySettings = values
+	}
 }

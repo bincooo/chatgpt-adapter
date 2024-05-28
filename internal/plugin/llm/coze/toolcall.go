@@ -34,7 +34,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			query = coze.MergeMessages(pMessages)
 		}
 
-		chatResponse, err := chat.Reply(ctx.Request.Context(), query)
+		chatResponse, err := chat.Reply(ctx.Request.Context(), coze.Text, query)
 		if err != nil {
 			return "", err
 		}

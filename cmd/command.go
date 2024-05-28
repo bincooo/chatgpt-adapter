@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/internal/cache"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler"
 	"github.com/bincooo/chatgpt-adapter/logger"
@@ -35,9 +34,7 @@ var (
 			}
 
 			pkg.InitConfig()
-			cache.InitCache()
 			common.InitCommon()
-			handler.InitExtensions()
 			logger.InitLogger(logPath, switchLogLevel())
 			handler.Bind(port, version, proxies)
 		},
@@ -47,7 +44,7 @@ var (
 func main() {
 	cmd.PersistentFlags().StringVar(&proxies, "proxies", "", "本地代理 proxies")
 	cmd.PersistentFlags().IntVar(&port, "port", 8080, "服务端口 port")
-	cmd.PersistentFlags().StringVar(&logLevel, "log", logLevel, "日志级别: debug|info|warn|error")
+	cmd.PersistentFlags().StringVar(&logLevel, "log", logLevel, "日志级别: trace|debug|info|warn|error")
 	cmd.PersistentFlags().StringVar(&logPath, "log-path", logPath, "日志路径")
 	cmd.PersistentFlags().BoolVar(&vms, "models", false, "查看所有模型")
 	_ = cmd.Execute()
@@ -55,6 +52,8 @@ func main() {
 
 func switchLogLevel() logrus.Level {
 	switch logLevel {
+	case "trace":
+		return logrus.TraceLevel
 	case "debug":
 		return logrus.DebugLevel
 	case "warn":

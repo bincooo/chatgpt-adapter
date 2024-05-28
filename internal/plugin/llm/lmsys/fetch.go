@@ -7,6 +7,7 @@ import (
 	com "github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/emit.io"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )
@@ -126,24 +127,30 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	ch := make(chan string)
 	pos := 0
 
-	e.Event("process_generating", func(j emit.JoinEvent) interface{} {
+	e.Event("*", func(j emit.JoinEvent) (_ interface{}) {
+		logrus.Tracef("--------- ORIGINAL MESSAGE ---------")
+		logrus.Tracef("%s", j.InitialBytes)
+		return
+	})
+
+	e.Event("process_generating", func(j emit.JoinEvent) (_ interface{}) {
 		data := j.Output.Data
 		if len(data) < 2 {
-			return nil
+			return
 		}
 
 		items, ok := data[1].([]interface{})
 		if !ok {
-			return nil
+			return
 		}
 
 		if len(items) < 1 {
-			return nil
+			return
 		}
 
 		items, ok = items[0].([]interface{})
 		if !ok {
-			return nil
+			return
 		}
 
 		if l := len(items); l < 3 {
@@ -153,11 +160,11 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 					ch <- "error: " + items[1].(string)
 				}
 			}
-			return nil
+			return
 		}
 
 		if items[0] != "replace" {
-			return nil
+			return
 		}
 
 		message := items[2].(string)
@@ -168,12 +175,12 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		}
 
 		if pos >= l {
-			return nil
+			return
 		}
 
 		ch <- "text: " + message[pos:]
 		pos = l
-		return nil
+		return
 	})
 
 	go func() {

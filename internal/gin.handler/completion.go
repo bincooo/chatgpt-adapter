@@ -13,8 +13,8 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/coze"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/gemini"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/lmsys"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/v1"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin/playground"
+	v1 "github.com/bincooo/chatgpt-adapter/internal/plugin/llm/v1"
+	pg "github.com/bincooo/chatgpt-adapter/internal/plugin/playground"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
@@ -27,18 +27,20 @@ var (
 	}
 )
 
-func InitExtensions() {
-	GlobalExtension.Extensions = []plugin.Adapter{
-		bing.Adapter,
-		claude.Adapter,
-		cohere.Adapter,
-		coze.Adapter,
-		gemini.Adapter,
-		lmsys.Adapter,
-		pg.Adapter,
-		hf.Adapter,
-		v1.Adapter,
-	}
+func init() {
+	common.AddInitialized(func() {
+		GlobalExtension.Extensions = []plugin.Adapter{
+			bing.Adapter,
+			claude.Adapter,
+			cohere.Adapter,
+			coze.Adapter,
+			gemini.Adapter,
+			lmsys.Adapter,
+			pg.Adapter,
+			hf.Adapter,
+			v1.Adapter,
+		}
+	})
 }
 
 func completions(ctx *gin.Context) {

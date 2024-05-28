@@ -9,9 +9,16 @@ import (
 	"time"
 )
 
+var initFunctions = make([]func(), 0)
+
 func InitCommon() {
-	fileInit()
-	clashInit()
+	for _, apply := range initFunctions {
+		apply()
+	}
+}
+
+func AddInitialized(apply func()) {
+	initFunctions = append(initFunctions, apply)
 }
 
 // 删除子元素

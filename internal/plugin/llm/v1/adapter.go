@@ -11,6 +11,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 	"time"
@@ -160,6 +161,9 @@ func waitResponse(ctx *gin.Context, r *http.Response, matchers []common.Matcher,
 		}
 
 		text := scanner.Text()
+		logrus.Tracef("--------- ORIGINAL MESSAGE ---------")
+		logrus.Trace(text)
+
 		if len(text) < 5 || text[:5] != "data:" {
 			continue
 		}

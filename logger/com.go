@@ -117,6 +117,14 @@ func CustomCallerFormatter(frame *runtime.Frame) string {
 	return " <" + trimProject(root) + "> " + file + ":" + strconv.Itoa(frame.Line) + " |"
 }
 
+func Trace(args ...interface{}) {
+	logrus.Trace(args...)
+}
+
+func Tracef(format string, args ...interface{}) {
+	logrus.Tracef(format, args...)
+}
+
 func Debug(args ...interface{}) {
 	logrus.Debug(args...)
 }
