@@ -236,22 +236,29 @@ func initSafetySettings() {
 	}
 
 	if safes := pkg.Config.Get("google.safes"); safes != nil {
-		values, ok := safes.([]map[string]interface{})
+		values, ok := safes.([]interface{})
 		pass := true
 		if !ok {
 			return
 		}
 
+		tempSafetySettings := make([]map[string]interface{}, 0)
 		for _, value := range values {
 			var (
 				category  = ""
 				threshold = ""
 			)
 
-			if v, o := value["category"]; o {
+			safe, okey := value.(map[string]interface{})
+			if !okey {
+				logger.Errorf("Failed to parse safety settings: %v", value)
+				return
+			}
+
+			if v, o := safe["category"]; o {
 				category = fmt.Sprintf("%s", v)
 			}
-			if v, o := value["threshold"]; o {
+			if v, o := safe["threshold"]; o {
 				threshold = fmt.Sprintf("%s", v)
 			}
 
@@ -262,12 +269,13 @@ func initSafetySettings() {
 						pass = false
 						break
 					}
+					tempSafetySettings = append(tempSafetySettings, safe)
 				}
 			}
 			if !pass {
 				return
 			}
 		}
-		safetySettings = values
+		safetySettings = tempSafetySettings
 	}
 }
