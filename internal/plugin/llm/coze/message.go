@@ -2,6 +2,7 @@ package coze
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
@@ -10,7 +11,11 @@ import (
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/coze-api"
+	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
+	"mime/multipart"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -116,7 +121,11 @@ label:
 	return
 }
 
-func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []coze.Message, tokens int) {
+func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, tokens int, err error) {
+	var (
+		proxies  = ctx.GetString("proxies")
+		messages = common.GetGinCompletion(ctx).Messages
+	)
 	condition := func(expr string) string {
 		switch expr {
 		case "system", "assistant", "function", "tool", "end":
@@ -135,6 +144,26 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []coze.Message
 	}) (messages []coze.Message, _ error) {
 		role := opts.Message["role"]
 		tokens += common.CalcTokens(opts.Message["content"])
+		// 复合消息
+		if _, ok := opts.Message["multi"]; ok && role == "user" {
+			message := opts.Initial()
+			content, e := processMultiMessage(ctx.Request.Context(), proxies, message)
+			if e != nil {
+				return nil, e
+			}
+			opts.Buffer.WriteString(content)
+			if condition(role) != condition(opts.Next) {
+				messages = []coze.Message{
+					{
+						Role:    role,
+						Content: opts.Buffer.String(),
+					},
+				}
+				opts.Buffer.Reset()
+			}
+			return
+		}
+
 		if condition(role) == condition(opts.Next) {
 			// cache buffer
 			if role == "function" || role == "tool" {
@@ -156,6 +185,98 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []coze.Message
 		return
 	}
 
-	newMessages, _ = common.TextMessageCombiner(messages, iterator)
+	newMessages, err = common.TextMessageCombiner(messages, iterator)
 	return
+}
+
+func processMultiMessage(ctx context.Context, proxies string, message pkg.Keyv[interface{}]) (string, error) {
+	contents := make([]string, 0)
+	values := message.GetSlice("content")
+	if len(values) == 0 {
+		return "", nil
+	}
+
+	for _, value := range values {
+		var keyv pkg.Keyv[interface{}]
+		keyv, ok := value.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		if keyv.Is("type", "text") {
+			contents = append(contents, keyv.GetString("text"))
+			continue
+		}
+
+		if keyv.Is("type", "image_url") {
+			o := keyv.GetKeyv("image_url")
+			file := o.GetString("url")
+			// base64
+			if strings.HasPrefix(file, "data:image/") {
+				pos := strings.Index(file, ";")
+				if pos == -1 {
+					return "", errors.New("invalid base64 url")
+				}
+
+				mime := file[5:pos]
+				ext, err := common.MimeToSuffix(mime)
+				if err != nil {
+					return "", err
+				}
+
+				file = file[pos+1:]
+				if !strings.HasPrefix(file, "base64,") {
+					return "", errors.New("invalid base64 url")
+				}
+
+				buffer := new(bytes.Buffer)
+				w := multipart.NewWriter(buffer)
+				fw, err := w.CreateFormFile("image", "1"+ext)
+				if err != nil {
+					return "", err
+				}
+
+				file, err = common.SaveBase64(file, ext[1:])
+				if err != nil {
+					return "", err
+				}
+
+				fileBytes, err := os.ReadFile(file)
+				if err != nil {
+					return "", err
+				}
+				_, _ = fw.Write(fileBytes)
+				_ = w.Close()
+
+				r, err := emit.ClientBuilder().
+					Proxies(proxies).
+					Context(ctx).
+					POST("https://complete-mmx-easy-images.hf.space/upload").
+					Header("Content-Type", w.FormDataContentType()).
+					Header("Authorization", "Bearer 123").
+					Buffer(buffer).
+					DoS(http.StatusOK)
+				if err != nil {
+					text := emit.TextResponse(r)
+					logger.Error(text)
+					return "", err
+				}
+
+				obj, err := emit.ToMap(r)
+				if err != nil {
+					return "", err
+				}
+
+				file = obj["URL"].(string)
+			}
+
+			contents = append(contents, fmt.Sprintf("*image*: %s\n----", file))
+		}
+	}
+
+	if len(contents) == 0 {
+		return "", nil
+	}
+
+	return strings.Join(contents, "\n\n"), nil
 }

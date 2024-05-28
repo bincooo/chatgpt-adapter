@@ -140,7 +140,10 @@ func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompl
 				return nil, e
 			}
 			opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, content))
-			result = append(result, edge.BuildUserMessage(opts.Buffer.String()))
+			if condition(role) != condition(opts.Next) {
+				result = append(result, edge.BuildUserMessage(opts.Buffer.String()))
+				opts.Buffer.Reset()
+			}
 			return
 		}
 

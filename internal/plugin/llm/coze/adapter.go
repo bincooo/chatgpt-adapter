@@ -86,7 +86,13 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}
 
-	pMessages, tokens := mergeMessages(completion.Messages)
+	pMessages, tokens, err := mergeMessages(ctx)
+	if err != nil {
+		logger.Error(err)
+		response.Error(ctx, -1, err)
+		return
+	}
+
 	ctx.Set(ginTokens, tokens)
 	options := newOptions(proxies, completion.Model, pMessages)
 	co, msToken := extCookie(cookie)
