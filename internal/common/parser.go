@@ -457,13 +457,9 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 				}
 			}
 
-			if h['r'] == "" {
-				req.Messages[pos]["content"] = req.Messages[pos].GetString("content") + "\n\n" + h['v']
-			} else {
-				req.Messages = append(req.Messages[:pos+1], append([]pkg.Keyv[interface{}]{
-					{"role": h['r'], "content": h['v']},
-				}, req.Messages[pos+1:]...)...)
-			}
+			req.Messages = append(req.Messages[:pos+1], append([]pkg.Keyv[interface{}]{
+				{"role": h['r'], "content": h['v']},
+			}, req.Messages[pos+1:]...)...)
 		}
 
 		// matcher 流响应干预
@@ -590,8 +586,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 						}
 					}
 					// 插入元素
-					// 为空则是拼接到该消息末尾
-					r := ""
+					r := "user"
 					if it, ok := node.attr["role"]; ok {
 						switch str := it.(string); str {
 						case "user", "system", "assistant":
