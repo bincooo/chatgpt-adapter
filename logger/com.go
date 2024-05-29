@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
@@ -15,11 +16,12 @@ import (
 )
 
 var (
-	project    = "github.com/bincooo/chatgpt-adapter"
+	project    = ""
 	projectDir = ""
 )
 
 func InitLogger(basePath string, level logrus.Level) {
+	fmt.Println(project, projectDir)
 	dir, err := os.Getwd()
 	if err != nil {
 		Fatal(err)
