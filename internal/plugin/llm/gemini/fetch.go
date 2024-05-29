@@ -155,6 +155,15 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		}
 	}
 
+	// 获取top system作为systemInstruction
+	system := ""
+	if messages[0]["role"] == "system" {
+		if content, ok := messages[0]["content"].(string); ok {
+			messages = messages[1:]
+			system = content
+		}
+	}
+
 	// fix: Please ensure that multiturn requests ends with a user role or a function response.
 	if messages[0]["role"] != "user" {
 		messages = append([]map[string]interface{}{
@@ -180,6 +189,17 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		},
 		// 安全级别
 		"safetySettings": safetySettings,
+	}
+
+	if len(system) != 0 {
+		payload["systemInstruction"] = map[string]interface{}{
+			"role": "system",
+			"parts": []interface{}{
+				map[string]string{
+					"text": system,
+				},
+			},
+		}
 	}
 
 	if len(_funcDecls) > 0 {
