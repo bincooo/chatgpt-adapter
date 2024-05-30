@@ -36,12 +36,12 @@ func (API) Match(ctx *gin.Context, model string) bool {
 
 	token := ctx.GetString("token")
 	if token == "sk-prodia-sd" {
-		ctx.Set(ginSpace, "sd")
+		ctx.Set(ginSpace, "prodia-sd")
 		return true
 	}
 
 	if token == "sk-prodia-xl" {
-		ctx.Set(ginSpace, "xl")
+		ctx.Set(ginSpace, "prodia-xl")
 		return true
 	}
 
@@ -78,7 +78,7 @@ func (API) Generation(ctx *gin.Context) {
 	samples := matchSamples(generation.Quality, space)
 
 	switch space {
-	case "xl":
+	case "prodia-xl":
 		modelSlice = xlModels
 		samplesSlice = xlSamples
 		value, err = Ox001(ctx, model, samples, message)

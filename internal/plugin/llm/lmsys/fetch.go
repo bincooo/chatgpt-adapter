@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	baseCookies = "_gid=GA1.2.1675936366.1715937287; __cf_bm=U_jdXMip8z7eBl.QKt1mmvq_.Uevlr83qwyiVopdSbY-1716261505-1.0.1.1-udiw08hES_yHNRINd2ZUF07UMV52A.ene4w4ErjaTbt6WTGwyzvpTVfWQFpflvXZ5sqRRAGwxnf4JXxQ2mQgSg; cf_clearance=QxJsSKT9tsnKT_g8gNESW6SJ7hrBZZ8ipGPVnmGkoXk-1716261535-1.0.1.1-evXJdhL4WQRRDF5TpfToQV3xD73hQoIU15Vu7oOuByH2bnqbSqFlmfZ4UcJOJ8X4JLL0F24Lp1Wl.EEnWFZ9.g; _ga_K6D24EE9ED=GS1.1.1716261498.16.1.1716261539.0.0.0; _ga_R1FN4KJKJH=GS1.1.1716261498.30.1.1716261539.0.0.0; _ga=GA1.1.1320014795.1715641484"
+	baseCookies = "_gid=GA1.2.68066840.1717017781; _ga_K6D24EE9ED=GS1.1.1717087813.23.1.1717088648.0.0.0; _gat_gtag_UA_156449732_1=1; _ga_R1FN4KJKJH=GS1.1.1717087813.37.1.1717088648.0.0.0; _ga=GA1.1.1320014795.1715641484"
 	ver         = ""
 	fns         = [][]int{
 		{42, 94},
@@ -60,7 +60,6 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 
 func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (chan string, error) {
 	obj := map[string]interface{}{
-		"event_data":   nil,
 		"fn_index":     opts.fn[0] + 1,
 		"trigger_id":   opts.fn[1],
 		"session_hash": hash,
@@ -169,7 +168,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 
 		message := items[2].(string)
 		l := len(message)
-		if message[l-3:] == "▌" {
+		if l >= 3 && message[l-3:] == "▌" {
 			message = message[:l-3]
 			l -= 3
 		}
