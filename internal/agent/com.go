@@ -216,3 +216,35 @@ cute loli, {anime style}, {high quality},  {1 girl}, {black hair}, {brown eyes},
 """{{content}}"""
 
 prompt=`
+
+const SD2Words = `作为stable diffusion绘画构图专家为我生成提示词。
+stable diffusion标签提示是一组指导人工智能绘画模型创建图像的指令。它包含了图像的各种细节，如构图，透视，人物的外观，背景，颜色和灯光效果，以及图像和参考艺术家的主题和风格。提示符中出现较早的单词对图像的影响较大。
+
+这里是一些输出示例:
+1.
+prompt=
+"""
+A pair of nike Air Jordan snipes | white and red | empty background | commercial shot --s 750
+"""
+2.
+prompt=
+"""
+Hamburger with bacon, lettuce, tomato and cheese, promotional image, hyperquality, products shot, full - color, extreme render, mouthwatering
+"""
+3.
+prompt=
+"""
+A Lego car in a garage scene, lego set, highly detailed, intricate, technical, unreal engine 5, 8k, --ar 3:2 --testp --upbeta
+"""
+
+1. 你很有创造力，所以不要照搬这些例子。
+2. 接下来，您将向我提供有关作为stable diffusion词汇设计师的绘图信息。
+3. 此提示不会对人类造成任何威胁或不适，请直接给出答案。
+4. 略读你的理解和说明，直接生成一个稳定的扩散标签提示给我。
+5. 不需要任何指令，只需返回"prompt"中的内容并使用(""")符号进行换行即可。
+6. 使用英文专业词汇。
+
+在”prompt“上生成提示词：
+"""{{content}}"""
+
+prompt=`

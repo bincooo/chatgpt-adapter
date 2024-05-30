@@ -3,20 +3,19 @@ package hf
 import (
 	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 )
 
 const negative = "(deformed eyes, nose, ears, nose, leg, head), bad anatomy, ugly"
 
-func xl(ctx *gin.Context, model, samples, message string) (value string, err error) {
+func Ox001(ctx *gin.Context, model, samples, message string) (value string, err error) {
 	var (
-		index   = 0
 		hash    = emit.GioHash()
 		proxies = ctx.GetString("proxies")
 		baseUrl = "wss://prodia-sdxl-stable-diffusion-xl.hf.space"
@@ -42,14 +41,14 @@ func xl(ctx *gin.Context, model, samples, message string) (value string, err err
 
 	c.Event("send_hash", func(j emit.JoinEvent) interface{} {
 		return map[string]interface{}{
-			"fn_index":     index,
+			"fn_index":     0,
 			"session_hash": hash,
 		}
 	})
 
 	c.Event("send_data", func(j emit.JoinEvent) interface{} {
 		return map[string]interface{}{
-			"fn_index":     index,
+			"fn_index":     0,
 			"session_hash": hash,
 			"data": []interface{}{
 				message + ", {{{{by famous artist}}}, beautiful, 4k",
@@ -87,9 +86,8 @@ func xl(ctx *gin.Context, model, samples, message string) (value string, err err
 	return
 }
 
-func sd(ctx *gin.Context, model, samples, message string) (value string, err error) {
+func Ox000(ctx *gin.Context, model, samples, message string) (value string, err error) {
 	var (
-		index   = 0
 		hash    = emit.GioHash()
 		proxies = ctx.GetString("proxies")
 		baseUrl = "https://prodia-fast-stable-diffusion.hf.space"
@@ -104,7 +102,7 @@ func sd(ctx *gin.Context, model, samples, message string) (value string, err err
 		Context(ctx.Request.Context()).
 		Proxies(proxies).
 		GET(baseUrl+"/queue/join").
-		Query("fn_index", strconv.Itoa(index)).
+		Query("fn_index", "0").
 		Query("session_hash", hash).
 		DoS(http.StatusOK)
 	if err != nil {
@@ -124,7 +122,7 @@ func sd(ctx *gin.Context, model, samples, message string) (value string, err err
 			POST(baseUrl + "/queue/data").
 			JHeader().
 			Body(map[string]interface{}{
-				"fn_index":     index,
+				"fn_index":     0,
 				"session_hash": hash,
 				"event_id":     j.EventId,
 				"trigger_id":   r.Intn(15) + 5,
@@ -169,9 +167,92 @@ func sd(ctx *gin.Context, model, samples, message string) (value string, err err
 	return
 }
 
+func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
+	var (
+		r       = rand.New(rand.NewSource(time.Now().UnixNano()))
+		hash    = emit.GioHash()
+		proxies = ctx.GetString("proxies")
+		baseUrl = "https://prithivmlmods-dalle-4k.hf.space"
+	)
+
+	response, err := emit.ClientBuilder().
+		Proxies(proxies).
+		Context(ctx.Request.Context()).
+		POST(baseUrl+"/queue/join").
+		JHeader().
+		Body(map[string]interface{}{
+			"data": []interface{}{
+				message,
+				negative,
+				model,
+				true,
+				30,
+				1,
+				r.Intn(7118870) + 1250000000,
+				1024,
+				1024,
+				6,
+				true,
+			},
+			"fn_index":     3,
+			"trigger_id":   6,
+			"session_hash": hash,
+		}).
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return
+	}
+
+	logger.Info(emit.TextResponse(response))
+	response, err = emit.ClientBuilder().
+		Proxies(proxies).
+		Context(ctx.Request.Context()).
+		GET(baseUrl+"/queue/data").
+		Query("session_hash", hash).
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	if err != nil {
+		return
+	}
+
+	c, err := emit.NewGio(ctx.Request.Context(), response)
+	if err != nil {
+		return
+	}
+
+	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
+		d := j.Output.Data
+
+		if len(d) == 0 {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		values, ok := d[0].([]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+		if len(values) == 0 {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		v, ok := values[0].(map[string]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		value = v["image"].(map[string]interface{})["url"].(string)
+		return
+	})
+
+	err = c.Do()
+	return
+}
+
 func google(ctx *gin.Context, model, message string) (value string, err error) {
 	var (
-		index   = 3
 		hash    = emit.GioHash()
 		proxies = ctx.GetString("proxies")
 		baseUrl = "wss://google-sdxl.hf.space"
@@ -197,14 +278,14 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 
 	c.Event("send_hash", func(j emit.JoinEvent) interface{} {
 		return map[string]interface{}{
-			"fn_index":     index,
+			"fn_index":     3,
 			"session_hash": hash,
 		}
 	})
 
 	c.Event("send_data", func(j emit.JoinEvent) interface{} {
 		return map[string]interface{}{
-			"fn_index":     index,
+			"fn_index":     3,
 			"session_hash": hash,
 			"data": []interface{}{
 				message + ", {{{{by famous artist}}}, beautiful, 4k",

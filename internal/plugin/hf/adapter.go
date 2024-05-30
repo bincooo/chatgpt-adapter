@@ -50,6 +50,11 @@ func (API) Match(ctx *gin.Context, model string) bool {
 		return true
 	}
 
+	if token == "sk-dalle-4k" {
+		ctx.Set(ginSpace, "dalle-4k")
+		return true
+	}
+
 	return false
 }
 
@@ -76,14 +81,17 @@ func (API) Generation(ctx *gin.Context) {
 	case "xl":
 		modelSlice = xlModels
 		samplesSlice = xlSamples
-		value, err = xl(ctx, model, samples, message)
+		value, err = Ox001(ctx, model, samples, message)
+	case "dalle-4k":
+		modelSlice = dalle4kModels
+		value, err = Ox002(ctx, model, message)
 	case "google":
 		modelSlice = googleModels
 		value, err = google(ctx, model, message)
 	default:
 		modelSlice = sdModels
 		samplesSlice = sdSamples
-		value, err = sd(ctx, model, samples, message)
+		value, err = Ox000(ctx, model, samples, message)
 	}
 
 	if err != nil {
@@ -138,6 +146,12 @@ func matchModel(style, spase string) string {
 		}
 		return xlModels[rand.Intn(len(xlModels))]
 
+	case "dalle-4k":
+		if com.Contains(dalle4kModels, style) {
+			return style
+		}
+		return dalle4kModels[rand.Intn(len(dalle4kModels))]
+
 	case "google":
 		if com.Contains(googleModels, style) {
 			return style
@@ -165,13 +179,18 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		prefix += "<pad />"
 	}
 
+	w := prefix + agent.SDWords
+	if ctx.GetString(ginSpace) == "dalle-4k" {
+		w = prefix + agent.SD2Words
+	}
+
 	obj := map[string]interface{}{
 		"model":  model,
 		"stream": false,
 		"messages": []map[string]string{
 			{
 				"role":    "user",
-				"content": strings.Replace(prefix+agent.SDWords, "{{content}}", content, -1),
+				"content": strings.Replace(w, "{{content}}", content, -1),
 			},
 		},
 		"temperature": .8,

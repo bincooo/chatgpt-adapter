@@ -160,3 +160,37 @@ var (
 		"3D Model",
 	}
 )
+
+var (
+	dalle4kModels = []string{
+		"Cinematic",
+		"8K",
+		"4K",
+		"HDR",
+		"Photographic",
+		"Disney Style",
+		"Anime",
+		"Manga",
+		"Digital Art",
+		"Pixel art",
+		"Fantasy art",
+		"Cyberpunk",
+		"Graffiti Art",
+		"Neonpunk",
+		"3D Model",
+		"Steampunk",
+		"Retro Futurism",
+		"Baroque",
+		"Surreal Art",
+		"Impressionist",
+		"Art Deco",
+		"Minimalist",
+		"Abstract",
+		"Gothic",
+		"Vaporwave",
+		"HDR Urban",
+		"Classic Oil Painting",
+		"HDR Nature",
+		"Modern Advertisement Logo",
+	}
+)

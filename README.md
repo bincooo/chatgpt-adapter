@@ -167,6 +167,9 @@ Authorization: sk-prodia-sd
 // xl.dall-e-3
 Authorization: sk-prodia-xl
 
+// dalle-4k.dall-e-3
+Authorization: sk-dalle-4k
+
 // google.dall-e-3
 Authorization: sk-google-xl
 ```
