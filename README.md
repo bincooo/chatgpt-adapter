@@ -207,3 +207,7 @@ curl -i -X POST \
 #### 特殊标记增强
 
 [flags](flags.md)
+
+### 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=bincooo/chatgpt-adapter&type=Date)](https://star-history.com/#bincooo/chatgpt-adapter&Date)

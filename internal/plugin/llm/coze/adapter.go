@@ -233,10 +233,9 @@ func rmLock(token string) {
 	mu.Lock()
 	defer mu.Unlock()
 	if m, ok := rwMus[token]; ok {
-		if m.Count() > 0 {
-			return
+		if m.IsIdle() {
+			delete(rwMus, token)
 		}
-		delete(rwMus, token)
 	}
 }
 

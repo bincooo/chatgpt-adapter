@@ -48,6 +48,6 @@ func (e *ExpireLock) Unlock() {
 	e.mutex.Unlock()
 }
 
-func (e *ExpireLock) Count() int {
-	return e.count
+func (e *ExpireLock) IsIdle() bool {
+	return e.count < 1
 }
