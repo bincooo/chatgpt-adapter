@@ -146,6 +146,12 @@ coze:
 > 
 > 格式 -> coze/botId-version-scene;
 > 例子 -> coze/7353052833752694791-1712016747307-2
+> 
+> 支持开发者模式，该模式下可修改全局变量TopP、Temperature、MaxTokens。
+> 但是会出现排队情况，建议多账号轮询使用
+>
+> 格式 -> coze/botId-spaceId-scene-o; // 结尾 o 固定
+> 例子 -> coze/7353052833752694791-xxx-o
 
 lmsys:
 > 无需cookie， model参数为 `lmsys/` 前缀，例：`lmsys/claude-3-haiku-20240307`

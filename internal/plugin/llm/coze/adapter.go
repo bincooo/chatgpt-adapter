@@ -1,6 +1,7 @@
 package coze
 
 import (
+	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -31,6 +33,9 @@ var (
 	botId128k   = "7353048532129644562"
 	version128k = "1716940665830"
 	scene128k   = 2
+
+	mu    sync.Mutex
+	rwMus = make(map[string]*common.ExpireLock)
 )
 
 type API struct {
@@ -45,7 +50,7 @@ func (API) Match(ctx *gin.Context, model string) bool {
 	if strings.HasPrefix(model, "coze/") {
 		// coze/botId-version-scene
 		values := strings.Split(model[5:], "-")
-		if len(values) == 3 {
+		if len(values) > 2 {
 			_, err := strconv.Atoi(values[2])
 			return err == nil
 		}
@@ -98,6 +103,51 @@ func (API) Completion(ctx *gin.Context) {
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)
 
+	var lock *common.ExpireLock
+	if isOwner(completion.Model) {
+		var system string
+		message := pMessages[0]
+		if message.Role == "system" {
+			system = message.Content
+		}
+
+		var value map[string]interface{}
+		value, err = chat.BotInfo(ctx.Request.Context())
+		if err != nil {
+			logger.Error(err)
+			response.Error(ctx, -1, err)
+			return
+		}
+
+		// 加锁
+		botId := customBotId(completion.Model)
+		lock = newLock(botId)
+		if !lock.Lock(ctx.Request.Context()) {
+			// 上锁失败
+			logger.Errorf("上锁失败：%s", botId)
+			response.Error(ctx, http.StatusTooManyRequests, "Too Many Requests")
+			return
+		}
+
+		logger.Infof("上锁成功：%s", botId)
+		if err = chat.DraftBot(ctx.Request.Context(), coze.DraftInfo{
+			Model:            value["model"].(string),
+			TopP:             completion.TopP,
+			Temperature:      completion.Temperature,
+			MaxTokens:        completion.MaxTokens,
+			FrequencyPenalty: 0,
+			PresencePenalty:  0,
+			ResponseFormat:   0,
+		}, system); err != nil {
+			// 全局配置修改失败，解锁
+			lock.Unlock()
+			rmLock(botId)
+			logger.Error(fmt.Errorf("全局配置修改失败，解锁：%s， %v", botId, err))
+			response.Error(ctx, -1, err)
+			return
+		}
+	}
+
 	query := ""
 	if notebook && len(pMessages) > 0 {
 		// notebook 模式只取第一条 content
@@ -107,6 +157,14 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	chatResponse, err := chat.Reply(ctx.Request.Context(), coze.Text, query)
+	// 构建完请求即可解锁
+	if lock != nil {
+		lock.Unlock()
+		botId := customBotId(completion.Model)
+		rmLock(botId)
+		logger.Infof("构建完成解锁：%s", botId)
+	}
+
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
@@ -131,7 +189,7 @@ func (API) Generation(ctx *gin.Context) {
 	)
 
 	// 只绘画用3.5 16k即可
-	options := coze.NewDefaultOptions(botId35_16k, version35_16k, scene35_16k, proxies)
+	options := coze.NewDefaultOptions(botId35_16k, version35_16k, scene35_16k, false, proxies)
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)
 	image, err := chat.Images(ctx.Request.Context(), generation.Message)
@@ -159,24 +217,53 @@ func (API) Generation(ctx *gin.Context) {
 	})
 }
 
+func newLock(token string) *common.ExpireLock {
+	mu.Lock()
+	defer mu.Unlock()
+	if m, ok := rwMus[token]; ok {
+		return m
+	}
+
+	m := common.NewExpireLock()
+	rwMus[token] = m
+	return m
+}
+
+func rmLock(token string) {
+	mu.Lock()
+	defer mu.Unlock()
+	if m, ok := rwMus[token]; ok {
+		if m.Count() > 0 {
+			return
+		}
+		delete(rwMus, token)
+	}
+}
+
+func customBotId(model string) string {
+	if strings.HasPrefix(model, "coze/") {
+		values := strings.Split(model[5:], "-")
+		return values[0]
+	}
+	return ""
+}
+
 func newOptions(proxies string, model string, pMessages []coze.Message) (options coze.Options) {
 	if strings.HasPrefix(model, "coze/") {
 		values := strings.Split(model[5:], "-")
-		if len(values) == 3 {
-			scene, err := strconv.Atoi(values[2])
-			if err == nil {
-				options = coze.NewDefaultOptions(values[0], values[1], scene, proxies)
-				logger.Infof("using custom coze options: botId = %s, version = %s, scene = %d", values[0], values[1], scene)
-				return
-			}
-			logger.Error(err)
+		scene, err := strconv.Atoi(values[2])
+		if err == nil {
+			options = coze.NewDefaultOptions(values[0], values[1], scene, isOwner(model), proxies)
+			logger.Infof("using custom coze options: botId = %s, version = %s, scene = %d", values[0], values[1], scene)
+			return
 		}
+		logger.Error(err)
 	}
 
-	options = coze.NewDefaultOptions(botId8k, version8k, scene8k, proxies)
+	options = coze.NewDefaultOptions(botId8k, version8k, scene8k, false, proxies)
 	// 大于7k token 使用 gpt-128k
 	if token := calcTokens(pMessages); token > 7000 {
-		options = coze.NewDefaultOptions(botId128k, version128k, scene128k, proxies)
+		options = coze.NewDefaultOptions(botId128k, version128k, scene128k, false, proxies)
 	}
 
 	return
@@ -193,4 +280,8 @@ func extCookie(co string) (cookie, msToken string) {
 		}
 	}
 	return
+}
+
+func isOwner(model string) bool {
+	return strings.HasSuffix(model, "-o")
 }
