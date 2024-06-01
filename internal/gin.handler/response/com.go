@@ -159,11 +159,11 @@ func SSEResponse(ctx *gin.Context, model, content string, created int64) {
 		response.Choices[0].FinishReason = &finishReason
 	}
 
-	event(ctx, response)
+	Event(ctx, response)
 
 	if done {
 		time.Sleep(100 * time.Millisecond)
-		event(ctx, "[DONE]")
+		Event(ctx, "[DONE]")
 	}
 }
 
@@ -231,21 +231,21 @@ func SSEToolCallResponse(ctx *gin.Context, model, name, args string, created int
 		ToolCalls: []pkg.Keyv[interface{}]{toolCall},
 	}
 
-	event(ctx, response)
+	Event(ctx, response)
 
 	delete(toolCall, "id")
 	delete(toolCall, "type")
 	toolCall["function"] = map[string]string{"arguments": args}
 	response.Choices[0].Delta.ToolCalls[0] = toolCall
 	response.Choices[0].Delta.Role = ""
-	event(ctx, response)
+	Event(ctx, response)
 
 	response.Choices[0].FinishReason = &toolCalls
 	response.Choices[0].Delta = nil
 	response.Usage = usage
-	event(ctx, response)
+	Event(ctx, response)
 
-	event(ctx, "[DONE]")
+	Event(ctx, "[DONE]")
 }
 
 func NotResponse(ctx *gin.Context) bool {
@@ -258,13 +258,13 @@ func NotSSEHeader(ctx *gin.Context) bool {
 	if t == "" {
 		return true
 	}
-	return !strings.Contains(t, "text/event-stream")
+	return !strings.Contains(t, "text/Event-stream")
 }
 
 func setSSEHeader(ctx *gin.Context) {
 	h := ctx.Writer.Header()
 	if h.Get("Content-Type") == "" {
-		h.Set("Content-Type", "text/event-stream")
+		h.Set("Content-Type", "text/Event-stream")
 		h.Set("Transfer-Encoding", "chunked")
 		h.Set("Cache-Control", "no-cache")
 		h.Set("Connection", "keep-alive")
@@ -272,7 +272,7 @@ func setSSEHeader(ctx *gin.Context) {
 	}
 }
 
-func event(ctx *gin.Context, data interface{}) {
+func Event(ctx *gin.Context, data interface{}) {
 	w := ctx.Writer
 	str, ok := data.(string)
 	if ok {

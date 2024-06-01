@@ -159,6 +159,14 @@ lmsys:
 > 无需cookie， model参数为 `lmsys/` 前缀，例：`lmsys/claude-3-haiku-20240307`
 > 该接口有第三方监管，但用来进行正向对话还是不错的。对ip严苛
 
+custom:
+> 实现chatgpt规范的上游AI接口，可用此定义来实现toolCall的功能
+> 在原模型的名称前添加： `custom/` 前缀，例：`custom/freeGpt35`
+> 
+> 而后在 `role`为 `user`、`system` 中的一个里添加 `<tool enabled />` 即可开启toolCall
+> 
+> 需在 `config.yaml` 里配置 `custom-llm` 属性
+
 #### free画图接口
 
 提供了 `coze.dall-e-3`、 `sd.dall-e-3`、`xl.dall-e-3`、 `pg.dall-e-3`、 `google.dall-e-3`，它们会根据你提供的 `Authorization` 选择其中的一个
