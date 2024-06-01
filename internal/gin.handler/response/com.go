@@ -258,13 +258,13 @@ func NotSSEHeader(ctx *gin.Context) bool {
 	if t == "" {
 		return true
 	}
-	return !strings.Contains(t, "text/Event-stream")
+	return !strings.Contains(t, "text/event-stream")
 }
 
 func setSSEHeader(ctx *gin.Context) {
 	h := ctx.Writer.Header()
 	if h.Get("Content-Type") == "" {
-		h.Set("Content-Type", "text/Event-stream")
+		h.Set("Content-Type", "text/event-stream")
 		h.Set("Transfer-Encoding", "chunked")
 		h.Set("Cache-Control", "no-cache")
 		h.Set("Connection", "keep-alive")

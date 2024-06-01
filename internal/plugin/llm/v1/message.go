@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 )
 
 const ginTokens = "__tokens__"
@@ -85,6 +87,11 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response, sse bool) (content string) {
 	logger.Info("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
+	completion := common.GetGinCompletion(ctx)
+	toolId := common.GetGinToolValue(ctx).GetString("id")
+	toolId = plugin.NameWithTools(toolId, completion.Tools)
+	var toolCall map[string]interface{}
+
 	scanner := bufio.NewScanner(r.Body)
 	scanner.Split(func(data []byte, eof bool) (advance int, token []byte, err error) {
 		if eof && len(data) == 0 {
@@ -153,6 +160,14 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 			continue
 		}
 
+		if toolId != "-1" {
+			toolCall = map[string]interface{}{
+				"name": toolId,
+				"args": map[string]interface{}{},
+			}
+			break
+		}
+
 		choice.Delta.Content = raw
 		if sse && len(raw) > 0 {
 			response.Event(ctx, chat)
@@ -161,6 +176,16 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 	}
 
 	if content == "" && response.NotSSEHeader(ctx) {
+		return
+	}
+
+	if toolCall != nil {
+		args, _ := json.Marshal(toolCall["args"])
+		if !sse {
+			response.ToolCallResponse(ctx, Model, toolId, string(args))
+		} else {
+			response.SSEToolCallResponse(ctx, Model, toolId, string(args), time.Now().Unix())
+		}
 		return
 	}
 
