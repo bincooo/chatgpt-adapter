@@ -11,7 +11,163 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"github.com/joho/godotenv"
+	"encoding/json"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
+	"context"
 )
+
+type ModelConfig struct {
+	Cookie     string `bson:"cookie"`
+	Model      string `bson:"model"`
+	Used       int    `bson:"used"`
+    StartTime  int64  `bson:"start_time"`
+	Lock       int    `bson:"lock"`
+}
+
+type OldConfig struct {
+	ID     primitive.ObjectID       `bson:"_id"`
+	Models map[string][]ModelConfig `bson:"models"`
+}
+
+type NewConfig struct {
+	ID        primitive.ObjectID `bson:"_id"`
+	ModelType string             `bson:"modelType"`
+	Configs   []ModelConfig      `bson:"configs"`
+}
+
+type JSONConfig struct {
+	Models map[string][]ModelConfig `json:"models"`
+}
+
+func readConfig() (JSONConfig, error) {
+	var config JSONConfig
+	configFile, err := os.ReadFile("config.json")
+	if err != nil {
+		return config, err
+	}
+
+	err = json.Unmarshal(configFile, &config)
+	return config, err
+}
+
+func loadEnv() {
+    err := godotenv.Load()
+    if err != nil {
+        log.Fatalf("Error loading .env file")
+    }
+}
+
+func connectToMongoDB() *mongo.Client {
+    uri := os.Getenv("MONGODB_URI")
+    client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+    if err != nil {
+        log.Fatal(err)
+    }
+    return client
+}
+
+// func migrateData(client *mongo.Client) {
+//     // Kiểm tra xem collection đã có dữ liệu chưa
+//     collection := client.Database("coze").Collection("bot")
+//     count, err := collection.CountDocuments(context.TODO(), bson.D{})
+//     if err != nil {
+//         log.Fatal(err)
+//     }
+
+//     // Nếu không có dữ liệu, tiến hành migration
+//     if count == 0 {
+//         var config Config // Đảm bảo bạn đã định nghĩa struct Config
+//         configFile, err := os.ReadFile("config.json")
+//         if err != nil {
+//             log.Fatal(err)
+//         }
+
+//         err = json.Unmarshal(configFile, &config)
+//         if err != nil {
+//             log.Fatal(err)
+//         }
+
+//         // Chuyển đổi config thành BSON và insert vào MongoDB
+//         _, err = collection.InsertOne(context.TODO(), config)
+//         if err != nil {
+//             log.Fatal(err)
+//         }
+//     }
+// }
+
+func migrateData(client *mongo.Client) error {
+	collection := client.Database("coze").Collection("bot")
+	ctx := context.TODO()
+
+	// Read data from config.json
+	jsonConfig, err := readConfig()
+	if err != nil {
+		return err
+	}
+
+	// Find all documents in the old structure
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	defer cursor.Close(ctx)
+
+	var oldConfigs []OldConfig
+	if err = cursor.All(ctx, &oldConfigs); err != nil {
+		return err
+	}
+
+	if len(oldConfigs) == 0 {
+		// No old configs found, insert new config directly from config.json
+		for modelType, configs := range jsonConfig.Models {
+			for _, config := range configs {
+				newConfig := NewConfig{
+					ID:        primitive.NewObjectID(),
+					ModelType: modelType,
+					Configs:   []ModelConfig{config}, // Chèn từng mảng config
+				}
+			
+				_, err := collection.InsertOne(ctx, newConfig)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	}
+
+	// // Convert old configs to new structure and insert them
+	// for _, oldConfig := range oldConfigs {
+	// 	for modelType, configs := range oldConfig.Models {
+	// 		for _, config := range configs {
+	// 			newConfig := NewConfig{
+	// 				ID:        primitive.NewObjectID(),
+	// 				ModelType: modelType,
+	// 				Configs:   []ModelConfig{config}, // Chèn từng mảng config
+	// 			}
+			
+	// 			_, err := collection.InsertOne(ctx, newConfig)
+	// 			if err != nil {
+	// 				return err
+	// 			}
+	// 		}
+	// 	}
+
+	// 	// Optionally, remove the old document
+	// 	// _, err := collection.DeleteOne(ctx, bson.M{"_id": oldConfig.ID})
+	// 	// if err != nil {
+	// 	// 	return err
+	// 	// }
+	// }
+
+	return nil
+}
 
 func Bind(port int, version, proxies string) {
 	gin.SetMode(gin.ReleaseMode)
@@ -38,6 +194,9 @@ func Bind(port int, version, proxies string) {
 
 	addr := ":" + strconv.Itoa(port)
 	logger.Info(fmt.Sprintf("server start by http://0.0.0.0%s/v1", addr))
+	loadEnv()
+    client := connectToMongoDB()
+    migrateData(client)
 	if err := route.Run(addr); err != nil {
 		logger.Error(err)
 		os.Exit(1)

@@ -49,28 +49,7 @@ func completions(ctx *gin.Context) {
 	}
 	matchers := common.XmlFlags(ctx, &completion)
 	ctx.Set(vars.GinCompletion, completion)
-	switch completion.Model {
-		case "gpt-3.5-turbo":
-			//model = "coze/7372633086053482504-1716578081-2"
-			completion.Model = "coze/7372633086053482504-7372633764939366401-2-o"
-			break
-		case "gpt-4o":
-			//model = "coze/7372633086053482504-1716578081-2"
-			completion.Model = "coze/7372633086053482504-7372633764939366401-2-o"
-			break
-		case "gpt-4":
-			//model = "coze/7372646846499487751-1716578547-2"
-			completion.Model = "coze/7372646846499487751-7372633764939366401-2-o"
-			break
-		case "gpt-4-turbo":
-			//model = "coze/7372648254925930514-1716579154-2"
-			completion.Model = "coze/7372648254925930514-7372633764939366401-2-o"
-			break
-		case "gemini-1.5-pro-lastest":
-			//model = "coze/7372931363038625800-1716644517-2"
-			completion.Model = "coze/7372931363038625800-7372633764939366401-2-o"
-			break
-	}
+	completion.Model = "coze"
 	ctx.Set(vars.GinMatchers, matchers)
 	if common.GinDebugger(ctx) {
 		bodyLogger(completion)
