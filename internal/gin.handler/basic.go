@@ -56,9 +56,11 @@ func readConfig() (JSONConfig, error) {
 }
 
 func loadEnv() {
-    err := godotenv.Load()
-    if err != nil {
-        log.Fatalf("Error loading .env file")
+    if os.Getenv("HEROKU") == "" {
+        err := godotenv.Load()
+        if err != nil {
+            log.Fatalf("Error loading .env file")
+        }
     }
 }
 
