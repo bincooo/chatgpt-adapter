@@ -2,6 +2,8 @@ name: Build ChatGPT-Adatper images and copy image to docker hub
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - '*'
     tags:
