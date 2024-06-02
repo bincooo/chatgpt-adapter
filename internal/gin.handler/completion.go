@@ -13,6 +13,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/coze"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/gemini"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/lmsys"
+	v1 "github.com/bincooo/chatgpt-adapter/internal/plugin/llm/v1"
 	pg "github.com/bincooo/chatgpt-adapter/internal/plugin/playground"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
@@ -37,6 +38,7 @@ func init() {
 			lmsys.Adapter,
 			pg.Adapter,
 			hf.Adapter,
+			v1.Adapter,
 		}
 	})
 }

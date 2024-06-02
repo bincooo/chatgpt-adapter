@@ -153,11 +153,19 @@ coze:
 > cookie需为botId自己所属的账号， 结尾 o 固定
 > 
 > 格式 -> coze/botId-spaceId-scene-o; 
-> 例子 -> coze/7353052833752694791-xxx-o
+> 例子 -> coze/7353052833752694791-xxx-4-o
 
 lmsys:
 > 无需cookie， model参数为 `lmsys/` 前缀，例：`lmsys/claude-3-haiku-20240307`
 > 该接口有第三方监管，但用来进行正向对话还是不错的。对ip严苛
+
+custom:
+> 实现chatgpt规范的上游AI接口，可用此定义来实现toolCall的功能
+> 在原模型的名称前添加： `custom/` 前缀，例：`custom/freeGpt35`
+> 
+> 而后在 `role`为 `user`、`system` 中的一个里添加 `<tool enabled />` 即可开启toolCall
+> 
+> 需在 `config.yaml` 里配置 `custom-llm` 属性
 
 #### free画图接口
 

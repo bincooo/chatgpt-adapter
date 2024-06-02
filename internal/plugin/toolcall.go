@@ -26,6 +26,10 @@ func NeedToToolCall(ctx *gin.Context) bool {
 	var tool = "-1"
 	{
 		t := common.GetGinToolValue(ctx)
+		if !t.Is("enabled", true) {
+			return false
+		}
+
 		tool = t.GetString("id")
 		if tool == "-1" && t.Is("tasks", true) {
 			tool = "tasks"

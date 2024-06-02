@@ -1,17 +1,25 @@
 # 图片访问
 domain: "http://127.0.0.1:8080"
+
 # gemini 自定义安全设置
 google:
 #  safes:
 #    - category: HARM_CATEGORY_HARASSMENT
 #      threshold: BLOCK_NONE
+
 # 开启特殊标记增强
 flags: true
+
 # 内调llm，用于绘图时文本转tags
 llm:
   baseUrl: "http://127.0.0.1:8080"
   model: "bing"
   token: "xxx"
+
+custom-llm:
+  baseUrl: http://127.0.0.1:8080
+  useProxy: false
+
 # 图片放大，domain需要公网可访问的地址
 # key请到https://bigjpg.com获取，每月30次免费
 # 目前注册没有限制，可配置多个key轮询

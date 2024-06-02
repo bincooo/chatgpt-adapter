@@ -688,10 +688,18 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 						tasks = o
 					}
 				}
+				enabled := false
+				if e, ok := node.attr["enabled"]; ok {
+					if o, k := e.(bool); k {
+						enabled = o
+					}
+				}
+
 				clean(content[node.index:node.end])
 				ctx.Set(vars.GinTool, pkg.Keyv[interface{}]{
-					"id":    id,
-					"tasks": tasks,
+					"id":      id,
+					"tasks":   tasks,
+					"enabled": enabled,
 				})
 				continue
 			}
