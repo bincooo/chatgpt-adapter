@@ -35,6 +35,7 @@ func (API) Models() []plugin.Model {
 
 func (API) Completion(ctx *gin.Context) {
 	var (
+		cookie     = ctx.GetString("token")
 		proxies    = ctx.GetString("proxies")
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
@@ -49,7 +50,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	retry := 3
 label:
-	r, err := fetch(ctx, proxies, completion)
+	r, err := fetch(ctx, proxies, cookie, completion)
 	if err != nil {
 		if retry > 0 {
 			retry--

@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func fetch(ctx context.Context, proxies string, completion pkg.ChatCompletion) (*http.Response, error) {
+func fetch(ctx context.Context, proxies, token string, completion pkg.ChatCompletion) (*http.Response, error) {
 	var (
 		baseUrl  = pkg.Config.GetString("custom-llm.baseUrl")
 		useProxy = pkg.Config.GetBool("custom-llm.useProxy")
@@ -34,6 +34,7 @@ func fetch(ctx context.Context, proxies string, completion pkg.ChatCompletion) (
 		Context(ctx).
 		//Proxies(proxies).
 		POST(baseUrl+"/v1/chat/completions").
+		Header("Authorization", "Bearer "+token).
 		JHeader().
 		Body(completion).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
