@@ -153,7 +153,7 @@ coze:
 > cookie需为botId自己所属的账号， 结尾 o 固定
 > 
 > 格式 -> coze/botId-spaceId-scene-o; 
-> 例子 -> coze/7353052833752694791-xxx-o
+> 例子 -> coze/7353052833752694791-xxx-4-o
 
 lmsys:
 > 无需cookie， model参数为 `lmsys/` 前缀，例：`lmsys/claude-3-haiku-20240307`
