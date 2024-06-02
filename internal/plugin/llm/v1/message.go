@@ -91,6 +91,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 	toolId := common.GetGinToolValue(ctx).GetString("id")
 	toolId = plugin.NameWithTools(toolId, completion.Tools)
 	var toolCall map[string]interface{}
+	htc := false
 
 	scanner := bufio.NewScanner(r.Body)
 	scanner.Split(func(data []byte, eof bool) (advance int, token []byte, err error) {
@@ -140,6 +141,10 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 			continue
 		}
 
+		if choice.Message.ToolCalls != nil && len(choice.Message.ToolCalls) > 0 {
+			htc = true
+		}
+
 		if choice.FinishReason != nil && *choice.FinishReason == "stop" {
 			if chat.Usage == nil {
 				chat.Usage = common.CalcUsageTokens(content, tokens)
@@ -160,7 +165,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 			continue
 		}
 
-		if toolId != "-1" {
+		if !htc && toolId != "-1" {
 			toolCall = map[string]interface{}{
 				"name": toolId,
 				"args": map[string]interface{}{},
