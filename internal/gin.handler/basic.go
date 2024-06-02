@@ -185,6 +185,7 @@ func Bind(port int, version, proxies string) {
 
 	route.GET("/", welcome(version))
 	route.POST("/v1/chat/completions", completions)
+	route.POST("/api/v1/chat/completions", completions)
 	route.POST("/v1/object/completions", completions)
 	route.POST("/proxies/v1/chat/completions", completions)
 	route.POST("v1/images/generations", generations)
