@@ -59,10 +59,19 @@ func selectAndLockConfig(modelType string) (*ModelConfig, error) {
 
     currentTime := int64(time.Now().Unix())
     filter := bson.M{
-        "modelType": modelType,
-        "configs.used": bson.M{"$lt": 50},
-        "configs.lock": 0,
-    }
+		"modelType": modelType,
+		"configs.lock": 0,
+		"$or": []bson.M{
+			{
+				"configs.used": bson.M{"$lte": 50},
+				"configs.start_time": bson.M{"$lt": currentTime - 86400},
+			},
+			{
+				"configs.used": bson.M{"$lt": 50},
+				"configs.start_time": bson.M{"$gte": currentTime - 86400},
+			},
+		},
+	}	
     update := bson.M{
         "$inc": bson.M{"configs.$.used": 1},
         "$set": bson.M{"configs.$.lock": 1},
