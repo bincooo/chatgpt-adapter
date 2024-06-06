@@ -23,7 +23,11 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		}
 
 		co, msToken := extCookie(cookie)
-		options := newOptions(proxies, "", pMessages)
+		options, _, err := newOptions(proxies, "", pMessages)
+		if err != nil {
+			return "", err
+		}
+
 		chat := coze.New(co, msToken, options)
 
 		query := ""
@@ -47,7 +51,9 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		if strings.Contains(errMessage, "Login verification is invalid") {
 			logger.Error(err)
 			response.Error(ctx, http.StatusUnauthorized, errMessage)
+			return true
 		}
+
 		logger.Error(err)
 		response.Error(ctx, -1, errMessage)
 		return true

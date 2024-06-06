@@ -15,9 +15,25 @@ llm:
   baseUrl: "http://127.0.0.1:8080"
   model: "bing"
   token: "xxx"
+# coze 默认配置；；；内置配置经常变动，难以维护改为配置化
+#coze:
+#  8k:
+#    botId: 114514
+#    version: 9527
+#    scene: 2
+#    isO: true
+#  128k:
+#    botId: 114514
+#    version: 9527
+#    scene: 2
+#    isO: true
+#  images:
+#    botId: 114514
+#    version: 9527
+#    scene: 2
 
 custom-llm:
-  baseUrl: http://127.0.0.1:8000
+  baseUrl: http://127.0.0.1:8080
   useProxy: false
 
 # 图片放大，domain需要公网可访问的地址
