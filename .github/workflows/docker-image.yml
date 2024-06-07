@@ -60,6 +60,7 @@ jobs:
           -t ${DOCKER_REPO_TAGGED} \
           .
           sed -i 's/build-linux/build-linux-arm64/g' deploy/Dockerfile
+          sed -i 's/bin\/linux\/server/bin\/linux\/server-arm64/g' deploy/Dockerfile
           docker buildx build \
           -f deploy/Dockerfile \
           --platform linux/arm64/v8 \
