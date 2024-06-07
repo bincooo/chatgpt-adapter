@@ -2,6 +2,8 @@ name: Build ChatGPT-Adatper images and copy image to docker hub
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - '*'
     tags:
@@ -50,6 +52,17 @@ jobs:
           docker buildx build \
           -f deploy/Dockerfile \
           --platform linux/amd64 \
+          --label "org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/chatgpt-adapter" \
+          --label "org.opencontainers.image.description=chatgpt-adapter image" \
+          --push \
+          --cache-from=type=local,src=/tmp/.buildx-cache \
+          --cache-to=type=local,dest=/tmp/.buildx-cache \
+          -t ${DOCKER_REPO_TAGGED} \
+          .
+          sed -i 's/build-linux/build-linux-arm64/g' deploy/Dockerfile
+          docker buildx build \
+          -f deploy/Dockerfile \
+          --platform linux/arm64/v8 \
           --label "org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/chatgpt-adapter" \
           --label "org.opencontainers.image.description=chatgpt-adapter image" \
           --push \

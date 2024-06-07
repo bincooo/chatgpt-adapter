@@ -141,7 +141,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 			continue
 		}
 
-		if choice.Message.ToolCalls != nil && len(choice.Message.ToolCalls) > 0 {
+		if choice.Delta.ToolCalls != nil && len(choice.Delta.ToolCalls) > 0 {
 			htc = true
 		}
 
@@ -197,7 +197,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 	if !sse {
 		response.Response(ctx, Model, content)
 	} else {
-		response.SSEResponse(ctx, Model, "[DONE]", -1)
+		response.Event(ctx, "[DONE]")
 	}
 	return
 }

@@ -154,6 +154,10 @@ coze:
 > 
 > 格式 -> coze/botId-spaceId-scene-o; 
 > 例子 -> coze/7353052833752694791-xxx-4-o
+>
+> tips: 由于内置配置经常变动，难以维护 改为配置化
+>
+> 请用户在 `config.yaml` 中修改 [#31](https://github.com/bincooo/chatgpt-adapter/issues/31)
 
 lmsys:
 > 无需cookie， model参数为 `lmsys/` 前缀，例：`lmsys/claude-3-haiku-20240307`

@@ -10,6 +10,7 @@ import (
 
 func completeToolCalls(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) bool {
 	logger.Info("completeTools ...")
+	cookie := ctx.GetString("token")
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
 		completion.Stream = true
 		completion.Messages = []pkg.Keyv[interface{}]{
@@ -19,7 +20,7 @@ func completeToolCalls(ctx *gin.Context, proxies string, completion pkg.ChatComp
 			},
 		}
 
-		r, err := fetch(ctx.Request.Context(), proxies, completion)
+		r, err := fetch(ctx.Request.Context(), proxies, cookie, completion)
 		if err != nil {
 			return "", err
 		}

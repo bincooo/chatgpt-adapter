@@ -1,11 +1,13 @@
 package coze
 
 import (
+	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/coze-api"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -160,19 +162,21 @@ var (
 	Model   = "coze"
 
 	// 35-16k
-	botId35_16k   = "7353052833752694791"
-	version35_16k = "1716683639615"
+	botId35_16k   = "114514"
+	version35_16k = "9527"
 	scene35_16k   = 2
 
 	// 8k
-	botId8k   = "7353047124357365778"
-	version8k = "1716940640540"
+	botId8k   = "114514"
+	version8k = "9527"
 	scene8k   = 2
+	o8k       = false
 
 	// 128k
-	botId128k   = "7353048532129644562"
-	version128k = "1716940665830"
+	botId128k   = "114514"
+	version128k = "9527"
 	scene128k   = 2
+	o128k       = false
 
 	mu    sync.Mutex
 	rwMus = make(map[string]*common.ExpireLock)
@@ -180,6 +184,42 @@ var (
 
 type API struct {
 	plugin.BaseAdapter
+}
+
+func init() {
+	common.AddInitialized(func() {
+		config := pkg.Config.GetStringMap("coze.8k")
+		if config != nil {
+			botId, ok := config["botid"]
+			if ok {
+				botId8k = fmt.Sprintf("%v", botId)
+				version8k = fmt.Sprintf("%v", config["version"])
+				scene8k = config["scene"].(int)
+				o8k = config["iso"].(bool)
+			}
+		}
+
+		config = pkg.Config.GetStringMap("coze.128k")
+		if config != nil {
+			botId, ok := config["botid"]
+			if ok {
+				botId128k = fmt.Sprintf("%v", botId)
+				version128k = fmt.Sprintf("%v", config["version"])
+				scene128k = config["scene"].(int)
+				o128k = config["iso"].(bool)
+			}
+		}
+
+		config = pkg.Config.GetStringMap("coze.images")
+		if config != nil {
+			botId, ok := config["botid"]
+			if ok {
+				botId35_16k = fmt.Sprintf("%v", botId)
+				version35_16k = fmt.Sprintf("%v", config["version"])
+				scene35_16k = config["scene"].(int)
+			}
+		}
+	})
 }
 
 func (API) Match(ctx *gin.Context, model string) bool {
@@ -254,12 +294,17 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	ctx.Set(ginTokens, tokens)
-	options := newOptions(proxies, completion.Model, pMessages)
+	options, isO, err := newOptions(proxies, completion.Model, pMessages)
+	if err != nil {
+		response.Error(ctx, -1, err)
+		return
+	}
+
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)
 
 	var lock *common.ExpireLock
-	if isOwner(completion.Model) {
+	if isO {
 		var system string
 		message := pMessages[0]
 		if message.Role == "system" {
@@ -348,6 +393,11 @@ func (API) Generation(ctx *gin.Context) {
 	)
 
 	// 只绘画用3.5 16k即可
+	if botId35_16k == "114514" {
+		response.Error(ctx, -1, "请配置 coze.images 后使用")
+		return
+	}
+
 	options := coze.NewDefaultOptions(botId35_16k, version35_16k, scene35_16k, false, proxies)
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)
@@ -406,22 +456,37 @@ func customBotId(model string) string {
 	return ""
 }
 
-func newOptions(proxies string, model string, pMessages []coze.Message) (options coze.Options) {
+func newOptions(proxies string, model string, pMessages []coze.Message) (options coze.Options, isO bool, err error) {
 	if strings.HasPrefix(model, "coze/") {
 		values := strings.Split(model[5:], "-")
-		scene, err := strconv.Atoi(values[2])
-		if err == nil {
-			options = coze.NewDefaultOptions(values[0], values[1], scene, isOwner(model), proxies)
+		scene, e := strconv.Atoi(values[2])
+		if e == nil {
+			isO = isOwner(model)
+			options = coze.NewDefaultOptions(values[0], values[1], scene, isO, proxies)
 			logger.Infof("using custom coze options: botId = %s, version = %s, scene = %d", values[0], values[1], scene)
 			return
 		}
-		logger.Error(err)
+
+		err = e
+		return
 	}
 
-	options = coze.NewDefaultOptions(botId8k, version8k, scene8k, false, proxies)
+	if botId8k == "114514" {
+		err = errors.New("请配置 coze.8k 后使用")
+		return
+	}
+
+	isO = o8k
+	options = coze.NewDefaultOptions(botId8k, version8k, scene8k, o8k, proxies)
 	// 大于7k token 使用 gpt-128k
 	if token := calcTokens(pMessages); token > 7000 {
-		options = coze.NewDefaultOptions(botId128k, version128k, scene128k, false, proxies)
+		if botId8k == "114514" {
+			err = errors.New("请配置 coze.128k 后使用")
+			return
+		}
+
+		isO = o128k
+		options = coze.NewDefaultOptions(botId128k, version128k, scene128k, o128k, proxies)
 	}
 
 	return
@@ -441,5 +506,8 @@ func extCookie(co string) (cookie, msToken string) {
 }
 
 func isOwner(model string) bool {
+	if model == Model {
+
+	}
 	return strings.HasSuffix(model, "-o")
 }
