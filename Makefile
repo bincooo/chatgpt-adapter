@@ -27,6 +27,9 @@ copy: clean setup
 build-linux: copy
 	${BUILD_ENV} GOARCH=amd64 GOOS=linux go build ${LDFLAGS} -o bin/linux/${TARGET_EXEC} -trimpath cmd/command.go
 
+build-linux-arm64: copy
+	${BUILD_ENV} GOOS=linux GOARCH=arm GOARM=6 go build ${LDFLAGS} -o bin/linux/${TARGET_EXEC}-arm64 -trimpath cmd/command.go
+
 build-osx: copy
 	${BUILD_ENV} GOARCH=amd64 GOOS=darwin go build ${LDFLAGS} -o bin/osx/${TARGET_EXEC} -trimpath cmd/command.go
 
