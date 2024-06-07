@@ -42,12 +42,15 @@ jobs:
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "DOCKER_REPO_TAGGED=ghcr.io/${{ github.repository_owner }}/chatgpt-adapter:latest" >> $GITHUB_ENV
+            echo "DOCKER_REPO_TAGGED_ARM=ghcr.io/${{ github.repository_owner }}/chatgpt-adapter-arm64:latest" >> $GITHUB_ENV
           else
             echo "DOCKER_REPO_TAGGED=ghcr.io/${{ github.repository_owner }}/chatgpt-adapter:${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "DOCKER_REPO_TAGGED_ARM=ghcr.io/${{ github.repository_owner }}/chatgpt-adapter-arm64:${{ github.ref_name }}" >> $GITHUB_ENV
           fi
       - name: Build and publish image for main branch or tag push event
         env:
           DOCKER_REPO_TAGGED: ${{ env.DOCKER_REPO_TAGGED }}
+          DOCKER_REPO_TAGGED_ARM: ${{ env.DOCKER_REPO_TAGGED_ARM }}
         run: |
           docker buildx build \
           -f deploy/Dockerfile \
@@ -70,5 +73,5 @@ jobs:
           --push \
           --cache-from=type=local,src=/tmp/.buildx-cache \
           --cache-to=type=local,dest=/tmp/.buildx-cache \
-          -t ${DOCKER_REPO_TAGGED} \
+          -t ${DOCKER_REPO_TAGGED_ARM} \
           .
