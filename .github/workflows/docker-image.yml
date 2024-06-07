@@ -75,8 +75,3 @@ jobs:
           --cache-to=type=local,dest=/tmp/.buildx-cache \
           -t ${DOCKER_REPO_TAGGED_ARM} \
           .
-
-      - name: Create Docker manifest
-        run: |
-          docker manifest create ${DOCKER_REPO_TAGGED} ${DOCKER_REPO_TAGGED_ARM}
-          docker manifest push ${DOCKER_REPO_TAGGED}
