@@ -61,7 +61,7 @@ jobs:
           .
           sed -i 's/build-linux/build-linux-arm64/g' deploy/Dockerfile
           sed -i 's/bin\/linux\/server/bin\/linux\/server-arm64/g' deploy/Dockerfile
-          sed -i 's/alpine:3\.19\.0/arm64v8\/alpine:3\.1/g' deploy/Dockerfile
+          sed -i 's/alpine:3\.19\.0/arm64v8\/alpine:3\.19\.1/g' deploy/Dockerfile
           docker buildx build \
           -f deploy/Dockerfile \
           --platform linux/arm64/v8 \
