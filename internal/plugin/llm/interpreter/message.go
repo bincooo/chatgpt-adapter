@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
@@ -65,11 +66,20 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 			continue
 		}
 
-		if !message.Is("role", "assistant") || !message.Is("type", "message") {
+		if !message.Is("role", "assistant") || !message.In("type", "message", "code") {
 			continue
 		}
 
 		raw := message.GetString("content")
+
+		if message.Is("type", "code") && message.Is("start", true) {
+			raw += fmt.Sprintf("\n```%s\n", message.GetString("format"))
+		}
+
+		if message.Is("type", "code") && message.Is("end", true) {
+			raw += "\n```\n"
+		}
+
 		if len(raw) == 0 {
 			continue
 		}
