@@ -142,12 +142,14 @@ gemini:
 coze:
 > 在 `www.coze.com` 官网中登陆，浏览器 `cookies` 中复制完整的 `cookie` 就是 `Authorization` 参数
 
-> 支持指定bot模型：
+> 》》支持指定bot模型 《《
 > 
 > 格式 -> coze/botId-version-scene;
 > 例子 -> coze/7353052833752694791-1712016747307-2
 > 
-> 支持开发者模式，该模式下可修改全局变量TopP、Temperature、MaxTokens。
+> 》》支持开发者模式《《
+> 
+> 该模式下可修改全局变量TopP、Temperature、MaxTokens。
 > 但是会出现排队情况，建议多账号轮询使用
 >
 > cookie需为botId自己所属的账号， 结尾 o 固定
@@ -155,6 +157,15 @@ coze:
 > 格式 -> coze/botId-spaceId-scene-o; 
 > 例子 -> coze/7353052833752694791-xxx-4-o
 >
+> 》》支持开发者模式《《
+> 
+> 该模式下不需要cookies，
+> version 随意填写；； 尚未得知封控等级和限流机制，请勿滥用
+> 
+> 格式 -> coze/botId-xxx-scene-w;
+> 例子 -> coze/7353052833752694791-xxx-1000-w
+> 
+> 
 > tips: 由于内置配置经常变动，难以维护 改为配置化
 >
 > 请用户在 `config.yaml` 中修改 [#31](https://github.com/bincooo/chatgpt-adapter/issues/31)
