@@ -157,7 +157,7 @@ coze:
 > 格式 -> coze/botId-spaceId-scene-o; 
 > 例子 -> coze/7353052833752694791-xxx-4-o
 >
-> 》》支持开发者模式《《
+> 》》支持webSdk模式《《
 > 
 > 该模式下不需要cookies，
 > version 随意填写；； 尚未得知封控等级和限流机制，请勿滥用
@@ -165,7 +165,7 @@ coze:
 > 格式 -> coze/botId-xxx-scene-w;
 > 例子 -> coze/7353052833752694791-xxx-1000-w
 > 
-> 
+> -------
 > tips: 由于内置配置经常变动，难以维护 改为配置化
 >
 > 请用户在 `config.yaml` 中修改 [#31](https://github.com/bincooo/chatgpt-adapter/issues/31)
