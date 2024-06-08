@@ -42,7 +42,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	retry := 3
 label:
-	r, tokens, err := fetch(ctx, proxies, completion)
+	r, tokens, err := fetch(ctx.Request.Context(), proxies, completion)
 	if err != nil {
 		if retry > 0 {
 			retry--
