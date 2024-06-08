@@ -114,6 +114,20 @@ func (kv Keyv[V]) Is(key string, value V) (out bool) {
 	return reflect.DeepEqual(v, value)
 }
 
+func (kv Keyv[V]) In(key string, values ...V) (out bool) {
+	if !kv.Has(key) {
+		return
+	}
+
+	v, _ := kv.Get(key)
+	for _, value := range values {
+		if reflect.DeepEqual(v, value) {
+			return true
+		}
+	}
+	return
+}
+
 func (kv Keyv[V]) String() string {
 	bytes, _ := json.Marshal(kv)
 	return string(bytes)
