@@ -125,6 +125,7 @@ curl -i -X POST \
 <img width="451" alt="Screenshot 2024-05-23 at 03 13 09" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/faa16d95-a082-4e90-826e-73b7055fad8f">
 <img width="451" alt="Screenshot 2024-05-23 at 03 21 34" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/a59cfba6-11b7-419e-bb3e-84d28c018fbd">
 <img width="451" alt="Screenshot 2024-05-23 at 03 30 29" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/baa0020c-1da3-4302-8705-8d8abdbbff97">
+<img width="451" alt="Screenshot 2024-06-08 at 19 57 49" src="https://github.com/bincooo/chatgpt-adapter/assets/36452456/e6f19370-2deb-4d5b-aad5-3352afe09667">
 </pre>
 </details>
 
