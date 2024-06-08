@@ -33,6 +33,10 @@ llm:
 #    version: 9527
 #    scene: 2
 
+interpreter:
+  baseUrl: http://192.168.0.3:8082/interpreter
+  useProxy: false
+
 custom-llm:
   baseUrl: http://127.0.0.1:8080
   useProxy: false
