@@ -15,18 +15,21 @@ llm:
   baseUrl: "http://127.0.0.1:8080"
   model: "bing"
   token: "xxx"
-# coze 默认配置；；；内置配置经常变动，难以维护改为配置化
+
+# coze 默认配置；；；内置配置经常变动，难以维护改为配置化。新增webSdk模式，但还未得知速率是否有限制？？？
 #coze:
 #  8k:
 #    botId: 114514
 #    version: 9527
 #    scene: 2
-#    isO: true
+#    isO: false
+#    isW: false
 #  128k:
 #    botId: 114514
 #    version: 9527
 #    scene: 2
-#    isO: true
+#    isO: false
+#    isW: false
 #  images:
 #    botId: 114514
 #    version: 9527
