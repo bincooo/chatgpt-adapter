@@ -49,6 +49,21 @@ func completions(ctx *gin.Context) {
 		response.Error(ctx, -1, err)
 		return
 	}
+
+	toolCall := pkg.Config.GetStringMap("toolCall")
+	if enabled, ok := toolCall["enabled"]; ok && enabled.(bool) {
+		id := fmt.Sprintf("%v", toolCall["id"])
+		if id == "" {
+			id = "-1"
+		}
+
+		ctx.Set(vars.GinTool, pkg.Keyv[interface{}]{
+			"id":      id,
+			"enabled": enabled,
+			"tasks":   toolCall["tasks"].(bool),
+		})
+	}
+
 	matchers := common.XmlFlags(ctx, &completion)
 	ctx.Set(vars.GinCompletion, completion)
 

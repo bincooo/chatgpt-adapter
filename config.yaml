@@ -39,6 +39,12 @@ custom-llm:
   baseUrl: http://127.0.0.1:8080
   useProxy: false
 
+# toolCall 默认配置化; 在 flags 关闭时也可用
+toolCall:
+  id: -1
+  enabled: false
+  tasks: false
+
 # 图片放大，domain需要公网可访问的地址
 # key请到https://bigjpg.com获取，每月30次免费
 # 目前注册没有限制，可配置多个key轮询
