@@ -42,12 +42,15 @@ jobs:
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "DOCKER_REPO_TAGGED=ghcr.io/${{ github.repository_owner }}/chatgpt-adapter:latest" >> $GITHUB_ENV
+            echo "DOCKER_REPO_TAGGED_ARM=ghcr.io/${{ github.repository_owner }}/chatgpt-adapter-arm64:latest" >> $GITHUB_ENV
           else
             echo "DOCKER_REPO_TAGGED=ghcr.io/${{ github.repository_owner }}/chatgpt-adapter:${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "DOCKER_REPO_TAGGED_ARM=ghcr.io/${{ github.repository_owner }}/chatgpt-adapter-arm64:${{ github.ref_name }}" >> $GITHUB_ENV
           fi
       - name: Build and publish image for main branch or tag push event
         env:
           DOCKER_REPO_TAGGED: ${{ env.DOCKER_REPO_TAGGED }}
+          DOCKER_REPO_TAGGED_ARM: ${{ env.DOCKER_REPO_TAGGED_ARM }}
         run: |
           docker buildx build \
           -f deploy/Dockerfile \
@@ -58,4 +61,17 @@ jobs:
           --cache-from=type=local,src=/tmp/.buildx-cache \
           --cache-to=type=local,dest=/tmp/.buildx-cache \
           -t ${DOCKER_REPO_TAGGED} \
+          .
+          sed -i 's/build-linux/build-linux-arm64/g' deploy/Dockerfile
+          sed -i 's/bin\/linux\/server/bin\/linux\/server-arm64/g' deploy/Dockerfile
+          sed -i 's/alpine:3\.19\.0/arm64v8\/alpine:3\.19\.1/g' deploy/Dockerfile
+          docker buildx build \
+          -f deploy/Dockerfile \
+          --platform linux/arm64/v8 \
+          --label "org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/chatgpt-adapter" \
+          --label "org.opencontainers.image.description=chatgpt-adapter image" \
+          --push \
+          --cache-from=type=local,src=/tmp/.buildx-cache \
+          --cache-to=type=local,dest=/tmp/.buildx-cache \
+          -t ${DOCKER_REPO_TAGGED_ARM} \
           .

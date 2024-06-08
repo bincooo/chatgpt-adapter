@@ -7,7 +7,7 @@ google:
 #    - category: HARM_CATEGORY_HARASSMENT
 #      threshold: BLOCK_NONE
 
-# 开启特殊标记增强
+# 开启特殊标记增强 
 flags: true
 
 # 内调llm，用于绘图时文本转tags
