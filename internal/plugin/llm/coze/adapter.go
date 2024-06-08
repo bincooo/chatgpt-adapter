@@ -31,14 +31,12 @@ var (
 	botId8k   = "114514"
 	version8k = "9527"
 	scene8k   = 2
-	o8k       = false
 	w8k       = false
 
 	// 128k
 	botId128k   = "114514"
 	version128k = "9527"
 	scene128k   = 2
-	o128k       = false
 	w128k       = false
 
 	mu    sync.Mutex
@@ -58,7 +56,6 @@ func init() {
 				botId8k = fmt.Sprintf("%v", botId)
 				version8k = fmt.Sprintf("%v", config["version"])
 				scene8k = config["scene"].(int)
-				o8k = config["iso"].(bool)
 				w8k = config["isw"].(bool)
 			}
 		}
@@ -70,7 +67,6 @@ func init() {
 				botId128k = fmt.Sprintf("%v", botId)
 				version128k = fmt.Sprintf("%v", config["version"])
 				scene128k = config["scene"].(int)
-				o128k = config["iso"].(bool)
 				w128k = config["isw"].(bool)
 			}
 		}
@@ -335,12 +331,10 @@ func newOptions(proxies string, model string, pMessages []coze.Message) (options
 		return
 	}
 
-	if o8k {
-		mode = 'o'
-	} else if w8k {
+	if w8k {
 		mode = 'w'
 	}
-	options = coze.NewDefaultOptions(botId8k, version8k, scene8k, o8k, proxies)
+	options = coze.NewDefaultOptions(botId8k, version8k, scene8k, false, proxies)
 	// 大于7k token 使用 gpt-128k
 	if token := calcTokens(pMessages); token > 7000 {
 		if botId8k == "114514" {
@@ -348,12 +342,10 @@ func newOptions(proxies string, model string, pMessages []coze.Message) (options
 			return
 		}
 
-		if o128k {
-			mode = 'o'
-		} else if w128k {
+		if w128k {
 			mode = 'w'
 		}
-		options = coze.NewDefaultOptions(botId128k, version128k, scene128k, o128k, proxies)
+		options = coze.NewDefaultOptions(botId128k, version128k, scene128k, false, proxies)
 	}
 
 	return
