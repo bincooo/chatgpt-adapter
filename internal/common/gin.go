@@ -1,12 +1,15 @@
 package common
 
 import (
+	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 )
 
 func GinDebugger(ctx *gin.Context) bool {
+	b := ctx.GetBool(vars.GinDebugger)
+	fmt.Println(b)
 	if value, ok := GetGinValue[bool](ctx, vars.GinDebugger); ok {
 		return value
 	}

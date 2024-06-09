@@ -550,7 +550,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 	)
 
 	for _, message := range messages {
-		if !message.In("role", "system") {
+		if !message.In("role", "system", "user") {
 			continue
 		}
 

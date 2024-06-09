@@ -52,6 +52,7 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
+	ctx.Set(vars.GinDebugger, pkg.Config.GetBool("debug"))
 	toolCall := pkg.Config.GetStringMap("toolCall")
 	if enabled, ok := toolCall["enabled"]; ok && enabled.(bool) {
 		id := fmt.Sprintf("%v", toolCall["id"])
