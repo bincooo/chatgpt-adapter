@@ -169,7 +169,6 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 
 func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 	var (
-		r       = rand.New(rand.NewSource(time.Now().UnixNano()))
 		hash    = emit.GioHash()
 		proxies = ctx.GetString("proxies")
 		baseUrl = "https://prithivmlmods-dalle-4k.hf.space"
@@ -184,11 +183,9 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 			"data": []interface{}{
 				message,
 				negative,
-				model,
 				true,
+				model,
 				30,
-				1,
-				r.Intn(7118870) + 1250000000,
 				1024,
 				1024,
 				6,

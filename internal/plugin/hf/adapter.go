@@ -197,12 +197,12 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		"max_tokens":  4096,
 	}
 
-	response, err := fetch(ctx.Request.Context(), proxies, baseUrl, cookie, obj)
+	res, err := fetch(ctx.Request.Context(), proxies, baseUrl, cookie, obj)
 	if err != nil {
 		return "", err
 	}
 
-	data, err := io.ReadAll(response.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}
@@ -212,11 +212,11 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		return "", err
 	}
 
-	if response.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusOK {
 		if r.Error != nil {
 			return "", errors.New(r.Error.Message)
 		} else {
-			return "", errors.New(response.Status)
+			return "", errors.New(res.Status)
 		}
 	}
 
