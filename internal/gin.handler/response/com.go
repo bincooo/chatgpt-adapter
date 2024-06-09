@@ -102,6 +102,7 @@ func Error(ctx *gin.Context, code int, err interface{}) {
 }
 
 func Response(ctx *gin.Context, model, content string) {
+	ctx.Set(canResponse, "No!")
 	created := time.Now().Unix()
 	usage := common.GetGinCompletionUsage(ctx)
 	ctx.JSON(http.StatusOK, pkg.ChatResponse{
@@ -125,6 +126,7 @@ func Response(ctx *gin.Context, model, content string) {
 }
 
 func SSEResponse(ctx *gin.Context, model, content string, created int64) {
+	ctx.Set(canResponse, "No!")
 	setSSEHeader(ctx)
 
 	done := false
@@ -168,6 +170,7 @@ func SSEResponse(ctx *gin.Context, model, content string, created int64) {
 }
 
 func ToolCallResponse(ctx *gin.Context, model, name, args string) {
+	ctx.Set(canResponse, "No!")
 	created := time.Now().Unix()
 	usage := common.GetGinCompletionUsage(ctx)
 
@@ -204,6 +207,7 @@ func ToolCallResponse(ctx *gin.Context, model, name, args string) {
 }
 
 func SSEToolCallResponse(ctx *gin.Context, model, name, args string, created int64) {
+	ctx.Set(canResponse, "No!")
 	setSSEHeader(ctx)
 	usage := common.GetGinCompletionUsage(ctx)
 
@@ -253,12 +257,21 @@ func NotResponse(ctx *gin.Context) bool {
 }
 
 func NotSSEHeader(ctx *gin.Context) bool {
+	return notHeader(ctx, "text/event-stream")
+}
+
+func notHeader(ctx *gin.Context, types ...string) bool {
 	h := ctx.Writer.Header()
 	t := h.Get("Content-Type")
 	if t == "" {
 		return true
 	}
-	return !strings.Contains(t, "text/event-stream")
+	for _, mine := range types {
+		if strings.Contains(t, mine) {
+			return false
+		}
+	}
+	return true
 }
 
 func setSSEHeader(ctx *gin.Context) {

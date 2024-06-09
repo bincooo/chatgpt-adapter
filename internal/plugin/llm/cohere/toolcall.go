@@ -7,9 +7,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/cohere-api"
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"regexp"
-	"strings"
 )
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.ChatCompletion) bool {
@@ -36,13 +34,8 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 	})
 
 	if err != nil {
-		errMessage := err.Error()
-		if strings.Contains(errMessage, "Login verification is invalid") {
-			response.Error(ctx, http.StatusUnauthorized, errMessage)
-		} else {
-			response.Error(ctx, -1, errMessage)
-		}
 		logger.Error(err)
+		response.Error(ctx, -1, err)
 		return true
 	}
 

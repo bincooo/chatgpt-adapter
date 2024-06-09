@@ -95,6 +95,11 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 		var hasTasks = false
 		completion.Messages, hasTasks = completeToolTasks(ctx, completion, callback)
 		if !hasTasks {
+			// 非-1值则为有默认选项
+			valueDef := NameWithTools(common.GetGinToolValue(ctx).GetString("id"), completion.Tools)
+			if valueDef != "-1" {
+				return toolCallResponse(ctx, completion, valueDef, "{}", time.Now().Unix()), nil
+			}
 			return false, nil
 		}
 	}
