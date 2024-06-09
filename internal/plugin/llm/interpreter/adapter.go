@@ -40,15 +40,8 @@ func (API) Completion(ctx *gin.Context) {
 		matchers   = common.GetGinMatchers(ctx)
 	)
 
-	retry := 3
-label:
 	conn, tokens, err := fetch(ctx, proxies, completion)
 	if err != nil {
-		if retry > 0 {
-			retry--
-			goto label
-		}
-
 		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
