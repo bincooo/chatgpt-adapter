@@ -60,8 +60,8 @@ github.com/bincooo/coze-api v1.0.2-0.20240608014519-965b46c0b685 h1:4m1ndn48a0Bc
 github.com/bincooo/coze-api v1.0.2-0.20240608014519-965b46c0b685/go.mod h1:9aui20MScducmz8FFwcvKmzCGr6yugEnqE8hLtBiVkQ=
 github.com/bincooo/edge-api v1.0.4-0.20240528170427-1e84d9c6ae62 h1:qkqz9DtAOmX6Zipm+LRT3ORBkGwTITb4lDVXwcNVxc8=
 github.com/bincooo/edge-api v1.0.4-0.20240528170427-1e84d9c6ae62/go.mod h1:vs2s7Jx1x/ot/JcgfHlp1QttqvdSz0HUr0QEux6COGk=
-github.com/bincooo/emit.io v0.0.0-20240530174536-ed3f9ef9eaa9 h1:cDgPKdKIHJNdSEfXFpz2C8EzOdSfdGty5mS+72B31zI=
-github.com/bincooo/emit.io v0.0.0-20240530174536-ed3f9ef9eaa9/go.mod h1:Tag5SFgOt/R1ZN9YZ/DDZK/elTWHf1mNnRv4oh4TMOE=
+github.com/bincooo/emit.io v0.0.0-20240609040805-4d0939831fd7 h1:hvUYnAXPM3gzPIiBdjHraDyDkZw/OIUO4xEYAplWb1E=
+github.com/bincooo/emit.io v0.0.0-20240609040805-4d0939831fd7/go.mod h1:Tag5SFgOt/R1ZN9YZ/DDZK/elTWHf1mNnRv4oh4TMOE=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e/go.mod h1:0WuzYU+4cQL/hVbjoncY5TACMTbD9I+pLCdnPjfItp0=
 github.com/bitly/go-simplejson v0.5.0 h1:6IH+V8/tVMab511d5bn4M7EwGXZf9Hj6i2xSwkNEM+Y=

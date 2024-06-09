@@ -3,12 +3,13 @@ module github.com/bincooo/chatgpt-adapter
 go 1.21.6
 
 require (
+	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/claude-api v1.0.4-0.20240528113818-a9ce288f9fe6
 	github.com/bincooo/cohere-api v0.0.0-20240528114307-7566acc0f00c
 	github.com/bincooo/coze-api v1.0.2-0.20240608014519-965b46c0b685
 	github.com/bincooo/edge-api v1.0.4-0.20240528170427-1e84d9c6ae62
-	github.com/bincooo/emit.io v0.0.0-20240530174536-ed3f9ef9eaa9
+	github.com/bincooo/emit.io v0.0.0-20240609040805-4d0939831fd7
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/eko/gocache/lib/v4 v4.1.6
 	github.com/eko/gocache/store/go_cache/v4 v4.2.1
@@ -24,7 +25,6 @@ require (
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.2 // indirect
-	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

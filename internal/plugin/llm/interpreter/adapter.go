@@ -42,7 +42,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	retry := 3
 label:
-	r, tokens, err := fetch(ctx.Request.Context(), proxies, completion)
+	conn, tokens, err := fetch(ctx, proxies, completion)
 	if err != nil {
 		if retry > 0 {
 			retry--
@@ -55,7 +55,7 @@ label:
 	}
 
 	ctx.Set(ginTokens, tokens)
-	content := waitResponse(ctx, matchers, r, completion.Stream)
+	content := waitResponse(ctx, matchers, conn, completion.Stream)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
