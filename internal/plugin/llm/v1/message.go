@@ -116,6 +116,9 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 		}
 
 		data := scanner.Text()
+		logger.Tracef("--------- ORIGINAL MESSAGE ---------")
+		logger.Tracef("%s", data)
+
 		if len(data) < 6 || data[:6] != "data: " {
 			continue
 		}

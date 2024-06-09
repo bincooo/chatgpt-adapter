@@ -12,6 +12,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/cohere"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/coze"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/gemini"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/interpreter"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/lmsys"
 	v1 "github.com/bincooo/chatgpt-adapter/internal/plugin/llm/v1"
 	pg "github.com/bincooo/chatgpt-adapter/internal/plugin/playground"
@@ -35,6 +36,7 @@ func init() {
 			cohere.Adapter,
 			coze.Adapter,
 			gemini.Adapter,
+			interpreter.Adapter,
 			lmsys.Adapter,
 			pg.Adapter,
 			hf.Adapter,
@@ -49,6 +51,21 @@ func completions(ctx *gin.Context) {
 		response.Error(ctx, -1, err)
 		return
 	}
+
+	toolCall := pkg.Config.GetStringMap("toolCall")
+	if enabled, ok := toolCall["enabled"]; ok && enabled.(bool) {
+		id := fmt.Sprintf("%v", toolCall["id"])
+		if id == "" {
+			id = "-1"
+		}
+
+		ctx.Set(vars.GinTool, pkg.Keyv[interface{}]{
+			"id":      id,
+			"enabled": enabled,
+			"tasks":   toolCall["tasks"].(bool),
+		})
+	}
+
 	matchers := common.XmlFlags(ctx, &completion)
 	ctx.Set(vars.GinCompletion, completion)
 	completion.Model = "coze"

@@ -7,7 +7,6 @@ import (
 	com "github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/emit.io"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )
@@ -127,8 +126,8 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	pos := 0
 
 	e.Event("*", func(j emit.JoinEvent) (_ interface{}) {
-		logrus.Tracef("--------- ORIGINAL MESSAGE ---------")
-		logrus.Tracef("%s", j.InitialBytes)
+		logger.Tracef("--------- ORIGINAL MESSAGE ---------")
+		logger.Tracef("%s", j.InitialBytes)
 		return
 	})
 

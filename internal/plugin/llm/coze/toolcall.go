@@ -1,6 +1,7 @@
 package coze
 
 import (
+	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
@@ -14,7 +15,6 @@ import (
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.ChatCompletion) bool {
 	logger.Info("completeTools ...")
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
-		var notebook = ctx.GetBool("notebook")
 		pMessages := []coze.Message{
 			{
 				Role:    "system",
@@ -23,22 +23,37 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		}
 
 		co, msToken := extCookie(cookie)
-		options, _, err := newOptions(proxies, "", pMessages)
+		options, mode, err := newOptions(proxies, completion.Model, pMessages)
 		if err != nil {
 			return "", err
 		}
 
 		chat := coze.New(co, msToken, options)
+		var lock *common.ExpireLock
+		if mode == 'o' {
+			lock, err = draftBot(ctx, pMessages, chat, completion)
+			if err != nil {
+				return "", err
+			}
+		}
 
 		query := ""
-		if notebook && len(pMessages) > 0 {
-			// notebook 模式只取第一条 content
-			query = pMessages[0].Content
+		if mode == 'w' {
+			query = pMessages[len(pMessages)-1].Content
+			chat.WebSdk(chat.TransferMessages(pMessages[:len(pMessages)-1]))
 		} else {
 			query = coze.MergeMessages(pMessages)
 		}
 
 		chatResponse, err := chat.Reply(ctx.Request.Context(), coze.Text, query)
+		// 构建完请求即可解锁
+		if lock != nil {
+			lock.Unlock()
+			botId := customBotId(completion.Model)
+			rmLock(botId)
+			logger.Infof("构建完成解锁：%s", botId)
+		}
+
 		if err != nil {
 			return "", err
 		}

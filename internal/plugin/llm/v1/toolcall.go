@@ -20,7 +20,7 @@ func completeToolCalls(ctx *gin.Context, proxies string, completion pkg.ChatComp
 			},
 		}
 
-		r, err := fetch(ctx.Request.Context(), proxies, cookie, completion)
+		r, err := fetch(ctx, proxies, cookie, completion)
 		if err != nil {
 			return "", err
 		}
