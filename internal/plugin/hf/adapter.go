@@ -209,6 +209,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 
 	var r pkg.ChatResponse
 	if err = json.Unmarshal(data, &r); err != nil {
+		logger.Error("data: %s", data)
 		return "", err
 	}
 
@@ -262,5 +263,5 @@ func fetch(ctx context.Context, proxies, baseUrl, cookie string, obj interface{}
 		Header("Authorization", cookie).
 		JHeader().
 		Body(obj).
-		Do()
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
 }
