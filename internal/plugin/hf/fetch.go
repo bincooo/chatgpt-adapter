@@ -275,14 +275,14 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 
 	c.Event("send_hash", func(j emit.JoinEvent) interface{} {
 		return map[string]interface{}{
-			"fn_index":     3,
+			"fn_index":     2,
 			"session_hash": hash,
 		}
 	})
 
 	c.Event("send_data", func(j emit.JoinEvent) interface{} {
 		return map[string]interface{}{
-			"fn_index":     3,
+			"fn_index":     2,
 			"session_hash": hash,
 			"data": []interface{}{
 				message + ", {{{{by famous artist}}}, beautiful, 4k",
