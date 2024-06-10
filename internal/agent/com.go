@@ -31,8 +31,10 @@ TOOL_CALL:
 浏览上面的上下文，避免出现与最新用户请求无关的子任务。
 
 你的每次输出都必须以0,1开头，代表是否需要拆解任务：
+
+每个拆解的 task-item 包含 "toolId" (string)、"task" (string) 两个key。
 0: 无拆解任务。
-1: [task1, task2, task3]。
+1: [task1, task2, ....]。
 例如：
 
 USER: 你好呀 <|end|>

@@ -94,8 +94,9 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 	defer logger.Info("completeToolCalls called.")
 
 	// 是否开启任务拆解
-	if toolIsEnabled(ctx) {
+	if tasksIsEnabled(ctx) {
 		var hasTasks = false
+		toolCache := toolCacheHash(completion)
 		if completion.Messages, hasTasks = completeToolTasks(ctx, completion, callback); !hasTasks {
 			// 非-1值则为有默认选项
 			valueDef := NameWithTools(common.GetGinToolValue(ctx).GetString("id"), completion.Tools)
@@ -103,6 +104,23 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 				return toolCallResponse(ctx, completion, valueDef, "{}", time.Now().Unix()), nil
 			}
 			return false, nil
+		}
+
+		// 无参数task跳过提示词收集
+		tasks, err := cache.GetToolTasksCache(toolCache)
+		if err != nil {
+			logger.Error(err)
+		}
+
+		for _, task := range tasks {
+			if !task.Is("exclude", "true") {
+				name := nameWithToolsNotArgs(task.GetString("toolId"), completion.Tools)
+				if name != "-1" {
+					return toolCallResponse(ctx, completion, name, "{}", time.Now().Unix()), nil
+				}
+				// 只判断一次
+				break
+			}
 		}
 	}
 
@@ -579,10 +597,53 @@ func toolIdWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) 
 	return "-1"
 }
 
+// 获取对应无参tools的name，没有则返回 -1
+func nameWithToolsNotArgs(toolId string, tools []pkg.Keyv[interface{}]) (value string) {
+	value = toolId
+	if value == "" || value == "-1" {
+		return "-1"
+	}
+
+	if len(tools) == 0 {
+		return "-1"
+	}
+
+	hasK := func(keyv pkg.Keyv[interface{}]) bool {
+		for range keyv {
+			return true
+		}
+		return false
+	}
+
+	for _, t := range tools {
+		fn := t.GetKeyv("function")
+		if fn.Has("name") {
+			if value == fn.GetString("name") {
+				keyv := fn.GetKeyv("parameters")
+				if keyv.Has("properties") && hasK(keyv.GetKeyv("properties")) {
+					continue
+				}
+				return
+			}
+		}
+
+		if fn.Has("id") && value == fn.GetString("id") {
+			value = fn.GetString("name")
+			keyv := fn.GetKeyv("parameters")
+			if keyv.Has("properties") && hasK(keyv.GetKeyv("properties")) {
+				continue
+			}
+			return
+		}
+	}
+
+	return "-1"
+}
+
 // 工具名是否存在工具集中，"-1" 不存在，否则返回具体名字
 func NameWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) {
 	value = name
-	if value == "" {
+	if value == "" || value == "-1" {
 		return "-1"
 	}
 
@@ -607,7 +668,7 @@ func NameWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) {
 	return "-1"
 }
 
-func toolIsEnabled(ctx *gin.Context) bool {
+func tasksIsEnabled(ctx *gin.Context) bool {
 	completion := common.GetGinCompletion(ctx)
 	if completion.ToolChoice != "" && completion.ToolChoice != "auto" {
 		return false
