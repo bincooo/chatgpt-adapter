@@ -114,9 +114,14 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 
 		for _, task := range tasks {
 			if !task.Is("exclude", "true") {
-				name := nameWithToolsNotArgs(task.GetString("toolId"), completion.Tools)
+				name, q := nameWithToolsNotArgs(task, completion.Tools)
 				if name != "-1" {
-					return toolCallResponse(ctx, completion, name, "{}", time.Now().Unix()), nil
+					value := "{}"
+					if q != "" { // 提供特殊字段
+						value = q
+						logger.Infof("$query: %s", value)
+					}
+					return toolCallResponse(ctx, completion, name, value, time.Now().Unix()), nil
 				}
 				// 只判断一次
 				break
@@ -598,18 +603,22 @@ func toolIdWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) 
 }
 
 // 获取对应无参tools的name，没有则返回 -1
-func nameWithToolsNotArgs(toolId string, tools []pkg.Keyv[interface{}]) (value string) {
-	value = toolId
+func nameWithToolsNotArgs(task pkg.Keyv[string], tools []pkg.Keyv[interface{}]) (value, q string) {
+	value = task.GetString("toolId")
 	if value == "" || value == "-1" {
-		return "-1"
+		return "-1", ""
 	}
 
 	if len(tools) == 0 {
-		return "-1"
+		return "-1", ""
 	}
 
 	hasK := func(keyv pkg.Keyv[interface{}]) bool {
-		for range keyv {
+		for k, v := range keyv {
+			if vv, ok := v.(map[string]interface{}); ok && vv["description"].(string) == "$" { // 提供这个特殊值
+				q = fmt.Sprintf(`{"%s":%s}`, k, strconv.Quote(task.GetString("task")))
+				continue
+			}
 			return true
 		}
 		return false
@@ -637,7 +646,7 @@ func nameWithToolsNotArgs(toolId string, tools []pkg.Keyv[interface{}]) (value s
 		}
 	}
 
-	return "-1"
+	return "-1", ""
 }
 
 // 工具名是否存在工具集中，"-1" 不存在，否则返回具体名字
