@@ -23,6 +23,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 	completion := common.GetGinCompletion(ctx)
 	toolId := common.GetGinToolValue(ctx).GetString("id")
 	toolId = plugin.NameWithTools(toolId, completion.Tools)
+	echoCode := pkg.Config.GetBool("interpreter.echoCode")
 
 	scanner := bufio.NewScanner(r.Body)
 	scanner.Split(func(data []byte, eof bool) (advance int, token []byte, err error) {
@@ -67,6 +68,11 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 		}
 
 		if !message.Is("role", "assistant") || !message.In("type", "message", "code") {
+			continue
+		}
+
+		// 控制是否输出代码
+		if !echoCode && message.Is("type", "code") {
 			continue
 		}
 

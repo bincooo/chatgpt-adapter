@@ -36,6 +36,7 @@ llm:
 interpreter:
   baseUrl: http://127.0.0.1:8000
   useProxy: false
+  echoCode: false
 
 custom-llm:
   baseUrl: http://127.0.0.1:8080
