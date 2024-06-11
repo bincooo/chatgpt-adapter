@@ -10,7 +10,12 @@
   </p>
 </p>
 
-#### 使用
+## 使用
+
+### 启动预编译二进制文件
+
+可以在 [Release页面](https://github.com/bincooo/chatgpt-adapter/releases) 找到最新预编译可执行文件。
+
 ```
 ./linux-server -h
 
@@ -35,7 +40,16 @@ Flags:
 ./linux-server --port 8080 --proxies socks5://127.0.0.1:7890
 ```
 
-#### 请求列表
+### Docker 启动
+
+Clone 本仓库
+
+```bash
+cd deploy/
+docker compose up
+```
+
+## 请求列表
 
 model 列表
 ```txt
@@ -129,7 +143,7 @@ curl -i -X POST \
 </pre>
 </details>
 
-#### Authorization 获取
+## Authorization 获取
 
 claude:
 > 在 `claude.ai` 官网中登陆，浏览器 `cookies` 中取出 `sessionKey` 的值就是 `Authorization` 参数
@@ -183,7 +197,7 @@ custom:
 > 
 > 需在 `config.yaml` 里配置 `custom-llm` 属性
 
-#### free画图接口
+## free画图接口
 
 提供了 `coze.dall-e-3`、 `sd.dall-e-3`、`xl.dall-e-3`、 `pg.dall-e-3`、 `google.dall-e-3`，它们会根据你提供的 `Authorization` 选择其中的一个
 
@@ -228,10 +242,10 @@ curl -i -X POST \
  'http://127.0.0.1:8080/v1/chat/generations'
 ```
 
-#### 特殊标记增强
+## 特殊标记增强
 
 [flags](flags.md)
 
-### 🌟 Star History
+## 🌟 Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=bincooo/chatgpt-adapter&type=Date)](https://star-history.com/#bincooo/chatgpt-adapter&Date)
