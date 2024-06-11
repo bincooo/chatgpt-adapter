@@ -1,24 +1,25 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
-	"encoding/json"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"context"
 )
 
 type ModelConfig struct {
@@ -170,7 +171,8 @@ func migrateData(client *mongo.Client) error {
 	for modelType, configs := range jsonConfig.Models {
 	        for _, config := range configs {
 	            // Check if this model has been imported
-	            count, err := collection.CountDocuments(ctx, bson.M{"modeltype": modelType, "configs.model": config.Model})
+				logger.Info("Test : ", modelType, config.Model)
+	            count, err := collection.CountDocuments(ctx, bson.M{"modelType": modelType, "configs.model": config.Model})
 	            if err != nil {
 	                return err
 	            }
