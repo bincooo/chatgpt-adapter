@@ -18,7 +18,7 @@ import (
 	"time"
 	"os"
 	"go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
+        "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
@@ -66,12 +66,12 @@ func selectAndLockConfig(modelType string) (*ModelConfig, error) {
 		"configs.lock": 0,
 		"$or": []bson.M{
 			{
-				"configs.used": bson.M{"$lte": 50},
-				"configs.start_time": bson.M{"$lt": currentTime - 86400},
+				"configs.used": bson.M{"$lte": 30},
+				"configs.start_time": bson.M{"$lt": currentTime - 172800},
 			},
 			{
-				"configs.used": bson.M{"$lt": 50},
-				"configs.start_time": bson.M{"$gte": currentTime - 86400},
+				"configs.used": bson.M{"$lt": 30},
+				"configs.start_time": bson.M{"$gte": currentTime - 172800},
 			},
 		},
 	}	
@@ -128,7 +128,7 @@ func selectAndLockConfig(modelType string) (*ModelConfig, error) {
         if lock, ok := config["lock"].(int32); ok {
             selectedConfig.Lock = int(lock)
         }
-		if currentTime-selectedConfig.StartTime > 86400 {
+		if currentTime-selectedConfig.StartTime > 172800 {
             selectedConfig.Used = 1
             selectedConfig.StartTime = currentTime
             // Update the document with the reset used count and new start_time
