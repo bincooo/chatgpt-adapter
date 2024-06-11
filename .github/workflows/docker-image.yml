@@ -54,7 +54,7 @@ jobs:
         run: |
           docker buildx build \
           -f deploy/Dockerfile \
-          --platform linux/amd64,linux/arm64/v8 \
+          --platform linux/amd64 \
           --label "org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/chatgpt-adapter" \
           --label "org.opencontainers.image.description=chatgpt-adapter image" \
           --push \
