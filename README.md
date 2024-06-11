@@ -183,6 +183,10 @@ custom:
 > 
 > 需在 `config.yaml` 里配置 `custom-llm` 属性
 
+interpreter:
+> 无需cookie， model参数为 `open-interpreter`
+> 
+> 在配置中设置 `interpreter` 属性值，需配合 [open-interpreter](https://github.com/OpenInterpreter/open-interpreter) 使用，具体搭建过程移步 [issue](https://github.com/bincooo/chatgpt-adapter/issues/36)
 #### free画图接口
 
 提供了 `coze.dall-e-3`、 `sd.dall-e-3`、`xl.dall-e-3`、 `pg.dall-e-3`、 `google.dall-e-3`，它们会根据你提供的 `Authorization` 选择其中的一个
