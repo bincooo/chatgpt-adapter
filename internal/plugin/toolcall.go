@@ -12,6 +12,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -51,6 +52,7 @@ func NeedToToolCall(ctx *gin.Context) bool {
 }
 
 func ToolCallCancel(str string) bool {
+	str = strings.TrimSpace(str)
 	if strings.Contains(str, "<|tool|>") {
 		return true
 	}
@@ -78,7 +80,8 @@ func ToolCallCancel(str string) bool {
 	if strings.Contains(str, "TOOL_RESPONSE: ") {
 		return true
 	}
-	return len(str) > 1 && !strings.HasPrefix(str, "1:")
+	//return len(str) > 1 && !strings.HasPrefix(str, "1:")
+	return false
 }
 
 // 执行工具选择器
@@ -91,11 +94,38 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 	defer logger.Info("completeToolCalls called.")
 
 	// 是否开启任务拆解
-	if toolIsEnabled(ctx) {
+	if tasksIsEnabled(ctx) {
 		var hasTasks = false
-		completion.Messages, hasTasks = completeToolTasks(ctx, completion, callback)
-		if !hasTasks {
+		toolCache := toolCacheHash(completion)
+		if completion.Messages, hasTasks = completeToolTasks(ctx, completion, callback); !hasTasks {
+			// 非-1值则为有默认选项
+			valueDef := NameWithTools(common.GetGinToolValue(ctx).GetString("id"), completion.Tools)
+			if valueDef != "-1" {
+				return toolCallResponse(ctx, completion, valueDef, "{}", time.Now().Unix()), nil
+			}
 			return false, nil
+		}
+
+		// 无参数task跳过提示词收集
+		tasks, err := cache.GetToolTasksCache(toolCache)
+		if err != nil {
+			logger.Error(err)
+		}
+
+		for _, task := range tasks {
+			if !task.Is("exclude", "true") {
+				name, q := nameWithToolsNotArgs(task, completion.Tools)
+				if name != "-1" {
+					value := "{}"
+					if q != "" { // 提供特殊字段
+						value = q
+						logger.Infof("$query: %s", value)
+					}
+					return toolCallResponse(ctx, completion, name, value, time.Now().Unix()), nil
+				}
+				// 只判断一次
+				break
+			}
 		}
 	}
 
@@ -141,7 +171,7 @@ func CompleteToolCalls(ctx *gin.Context, completion pkg.ChatCompletion, callback
 	return parseToToolCall(ctx, content, completion), nil
 }
 
-// 拆解任务, 组装任务提示并返回上下文
+// 拆解任务, 组装任务提示并返回上下文 (包含缓存已执行的任务逻辑)
 func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback func(message string) (string, error)) (messages []pkg.Keyv[interface{}], hasTasks bool) {
 	messages = completion.Messages
 	message, err := buildTemplate(ctx, completion, agent.ToolTasks)
@@ -158,8 +188,12 @@ func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback
 	}
 
 	if tasks != nil {
+		excludeTasks(completion, tasks)
 		logger.Infof("completeTasks response: <cached> %s", tasks)
-		_ = cache.CacheToolTasksValue(toolCache, tasks) // 刷新缓存时间
+		// 刷新缓存时间
+		if err = cache.CacheToolTasksValue(toolCache, tasks); err != nil {
+			logger.Error(err)
+		}
 	} else {
 		content, e := callback(message)
 		if e != nil {
@@ -174,12 +208,12 @@ func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback
 			return
 		}
 
+		excludeTasks(completion, tasks)
+		// 刷新缓存时间
 		if err = cache.CacheToolTasksValue(toolCache, tasks); err != nil {
 			logger.Error(err)
 		}
 	}
-
-	excludeTasks(completion, tasks)
 
 	// 任务提示组装
 	var excTasks []string
@@ -220,12 +254,7 @@ func completeToolTasks(ctx *gin.Context, completion pkg.ChatCompletion, callback
 func toolCacheHash(completion pkg.ChatCompletion) (hash string) {
 	messages := completion.Messages
 	messageL := len(messages)
-	if messageL > MaxMessages {
-		messages = messages[messageL-MaxMessages:]
-		messageL = len(messages)
-	}
-
-	count := 3 // 只获取3条
+	count := 3 // 只获取后3条
 	for pos := messageL - 1; pos > 0; pos-- {
 		message := messages[pos]
 		if message.Is("role", "user") {
@@ -241,7 +270,22 @@ func toolCacheHash(completion pkg.ChatCompletion) (hash string) {
 		return "-1"
 	}
 
-	return common.HashString(completion.Model + hash)
+	model := completion.Model
+	// 一些前缀匹配的的AI model，特殊处理
+	if pos := strings.Index(model, "/"); pos > -1 {
+		switch model[:pos] {
+		case "coze":
+			s := ""
+			if strings.HasSuffix(model, "-o") || strings.HasSuffix(model, "-w") {
+				s = model[len(model)-2:]
+			}
+			model = "coze" + s
+
+		case "custom", "lmsys":
+			model = model[pos+1:]
+		}
+	}
+	return common.HashString(model + hash)
 }
 
 func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template string) (message string, err error) {
@@ -467,13 +511,12 @@ func excludeTasks(completion pkg.ChatCompletion, tasks []pkg.Keyv[string]) {
 		task := tasks[pos]
 
 		toolId := NameWithTools(task.GetString("toolId"), completion.Tools)
-		if toolId == "-1" || !task.Has("task") {
+		if toolId == "-1" || !task.Has("task") { // 不存在的任务过滤
 			continue
 		}
 
-		if slices.Contains(excludeNames, toolId) {
-			task.Set("exclude", "true")
-		}
+		// 标记是否已执行
+		task.Set("exclude", strconv.FormatBool(slices.Contains(excludeNames, toolId)))
 	}
 }
 
@@ -545,18 +588,71 @@ func toolIdWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) 
 				value = fn.GetString("id")
 				return
 			}
+
 			value = fn.GetString("name")
-			return
+			if name == value {
+				if fn.Has("id") {
+					value = fn.GetString("id")
+				}
+				return
+			}
 		}
 	}
 
 	return "-1"
 }
 
+// 获取对应无参tools的name，没有则返回 -1
+func nameWithToolsNotArgs(task pkg.Keyv[string], tools []pkg.Keyv[interface{}]) (value, q string) {
+	value = task.GetString("toolId")
+	if value == "" || value == "-1" {
+		return "-1", ""
+	}
+
+	if len(tools) == 0 {
+		return "-1", ""
+	}
+
+	hasK := func(keyv pkg.Keyv[interface{}]) bool {
+		for k, v := range keyv {
+			if vv, ok := v.(map[string]interface{}); ok && vv["description"].(string) == "$" { // 提供这个特殊值
+				q = fmt.Sprintf(`{"%s":%s}`, k, strconv.Quote(task.GetString("task")))
+				continue
+			}
+			return true
+		}
+		return false
+	}
+
+	for _, t := range tools {
+		fn := t.GetKeyv("function")
+		if fn.Has("name") {
+			if value == fn.GetString("name") {
+				keyv := fn.GetKeyv("parameters")
+				if keyv.Has("properties") && hasK(keyv.GetKeyv("properties")) {
+					continue
+				}
+				return
+			}
+		}
+
+		if fn.Has("id") && value == fn.GetString("id") {
+			value = fn.GetString("name")
+			keyv := fn.GetKeyv("parameters")
+			if keyv.Has("properties") && hasK(keyv.GetKeyv("properties")) {
+				continue
+			}
+			return
+		}
+	}
+
+	return "-1", ""
+}
+
 // 工具名是否存在工具集中，"-1" 不存在，否则返回具体名字
 func NameWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) {
 	value = name
-	if value == "" {
+	if value == "" || value == "-1" {
 		return "-1"
 	}
 
@@ -581,7 +677,7 @@ func NameWithTools(name string, tools []pkg.Keyv[interface{}]) (value string) {
 	return "-1"
 }
 
-func toolIsEnabled(ctx *gin.Context) bool {
+func tasksIsEnabled(ctx *gin.Context) bool {
 	completion := common.GetGinCompletion(ctx)
 	if completion.ToolChoice != "" && completion.ToolChoice != "auto" {
 		return false

@@ -15,12 +15,26 @@ import (
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.ChatCompletion) bool {
 	logger.Info("completeTools ...")
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
-		pMessages := []coze.Message{
-			{
-				Role:    "system",
-				Content: message,
-			},
+		message = strings.TrimSpace(message)
+		system := ""
+		if strings.HasPrefix(message, "<|system|>") {
+			index := strings.Index(message, "<|end|>")
+			system = message[:index+7]
+			message = strings.TrimSpace(message[index+7:])
 		}
+
+		var pMessages []coze.Message
+		if system != "" {
+			pMessages = append(pMessages, coze.Message{
+				Role:    "system",
+				Content: system,
+			})
+		}
+
+		pMessages = append(pMessages, coze.Message{
+			Role:    "user",
+			Content: message,
+		})
 
 		co, msToken := extCookie(cookie)
 		options, mode, err := newOptions(proxies, completion.Model, pMessages)
@@ -31,10 +45,11 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		chat := coze.New(co, msToken, options)
 		var lock *common.ExpireLock
 		if mode == 'o' {
-			lock, err = draftBot(ctx, pMessages, chat, completion)
-			if err != nil {
-				return "", err
+			l, e := draftBot(ctx, pMessages, chat, completion)
+			if e != nil {
+				return "", e.Err
 			}
+			lock = l
 		}
 
 		query := ""

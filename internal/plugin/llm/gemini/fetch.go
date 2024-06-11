@@ -209,7 +209,23 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 				"functionDeclarations": _funcDecls,
 			},
 		}
+		// tool_choice
+		if tc, ok := completion.ToolChoice.(map[string]interface{}); ok {
+			var toolChoice pkg.Keyv[interface{}] = tc
+			if toolChoice.Is("type", "function") {
+				f := toolChoice.GetKeyv("function")
+				payload["toolConfig"] = map[string]interface{}{
+					"functionCallingConfig": map[string]interface{}{
+						"mode": "ANY",
+						"allowedFunctionNames": []string{
+							f.GetString("name"),
+						},
+					},
+				}
+			}
+		}
 	}
+
 	marshal, err := json.Marshal(payload)
 	if err != nil {
 		logger.Error(err)

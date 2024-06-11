@@ -305,9 +305,9 @@ func (API) Completion(ctx *gin.Context) {
 
 	var lock *common.ExpireLock
 	if mode == 'o' {
-		l, eer := draftBot(ctx, pMessages, chat, completion)
-		if eer != nil {
-			response.Error(ctx, eer.Code, eer.Err)
+		l, e := draftBot(ctx, pMessages, chat, completion)
+		if e != nil {
+			response.Error(ctx, e.Code, e.Err)
 			return
 		}
 		lock = l
