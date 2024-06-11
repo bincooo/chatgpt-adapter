@@ -55,6 +55,11 @@ func (API) Match(ctx *gin.Context, model string) bool {
 		return true
 	}
 
+	if token == "sk-dalle-3-xl" {
+		ctx.Set(ginSpace, "dalle-3xl")
+		return true
+	}
+
 	return false
 }
 
@@ -85,6 +90,8 @@ func (API) Generation(ctx *gin.Context) {
 	case "dalle-4k":
 		modelSlice = dalle4kModels
 		value, err = Ox002(ctx, model, message)
+	case "dalle-3xl":
+		value, err = Ox003(ctx, message)
 	case "google":
 		modelSlice = googleModels
 		value, err = google(ctx, model, message)
@@ -129,7 +136,8 @@ func matchSamples(samples, spase string) string {
 			return samples
 		}
 		return "Euler a"
-
+	case "dalle-3xl":
+		return "none"
 	default:
 		if com.Contains(sdSamples, samples) {
 			return samples
@@ -157,7 +165,8 @@ func matchModel(style, spase string) string {
 			return style
 		}
 		return googleModels[rand.Intn(len(googleModels))]
-
+	case "dalle-3xl":
+		return "none"
 	default:
 		if com.Contains(sdModels, style) {
 			return style
@@ -180,7 +189,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 	}
 
 	w := prefix + agent.SDWords
-	if ctx.GetString(ginSpace) == "dalle-4k" {
+	if ctx.GetString(ginSpace) == "dalle-4k" || ctx.GetString(ginSpace) == "dalle-3xl" {
 		w = prefix + agent.SD2Words
 	}
 

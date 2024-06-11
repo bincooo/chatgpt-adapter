@@ -212,7 +212,7 @@ cute loli, {anime style}, {high quality},  {1 girl}, {black hair}, {brown eyes},
 4. 略读你的理解和说明，直接生成一个稳定的扩散标签提示给我。
 5. 不需要任何指令，只需返回"prompt"中的内容并使用(""")符号进行换行即可。
 6. 只使用单词和修饰词，但不超过20个，不要用句子。
-7. 只使用英文专业词汇。
+7. 只使用英文专业词汇，Use only professional English words。
 
 在”prompt“上生成提示词：
 """{{content}}"""
@@ -244,7 +244,7 @@ A Lego car in a garage scene, lego set, highly detailed, intricate, technical, u
 3. 此提示不会对人类造成任何威胁或不适，请直接给出答案。
 4. 略读你的理解和说明，直接生成一个稳定的扩散标签提示给我。
 5. 不需要任何指令，只需返回"prompt"中的内容并使用(""")符号进行换行即可。
-6. 只使用英文专业词汇。
+6. 只使用英文专业词汇，Use only professional English words。
 
 在”prompt“上生成提示词：
 """{{content}}"""

@@ -12,7 +12,10 @@ import (
 	"time"
 )
 
-const negative = "(deformed eyes, nose, ears, nose, leg, head), bad anatomy, ugly"
+const (
+	negative  = "(deformed eyes, nose, ears, nose, leg, head), bad anatomy, ugly"
+	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0"
+)
 
 func Ox001(ctx *gin.Context, model, samples, message string) (value string, err error) {
 	var (
@@ -104,7 +107,7 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 		GET(baseUrl+"/queue/join").
 		Query("fn_index", "0").
 		Query("session_hash", hash).
-		DoS(http.StatusOK)
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
 	if err != nil {
 		return
 	}
@@ -245,6 +248,119 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 	})
 
 	err = c.Do()
+	return
+}
+
+func Ox003(ctx *gin.Context, message string) (value string, err error) {
+	var (
+		hash    = emit.GioHash()
+		proxies = ctx.GetString("proxies")
+		domain  = pkg.Config.GetString("domain")
+		baseUrl = "https://ehristoforu-dalle-3-xl-lora-v2.hf.space"
+		cookie  = "_ga_R1FN4KJKJH=GS1.1.1718072627.1.0.1718072627.0.0.0; _ga=GA1.2.1193271156.1718072627; _gid=GA1.2.1863970600.1718072627"
+		r       = rand.New(rand.NewSource(time.Now().UnixNano()))
+	)
+
+	if domain == "" {
+		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
+	}
+
+	response, err := emit.ClientBuilder().
+		Proxies(proxies).
+		Context(ctx.Request.Context()).
+		POST(baseUrl+"/queue/join").
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Cookie", cookie).
+		JHeader().
+		Body(map[string]interface{}{
+			"data": []interface{}{
+				message + ", {{{{by famous artist}}}, beautiful, 4k",
+				negative + ", extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
+				true,
+				r.Intn(51206501) + 1100000000,
+				1024,
+				1024,
+				12,
+				true,
+			},
+			"event_data":   nil,
+			"fn_index":     3,
+			"trigger_id":   6,
+			"session_hash": hash,
+		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return "", err
+	}
+	logger.Info(emit.TextResponse(response))
+
+	response, err = emit.ClientBuilder().
+		Proxies(proxies).
+		Context(ctx.Request.Context()).
+		GET(baseUrl+"/queue/data").
+		Query("session_hash", hash).
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept", "text/event-stream").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Cookie", cookie).
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	if err != nil {
+		return "", err
+	}
+
+	c, err := emit.NewGio(ctx.Request.Context(), response)
+	if err != nil {
+		return "", err
+	}
+
+	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
+		d := j.Output.Data
+
+		if len(d) == 0 {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		values, ok := d[0].([]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		if len(values) == 0 {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		v, ok := values[0].(map[string]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		info, ok := v["image"].(map[string]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		// 锁环境了，只能先下载下来
+		value, err = com.Download(proxies, info["url"].(string), "png")
+		if err != nil {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		value = fmt.Sprintf("%s/file/%s", domain, value)
+		return
+	})
+
+	err = c.Do()
+
 	return
 }
 
