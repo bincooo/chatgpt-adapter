@@ -60,6 +60,11 @@ func (API) Match(ctx *gin.Context, model string) bool {
 		return true
 	}
 
+	if token == "sk-animagine-xl-3.1" {
+		ctx.Set(ginSpace, "animagine-xl-3.1")
+		return true
+	}
+
 	return false
 }
 
@@ -92,6 +97,10 @@ func (API) Generation(ctx *gin.Context) {
 		value, err = Ox002(ctx, model, message)
 	case "dalle-3xl":
 		value, err = Ox003(ctx, message)
+	case "animagine-xl-3.1":
+		modelSlice = animagineXl31Models
+		samplesSlice = animagineXl31Samples
+		value, err = Ox004(ctx, model, samples, message)
 	case "google":
 		modelSlice = googleModels
 		value, err = google(ctx, model, message)
@@ -138,6 +147,11 @@ func matchSamples(samples, spase string) string {
 		return "Euler a"
 	case "dalle-3xl":
 		return "none"
+	case "animagine-xl-3.1":
+		if com.Contains(animagineXl31Samples, samples) {
+			return samples
+		}
+		return "Euler a"
 	default:
 		if com.Contains(sdSamples, samples) {
 			return samples
@@ -165,8 +179,16 @@ func matchModel(style, spase string) string {
 			return style
 		}
 		return googleModels[rand.Intn(len(googleModels))]
+
 	case "dalle-3xl":
 		return "none"
+
+	case "animagine-xl-3.1":
+		if com.Contains(animagineXl31Models, style) {
+			return style
+		}
+		return animagineXl31Models[rand.Intn(len(animagineXl31Models))]
+
 	default:
 		if com.Contains(sdModels, style) {
 			return style
