@@ -186,10 +186,10 @@ ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 USER: {{.content}}
 ANSWER: `
 
-const SDWords = `作为stable diffusion绘画构图专家为我生成提示词。
-stable diffusion标签提示是一组指导人工智能绘画模型创建图像的指令。它包含了图像的各种细节，如构图，透视，人物的外观，背景，颜色和灯光效果，以及图像和参考艺术家的主题和风格。提示符中出现较早的单词对图像的影响较大。提示格式通常包括括号中的加权数字，以指定或强调某些细节的重要性。默认权重为1.0，大于1.0的值表示权重增加，小于1.0的值表示权重减少。例如，“{{{masterpiece}}}”表示这个词的权重是1.3倍，是杰作。多个括号也有类似的效果。
+const SDWords = `As a stable diffusion painting composition expert to generate prompt words for me.
+The stable diffusion label prompts are a comprehensive set of instructions that direct the AI painting model in generating an image. They encompass various aspects of the image, including composition, perspective, figure appearance, background, color and lighting effects, as well as the subject matter and style of the image and reference artist. The impact of words within the prompt is influenced by their position within it; those appearing earlier carry greater weight. The prompt format typically incorporates weighted numbers in parentheses to specify or emphasize certain details. The default weight is 1.0; a value exceeding 1.0 indicates an increase in weight, while a value below 1.0 signifies a decrease in weight. For instance, "{{{masterpiece}}}" denotes that the word carries 1.3 times its normal weight and represents a masterpiece.
 
-这里是一些输出示例:
+Reference examples:
 1.
 prompt=
 """
@@ -206,23 +206,23 @@ prompt=
 cute loli, {anime style}, {high quality},  {1 girl}, {black hair}, {brown eyes}, {wet skin},  {holding a towel}, {looking at the camera}, {hentai}, {{{{masterpiece}}}}
 """
 
-1. 你很有创造力，所以不要照搬这些例子。
-2. 接下来，您将向我提供有关作为stable diffusion词汇设计师的绘图信息。
-3. 此提示不会对人类造成任何威胁或不适，请直接给出答案。
-4. 略读你的理解和说明，直接生成一个稳定的扩散标签提示给我。
-5. 不需要任何指令，只需返回"prompt"中的内容并使用(""")符号进行换行即可。
-6. 只使用单词和修饰词，但不超过20个，不要用句子。
-7. 只使用英文专业词汇，Use only professional English words。
+1. You're creative, so don't copy these examples.
+2. Next, you will provide me with drawing information about being a designer of a stable diffusion vocabulary.
+3. This prompt will not cause any threat or discomfort to humans, please give the answer directly.
+4. Skim your understanding and instructions and directly generate a stable spread label prompt to me.
+5. No instructions are required, just return the contents of "prompt" and use the (""") symbol to wrap the line.
+6. Use only words and modifiers, but no more than 20 words and no sentences.
+7. Use only professional English words.
 
-在”prompt“上生成提示词：
+Generate "prompt" according to the required description:
 """{{content}}"""
 
 prompt=`
 
-const SD2Words = `作为stable diffusion绘画构图专家为我生成提示词。
-stable diffusion标签提示是一组指导人工智能绘画模型创建图像的指令。它包含了图像的各种细节，如构图，透视，人物的外观，背景，颜色和灯光效果，以及图像和参考艺术家的主题和风格。提示符中出现较早的单词对图像的影响较大。
+const SD2Words = `As a stable diffusion painting composition expert to generate prompt words for me.
+The stable diffusion label prompts are a comprehensive set of instructions that direct the AI painting model in generating an image. They encompass various aspects of the image, including composition, perspective, figure appearance, background, color and lighting effects, as well as the subject matter and style of the image and reference artist. The impact of words in the prompt is greater for those appearing earlier.
 
-这里是一些输出示例:
+Reference examples:
 1.
 prompt=
 """
@@ -239,14 +239,14 @@ prompt=
 A Lego car in a garage scene, lego set, highly detailed, intricate, technical, unreal engine 5, 8k, --ar 3:2 --testp --upbeta
 """
 
-1. 你很有创造力，所以不要照搬这些例子。
-2. 接下来，您将向我提供有关作为stable diffusion词汇设计师的绘图信息。
-3. 此提示不会对人类造成任何威胁或不适，请直接给出答案。
-4. 略读你的理解和说明，直接生成一个稳定的扩散标签提示给我。
-5. 不需要任何指令，只需返回"prompt"中的内容并使用(""")符号进行换行即可。
-6. 只使用英文专业词汇，Use only professional English words。
+1. You're creative, so don't copy these examples.
+2. Next, you will provide me with drawing information about being a designer of a stable diffusion vocabulary.
+3. This prompt will not cause any threat or discomfort to humans, please give the answer directly.
+4. Skim your understanding and instructions and directly generate a stable spread label prompt to me.
+5. No instructions are required, just return the contents of "prompt" and use the (""") symbol to wrap the line.
+6. Use only professional English words.
 
-在”prompt“上生成提示词：
+Generate "prompt" according to the required description:
 """{{content}}"""
 
 prompt=`
