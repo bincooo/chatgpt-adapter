@@ -34,7 +34,7 @@ llm:
 #    scene: 2
 
 interpreter:
-  baseSocket: ws://127.0.0.1:8000
+  baseUrl: http://127.0.0.1:8000
   useProxy: false
 
 custom-llm:

@@ -1,54 +1,69 @@
 package interpreter
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/RomiChan/websocket"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"time"
 )
 
 const ginTokens = "__tokens__"
 
-func waitResponse(ctx *gin.Context, matchers []common.Matcher, conn *websocket.Conn, sse bool) (content string) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response, sse bool) (content string) {
 	logger.Info("waitResponse ...")
 	created := time.Now().Unix()
 	completion := common.GetGinCompletion(ctx)
 	toolId := common.GetGinToolValue(ctx).GetString("id")
 	toolId = plugin.NameWithTools(toolId, completion.Tools)
 
+	scanner := bufio.NewScanner(r.Body)
+	scanner.Split(func(data []byte, eof bool) (advance int, token []byte, err error) {
+		if eof && len(data) == 0 {
+			return 0, nil, nil
+		}
+
+		if i := bytes.IndexByte(data, '\n'); i >= 0 {
+			return i + 1, data[0:i], nil
+		}
+
+		if eof {
+			return len(data), data, nil
+		}
+
+		return 0, nil, nil
+	})
+
 	for {
-		_, data, err := conn.ReadMessage()
-		if err != nil {
-			logger.Error(err)
-			if response.NotSSEHeader(ctx) {
-				response.Response(ctx, Model, err.Error())
-				return
-			}
+		if !scanner.Scan() {
 			break
 		}
 
+		data := scanner.Text()
 		logger.Tracef("--------- ORIGINAL MESSAGE ---------")
 		logger.Tracef("%s", data)
 
-		var message pkg.Keyv[interface{}]
-		err = json.Unmarshal(data, &message)
-		if err != nil {
-			logger.Error(err)
+		if len(data) < 6 || data[:6] != "data: " {
 			continue
 		}
 
-		// DONE
-		if message.Is("role", "server") && message.Is("content", "DONE") {
-			ctx.Set(vars.GinClose, true)
-			_ = conn.WriteMessage(websocket.CloseMessage, nil)
+		data = data[6:]
+		if data == "[DONE]" || data == "[DONE]\r" {
 			break
+		}
+
+		var message pkg.Keyv[interface{}]
+		err := json.Unmarshal([]byte(data), &message)
+		if err != nil {
+			logger.Error(err)
+			continue
 		}
 
 		if !message.Is("role", "assistant") || !message.In("type", "message", "code") {

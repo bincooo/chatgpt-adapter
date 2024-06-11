@@ -40,7 +40,7 @@ func (API) Completion(ctx *gin.Context) {
 		matchers   = common.GetGinMatchers(ctx)
 	)
 
-	conn, tokens, err := fetch(ctx, proxies, completion)
+	r, tokens, err := fetch(ctx, proxies, completion)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
@@ -48,7 +48,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	ctx.Set(ginTokens, tokens)
-	content := waitResponse(ctx, matchers, conn, completion.Stream)
+	content := waitResponse(ctx, matchers, r, completion.Stream)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
