@@ -13,8 +13,8 @@ flags: true
 # 内调llm，用于绘图时文本转tags
 llm:
   baseUrl: "http://127.0.0.1:8081"
-  model: "gemini-1.5-pro-latest"
-  token: "AIzaSyBJd--8oM-d6iND4DTtYj8J6bUGlnIPZAU"
+  model: "bing"
+  token: "xxx"
 
 # coze 默认配置；；；内置配置经常变动，难以维护改为配置化。新增webSdk模式，但还未得知速率是否有限制？？？
 #coze:
