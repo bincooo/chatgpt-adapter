@@ -27,7 +27,9 @@ func waitMessage(chatResponse chan string, cancel func(str string) bool) (conten
 		}
 
 		if strings.HasPrefix(message, "error: ") {
-			return "", errors.New(strings.TrimPrefix(message, "error: "))
+			return "", logger.WarpError(
+				errors.New(strings.TrimPrefix(message, "error: ")),
+			)
 		}
 
 		message = strings.TrimPrefix(message, "text: ")

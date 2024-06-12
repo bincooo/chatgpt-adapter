@@ -25,7 +25,7 @@ func waitMessage(chatResponse chan edge.ChatResponse, cancel func(str string) bo
 		}
 
 		if message.Error != nil {
-			return "", message.Error.Message
+			return "", logger.WarpError(message.Error.Message)
 		}
 
 		if len(message.Text) > 0 {
@@ -137,7 +137,7 @@ func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompl
 			message := opts.Initial()
 			content, e := processMultiMessage(ctx, message)
 			if e != nil {
-				return nil, e
+				return nil, logger.WarpError(e)
 			}
 			opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, content))
 			if condition(role) != condition(opts.Next) {
@@ -243,7 +243,7 @@ func processMultiMessage(ctx *gin.Context, message pkg.Keyv[interface{}]) (strin
 			o := keyv.GetKeyv("image_url")
 			options, err := edge.NewDefaultOptions(cookie, "")
 			if err != nil {
-				return "", err
+				return "", logger.WarpError(err)
 			}
 
 			chat := edge.New(options.Proxies(proxies).
@@ -251,18 +251,18 @@ func processMultiMessage(ctx *gin.Context, message pkg.Keyv[interface{}]) (strin
 				TopicToE(true))
 			kb, err := chat.LoadImage(o.GetString("url"))
 			if err != nil {
-				return "", err
+				return "", logger.WarpError(err)
 			}
 
 			chat.KBlob(kb)
 			partialResponse, err := chat.Reply(ctx.Request.Context(), "请你使用json代码块中文描述这张图片，不必说明直接输出结果", nil)
 			if err != nil {
-				return "", err
+				return "", logger.WarpError(err)
 			}
 
 			content, err := waitMessage(partialResponse, nil)
 			if err != nil {
-				return "", err
+				return "", logger.WarpError(err)
 			}
 
 			left := strings.Index(content, "{")

@@ -51,7 +51,9 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 	}
 
 	if cookies == "" {
-		return nil, errors.New("fetch failed")
+		return nil, logger.WarpError(
+			errors.New("fetch failed"),
+		)
 	}
 
 	return partTwo(ctx, proxies, cookies, hash, opts)
@@ -85,12 +87,12 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Body(obj).
 		DoS(http.StatusOK)
 	if err != nil {
-		return nil, err
+		return nil, logger.WarpError(err)
 	}
 
 	obj, err = emit.ToMap(response)
 	if err != nil {
-		return nil, err
+		return nil, logger.WarpError(err)
 	}
 
 	if eventId, ok := obj["event_id"]; ok {
@@ -114,12 +116,12 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Header("Priority", "u=1, i").
 		DoS(http.StatusOK)
 	if err != nil {
-		return nil, err
+		return nil, logger.WarpError(err)
 	}
 
 	e, err := emit.NewGio(ctx, response)
 	if err != nil {
-		return nil, err
+		return nil, logger.WarpError(err)
 	}
 
 	ch := make(chan string)
@@ -231,12 +233,12 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 
 	if err != nil {
 		ver = ""
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	obj, err = emit.ToMap(response)
 	if err != nil {
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	if eventId, ok := obj["event_id"]; ok {
@@ -260,13 +262,13 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		Header("Priority", "u=1, i").
 		DoS(http.StatusOK)
 	if err != nil {
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
 	e, err := emit.NewGio(ctx, response)
 	if err != nil {
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	next := false
@@ -276,11 +278,13 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 	})
 
 	if err = e.Do(); err != nil {
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	if !next {
-		return "", errors.New("fetch failed")
+		return "", logger.WarpError(
+			errors.New("fetch failed"),
+		)
 	}
 
 	opts.fn = fn

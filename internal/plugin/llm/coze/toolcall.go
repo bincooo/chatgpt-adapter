@@ -39,7 +39,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		co, msToken := extCookie(cookie)
 		options, mode, err := newOptions(proxies, completion.Model, pMessages)
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		chat := coze.New(co, msToken, options)
@@ -47,7 +47,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		if mode == 'o' {
 			l, e := draftBot(ctx, pMessages, chat, completion)
 			if e != nil {
-				return "", e.Err
+				return "", logger.WarpError(e.Err)
 			}
 			lock = l
 		}
@@ -70,7 +70,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		}
 
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		return waitMessage(chatResponse, plugin.ToolCallCancel)

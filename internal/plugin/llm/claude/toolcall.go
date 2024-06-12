@@ -26,7 +26,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 
 		chat, err := api.New(options)
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		message = common.PadJunkMessage(padMaxCount-len(message), message)
@@ -39,7 +39,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			},
 		})
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		defer chat.Delete()

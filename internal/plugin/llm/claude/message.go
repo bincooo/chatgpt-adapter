@@ -25,7 +25,7 @@ func waitMessage(chatResponse chan types.PartialResponse, cancel func(str string
 		}
 
 		if message.Error != nil {
-			return "", message.Error
+			return "", logger.WarpError(message.Error)
 		}
 
 		if len(message.Text) > 0 {

@@ -322,12 +322,12 @@ func newOptions(proxies string, model string, pMessages []coze.Message) (options
 			return
 		}
 
-		err = e
+		err = logger.WarpError(e)
 		return
 	}
 
 	if botId8k == "114514" {
-		err = errors.New("请配置 coze.8k 后使用")
+		err = logger.WarpError(errors.New("请配置 coze.8k 后使用"))
 		return
 	}
 
@@ -338,7 +338,7 @@ func newOptions(proxies string, model string, pMessages []coze.Message) (options
 	// 大于7k token 使用 gpt-128k
 	if token := calcTokens(pMessages); token > 7000 {
 		if botId8k == "114514" {
-			err = errors.New("请配置 coze.128k 后使用")
+			err = logger.WarpError(errors.New("请配置 coze.128k 后使用"))
 			return
 		}
 

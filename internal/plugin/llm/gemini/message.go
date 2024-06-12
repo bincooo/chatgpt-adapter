@@ -190,6 +190,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 		if role == "tool" {
 			var args interface{}
 			if err = json.Unmarshal([]byte(opts.Message["content"]), &args); err != nil {
+				err = logger.WarpError(err)
 				return
 			}
 
@@ -211,6 +212,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 		if _, ok := opts.Message["toolCalls"]; ok && role == "assistant" {
 			var args interface{}
 			if err = json.Unmarshal([]byte(opts.Message["content"]), &args); err != nil {
+				err = logger.WarpError(err)
 				return
 			}
 
@@ -254,7 +256,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 					o := keyv.GetKeyv("image_url")
 					mime, data, e := com.LoadImageMeta(o.GetString("url"))
 					if e != nil {
-						err = e
+						err = logger.WarpError(e)
 						return
 					}
 					multi = append(multi, map[string]interface{}{
@@ -311,5 +313,8 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 	}
 
 	newMessages, err = com.TextMessageCombiner(messages, iterator)
+	if err != nil {
+		err = logger.WarpError(err)
+	}
 	return
 }

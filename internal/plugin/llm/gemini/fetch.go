@@ -256,7 +256,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 				logger.Errorf("%s", dataBytes)
 			}
 		}
-		return nil, errors.New(res.Status)
+		return nil, logger.WarpError(errors.New(res.Status))
 	}
 
 	return res, nil

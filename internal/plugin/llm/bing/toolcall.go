@@ -16,7 +16,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		retry := 3
 		options, err := edge.NewDefaultOptions(cookie, "")
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 	label:
@@ -33,7 +33,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 				time.Sleep(time.Second)
 				goto label
 			}
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		content, err := waitMessage(chatResponse, plugin.ToolCallCancel)
@@ -45,7 +45,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			}
 		}
 
-		return content, err
+		return content, logger.WarpError(err)
 	})
 
 	if err != nil {

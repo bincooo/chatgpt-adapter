@@ -107,6 +107,7 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 		Body(obj).
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
+		err = logger.WarpError(err)
 		return
 	}
 	logger.Info(emit.TextResponse(response))
@@ -119,5 +120,8 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 			"message": message,
 		}).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	if err != nil {
+		err = logger.WarpError(err)
+	}
 	return
 }

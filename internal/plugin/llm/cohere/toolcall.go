@@ -27,7 +27,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			ReplaceAllString(message, "")
 		chatResponse, err := chat.Reply(ctx.Request.Context(), make([]cohere.Message, 0), "", message, cohere.ToolObject{})
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		return waitMessage(chatResponse, plugin.ToolCallCancel)

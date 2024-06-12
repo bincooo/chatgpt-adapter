@@ -33,7 +33,9 @@ func waitMessage(chatResponse chan string, cancel func(str string) bool) (conten
 		}
 
 		if strings.HasPrefix(message, "error: ") {
-			return "", errors.New(strings.TrimPrefix(message, "error: "))
+			return "", logger.WarpError(
+				errors.New(strings.TrimPrefix(message, "error: ")),
+			)
 		}
 
 		message = strings.TrimPrefix(message, "text: ")
@@ -181,5 +183,8 @@ func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, tokens int, er
 	}
 
 	newMessages, err = common.TextMessageCombiner(messages, iterator)
+	if err != nil {
+		err = logger.WarpError(err)
+	}
 	return
 }
