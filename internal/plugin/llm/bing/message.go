@@ -190,7 +190,7 @@ func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompl
 
 	// 超出最大轮次改为WebPage
 	if len(newMessages)/2 > max {
-		message := edge.BuildPageMessage(common.StringCombiner(newMessages[:len(newMessages)-max*2], func(message edge.ChatMessage) string {
+		message := edge.BuildPageMessage(common.MergeStrMessage(newMessages[:len(newMessages)-max*2], func(message edge.ChatMessage) string {
 			return message["text"].(string)
 		}))
 		pMessages = append(pMessages, message)

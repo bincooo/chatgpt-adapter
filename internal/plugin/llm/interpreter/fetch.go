@@ -46,6 +46,26 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 	}) (result []pkg.Keyv[interface{}], err error) {
 		role := opts.Message["role"]
 		tokens += common.CalcTokens(opts.Message["content"])
+		// 复合消息
+		if _, ok := opts.Message["multi"]; ok && role == "user" {
+			message := opts.Initial()
+			content, e := common.MergeMultiMessage(ctx.Request.Context(), proxies, message)
+			if e != nil {
+				return nil, e
+			}
+			opts.Buffer.WriteString(content)
+			if condition(role) != condition(opts.Next) {
+				result = []pkg.Keyv[interface{}]{
+					{
+						"role":    condition(role),
+						"content": opts.Buffer.String(),
+						"type":    "message",
+					},
+				}
+				opts.Buffer.Reset()
+			}
+			return
+		}
 
 		if condition(role) == condition(opts.Next) {
 			// cache buffer
