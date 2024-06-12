@@ -8,6 +8,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"net/http"
 )
 
@@ -28,6 +29,12 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 		default:
 			return "user"
 		}
+	}
+
+	system := ""
+	if completion.Messages[0].Is("role", "system") {
+		system = completion.Messages[0].GetString("content")
+		completion.Messages = completion.Messages[1:]
 	}
 
 	messages, _ := common.TextMessageCombiner(completion.Messages, func(opts struct {
@@ -58,16 +65,26 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 		return
 	})
 
+	if messageL := len(messages); !messages[messageL-1].Is("role", "user") {
+		return nil, 0, errors.Errorf("messages[%d] is not `user` role", messageL-1)
+	}
+
 	message := messages[len(messages)-1].GetString("content")
 	messages = messages[:len(messages)-1]
+
+	obj := map[string]interface{}{
+		"messages": messages,
+	}
+
+	if system != "" {
+		obj["system"] = system
+	}
 
 	response, err = emit.ClientBuilder().
 		Context(ctx.Request.Context()).
 		Proxies(proxies).
 		POST(baseUrl+"/settings").
-		Body(map[string]interface{}{
-			"messages": messages,
-		}).
+		Body(obj).
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
 		return
