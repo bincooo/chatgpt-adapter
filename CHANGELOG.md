@@ -1,4 +1,34 @@
-# [](https://github.com/bincooo/chatgpt-adapter/compare/v2.1.0-dev-2...v) (2024-05-29)
+# [](https://github.com/bincooo/chatgpt-adapter/compare/v2.1.0-dev-2...v) (2024-06-12)
+
+
+### Bug Fixes
+
+* coze默认bot属性改为用户配置化([#31](https://github.com/bincooo/chatgpt-adapter/issues/31)) ([f1539cd](https://github.com/bincooo/chatgpt-adapter/commit/f1539cd0ca29f0e12eee3fc4f48120a756a2207f))
+* coze默认配置移除开发者模式 ([2c2c92f](https://github.com/bincooo/chatgpt-adapter/commit/2c2c92f0f3316b27daaa27518de295c24e5868fe))
+* custom toolcall invalid memory address or nil pointer dereference ([#32](https://github.com/bincooo/chatgpt-adapter/issues/32)) ([4ef0097](https://github.com/bincooo/chatgpt-adapter/commit/4ef00979f81dbb00ec7d5a7dd0988f94ab9cedfa))
+* google.dall-e-3 绘图参数修改 ([41eba89](https://github.com/bincooo/chatgpt-adapter/commit/41eba896516e4b3dac6b7052f4c6406c0bd930ad))
+* lmsys slice bounds out of range ([0255a4f](https://github.com/bincooo/chatgpt-adapter/commit/0255a4f01935e9e999aef6a6cd9bbed40f5fcbe8))
+* open-interpreter ctx ([8f1807a](https://github.com/bincooo/chatgpt-adapter/commit/8f1807adfe975d0cd7f8d4c81e9cf018fcae807b))
+* toolCall 缓存遗留导致重新生成时忽略部分task ([d812b41](https://github.com/bincooo/chatgpt-adapter/commit/d812b41d326e84299efefc01e9f4271f33ed201b))
+* toolCall 默认id处理遗漏 ([7300d82](https://github.com/bincooo/chatgpt-adapter/commit/7300d827616989346862853e1b83e9eaff915a00))
+* 失效的绘图接口 ([c91a7d0](https://github.com/bincooo/chatgpt-adapter/commit/c91a7d0f52ce1177e7a52bbdd080b5b3a72454da))
+
+
+### Features
+
+* add draw image dalle-3xl ([228abba](https://github.com/bincooo/chatgpt-adapter/commit/228abbad440c6248cb64e77a8dac39646ec34a0d))
+* coze 新增webSdk模式 ([7164a9e](https://github.com/bincooo/chatgpt-adapter/commit/7164a9e4f85aaf8d0c7cc35fcc12b16a03561f59))
+* coze新增支持开发者模式 ([#24](https://github.com/bincooo/chatgpt-adapter/issues/24)) ([39d93fc](https://github.com/bincooo/chatgpt-adapter/commit/39d93fcc4861e1d3c6cd8ca3964e81b7cacf5417))
+* gemini top system content设置为systemInstruction ([54eb5c6](https://github.com/bincooo/chatgpt-adapter/commit/54eb5c63f0564810fc54ccd93b7380aa86b91fe2))
+* interpreter改为websocket对接 ([ac53d10](https://github.com/bincooo/chatgpt-adapter/commit/ac53d10c65a5d1c83d4735373dc890b1210f04c6))
+* OpenInterpreter/open-interpreter 代码块处理 ([7e8ba94](https://github.com/bincooo/chatgpt-adapter/commit/7e8ba94935e7a644dc7b2efb137f36bfe36cb8f5))
+* OpenInterpreter/open-interpreter 接入 ([a381863](https://github.com/bincooo/chatgpt-adapter/commit/a3818634bc20ad9ba5bf66bd2929249f34b23774))
+* tooCall 开启 tasks 时添加默认占位参数 ([f88c6da](https://github.com/bincooo/chatgpt-adapter/commit/f88c6daf41fa75225ad491c49ebd9b1d882309f0))
+* toolCall 开启tasks时，无参数 task 跳过提示词收集 ([c058422](https://github.com/bincooo/chatgpt-adapter/commit/c0584228dcb495f68c0868fda38541a2ee6826bc))
+* toolCall 默认配置化 ([c25d441](https://github.com/bincooo/chatgpt-adapter/commit/c25d441d7a22f6b7085fb410996ca528082d3e35))
+* v1 Authorization 传值 ([32a8e1a](https://github.com/bincooo/chatgpt-adapter/commit/32a8e1ab53cc52ad13c446346d143ad0fc37899d))
+* 添加dalle-4k.dall-e-3绘图 ([0b3509d](https://github.com/bincooo/chatgpt-adapter/commit/0b3509db4ecbbc8362f2a8819116f4939bd00aa2))
+* 添加v1接口转发，实现上游llm toolCall拓展([#25](https://github.com/bincooo/chatgpt-adapter/issues/25)) ([25d9e26](https://github.com/bincooo/chatgpt-adapter/commit/25d9e261aae58e5029ff145a7b210ad0e2ccc564))
 
 
 
@@ -150,3 +180,6 @@
 
 * coze自动获取msToken会封号，还原以前的用法，可能会有历史对话问题 ([f1f4225](https://github.com/bincooo/chatgpt-adapter/commit/f1f4225f9e1d2fb1dee65e5153a2c4a834d28493))
 * coze自动获取msToken会封号，还原以前的用法，可能会有历史对话问题 ([bc060e1](https://github.com/bincooo/chatgpt-adapter/commit/bc060e1ac3d825e631489ba6ad6e2013c6e36238))
+
+
+
