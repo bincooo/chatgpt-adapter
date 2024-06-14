@@ -3,12 +3,11 @@ module github.com/bincooo/chatgpt-adapter
 go 1.21.6
 
 require (
-	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/claude-api v1.0.4-0.20240528113818-a9ce288f9fe6
 	github.com/bincooo/cohere-api v0.0.0-20240528114307-7566acc0f00c
 	github.com/bincooo/coze-api v1.0.2-0.20240610105300-54683ecac602
-	github.com/bincooo/edge-api v1.0.4-0.20240528170427-1e84d9c6ae62
+	github.com/bincooo/edge-api v1.0.4-0.20240614132538-6405e93ccba5
 	github.com/bincooo/emit.io v0.0.0-20240609040805-4d0939831fd7
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/eko/gocache/lib/v4 v4.1.6
@@ -17,6 +16,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/pkg/errors v0.9.1
 	github.com/samber/go-gpt-3-encoder v0.3.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
@@ -25,6 +25,7 @@ require (
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.2 // indirect
+	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -77,7 +78,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect

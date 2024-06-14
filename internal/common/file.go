@@ -75,16 +75,17 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 		return "", err
 	}
 
-	_, err = os.Stat("tmp")
+	timePath := time.Now().Format("2006/01/02")
+	_, err = os.Stat("tmp/" + timePath)
 	if os.IsNotExist(err) {
-		err = os.Mkdir("tmp", os.ModePerm)
+		err = os.MkdirAll("tmp/"+timePath, 0766)
 		if err != nil {
 			logger.Error("save base64 failed: ", err)
 			return "", err
 		}
 	}
 
-	tempFile, err := os.CreateTemp("tmp", "*."+suffix)
+	tempFile, err := os.CreateTemp("tmp/"+timePath, "*."+suffix)
 	if err != nil {
 		logger.Error("save base64 failed: ", err)
 		return "", err
@@ -121,16 +122,17 @@ func Download(proxies, url, suffix string) (file string, err error) {
 		return "", err
 	}
 
-	_, err = os.Stat("tmp")
+	timePath := time.Now().Format("2006/01/02")
+	_, err = os.Stat("tmp/" + timePath)
 	if os.IsNotExist(err) {
-		err = os.Mkdir("tmp", os.ModePerm)
+		err = os.Mkdir("tmp/"+timePath, 0766)
 		if err != nil {
 			logger.Error("download failed: ", err)
 			return "", err
 		}
 	}
 
-	tempFile, err := os.CreateTemp("tmp", "*."+suffix)
+	tempFile, err := os.CreateTemp("tmp/"+timePath, "*."+suffix)
 	if err != nil {
 		logger.Error("download failed: ", err)
 		return "", err
