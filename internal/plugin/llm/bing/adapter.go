@@ -101,7 +101,12 @@ func (API) Completion(ctx *gin.Context) {
 		maxCount = 28
 	}
 
-	pMessages, currMessage, tokens := mergeMessages(ctx, pad, maxCount, completion)
+	pMessages, currMessage, tokens, err := mergeMessages(ctx, pad, maxCount, completion)
+	if err != nil {
+		logger.Error(err)
+		response.Error(ctx, -1, err)
+		return
+	}
 
 	// 清理多余的标签
 	var cancel chan error

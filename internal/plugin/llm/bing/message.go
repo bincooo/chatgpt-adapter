@@ -108,7 +108,7 @@ label:
 	return
 }
 
-func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompletion) (pMessages []edge.ChatMessage, text string, tokens int) {
+func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompletion) (pMessages []edge.ChatMessage, text string, tokens int, err error) {
 	var messages = completion.Messages
 	condition := func(expr string) string {
 		switch expr {
@@ -169,7 +169,11 @@ func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompl
 		result = append(result, edge.BuildSwitchMessage(condition(role), opts.Buffer.String()))
 		return
 	}
-	newMessages, _ := common.TextMessageCombiner(messages, iterator)
+	newMessages, err := common.TextMessageCombiner(messages, iterator)
+	if err != nil {
+		err = logger.WarpError(err)
+		return
+	}
 
 	// 尝试引导对话，避免道歉
 	if pad {
