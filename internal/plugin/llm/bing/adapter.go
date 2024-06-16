@@ -92,6 +92,8 @@ func (API) Completion(ctx *gin.Context) {
 
 	if completion.Model == "bing-online" {
 		chat.Plugins(edge.PluginSearch)
+	} else {
+		chat.JoinOptionSets(edge.OptionSets_Nosearchall)
 	}
 
 	maxCount := 2

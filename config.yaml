@@ -37,6 +37,7 @@ interpreter:
   baseUrl: http://127.0.0.1:8000
   useProxy: false
   echoCode: false
+#  reverseUrl: ws://127.0.0.1:8000/ws TODO -
 
 custom-llm:
   baseUrl: http://127.0.0.1:8080
