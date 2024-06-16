@@ -3,6 +3,7 @@ package response
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
@@ -86,6 +87,16 @@ func Error(ctx *gin.Context, code int, err interface{}) {
 	}
 
 	if e, ok := err.(error); ok {
+		var se logger.StackError
+		if ok = errors.Is(e, &se); ok {
+			ctx.JSON(code, gin.H{
+				"error": map[string]string{
+					"message": se.OriginError().Error(),
+				},
+			})
+			return
+		}
+
 		ctx.JSON(code, gin.H{
 			"error": map[string]string{
 				"message": e.Error(),

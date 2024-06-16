@@ -9,14 +9,19 @@ import (
 	"strings"
 )
 
-type stackError struct {
+type StackError struct {
 	err          error
 	functionInfo string
 }
 
-func (e stackError) Error() string {
+func (e StackError) Error() string {
+	err := e.rootErr()
+	return fmt.Sprintf("===== STACK ERROR %s =====\n%v", err.functionInfo, err.err)
+}
+
+func (e StackError) rootErr() StackError {
 	var err = e
-	var se stackError
+	var se StackError
 	for {
 		if errors.As(err.err, &se) {
 			err = se
@@ -24,8 +29,11 @@ func (e stackError) Error() string {
 		}
 		break
 	}
+	return err
+}
 
-	return fmt.Sprintf("===== STACK ERROR %s =====\n%v", err.functionInfo, err.err)
+func (e StackError) OriginError() error {
+	return e.rootErr().err
 }
 
 func WarpError(err error) error {
@@ -80,7 +88,7 @@ func WarpError(err error) error {
 		}
 	}
 
-	return stackError{
+	return StackError{
 		err: err,
 		//
 		functionInfo: functionInfo,
