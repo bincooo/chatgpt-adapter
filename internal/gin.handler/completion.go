@@ -21,6 +21,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"math/rand"
+	"time"
 )
 
 var (
@@ -113,7 +114,8 @@ func generations(ctx *gin.Context) {
 			"sk-animagine-xl-3.1",
 		}
 
-		ctx.Set("token", tokens[rand.Intn(len(tokens)-1)])
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		ctx.Set("token", tokens[r.Intn(len(tokens)-1)])
 		if !GlobalExtension.Match(ctx, generation.Model) {
 			response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
 			return
