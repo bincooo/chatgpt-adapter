@@ -64,6 +64,10 @@ func (API) Completion(ctx *gin.Context) {
 		matchers   = common.GetGinMatchers(ctx)
 	)
 
+	if cookie == "xxx" {
+		cookie = common.RandString(32)
+	}
+
 	if completion.Model == Model+"-vision" {
 		pad = true
 	}

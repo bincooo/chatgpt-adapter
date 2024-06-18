@@ -20,6 +20,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
+	"math/rand"
 )
 
 var (
@@ -97,8 +98,26 @@ func generations(ctx *gin.Context) {
 	ctx.Set(vars.GinGeneration, generation)
 	logger.Infof("generate images text[ %s ]: %s", generation.Model, generation.Message)
 	if !GlobalExtension.Match(ctx, generation.Model) {
-		response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
-		return
+		if generation.Model != "dall-e-3" {
+			response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
+			return
+		}
+
+		// 默认适配一个
+		tokens := []string{
+			"sk-prodia-sd",
+			"sk-prodia-xl",
+			"sk-google-xl",
+			"sk-dalle-4k",
+			"sk-dalle-3-xl",
+			"sk-animagine-xl-3.1",
+		}
+
+		ctx.Set("token", tokens[rand.Intn(len(tokens)-1)])
+		if !GlobalExtension.Match(ctx, generation.Model) {
+			response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
+			return
+		}
 	}
 
 	GlobalExtension.Generation(ctx)

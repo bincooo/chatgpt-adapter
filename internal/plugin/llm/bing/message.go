@@ -188,6 +188,7 @@ func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompl
 			newMessages = append(newMessages[:pos], newMessages[pos+1:]...)
 			text = strings.TrimSpace(message["text"].(string))
 			text = strings.TrimLeft(text, "<|user|>")
+			text = strings.TrimRight(text, "<|end|>")
 			break
 		}
 	}
@@ -275,7 +276,8 @@ func processMultiMessage(ctx *gin.Context, message pkg.Keyv[interface{}]) (strin
 				return "", nil
 			}
 
-			contents = append(contents, fmt.Sprintf("*这是内置image工具的返回结果*： %s\n%s\n----", o.GetString("url"), content))
+			imageInfo := fmt.Sprintf("*这是内置image工具的返回结果*： %s\n%s\n----", o.GetString("url"), content)
+			contents = append(contents, imageInfo)
 		}
 	}
 

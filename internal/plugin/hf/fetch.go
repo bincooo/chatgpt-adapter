@@ -17,6 +17,77 @@ const (
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0"
 )
 
+func Ox000(ctx *gin.Context, model, samples, message string) (value string, err error) {
+	var (
+		hash    = emit.GioHash()
+		proxies = ctx.GetString("proxies")
+		baseUrl = "https://prodia-fast-stable-diffusion.hf.space"
+		domain  = pkg.Config.GetString("domain")
+	)
+
+	if domain == "" {
+		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
+	}
+
+	response, err := emit.ClientBuilder().
+		Proxies(proxies).
+		Context(ctx.Request.Context()).
+		POST(baseUrl+"/queue/join").
+		JHeader().
+		Header("User-Agent", userAgent).
+		Body(map[string]interface{}{
+			"data": []interface{}{
+				message + ", {{{{by famous artist}}}, beautiful, 4k",
+				negative,
+				model,
+				25,
+				samples,
+				10,
+				1024,
+				1024,
+				-1,
+			},
+			"fn_index":     0,
+			"trigger_id":   15,
+			"session_hash": hash,
+		}).
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return
+	}
+
+	logger.Info(emit.TextResponse(response))
+	response, err = emit.ClientBuilder().
+		Proxies(proxies).
+		Context(ctx.Request.Context()).
+		GET(baseUrl+"/queue/data").
+		Query("session_hash", hash).
+		Header("User-Agent", userAgent).
+		DoS(http.StatusOK)
+	if err != nil {
+		return
+	}
+
+	c, err := emit.NewGio(ctx.Request.Context(), response)
+	if err != nil {
+		return
+	}
+
+	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
+		d := j.Output.Data
+		if len(d) == 0 {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+		result := d[0].(map[string]interface{})
+		value = result["url"].(string)
+		return
+	})
+
+	err = c.Do()
+	return
+}
+
 func Ox001(ctx *gin.Context, model, samples, message string) (value string, err error) {
 	var (
 		hash    = emit.GioHash()
@@ -82,87 +153,6 @@ func Ox001(ctx *gin.Context, model, samples, message string) (value string, err 
 		}
 
 		value = fmt.Sprintf("%s/file/%s", domain, file)
-		return
-	})
-
-	err = c.Do()
-	return
-}
-
-func Ox000(ctx *gin.Context, model, samples, message string) (value string, err error) {
-	var (
-		hash    = emit.GioHash()
-		proxies = ctx.GetString("proxies")
-		baseUrl = "https://prodia-fast-stable-diffusion.hf.space"
-		domain  = pkg.Config.GetString("domain")
-	)
-
-	if domain == "" {
-		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
-	}
-
-	response, err := emit.ClientBuilder().
-		Context(ctx.Request.Context()).
-		Proxies(proxies).
-		GET(baseUrl+"/queue/join").
-		Query("fn_index", "0").
-		Query("session_hash", hash).
-		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
-	if err != nil {
-		return
-	}
-
-	c, err := emit.NewGio(ctx.Request.Context(), response)
-	if err != nil {
-		return
-	}
-
-	c.Event("send_data", func(j emit.JoinEvent) (_ interface{}) {
-		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		_, err = emit.ClientBuilder().
-			Proxies(proxies).
-			Context(ctx.Request.Context()).
-			POST(baseUrl + "/queue/data").
-			JHeader().
-			Body(map[string]interface{}{
-				"fn_index":     0,
-				"session_hash": hash,
-				"event_id":     j.EventId,
-				"trigger_id":   r.Intn(15) + 5,
-				"data": []interface{}{
-					message + ", {{{{by famous artist}}}, beautiful, 4k",
-					negative,
-					model,
-					25,
-					samples,
-					10,
-					1024,
-					1024,
-					-1,
-				},
-			}).
-			DoS(http.StatusOK)
-		if err != nil {
-			c.Failed(err)
-		}
-		return
-	})
-
-	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
-		d := j.Output.Data
-		if len(d) == 0 {
-			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
-			return
-		}
-
-		result := d[0].(map[string]interface{})
-		value, err = com.Download(proxies, fmt.Sprintf("%s/file=%s", baseUrl, result["path"].(string)), "png")
-		if err != nil {
-			c.Failed(err)
-			return
-		}
-
-		value = fmt.Sprintf("%s/file/%s", domain, value)
 		return
 	})
 

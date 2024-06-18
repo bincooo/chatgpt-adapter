@@ -87,6 +87,7 @@ func (API) Generation(ctx *gin.Context) {
 	model := matchModel(generation.Style, space)
 	samples := matchSamples(generation.Quality, space)
 
+	logger.Infof("curr space info[%s]: %s, %s", space, model, samples)
 	switch space {
 	case "prodia-xl":
 		modelSlice = xlModels
@@ -208,6 +209,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 	prefix := ""
 	if model == "bing" {
 		// prefix += "<pad />"
+		prefix += "<notebook />"
 	}
 
 	w := prefix + agent.SDWords

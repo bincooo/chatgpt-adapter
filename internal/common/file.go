@@ -2,7 +2,9 @@ package common
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
@@ -182,4 +184,10 @@ func LoadImageMeta(url string) (mime string, data string, err error) {
 	mime = response.Header.Get("content-type")
 	data = base64.StdEncoding.EncodeToString(dataBytes)
 	return
+}
+
+func CalcSHA256(buffer []byte) string {
+	hasher := sha256.New()
+	hasher.Write(buffer)
+	return hex.EncodeToString(hasher.Sum(nil))
 }
