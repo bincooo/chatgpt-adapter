@@ -46,7 +46,7 @@ func ChangeClashIP() {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 
-		_, err := emit.ClientBuilder().
+		_, err := emit.ClientBuilder(nil).
 			PUT(url).
 			Context(ctx).
 			JHeader().

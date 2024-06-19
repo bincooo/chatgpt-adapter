@@ -260,7 +260,7 @@ func processMultiMessage(ctx *gin.Context, message pkg.Keyv[interface{}]) (strin
 			}
 
 			chat.KBlob(kb)
-			partialResponse, err := chat.Reply(ctx.Request.Context(), "请你使用json代码块中文描述这张图片，不必说明直接输出结果", nil)
+			partialResponse, err := chat.Reply(common.GetGinContext(ctx), "请你使用json代码块中文描述这张图片，不必说明直接输出结果", nil)
 			if err != nil {
 				return "", logger.WarpError(err)
 			}

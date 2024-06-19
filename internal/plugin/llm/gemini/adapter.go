@@ -2,28 +2,20 @@ package gemini
 
 import (
 	"errors"
-	com "github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/gin-gonic/gin"
 	"net/url"
 	"strings"
-	"sync"
 )
 
 const MODEL = "gemini"
-const login = "http://127.0.0.1:8081/v1/login"
 
 var (
 	Adapter = API{}
-	mu      sync.Mutex
 )
-
-type cookieOpts struct {
-	userAgent string
-	cookie    string
-}
 
 type candidatesResponse struct {
 	Candidates []candidate `json:"candidates"`
@@ -76,8 +68,8 @@ func (API) Completion(ctx *gin.Context) {
 	var (
 		cookie     = ctx.GetString("token")
 		proxies    = ctx.GetString("proxies")
-		completion = com.GetGinCompletion(ctx)
-		matchers   = com.GetGinMatchers(ctx)
+		completion = common.GetGinCompletion(ctx)
+		matchers   = common.GetGinMatchers(ctx)
 	)
 
 	newMessages, tokens, err := mergeMessages(completion.Messages)
@@ -88,7 +80,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	ctx.Set(ginTokens, tokens)
-	r, err := build(ctx.Request.Context(), proxies, cookie, newMessages, completion)
+	r, err := build(common.GetGinContext(ctx), proxies, cookie, newMessages, completion)
 	if err != nil {
 		var urlError *url.Error
 		if errors.As(err, &urlError) {

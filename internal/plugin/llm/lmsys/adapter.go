@@ -272,7 +272,7 @@ func (API) Completion(ctx *gin.Context) {
 	ctx.Set(ginTokens, common.CalcTokens(newMessages))
 	retry := 3
 label:
-	ch, err := fetch(ctx, proxies, newMessages, options{
+	ch, err := fetch(common.GetGinContext(ctx), proxies, newMessages, options{
 		model:       completion.Model,
 		temperature: completion.Temperature,
 		topP:        completion.TopP,

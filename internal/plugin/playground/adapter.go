@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	com "github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
@@ -122,7 +122,7 @@ func (API) Generation(ctx *gin.Context) {
 		hash       = emit.GioHash()
 		cookie     = ctx.GetString("token")
 		domain     = pkg.Config.GetString("domain")
-		generation = com.GetGinGeneration(ctx)
+		generation = common.GetGinGeneration(ctx)
 	)
 
 	model := matchModel(generation.Style)
@@ -150,7 +150,7 @@ func (API) Generation(ctx *gin.Context) {
 	}
 
 	marshal, _ := json.Marshal(payload)
-	r, err := fetch(ctx.Request.Context(), "", cookie, marshal)
+	r, err := fetch(common.GetGinContext(ctx), "", cookie, marshal)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
@@ -183,7 +183,7 @@ func (API) Generation(ctx *gin.Context) {
 		return
 	}
 
-	file, err := com.SaveBase64(mc.Images[0].Url, "jpg")
+	file, err := common.SaveBase64(mc.Images[0].Url, "jpg")
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
@@ -194,8 +194,8 @@ func (API) Generation(ctx *gin.Context) {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 	file = fmt.Sprintf("%s/file/%s", domain, file)
-	if (generation.Size == "HD" || strings.HasPrefix(generation.Size, "1792x")) && com.HasMfy() {
-		v, e := com.Magnify(ctx, file)
+	if (generation.Size == "HD" || strings.HasPrefix(generation.Size, "1792x")) && common.HasMfy() {
+		v, e := common.Magnify(ctx, file)
 		if e != nil {
 			logger.Error(e)
 		} else {
@@ -214,7 +214,7 @@ func (API) Generation(ctx *gin.Context) {
 }
 
 func matchModel(style string) string {
-	if com.Contains(models, style) {
+	if common.Contains(models, style) {
 		return style
 	}
 	return models[rand.Intn(len(models))]
@@ -226,7 +226,7 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 	}
 
 	baseUrl := "https://playground.com"
-	return emit.ClientBuilder().
+	return emit.ClientBuilder(nil).
 		Proxies(proxies).
 		Context(ctx).
 		POST(baseUrl+"/api/models").

@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func fetch(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletion) (*http.Response, error) {
+func fetch(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletion) (response *http.Response, err error) {
 	var (
 		baseUrl  = pkg.Config.GetString("custom-llm.baseUrl")
 		useProxy = pkg.Config.GetBool("custom-llm.useProxy")
@@ -37,12 +37,14 @@ func fetch(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletio
 	ctx.Set(ginTokens, token)
 
 	completion.Stream = true
-	return emit.ClientBuilder().
-		Context(ctx.Request.Context()).
+	response, err = emit.ClientBuilder(nil).
 		Proxies(proxies).
+		Context(common.GetGinContext(ctx)).
+		Option(common.GetGinIdleConnectOption(ctx)).
 		POST(baseUrl+"/v1/chat/completions").
 		Header("Authorization", "Bearer "+token).
 		JHeader().
 		Body(completion).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	return
 }

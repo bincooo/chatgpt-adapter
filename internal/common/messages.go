@@ -276,7 +276,7 @@ func MergeMultiMessage(ctx context.Context, proxies string, message pkg.Keyv[int
 				_, _ = fw.Write(fileBytes)
 				_ = w.Close()
 
-				r, err := emit.ClientBuilder().
+				r, err := emit.ClientBuilder(nil).
 					Proxies(proxies).
 					Context(ctx).
 					POST("https://complete-mmx-easy-images.hf.space/upload").

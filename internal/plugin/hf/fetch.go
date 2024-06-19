@@ -29,9 +29,9 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(ctx.Request.Context()).
+		Context(com.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
 		JHeader().
 		Header("User-Agent", userAgent).
@@ -57,9 +57,9 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 	}
 
 	logger.Info(emit.TextResponse(response))
-	response, err = emit.ClientBuilder().
+	response, err = emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(ctx.Request.Context()).
+		Context(com.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("User-Agent", userAgent).
@@ -68,7 +68,7 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 		return
 	}
 
-	c, err := emit.NewGio(ctx.Request.Context(), response)
+	c, err := emit.NewGio(com.GetGinContext(ctx), response)
 	if err != nil {
 		return
 	}
@@ -108,7 +108,7 @@ func Ox001(ctx *gin.Context, model, samples, message string) (value string, err 
 		return
 	}
 
-	c, err := emit.NewGio(ctx.Request.Context(), conn)
+	c, err := emit.NewGio(com.GetGinContext(ctx), conn)
 	if err != nil {
 		return
 	}
@@ -167,9 +167,9 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 		baseUrl = "https://prithivmlmods-dalle-4k.hf.space"
 	)
 
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(ctx.Request.Context()).
+		Context(com.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
 		JHeader().
 		Body(map[string]interface{}{
@@ -194,9 +194,9 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 	}
 
 	logger.Info(emit.TextResponse(response))
-	response, err = emit.ClientBuilder().
+	response, err = emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(ctx.Request.Context()).
+		Context(com.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
@@ -204,7 +204,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 		return
 	}
 
-	c, err := emit.NewGio(ctx.Request.Context(), response)
+	c, err := emit.NewGio(com.GetGinContext(ctx), response)
 	if err != nil {
 		return
 	}
@@ -254,9 +254,9 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(ctx.Request.Context()).
+		Context(com.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/?__theme=light").
@@ -283,9 +283,9 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 	}
 	logger.Info(emit.TextResponse(response))
 
-	response, err = emit.ClientBuilder().
+	response, err = emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(ctx.Request.Context()).
+		Context(com.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("Origin", baseUrl).
@@ -364,9 +364,9 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(ctx.Request.Context()).
+		Context(com.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/?__theme=light").
@@ -400,9 +400,9 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 	}
 	logger.Info(emit.TextResponse(response))
 
-	response, err = emit.ClientBuilder().
+	response, err = emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(ctx.Request.Context()).
+		Context(com.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("Origin", baseUrl).
@@ -415,7 +415,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		return "", err
 	}
 
-	c, err := emit.NewGio(ctx.Request.Context(), response)
+	c, err := emit.NewGio(com.GetGinContext(ctx), response)
 	if err != nil {
 		return "", err
 	}
@@ -481,13 +481,14 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 
 	conn, err := emit.SocketBuilder().
 		Proxies(proxies).
+		Context(com.GetGinContext(ctx)).
 		URL(baseUrl + "/queue/join").
 		DoS(http.StatusSwitchingProtocols)
 	if err != nil {
 		return
 	}
 
-	c, err := emit.NewGio(ctx.Request.Context(), conn)
+	c, err := emit.NewGio(com.GetGinContext(ctx), conn)
 	if err != nil {
 		return
 	}

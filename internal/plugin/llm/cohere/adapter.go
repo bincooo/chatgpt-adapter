@@ -120,7 +120,7 @@ func (API) Completion(ctx *gin.Context) {
 		chat.Proxies(proxies)
 	}
 
-	chatResponse, err := chat.Reply(ctx.Request.Context(), pMessages, system, message, coh.ToolObject{})
+	chatResponse, err := chat.Reply(common.GetGinContext(ctx), pMessages, system, message, coh.ToolObject{})
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)

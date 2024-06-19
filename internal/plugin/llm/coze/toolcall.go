@@ -60,7 +60,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			query = coze.MergeMessages(pMessages)
 		}
 
-		chatResponse, err := chat.Reply(ctx.Request.Context(), coze.Text, query)
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), coze.Text, query)
 		// 构建完请求即可解锁
 		if lock != nil {
 			lock.Unlock()

@@ -30,7 +30,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		}
 
 		message = common.PadJunkMessage(padMaxCount-len(message), message)
-		chatResponse, err := chat.Reply(ctx.Request.Context(), "", []types.Attachment{
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), "", []types.Attachment{
 			{
 				Content:  message,
 				FileName: "paste.txt",

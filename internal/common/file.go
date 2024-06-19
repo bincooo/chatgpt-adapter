@@ -104,7 +104,7 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 }
 
 func Download(proxies, url, suffix string) (file string, err error) {
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
 		URL(url).
 		Do()

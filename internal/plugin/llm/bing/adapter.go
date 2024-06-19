@@ -117,7 +117,7 @@ func (API) Completion(ctx *gin.Context) {
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set(ginTokens, tokens)
 
-	r, err := chat.Reply(ctx.Request.Context(), currMessage, pMessages)
+	r, err := chat.Reply(common.GetGinContext(ctx), currMessage, pMessages)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)

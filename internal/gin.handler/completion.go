@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
@@ -86,7 +87,15 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
+	defer postProc(ctx)
 	GlobalExtension.Completion(ctx)
+}
+
+func postProc(ctx *gin.Context) {
+	cancel, exist := common.GetGinValue[context.CancelFunc](ctx, vars.GinCancelFunc)
+	if exist {
+		cancel()
+	}
 }
 
 func generations(ctx *gin.Context) {
@@ -122,6 +131,7 @@ func generations(ctx *gin.Context) {
 		}
 	}
 
+	defer postProc(ctx)
 	GlobalExtension.Generation(ctx)
 }
 

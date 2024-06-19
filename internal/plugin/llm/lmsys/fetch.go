@@ -72,7 +72,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		},
 	}
 
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(nil).
 		Context(ctx).
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
@@ -102,7 +102,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	}
 
 	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
-	response, err = emit.ClientBuilder().
+	response, err = emit.ClientBuilder(nil).
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/queue/data").
@@ -212,7 +212,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 	for _, fn = range fns {
 		obj["fn_index"] = fn[0]
 		obj["trigger_id"] = fn[1]
-		response, err = emit.ClientBuilder().
+		response, err = emit.ClientBuilder(nil).
 			Context(ctx).
 			Proxies(proxies).
 			POST(baseUrl+"/queue/join").
@@ -248,7 +248,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 	}
 
 	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
-	response, err = emit.ClientBuilder().
+	response, err = emit.ClientBuilder(nil).
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/queue/data").
@@ -303,7 +303,7 @@ label:
 		return
 	}
 	retry--
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(nil).
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/info").

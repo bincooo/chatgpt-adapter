@@ -232,7 +232,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		return nil, err
 	}
 
-	res, err := emit.ClientBuilder().
+	res, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
 		Context(ctx).
 		POST(gURL).

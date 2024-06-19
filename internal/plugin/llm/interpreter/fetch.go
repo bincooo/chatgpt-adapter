@@ -100,8 +100,8 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 		obj["system"] = system
 	}
 
-	response, err = emit.ClientBuilder().
-		Context(ctx.Request.Context()).
+	response, err = emit.ClientBuilder(nil).
+		Context(common.GetGinContext(ctx)).
 		Proxies(proxies).
 		POST(baseUrl+"/settings").
 		Body(obj).
@@ -112,8 +112,8 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 	}
 	logger.Info(emit.TextResponse(response))
 
-	response, err = emit.ClientBuilder().
-		Context(ctx.Request.Context()).
+	response, err = emit.ClientBuilder(nil).
+		Context(common.GetGinContext(ctx)).
 		Proxies(proxies).
 		POST(baseUrl+"/chat").
 		Body(map[string]string{
