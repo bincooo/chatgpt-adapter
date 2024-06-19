@@ -49,7 +49,7 @@ interpreter:
 #  reverseUrl: ws://127.0.0.1:8000/ws TODO -
 
 custom-llm:
-  baseUrl: https://bincooo-bypass.hf.space/proxies
+  baseUrl: http://127.0.0.1:8080
   useProxy: false
 
 # toolCall 默认配置化; 在 flags 关闭时也可用
