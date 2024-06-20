@@ -43,6 +43,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		}
 
 		chat := coze.New(co, msToken, options)
+		chat.Session(plugin.HTTPClient)
 		var lock *common.ExpireLock
 		if mode == 'o' {
 			l, e := draftBot(ctx, pMessages, chat, completion)

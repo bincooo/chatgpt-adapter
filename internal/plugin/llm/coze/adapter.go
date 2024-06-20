@@ -147,6 +147,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)
+	chat.Session(plugin.HTTPClient)
 
 	var lock *common.ExpireLock
 	if mode == 'o' {
@@ -250,6 +251,7 @@ func (API) Generation(ctx *gin.Context) {
 	options := coze.NewDefaultOptions(botId35_16k, version35_16k, scene35_16k, false, proxies)
 	co, msToken := extCookie(cookie)
 	chat := coze.New(co, msToken, options)
+	chat.Session(plugin.HTTPClient)
 
 	image, err := chat.Images(ctx.Request.Context(), generation.Message)
 	if err != nil {
