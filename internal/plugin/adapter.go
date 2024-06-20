@@ -4,7 +4,14 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
+	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
+)
+
+var (
+	HTTPClient *emit.Session
 )
 
 type Model struct {
@@ -12,6 +19,29 @@ type Model struct {
 	Object  string `json:"object"`
 	Created int    `json:"created"`
 	By      string `json:"owned_by"`
+}
+
+func init() {
+	common.AddInitialized(func() {
+		var err error
+
+		HTTPClient, err = emit.NewDefaultSession(vars.Proxies, common.GetIdleConnectOption())
+		if err != nil {
+			logger.Error("Error initializing HTTPClient: ", err)
+		}
+
+		HTTPJa3Client, err := emit.NewJa3Session(vars.Proxies)
+		if err != nil {
+			logger.Error("Error initializing HTTPJa3Client: ", err)
+		}
+
+		SocketClient, err := emit.NewSocketSession(vars.Proxies, common.GetIdleConnectOption())
+		if err != nil {
+			logger.Error("Error initializing HTTPJa3Client: ", err)
+		}
+
+		HTTPClient = emit.MergeSession(HTTPClient, HTTPJa3Client, SocketClient)
+	})
 }
 
 type Adapter interface {

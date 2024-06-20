@@ -226,7 +226,7 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 	}
 
 	baseUrl := "https://playground.com"
-	return emit.ClientBuilder(nil).
+	return emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(ctx).
 		POST(baseUrl+"/api/models").

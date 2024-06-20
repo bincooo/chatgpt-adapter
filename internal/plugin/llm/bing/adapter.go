@@ -94,6 +94,7 @@ func (API) Completion(ctx *gin.Context) {
 		chat.Notebook(true)
 	}
 
+	chat.Client(plugin.HTTPClient)
 	if completion.Model == "bing-online" {
 		chat.Plugins(edge.PluginSearch)
 	} else {
@@ -101,7 +102,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	maxCount := 2
-	if chat.IsLogin() {
+	if chat.IsLogin(common.GetGinContext(ctx)) {
 		maxCount = 28
 	}
 

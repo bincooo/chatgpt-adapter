@@ -2,6 +2,7 @@ package v1
 
 import (
 	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
@@ -37,10 +38,9 @@ func fetch(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletio
 	ctx.Set(ginTokens, token)
 
 	completion.Stream = true
-	response, err = emit.ClientBuilder(nil).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
-		Option(common.GetGinIdleConnectOption(ctx)).
 		POST(baseUrl+"/v1/chat/completions").
 		Header("Authorization", "Bearer "+token).
 		JHeader().

@@ -103,7 +103,6 @@ func (API) Completion(ctx *gin.Context) {
 		message = mergeMessages(completion.Messages)
 		ctx.Set(ginTokens, common.CalcTokens(message))
 		chat = coh.New(cookie, completion.Temperature, completion.Model, false)
-		chat.Proxies(proxies)
 		chat.TopK(completion.TopK)
 		chat.MaxTokens(completion.MaxTokens)
 		chat.StopSequences([]string{
@@ -117,9 +116,11 @@ func (API) Completion(ctx *gin.Context) {
 		pMessages, system, message, tokens = mergeChatMessages(completion.Messages)
 		ctx.Set(ginTokens, tokens)
 		chat = coh.New(cookie, completion.Temperature, completion.Model, true)
-		chat.Proxies(proxies)
+
 	}
 
+	chat.Proxies(proxies)
+	chat.Client(plugin.HTTPClient)
 	chatResponse, err := chat.Reply(common.GetGinContext(ctx), pMessages, system, message, coh.ToolObject{})
 	if err != nil {
 		logger.Error(err)

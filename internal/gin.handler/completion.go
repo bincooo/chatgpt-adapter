@@ -55,6 +55,7 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
+	_ = ctx.Request.Body.Close()
 	ctx.Set(vars.GinDebugger, pkg.Config.GetBool("debug"))
 	toolCall := pkg.Config.GetStringMap("toolCall")
 	if enabled, ok := toolCall["enabled"]; ok && enabled.(bool) {
@@ -91,13 +92,6 @@ func completions(ctx *gin.Context) {
 	GlobalExtension.Completion(ctx)
 }
 
-func postProc(ctx *gin.Context) {
-	cancel, exist := common.GetGinValue[context.CancelFunc](ctx, vars.GinCancelFunc)
-	if exist {
-		cancel()
-	}
-}
-
 func generations(ctx *gin.Context) {
 	var generation pkg.ChatGeneration
 	if err := ctx.BindJSON(&generation); err != nil {
@@ -105,6 +99,7 @@ func generations(ctx *gin.Context) {
 		return
 	}
 
+	_ = ctx.Request.Body.Close()
 	ctx.Set(vars.GinGeneration, generation)
 	logger.Infof("generate images text[ %s ]: %s", generation.Model, generation.Message)
 	if !GlobalExtension.Match(ctx, generation.Model) {
@@ -141,5 +136,12 @@ func bodyLogger(completion pkg.ChatCompletion) {
 		logger.Error(err)
 	} else {
 		logger.Infof("requset: \n%s", bytes)
+	}
+}
+
+func postProc(ctx *gin.Context) {
+	cancel, exist := common.GetGinValue[context.CancelFunc](ctx, vars.GinCancelFunc)
+	if exist {
+		cancel()
 	}
 }

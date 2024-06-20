@@ -27,6 +27,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			TopicToE(true).
 			Model(edge.ModelSydney).
 			Temperature(0.9))
+		chat.Client(plugin.HTTPClient)
 		chatResponse, err := chat.Reply(common.GetGinContext(ctx), message, nil)
 		if err != nil {
 			if retry > 0 {

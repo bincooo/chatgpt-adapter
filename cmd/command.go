@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/sirupsen/logrus"
@@ -12,7 +13,6 @@ import (
 
 var (
 	version  = "v2.1.0"
-	proxies  string
 	port     int
 	logLevel = "info"
 	logPath  = "log"
@@ -36,13 +36,13 @@ var (
 			pkg.InitConfig()
 			common.InitCommon()
 			logger.InitLogger(logPath, switchLogLevel())
-			handler.Bind(port, version, proxies)
+			handler.Bind(port, version, vars.Proxies)
 		},
 	}
 )
 
 func main() {
-	cmd.PersistentFlags().StringVar(&proxies, "proxies", "", "本地代理 proxies")
+	cmd.PersistentFlags().StringVar(&vars.Proxies, "proxies", "", "本地代理 proxies")
 	cmd.PersistentFlags().IntVar(&port, "port", 8080, "服务端口 port")
 	cmd.PersistentFlags().StringVar(&logLevel, "log", logLevel, "日志级别: trace|debug|info|warn|error")
 	cmd.PersistentFlags().StringVar(&logPath, "log-path", logPath, "日志路径")

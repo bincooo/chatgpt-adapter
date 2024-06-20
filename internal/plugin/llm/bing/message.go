@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
@@ -254,12 +255,13 @@ func processMultiMessage(ctx *gin.Context, message pkg.Keyv[interface{}]) (strin
 			chat := edge.New(options.Proxies(proxies).
 				Model(edge.ModelSydney).
 				TopicToE(true))
-			kb, err := chat.LoadImage(o.GetString("url"))
+			kb, err := chat.LoadImage(common.GetGinContext(ctx), o.GetString("url"))
 			if err != nil {
 				return "", logger.WarpError(err)
 			}
 
 			chat.KBlob(kb)
+			chat.Client(plugin.HTTPClient)
 			partialResponse, err := chat.Reply(common.GetGinContext(ctx), "请你使用json代码块中文描述这张图片，不必说明直接输出结果", nil)
 			if err != nil {
 				return "", logger.WarpError(err)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
@@ -100,7 +101,7 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 		obj["system"] = system
 	}
 
-	response, err = emit.ClientBuilder(nil).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(common.GetGinContext(ctx)).
 		Proxies(proxies).
 		POST(baseUrl+"/settings").
@@ -112,7 +113,7 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 	}
 	logger.Info(emit.TextResponse(response))
 
-	response, err = emit.ClientBuilder(nil).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(common.GetGinContext(ctx)).
 		Proxies(proxies).
 		POST(baseUrl+"/chat").

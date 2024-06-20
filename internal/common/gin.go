@@ -3,9 +3,7 @@ package common
 import (
 	"context"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
-	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"time"
 )
@@ -93,58 +91,16 @@ func GetGinContext(ctx *gin.Context) context.Context {
 	return reqCtx
 }
 
-func GetGinIdleConnectOption(ctx *gin.Context) *emit.ConnectOption {
-	key := "__IdleConnectOption__"
-	{
-		value, exists := GetGinValue[*emit.ConnectOption](ctx, key)
-		if exists {
-			return value
-		}
-	}
-
-	idleEnabled := false
-	opts := pkg.Config.GetStringMap("server-conn")
-	var option emit.ConnectOption
-	if value, ok := opts["idleconntimeout"]; ok {
-		connTimeout, o := value.(int)
-		if o {
-			if connTimeout > 0 {
-				option.IdleConnTimeout = time.Duration(connTimeout) * time.Second
-				idleEnabled = true
-			}
-		} else {
-			logger.Warnf("read idleConnTimeout error: %v", value)
-		}
-	}
-
-	if value, ok := opts["responseheadertimeout"]; ok {
-		connTimeout, o := value.(int)
-		if o {
-			if connTimeout > 0 {
-				option.ResponseHeaderTimeout = time.Duration(connTimeout) * time.Second
-				idleEnabled = true
-			}
-		} else {
-			logger.Warnf("read responseHeaderTimeout error: %v", value)
-		}
-	}
-
-	if value, ok := opts["expectcontinuetimeout"]; ok {
-		connTimeout, o := value.(int)
-		if o {
-			if connTimeout > 0 {
-				option.ExpectContinueTimeout = time.Duration(connTimeout) * time.Second
-				idleEnabled = true
-			}
-		} else {
-			logger.Warnf("read expectContinueTimeout error: %v", value)
-		}
-	}
-
-	if !idleEnabled {
-		return nil
-	}
-
-	ctx.Set(key, &option)
-	return &option
-}
+//func GetGinIdleConnectOption(ctx *gin.Context) *emit.ConnectOption {
+//	key := "__IdleConnectOption__"
+//	{
+//		value, exists := GetGinValue[*emit.ConnectOption](ctx, key)
+//		if exists {
+//			return value
+//		}
+//	}
+//
+//	option := GetIdleConnectOption()
+//	ctx.Set(key, option)
+//	return option
+//}

@@ -3,6 +3,7 @@ package hf
 import (
 	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
@@ -100,13 +101,14 @@ func Ox001(ctx *gin.Context, model, samples, message string) (value string, err 
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	conn, err := emit.SocketBuilder().
+	conn, response, err := emit.SocketBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		URL(baseUrl + "/queue/join").
 		DoS(http.StatusSwitchingProtocols)
 	if err != nil {
 		return
 	}
+	defer response.Body.Close()
 
 	c, err := emit.NewGio(com.GetGinContext(ctx), conn)
 	if err != nil {
@@ -479,7 +481,7 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	conn, err := emit.SocketBuilder().
+	conn, response, err := emit.SocketBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(com.GetGinContext(ctx)).
 		URL(baseUrl + "/queue/join").
@@ -487,6 +489,7 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 	if err != nil {
 		return
 	}
+	defer response.Body.Close()
 
 	c, err := emit.NewGio(com.GetGinContext(ctx), conn)
 	if err != nil {

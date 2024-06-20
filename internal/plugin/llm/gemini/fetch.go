@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
@@ -232,7 +233,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		return nil, err
 	}
 
-	res, err := emit.ClientBuilder(nil).
+	res, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(ctx).
 		POST(gURL).
