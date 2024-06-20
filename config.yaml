@@ -26,12 +26,12 @@ llm:
   token: "xxx"
 
 # coze 默认配置；；；内置配置经常变动，难以维护改为配置化。新增webSdk模式，但还未得知速率是否有限制？？？
-coze:
-  8k:
-    botId: 7377557576936210450
-    version: 1717721676861
-    scene: 2
-    isW: false
+#coze:
+#  8k:
+#    botId: 114514
+#    version: 9527
+#    scene: 2
+#    isW: false
 #  128k:
 #    botId: 114514
 #    version: 9527
