@@ -5,7 +5,7 @@ go 1.21.6
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/claude-api v1.0.4-0.20240528113818-a9ce288f9fe6
-	github.com/bincooo/cohere-api v0.0.0-20240620170824-8fe5f0c07d98
+	github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46
 	github.com/bincooo/coze-api v1.0.2-0.20240620163352-ad627f0dffd2
 	github.com/bincooo/edge-api v1.0.4-0.20240620163255-3f676529cccd
 	github.com/bincooo/emit.io v0.0.0-20240620163021-92df8c488a60

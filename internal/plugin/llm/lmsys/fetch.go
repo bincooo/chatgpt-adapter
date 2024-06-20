@@ -186,6 +186,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 
 	go func() {
 		defer close(ch)
+		defer response.Body.Close()
 		if err = e.Do(); err != nil {
 			logger.Error(err)
 		}

@@ -21,6 +21,8 @@ import (
 const ginTokens = "__tokens__"
 
 func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *http.Response, sse bool) (content string) {
+	defer partialResponse.Body.Close()
+
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)

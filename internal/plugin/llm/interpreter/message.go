@@ -18,6 +18,8 @@ import (
 const ginTokens = "__tokens__"
 
 func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response, sse bool) (content string) {
+	defer r.Body.Close()
+
 	logger.Info("waitResponse ...")
 	created := time.Now().Unix()
 	completion := common.GetGinCompletion(ctx)
