@@ -255,13 +255,14 @@ func processMultiMessage(ctx *gin.Context, message pkg.Keyv[interface{}]) (strin
 			chat := edge.New(options.Proxies(proxies).
 				Model(edge.ModelSydney).
 				TopicToE(true))
+			chat.Client(plugin.HTTPClient)
+
 			kb, err := chat.LoadImage(common.GetGinContext(ctx), o.GetString("url"))
 			if err != nil {
 				return "", logger.WarpError(err)
 			}
 
 			chat.KBlob(kb)
-			chat.Client(plugin.HTTPClient)
 			partialResponse, err := chat.Reply(common.GetGinContext(ctx), "请你使用json代码块中文描述这张图片，不必说明直接输出结果", nil)
 			if err != nil {
 				return "", logger.WarpError(err)
