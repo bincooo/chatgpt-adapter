@@ -26,11 +26,11 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 
 		chat, err := api.New(options)
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		message = common.PadJunkMessage(padMaxCount-len(message), message)
-		chatResponse, err := chat.Reply(ctx.Request.Context(), "", []types.Attachment{
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), "", []types.Attachment{
 			{
 				Content:  message,
 				FileName: "paste.txt",
@@ -39,7 +39,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			},
 		})
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		defer chat.Delete()

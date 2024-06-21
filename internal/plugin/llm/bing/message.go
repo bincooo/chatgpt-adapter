@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
@@ -25,7 +26,7 @@ func waitMessage(chatResponse chan edge.ChatResponse, cancel func(str string) bo
 		}
 
 		if message.Error != nil {
-			return "", message.Error.Message
+			return "", logger.WarpError(message.Error.Message)
 		}
 
 		if len(message.Text) > 0 {
@@ -108,7 +109,7 @@ label:
 	return
 }
 
-func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompletion) (pMessages []edge.ChatMessage, text string, tokens int) {
+func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompletion) (pMessages []edge.ChatMessage, text string, tokens int, err error) {
 	var messages = completion.Messages
 	condition := func(expr string) string {
 		switch expr {
@@ -137,7 +138,7 @@ func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompl
 			message := opts.Initial()
 			content, e := processMultiMessage(ctx, message)
 			if e != nil {
-				return nil, e
+				return nil, logger.WarpError(e)
 			}
 			opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, content))
 			if condition(role) != condition(opts.Next) {
@@ -169,7 +170,11 @@ func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompl
 		result = append(result, edge.BuildSwitchMessage(condition(role), opts.Buffer.String()))
 		return
 	}
-	newMessages, _ := common.TextMessageCombiner(messages, iterator)
+	newMessages, err := common.TextMessageCombiner(messages, iterator)
+	if err != nil {
+		err = logger.WarpError(err)
+		return
+	}
 
 	// 尝试引导对话，避免道歉
 	if pad {
@@ -184,13 +189,14 @@ func mergeMessages(ctx *gin.Context, pad bool, max int, completion pkg.ChatCompl
 			newMessages = append(newMessages[:pos], newMessages[pos+1:]...)
 			text = strings.TrimSpace(message["text"].(string))
 			text = strings.TrimLeft(text, "<|user|>")
+			text = strings.TrimRight(text, "<|end|>")
 			break
 		}
 	}
 
 	// 超出最大轮次改为WebPage
 	if len(newMessages)/2 > max {
-		message := edge.BuildPageMessage(common.StringCombiner(newMessages[:len(newMessages)-max*2], func(message edge.ChatMessage) string {
+		message := edge.BuildPageMessage(common.MergeStrMessage(newMessages[:len(newMessages)-max*2], func(message edge.ChatMessage) string {
 			return message["text"].(string)
 		}))
 		pMessages = append(pMessages, message)
@@ -243,26 +249,28 @@ func processMultiMessage(ctx *gin.Context, message pkg.Keyv[interface{}]) (strin
 			o := keyv.GetKeyv("image_url")
 			options, err := edge.NewDefaultOptions(cookie, "")
 			if err != nil {
-				return "", err
+				return "", logger.WarpError(err)
 			}
 
 			chat := edge.New(options.Proxies(proxies).
 				Model(edge.ModelSydney).
 				TopicToE(true))
-			kb, err := chat.LoadImage(o.GetString("url"))
+			chat.Client(plugin.HTTPClient)
+
+			kb, err := chat.LoadImage(common.GetGinContext(ctx), o.GetString("url"))
 			if err != nil {
-				return "", err
+				return "", logger.WarpError(err)
 			}
 
 			chat.KBlob(kb)
-			partialResponse, err := chat.Reply(ctx.Request.Context(), "请你使用json代码块中文描述这张图片，不必说明直接输出结果", nil)
+			partialResponse, err := chat.Reply(common.GetGinContext(ctx), "请你使用json代码块中文描述这张图片，不必说明直接输出结果", nil)
 			if err != nil {
-				return "", err
+				return "", logger.WarpError(err)
 			}
 
 			content, err := waitMessage(partialResponse, nil)
 			if err != nil {
-				return "", err
+				return "", logger.WarpError(err)
 			}
 
 			left := strings.Index(content, "{")
@@ -271,7 +279,8 @@ func processMultiMessage(ctx *gin.Context, message pkg.Keyv[interface{}]) (strin
 				return "", nil
 			}
 
-			contents = append(contents, fmt.Sprintf("*这是内置image工具的返回结果*： %s\n%s\n----", o.GetString("url"), content))
+			imageInfo := fmt.Sprintf("*这是内置image工具的返回结果*： %s\n%s\n----", o.GetString("url"), content)
+			contents = append(contents, imageInfo)
 		}
 	}
 

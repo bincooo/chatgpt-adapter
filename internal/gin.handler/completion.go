@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
@@ -20,6 +21,8 @@ import (
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
+	"math/rand"
+	"time"
 )
 
 var (
@@ -52,6 +55,7 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
+	_ = ctx.Request.Body.Close()
 	ctx.Set(vars.GinDebugger, pkg.Config.GetBool("debug"))
 	toolCall := pkg.Config.GetStringMap("toolCall")
 	if enabled, ok := toolCall["enabled"]; ok && enabled.(bool) {
@@ -84,6 +88,7 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
+	defer postProc(ctx)
 	GlobalExtension.Completion(ctx)
 }
 
@@ -94,13 +99,34 @@ func generations(ctx *gin.Context) {
 		return
 	}
 
+	_ = ctx.Request.Body.Close()
 	ctx.Set(vars.GinGeneration, generation)
 	logger.Infof("generate images text[ %s ]: %s", generation.Model, generation.Message)
 	if !GlobalExtension.Match(ctx, generation.Model) {
-		response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
-		return
+		if generation.Model != "dall-e-3" {
+			response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
+			return
+		}
+
+		// 默认适配一个
+		tokens := []string{
+			"sk-prodia-sd",
+			"sk-prodia-xl",
+			"sk-google-xl",
+			"sk-dalle-4k",
+			"sk-dalle-3-xl",
+			"sk-animagine-xl-3.1",
+		}
+
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		ctx.Set("token", tokens[r.Intn(len(tokens)-1)])
+		if !GlobalExtension.Match(ctx, generation.Model) {
+			response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", generation.Model))
+			return
+		}
 	}
 
+	defer postProc(ctx)
 	GlobalExtension.Generation(ctx)
 }
 
@@ -110,5 +136,12 @@ func bodyLogger(completion pkg.ChatCompletion) {
 		logger.Error(err)
 	} else {
 		logger.Infof("requset: \n%s", bytes)
+	}
+}
+
+func postProc(ctx *gin.Context) {
+	cancel, exist := common.GetGinValue[context.CancelFunc](ctx, vars.GinCancelFunc)
+	if exist {
+		cancel()
 	}
 }

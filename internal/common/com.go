@@ -2,8 +2,11 @@ package common
 
 import (
 	"crypto/sha1"
+	"crypto/tls"
 	"encoding/hex"
 	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
+	"github.com/bincooo/emit.io"
 	"io"
 	"math/rand"
 	"time"
@@ -19,6 +22,49 @@ func InitCommon() {
 
 func AddInitialized(apply func()) {
 	initFunctions = append(initFunctions, apply)
+}
+
+func GetIdleConnectOption() *emit.ConnectOption {
+	opts := pkg.Config.GetStringMap("server-conn")
+	var option emit.ConnectOption
+	if value, ok := opts["idleconntimeout"]; ok {
+		connTimeout, o := value.(int)
+		if o {
+			if connTimeout > 0 {
+				option.IdleConnTimeout = time.Duration(connTimeout) * time.Second
+			}
+		} else {
+			logger.Warnf("read idleConnTimeout error: %v", value)
+		}
+	}
+
+	if value, ok := opts["responseheadertimeout"]; ok {
+		connTimeout, o := value.(int)
+		if o {
+			if connTimeout > 0 {
+				option.ResponseHeaderTimeout = time.Duration(connTimeout) * time.Second
+			}
+		} else {
+			logger.Warnf("read responseHeaderTimeout error: %v", value)
+		}
+	}
+
+	if value, ok := opts["expectcontinuetimeout"]; ok {
+		connTimeout, o := value.(int)
+		if o {
+			if connTimeout > 0 {
+				option.ExpectContinueTimeout = time.Duration(connTimeout) * time.Second
+			}
+		} else {
+			logger.Warnf("read expectContinueTimeout error: %v", value)
+		}
+	}
+
+	option.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	return &option
 }
 
 // 删除子元素

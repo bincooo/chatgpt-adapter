@@ -82,6 +82,7 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}
 
+	// TODO - HTTPClient
 	attachments, tokens := mergeMessages(completion.Messages)
 	ctx.Set(ginTokens, tokens)
 	chat, err := claude2.New(options)
@@ -91,7 +92,7 @@ func (API) Completion(ctx *gin.Context) {
 		return
 	}
 
-	chatResponse, err := chat.Reply(ctx.Request.Context(), "", attachments)
+	chatResponse, err := chat.Reply(common.GetGinContext(ctx), "", attachments)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)

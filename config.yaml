@@ -1,3 +1,12 @@
+# 内部转发请求配置，0值为无超时 单位为秒
+# connTimeout: 用户连接超时
+# idleConnTimeout: 空闲连接超时
+# responseHeaderTimeout: 响应头超时
+server-conn:
+  connTimeout: 0
+  idleConnTimeout: 0
+  responseHeaderTimeout: 0
+
 # 图片访问
 domain: "http://127.0.0.1:8080"
 
@@ -34,8 +43,10 @@ llm:
 #    scene: 2
 
 interpreter:
-  baseSocket: ws://127.0.0.1:8000
+  baseUrl: http://127.0.0.1:8000
   useProxy: false
+  echoCode: false
+#  reverseUrl: ws://127.0.0.1:8000/ws TODO -
 
 custom-llm:
   baseUrl: http://127.0.0.1:8080

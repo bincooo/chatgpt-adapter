@@ -2,7 +2,9 @@ package common
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
@@ -75,16 +77,17 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 		return "", err
 	}
 
-	_, err = os.Stat("tmp")
+	timePath := time.Now().Format("2006/01/02")
+	_, err = os.Stat("tmp/" + timePath)
 	if os.IsNotExist(err) {
-		err = os.Mkdir("tmp", os.ModePerm)
+		err = os.MkdirAll("tmp/"+timePath, 0766)
 		if err != nil {
 			logger.Error("save base64 failed: ", err)
 			return "", err
 		}
 	}
 
-	tempFile, err := os.CreateTemp("tmp", "*."+suffix)
+	tempFile, err := os.CreateTemp("tmp/"+timePath, "*."+suffix)
 	if err != nil {
 		logger.Error("save base64 failed: ", err)
 		return "", err
@@ -101,7 +104,7 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 }
 
 func Download(proxies, url, suffix string) (file string, err error) {
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
 		URL(url).
 		Do()
@@ -121,16 +124,17 @@ func Download(proxies, url, suffix string) (file string, err error) {
 		return "", err
 	}
 
-	_, err = os.Stat("tmp")
+	timePath := time.Now().Format("2006/01/02")
+	_, err = os.Stat("tmp/" + timePath)
 	if os.IsNotExist(err) {
-		err = os.Mkdir("tmp", os.ModePerm)
+		err = os.Mkdir("tmp/"+timePath, 0766)
 		if err != nil {
 			logger.Error("download failed: ", err)
 			return "", err
 		}
 	}
 
-	tempFile, err := os.CreateTemp("tmp", "*."+suffix)
+	tempFile, err := os.CreateTemp("tmp/"+timePath, "*."+suffix)
 	if err != nil {
 		logger.Error("download failed: ", err)
 		return "", err
@@ -180,4 +184,10 @@ func LoadImageMeta(url string) (mime string, data string, err error) {
 	mime = response.Header.Get("content-type")
 	data = base64.StdEncoding.EncodeToString(dataBytes)
 	return
+}
+
+func CalcSHA256(buffer []byte) string {
+	hasher := sha256.New()
+	hasher.Write(buffer)
+	return hex.EncodeToString(hasher.Sum(nil))
 }

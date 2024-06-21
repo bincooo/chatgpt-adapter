@@ -1,6 +1,7 @@
 package bing
 
 import (
+	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
@@ -16,7 +17,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		retry := 3
 		options, err := edge.NewDefaultOptions(cookie, "")
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 	label:
@@ -26,14 +27,15 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			TopicToE(true).
 			Model(edge.ModelSydney).
 			Temperature(0.9))
-		chatResponse, err := chat.Reply(ctx.Request.Context(), message, nil)
+		chat.Client(plugin.HTTPClient)
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), message, nil)
 		if err != nil {
 			if retry > 0 {
 				logger.Errorf("Failed to complete tool calls: %v", err)
 				time.Sleep(time.Second)
 				goto label
 			}
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		content, err := waitMessage(chatResponse, plugin.ToolCallCancel)
@@ -45,7 +47,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			}
 		}
 
-		return content, err
+		return content, logger.WarpError(err)
 	})
 
 	if err != nil {

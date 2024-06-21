@@ -172,3 +172,27 @@ var (
 		"(No style)",
 	}
 )
+
+var (
+	animagineXl31Models = []string{
+		"(None)",
+		"Cinematic",
+		"Photographic",
+		"Anime",
+		"Manga",
+		"Digital Art",
+		"Pixel art",
+		"Fantasy art",
+		"Neonpunk",
+		"3D Model",
+	}
+
+	animagineXl31Samples = []string{
+		"DPM++ 2M Karras",
+		"DPM++ SDE Karras",
+		"DPM++ 2M SDE Karras",
+		"Euler",
+		"Euler a",
+		"DDIM",
+	}
+)

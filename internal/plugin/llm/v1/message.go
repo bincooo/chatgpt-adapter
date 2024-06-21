@@ -18,6 +18,8 @@ import (
 const ginTokens = "__tokens__"
 
 func waitMessage(r *http.Response, cancel func(str string) bool) (content string, err error) {
+	defer r.Body.Close()
+
 	scanner := bufio.NewScanner(r.Body)
 	scanner.Split(func(data []byte, eof bool) (advance int, token []byte, err error) {
 		if eof && len(data) == 0 {
@@ -85,6 +87,8 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 }
 
 func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response, sse bool) (content string) {
+	defer r.Body.Close()
+
 	logger.Info("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
 	completion := common.GetGinCompletion(ctx)

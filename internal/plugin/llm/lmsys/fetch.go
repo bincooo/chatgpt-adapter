@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/emit.io"
 	"net/http"
@@ -51,7 +52,9 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 	}
 
 	if cookies == "" {
-		return nil, errors.New("fetch failed")
+		return nil, logger.WarpError(
+			errors.New("fetch failed"),
+		)
 	}
 
 	return partTwo(ctx, proxies, cookies, hash, opts)
@@ -70,7 +73,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		},
 	}
 
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
@@ -85,12 +88,12 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Body(obj).
 		DoS(http.StatusOK)
 	if err != nil {
-		return nil, err
+		return nil, logger.WarpError(err)
 	}
 
 	obj, err = emit.ToMap(response)
 	if err != nil {
-		return nil, err
+		return nil, logger.WarpError(err)
 	}
 
 	if eventId, ok := obj["event_id"]; ok {
@@ -100,7 +103,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	}
 
 	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
-	response, err = emit.ClientBuilder().
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/queue/data").
@@ -114,12 +117,12 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Header("Priority", "u=1, i").
 		DoS(http.StatusOK)
 	if err != nil {
-		return nil, err
+		return nil, logger.WarpError(err)
 	}
 
 	e, err := emit.NewGio(ctx, response)
 	if err != nil {
-		return nil, err
+		return nil, logger.WarpError(err)
 	}
 
 	ch := make(chan string)
@@ -183,6 +186,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 
 	go func() {
 		defer close(ch)
+		defer response.Body.Close()
 		if err = e.Do(); err != nil {
 			logger.Error(err)
 		}
@@ -210,7 +214,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 	for _, fn = range fns {
 		obj["fn_index"] = fn[0]
 		obj["trigger_id"] = fn[1]
-		response, err = emit.ClientBuilder().
+		response, err = emit.ClientBuilder(plugin.HTTPClient).
 			Context(ctx).
 			Proxies(proxies).
 			POST(baseUrl+"/queue/join").
@@ -231,12 +235,12 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 
 	if err != nil {
 		ver = ""
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	obj, err = emit.ToMap(response)
 	if err != nil {
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	if eventId, ok := obj["event_id"]; ok {
@@ -246,7 +250,7 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 	}
 
 	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
-	response, err = emit.ClientBuilder().
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/queue/data").
@@ -260,13 +264,13 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		Header("Priority", "u=1, i").
 		DoS(http.StatusOK)
 	if err != nil {
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
 	e, err := emit.NewGio(ctx, response)
 	if err != nil {
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	next := false
@@ -276,11 +280,13 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 	})
 
 	if err = e.Do(); err != nil {
-		return "", err
+		return "", logger.WarpError(err)
 	}
 
 	if !next {
-		return "", errors.New("fetch failed")
+		return "", logger.WarpError(
+			errors.New("fetch failed"),
+		)
 	}
 
 	opts.fn = fn
@@ -299,7 +305,7 @@ label:
 		return
 	}
 	retry--
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/info").

@@ -2,7 +2,6 @@ package coze
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
@@ -11,11 +10,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/coze-api"
-	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
-	"mime/multipart"
-	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -38,7 +33,9 @@ func waitMessage(chatResponse chan string, cancel func(str string) bool) (conten
 		}
 
 		if strings.HasPrefix(message, "error: ") {
-			return "", errors.New(strings.TrimPrefix(message, "error: "))
+			return "", logger.WarpError(
+				errors.New(strings.TrimPrefix(message, "error: ")),
+			)
 		}
 
 		message = strings.TrimPrefix(message, "text: ")
@@ -147,7 +144,7 @@ func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, tokens int, er
 		// 复合消息
 		if _, ok := opts.Message["multi"]; ok && role == "user" {
 			message := opts.Initial()
-			content, e := processMultiMessage(ctx.Request.Context(), proxies, message)
+			content, e := common.MergeMultiMessage(ctx.Request.Context(), proxies, message)
 			if e != nil {
 				return nil, e
 			}
@@ -186,97 +183,8 @@ func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, tokens int, er
 	}
 
 	newMessages, err = common.TextMessageCombiner(messages, iterator)
+	if err != nil {
+		err = logger.WarpError(err)
+	}
 	return
-}
-
-func processMultiMessage(ctx context.Context, proxies string, message pkg.Keyv[interface{}]) (string, error) {
-	contents := make([]string, 0)
-	values := message.GetSlice("content")
-	if len(values) == 0 {
-		return "", nil
-	}
-
-	for _, value := range values {
-		var keyv pkg.Keyv[interface{}]
-		keyv, ok := value.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		if keyv.Is("type", "text") {
-			contents = append(contents, keyv.GetString("text"))
-			continue
-		}
-
-		if keyv.Is("type", "image_url") {
-			o := keyv.GetKeyv("image_url")
-			file := o.GetString("url")
-			// base64
-			if strings.HasPrefix(file, "data:image/") {
-				pos := strings.Index(file, ";")
-				if pos == -1 {
-					return "", errors.New("invalid base64 url")
-				}
-
-				mime := file[5:pos]
-				ext, err := common.MimeToSuffix(mime)
-				if err != nil {
-					return "", err
-				}
-
-				file = file[pos+1:]
-				if !strings.HasPrefix(file, "base64,") {
-					return "", errors.New("invalid base64 url")
-				}
-
-				buffer := new(bytes.Buffer)
-				w := multipart.NewWriter(buffer)
-				fw, err := w.CreateFormFile("image", "1"+ext)
-				if err != nil {
-					return "", err
-				}
-
-				file, err = common.SaveBase64(file, ext[1:])
-				if err != nil {
-					return "", err
-				}
-
-				fileBytes, err := os.ReadFile(file)
-				if err != nil {
-					return "", err
-				}
-				_, _ = fw.Write(fileBytes)
-				_ = w.Close()
-
-				r, err := emit.ClientBuilder().
-					Proxies(proxies).
-					Context(ctx).
-					POST("https://complete-mmx-easy-images.hf.space/upload").
-					Header("Content-Type", w.FormDataContentType()).
-					Header("Authorization", "Bearer 123").
-					Buffer(buffer).
-					DoS(http.StatusOK)
-				if err != nil {
-					text := emit.TextResponse(r)
-					logger.Error(text)
-					return "", err
-				}
-
-				obj, err := emit.ToMap(r)
-				if err != nil {
-					return "", err
-				}
-
-				file = obj["URL"].(string)
-			}
-
-			contents = append(contents, fmt.Sprintf("*image*: %s\n----", file))
-		}
-	}
-
-	if len(contents) == 0 {
-		return "", nil
-	}
-
-	return strings.Join(contents, "\n\n"), nil
 }

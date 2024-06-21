@@ -1,5 +1,9 @@
 package vars
 
+var (
+	Proxies = ""
+)
+
 const (
 	MatDefault  int = iota // 执行下一个匹配器
 	MatMatching            // 匹配中, 字符被缓存
@@ -12,4 +16,5 @@ const (
 	GinDebugger        = "__debug__"
 	GinTool            = "__tool__"
 	GinClose           = "__close__"
+	GinCancelFunc      = "__cancelFunc__"
 )

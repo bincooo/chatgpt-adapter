@@ -31,7 +31,7 @@ func magnify(ctx context.Context, url, key, style, x2 string) (string, error) {
 		"input": url,
 	}
 
-	response, err := emit.ClientBuilder().
+	response, err := emit.ClientBuilder(nil).
 		Context(ctx).
 		URL(baseURL).
 		Method(http.MethodPost).
@@ -64,7 +64,7 @@ func magnify(ctx context.Context, url, key, style, x2 string) (string, error) {
 		}
 		retry--
 
-		response, err = emit.ClientBuilder().
+		response, err = emit.ClientBuilder(nil).
 			Context(ctx).
 			URL(baseURL + taskId).
 			DoS(http.StatusOK)

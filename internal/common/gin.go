@@ -1,9 +1,11 @@
 package common
 
 import (
+	"context"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 func GinDebugger(ctx *gin.Context) bool {
@@ -68,3 +70,37 @@ func GetGinValues[T any](ctx *gin.Context, key string) ([]T, bool) {
 	t, ok := value.([]T)
 	return t, ok
 }
+
+func GetGinContext(ctx *gin.Context) context.Context {
+	var key = "__context__"
+	{
+		value, exists := GetGinValue[context.Context](ctx, key)
+		if exists {
+			return value
+		}
+	}
+
+	reqCtx := ctx.Request.Context()
+	connTimeout := pkg.Config.GetInt("server-conn.connTimeout")
+	if connTimeout > 0 {
+		timeout, cancelFunc := context.WithTimeout(reqCtx, time.Duration(connTimeout)*time.Second)
+		ctx.Set(key, timeout)
+		ctx.Set(vars.GinCancelFunc, cancelFunc)
+		return timeout
+	}
+	return reqCtx
+}
+
+//func GetGinIdleConnectOption(ctx *gin.Context) *emit.ConnectOption {
+//	key := "__IdleConnectOption__"
+//	{
+//		value, exists := GetGinValue[*emit.ConnectOption](ctx, key)
+//		if exists {
+//			return value
+//		}
+//	}
+//
+//	option := GetIdleConnectOption()
+//	ctx.Set(key, option)
+//	return option
+//}

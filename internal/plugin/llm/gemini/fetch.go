@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
-	"io"
 	"net/http"
 	"net/url"
 	"slices"
@@ -232,31 +232,24 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		return nil, err
 	}
 
-	res, err := emit.ClientBuilder().
+	res, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(ctx).
 		POST(gURL).
 		JHeader().
 		Bytes(marshal).
-		Do()
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
 	if err != nil {
 		logger.Error(err)
 		var e *url.Error
 		if errors.As(err, &e) {
 			e.URL = strings.Replace(e.URL, token, "AIzaSy***", -1)
 		}
-		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
 		h := res.Header
 		if c := h.Get("content-type"); !strings.Contains(c, "text/html") {
-			dataBytes, e := io.ReadAll(res.Body)
-			if e == nil {
-				logger.Errorf("%s", dataBytes)
-			}
+			logger.Errorf(emit.TextResponse(res))
 		}
-		return nil, errors.New(res.Status)
+		return nil, err
 	}
 
 	return res, nil

@@ -1,6 +1,7 @@
 package cohere
 
 import (
+	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
@@ -25,9 +26,9 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 
 		message = regexp.MustCompile("工具推荐： toolId = .{5}").
 			ReplaceAllString(message, "")
-		chatResponse, err := chat.Reply(ctx.Request.Context(), make([]cohere.Message, 0), "", message, cohere.ToolObject{})
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), make([]cohere.Message, 0), "", message, cohere.ToolObject{})
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		return waitMessage(chatResponse, plugin.ToolCallCancel)

@@ -3,24 +3,20 @@ package interpreter
 import (
 	"bytes"
 	"fmt"
-	"github.com/RomiChan/websocket"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"net/http"
 )
 
-var (
-	start = []byte{123, 34, 114, 111, 108, 101, 34, 58, 32, 34, 117, 115, 101, 114, 34, 44, 32, 34, 116, 121, 112, 101, 34, 58, 32, 34, 109, 101, 115, 115, 97, 103, 101, 34, 44, 32, 34, 115, 116, 97, 114, 116, 34, 58, 32, 116, 114, 117, 101, 125}
-	end   = []byte{123, 34, 114, 111, 108, 101, 34, 58, 32, 34, 117, 115, 101, 114, 34, 44, 32, 34, 116, 121, 112, 101, 34, 58, 32, 34, 109, 101, 115, 115, 97, 103, 101, 34, 44, 32, 34, 101, 110, 100, 34, 58, 32, 116, 114, 117, 101, 125}
-)
-
-func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (conn *websocket.Conn, tokens int, err error) {
+func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (response *http.Response, tokens int, err error) {
 	var (
-		baseSocket = pkg.Config.GetString("interpreter.baseSocket")
-		useProxy   = pkg.Config.GetBool("interpreter.useProxy")
+		baseUrl  = pkg.Config.GetString("interpreter.baseUrl")
+		useProxy = pkg.Config.GetBool("interpreter.useProxy")
 	)
 
 	if !useProxy {
@@ -36,6 +32,12 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (con
 		}
 	}
 
+	system := ""
+	if completion.Messages[0].Is("role", "system") {
+		system = completion.Messages[0].GetString("content")
+		completion.Messages = completion.Messages[1:]
+	}
+
 	messages, _ := common.TextMessageCombiner(completion.Messages, func(opts struct {
 		Previous string
 		Next     string
@@ -45,6 +47,26 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (con
 	}) (result []pkg.Keyv[interface{}], err error) {
 		role := opts.Message["role"]
 		tokens += common.CalcTokens(opts.Message["content"])
+		// 复合消息
+		if _, ok := opts.Message["multi"]; ok && role == "user" {
+			message := opts.Initial()
+			content, e := common.MergeMultiMessage(ctx.Request.Context(), proxies, message)
+			if e != nil {
+				return nil, e
+			}
+			opts.Buffer.WriteString(content)
+			if condition(role) != condition(opts.Next) {
+				result = []pkg.Keyv[interface{}]{
+					{
+						"role":    condition(role),
+						"content": opts.Buffer.String(),
+						"type":    "message",
+					},
+				}
+				opts.Buffer.Reset()
+			}
+			return
+		}
 
 		if condition(role) == condition(opts.Next) {
 			// cache buffer
@@ -64,59 +86,43 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (con
 		return
 	})
 
+	if messageL := len(messages); !messages[messageL-1].Is("role", "user") {
+		return nil, 0, errors.Errorf("messages[%d] is not `user` role", messageL-1)
+	}
+
 	message := messages[len(messages)-1].GetString("content")
 	messages = messages[:len(messages)-1]
 
-	response, err := emit.ClientBuilder().
-		Context(ctx.Request.Context()).
+	obj := map[string]interface{}{
+		"messages": messages,
+	}
+
+	if system != "" {
+		obj["system"] = system
+	}
+
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
+		Context(common.GetGinContext(ctx)).
 		Proxies(proxies).
-		POST(replace(baseSocket)+"/settings").
-		Body(map[string]interface{}{
-			"messages": messages,
-		}).
+		POST(baseUrl+"/settings").
+		Body(obj).
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
+		err = logger.WarpError(err)
 		return
 	}
 	logger.Info(emit.TextResponse(response))
 
-	conn, err = emit.SocketBuilder().
-		Context(ctx.Request.Context()).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
+		Context(common.GetGinContext(ctx)).
 		Proxies(proxies).
-		URL(baseSocket).
-		DoS(http.StatusSwitchingProtocols)
+		POST(baseUrl+"/chat").
+		Body(map[string]string{
+			"message": message,
+		}).
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
 	if err != nil {
-		return
+		err = logger.WarpError(err)
 	}
-
-	err = sendMessage(conn, message)
 	return
-}
-
-func sendMessage(conn *websocket.Conn, message string) (err error) {
-	err = conn.WriteMessage(websocket.TextMessage, start)
-	if err != nil {
-		return
-	}
-
-	err = conn.WriteJSON(map[string]interface{}{
-		"role":    "user",
-		"type":    "message",
-		"content": message,
-	})
-	if err != nil {
-		return
-	}
-
-	return conn.WriteMessage(websocket.TextMessage, end)
-}
-
-func replace(bu string) string {
-	if len(bu) > 5 && bu[:5] == "ws://" {
-		return "http://" + bu[5:]
-	}
-	if len(bu) > 6 && bu[:6] == "wss://" {
-		return "https://" + bu[6:]
-	}
-	return bu
 }

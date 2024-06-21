@@ -64,6 +64,10 @@ func (API) Completion(ctx *gin.Context) {
 		matchers   = common.GetGinMatchers(ctx)
 	)
 
+	if cookie == "xxx" {
+		cookie = common.RandString(32)
+	}
+
 	if completion.Model == Model+"-vision" {
 		pad = true
 	}
@@ -90,23 +94,31 @@ func (API) Completion(ctx *gin.Context) {
 		chat.Notebook(true)
 	}
 
+	chat.Client(plugin.HTTPClient)
 	if completion.Model == "bing-online" {
 		chat.Plugins(edge.PluginSearch)
+	} else {
+		chat.JoinOptionSets(edge.OptionSets_Nosearchall)
 	}
 
 	maxCount := 2
-	if chat.IsLogin() {
+	if chat.IsLogin(common.GetGinContext(ctx)) {
 		maxCount = 28
 	}
 
-	pMessages, currMessage, tokens := mergeMessages(ctx, pad, maxCount, completion)
+	pMessages, currMessage, tokens, err := mergeMessages(ctx, pad, maxCount, completion)
+	if err != nil {
+		logger.Error(err)
+		response.Error(ctx, -1, err)
+		return
+	}
 
 	// 清理多余的标签
 	var cancel chan error
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set(ginTokens, tokens)
 
-	r, err := chat.Reply(ctx.Request.Context(), currMessage, pMessages)
+	r, err := chat.Reply(common.GetGinContext(ctx), currMessage, pMessages)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)

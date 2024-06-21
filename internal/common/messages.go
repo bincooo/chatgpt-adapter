@@ -2,8 +2,16 @@ package common
 
 import (
 	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
+	"github.com/bincooo/emit.io"
 	"github.com/google/uuid"
+	"mime/multipart"
+	"net/http"
+	"os"
 	"strings"
 )
 
@@ -199,13 +207,106 @@ func TextMessageCombiner[T any](
 	return
 }
 
-func StringCombiner[T any](messages []T, iter func(message T) string) string {
+// 单文本内容合并
+func MergeStrMessage[T any](messages []T, iter func(message T) string) string {
 	buffer := new(bytes.Buffer)
 	for _, message := range messages {
 		str := iter(message)
 		buffer.WriteString(str)
 	}
 	return buffer.String()
+}
+
+func MergeMultiMessage(ctx context.Context, proxies string, message pkg.Keyv[interface{}]) (string, error) {
+	contents := make([]string, 0)
+	values := message.GetSlice("content")
+	if len(values) == 0 {
+		return "", nil
+	}
+
+	for _, value := range values {
+		var keyv pkg.Keyv[interface{}]
+		keyv, ok := value.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		if keyv.Is("type", "text") {
+			contents = append(contents, keyv.GetString("text"))
+			continue
+		}
+
+		if keyv.Is("type", "image_url") {
+			o := keyv.GetKeyv("image_url")
+			file := o.GetString("url")
+			// base64
+			if strings.HasPrefix(file, "data:image/") {
+				pos := strings.Index(file, ";")
+				if pos == -1 {
+					return "", errors.New("invalid base64 url")
+				}
+
+				mime := file[5:pos]
+				ext, err := MimeToSuffix(mime)
+				if err != nil {
+					return "", err
+				}
+
+				file = file[pos+1:]
+				if !strings.HasPrefix(file, "base64,") {
+					return "", errors.New("invalid base64 url")
+				}
+
+				buffer := new(bytes.Buffer)
+				w := multipart.NewWriter(buffer)
+				fw, err := w.CreateFormFile("image", "1"+ext)
+				if err != nil {
+					return "", err
+				}
+
+				file, err = SaveBase64(file, ext[1:])
+				if err != nil {
+					return "", err
+				}
+
+				fileBytes, err := os.ReadFile(file)
+				if err != nil {
+					return "", err
+				}
+				_, _ = fw.Write(fileBytes)
+				_ = w.Close()
+
+				r, err := emit.ClientBuilder(nil).
+					Proxies(proxies).
+					Context(ctx).
+					POST("https://complete-mmx-easy-images.hf.space/upload").
+					Header("Content-Type", w.FormDataContentType()).
+					Header("Authorization", "Bearer 123").
+					Buffer(buffer).
+					DoS(http.StatusOK)
+				if err != nil {
+					text := emit.TextResponse(r)
+					logger.Error(text)
+					return "", err
+				}
+
+				obj, err := emit.ToMap(r)
+				if err != nil {
+					return "", err
+				}
+
+				file = obj["URL"].(string)
+			}
+
+			contents = append(contents, fmt.Sprintf("*image*: %s\n----", file))
+		}
+	}
+
+	if len(contents) == 0 {
+		return "", nil
+	}
+
+	return strings.Join(contents, "\n\n"), nil
 }
 
 // 填充垃圾消息

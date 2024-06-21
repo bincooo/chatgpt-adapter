@@ -1,6 +1,7 @@
 package lmsys
 
 import (
+	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
@@ -11,7 +12,7 @@ import (
 func completeToolCalls(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) bool {
 	logger.Info("completeTools ...")
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
-		ch, err := fetch(ctx.Request.Context(), proxies, message, options{
+		ch, err := fetch(common.GetGinContext(ctx), proxies, message, options{
 			model:       completion.Model,
 			temperature: completion.Temperature,
 			topP:        completion.TopP,

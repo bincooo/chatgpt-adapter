@@ -2,13 +2,14 @@ package v1
 
 import (
 	"github.com/bincooo/chatgpt-adapter/internal/common"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-func fetch(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletion) (*http.Response, error) {
+func fetch(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletion) (response *http.Response, err error) {
 	var (
 		baseUrl  = pkg.Config.GetString("custom-llm.baseUrl")
 		useProxy = pkg.Config.GetBool("custom-llm.useProxy")
@@ -37,12 +38,13 @@ func fetch(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletio
 	ctx.Set(ginTokens, token)
 
 	completion.Stream = true
-	return emit.ClientBuilder().
-		Context(ctx.Request.Context()).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
+		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/v1/chat/completions").
 		Header("Authorization", "Bearer "+token).
 		JHeader().
 		Body(completion).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	return
 }

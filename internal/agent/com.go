@@ -167,7 +167,8 @@ ANSWER: 1: {"toolId":"{{.toolDef}}","arguments":{}} <|end|>
 {{- range $key, $v := $value.function.parameters.properties}}
                  "{{$key}}": {
                      "type": "{{$v.type}}",
-                     "description": "{{ Enc $v.description }}"
+                     "description": "{{ Enc $v.description }}"{{ if gt (Len $v.enum) 0 }},
+                     "enum": [{{ Join $v.enum ", " }}]{{end}}
                  }
 {{- end }}
              }

@@ -39,15 +39,16 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		co, msToken := extCookie(cookie)
 		options, mode, err := newOptions(proxies, completion.Model, pMessages)
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		chat := coze.New(co, msToken, options)
+		chat.Session(plugin.HTTPClient)
 		var lock *common.ExpireLock
 		if mode == 'o' {
 			l, e := draftBot(ctx, pMessages, chat, completion)
 			if e != nil {
-				return "", e.Err
+				return "", logger.WarpError(e.Err)
 			}
 			lock = l
 		}
@@ -60,7 +61,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			query = coze.MergeMessages(pMessages)
 		}
 
-		chatResponse, err := chat.Reply(ctx.Request.Context(), coze.Text, query)
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), coze.Text, query)
 		// 构建完请求即可解锁
 		if lock != nil {
 			lock.Unlock()
@@ -70,7 +71,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		}
 
 		if err != nil {
-			return "", err
+			return "", logger.WarpError(err)
 		}
 
 		return waitMessage(chatResponse, plugin.ToolCallCancel)
