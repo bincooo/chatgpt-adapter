@@ -289,6 +289,7 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 }
 
 func extCookies(token string) (fn []int) {
+	token = strings.TrimSpace(token)
 	if len(token) > 2 && token[0] == '[' && token[len(token)-1] == ']' {
 		var slice []int
 		err := json.Unmarshal([]byte(token), &slice)
