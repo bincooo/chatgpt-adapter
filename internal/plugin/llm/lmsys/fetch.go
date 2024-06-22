@@ -2,11 +2,13 @@ package lmsys
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	com "github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"net/http"
 	"strings"
@@ -20,10 +22,6 @@ const (
 var (
 	baseCookies = "_gid=GA1.2.68066840.1717017781; _ga_K6D24EE9ED=GS1.1.1717087813.23.1.1717088648.0.0.0; _gat_gtag_UA_156449732_1=1; _ga_R1FN4KJKJH=GS1.1.1717087813.37.1.1717088648.0.0.0; _ga=GA1.1.1320014795.1715641484"
 	ver         = ""
-	fns         = [][]int{
-		{42, 94},
-		{44, 95},
-	}
 )
 
 type options struct {
@@ -34,7 +32,7 @@ type options struct {
 	fn          []int
 }
 
-func fetch(ctx context.Context, proxies, messages string, opts options) (chan string, error) {
+func fetch(ctx context.Context, proxies, token, messages string, opts options) (chan string, error) {
 	if opts.topP == 0 {
 		opts.topP = 1
 	}
@@ -46,7 +44,7 @@ func fetch(ctx context.Context, proxies, messages string, opts options) (chan st
 	}
 
 	hash := emit.GioHash()
-	cookies, err := partOne(ctx, proxies, &opts, messages, hash)
+	cookies, err := partOne(ctx, proxies, token, &opts, messages, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +193,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	return ch, nil
 }
 
-func partOne(ctx context.Context, proxies string, opts *options, messages string, hash string) (string, error) {
+func partOne(ctx context.Context, proxies, token string, opts *options, messages string, hash string) (string, error) {
 	obj := map[string]interface{}{
 		"event_data":   nil,
 		"session_hash": hash,
@@ -207,32 +205,29 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 		},
 	}
 
-	var fn []int
+	fn := extCookies(token)
+	if fn == nil {
+		return "", logger.WarpError(errors.New("invalid fn_index & trigger_id"))
+	}
 	var response *http.Response
 	var err error
 	cookies := fetchCookies(ctx, proxies)
-	for _, fn = range fns {
-		obj["fn_index"] = fn[0]
-		obj["trigger_id"] = fn[1]
-		response, err = emit.ClientBuilder(plugin.HTTPClient).
-			Context(ctx).
-			Proxies(proxies).
-			POST(baseUrl+"/queue/join").
-			JHeader().
-			Header("User-Agent", ua).
-			Header("Cookie", cookies).
-			Header("Origin", "https://arena.lmsys.org").
-			Header("Referer", "https://arena.lmsys.org/").
-			Header("Accept-Language", "en-US,en;q=0.9").
-			Header("Cache-Control", "no-cache").
-			Header("Priority", "u=1, i").
-			Body(obj).
-			DoS(http.StatusOK)
-		if err == nil {
-			break
-		}
-	}
-
+	obj["fn_index"] = fn[0]
+	obj["trigger_id"] = fn[1]
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
+		Context(ctx).
+		Proxies(proxies).
+		POST(baseUrl+"/queue/join").
+		JHeader().
+		Header("User-Agent", ua).
+		Header("Cookie", cookies).
+		Header("Origin", "https://arena.lmsys.org").
+		Header("Referer", "https://arena.lmsys.org/").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Cache-Control", "no-cache").
+		Header("Priority", "u=1, i").
+		Body(obj).
+		DoS(http.StatusOK)
 	if err != nil {
 		ver = ""
 		return "", logger.WarpError(err)
@@ -291,6 +286,27 @@ func partOne(ctx context.Context, proxies string, opts *options, messages string
 
 	opts.fn = fn
 	return cookies, nil
+}
+
+func extCookies(token string) (fn []int) {
+	if len(token) > 2 && token[0] == '[' && token[len(token)-1] == ']' {
+		var slice []int
+		err := json.Unmarshal([]byte(token), &slice)
+		if err != nil {
+			logger.Error(err)
+		} else {
+			fn = slice
+		}
+		return
+	}
+
+	slice := pkg.Config.GetIntSlice("lmsys")
+	if len(slice) >= 2 {
+		fn = slice[:2]
+	}
+
+	fn = []int{49, 109}
+	return
 }
 
 func fetchCookies(ctx context.Context, proxies string) (cookies string) {

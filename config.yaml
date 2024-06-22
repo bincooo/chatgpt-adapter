@@ -10,6 +10,9 @@ server-conn:
 # 图片访问
 domain: "http://127.0.0.1:8080"
 
+# lmsys fn、 trigger
+lmsys: [49 , 109]
+
 # gemini 自定义安全设置
 google:
 #  safes:

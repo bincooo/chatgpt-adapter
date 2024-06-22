@@ -256,6 +256,7 @@ func (API) Models() []plugin.Model {
 
 func (API) Completion(ctx *gin.Context) {
 	var (
+		token      = ctx.GetString("token")
 		proxies    = ctx.GetString("proxies")
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
@@ -263,7 +264,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	completion.Model = completion.Model[6:]
 	if plugin.NeedToToolCall(ctx) {
-		if completeToolCalls(ctx, proxies, completion) {
+		if completeToolCalls(ctx, proxies, token, completion) {
 			return
 		}
 	}
@@ -272,7 +273,7 @@ func (API) Completion(ctx *gin.Context) {
 	ctx.Set(ginTokens, common.CalcTokens(newMessages))
 	retry := 3
 label:
-	ch, err := fetch(common.GetGinContext(ctx), proxies, newMessages, options{
+	ch, err := fetch(common.GetGinContext(ctx), proxies, token, newMessages, options{
 		model:       completion.Model,
 		temperature: completion.Temperature,
 		topP:        completion.TopP,

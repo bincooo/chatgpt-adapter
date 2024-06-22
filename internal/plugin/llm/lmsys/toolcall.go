@@ -9,10 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func completeToolCalls(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) bool {
+func completeToolCalls(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletion) bool {
 	logger.Info("completeTools ...")
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
-		ch, err := fetch(common.GetGinContext(ctx), proxies, message, options{
+		ch, err := fetch(common.GetGinContext(ctx), proxies, token, message, options{
 			model:       completion.Model,
 			temperature: completion.Temperature,
 			topP:        completion.TopP,
