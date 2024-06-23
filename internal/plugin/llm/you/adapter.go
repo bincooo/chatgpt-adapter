@@ -13,10 +13,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
 var (
+	mu sync.Mutex
+
 	Adapter = API{}
 	Model   = "you"
 
@@ -183,7 +186,9 @@ func (API) Completion(ctx *gin.Context) {
 			_ = youRollContainer.SetMarker(cookie, 2)
 			// 403 重定向？？？
 			if se.Code == 403 {
+				mu.Lock()
 				clearance = ""
+				mu.Unlock()
 			}
 		}
 		response.Error(ctx, -1, err)
@@ -215,6 +220,12 @@ func resetMarker(cookie string) {
 
 func tryCloudFlare(ctx *gin.Context) error {
 	if clearance == "" {
+		mu.Lock()
+		defer mu.Unlock()
+		if clearance != "" {
+			return nil
+		}
+
 		port := pkg.Config.GetString("you.helper")
 		r, err := emit.ClientBuilder(plugin.HTTPClient).
 			GET("http://127.0.0.1:"+port+"/clearance").
