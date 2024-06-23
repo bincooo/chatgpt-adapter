@@ -181,6 +181,10 @@ func (API) Completion(ctx *gin.Context) {
 		var se emit.Error
 		if errors.As(err, &se) && se.Code > 400 {
 			_ = youRollContainer.SetMarker(cookie, 2)
+			// 403 重定向？？？
+			if se.Code == 403 {
+				clearance = ""
+			}
 		}
 		response.Error(ctx, -1, err)
 		return
