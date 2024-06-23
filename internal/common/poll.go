@@ -36,7 +36,6 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 	s10 := 10 * time.Second
 	for {
 		if len(container.slice) == 0 {
-			time.Sleep(s10)
 			return
 		}
 
@@ -44,7 +43,7 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 		if !container.mu.Lock(timeout) {
 			cancel()
 			time.Sleep(s10)
-			return
+			continue
 		}
 		cancel()
 
