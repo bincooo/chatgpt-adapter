@@ -33,32 +33,38 @@ func NewPollContainer[T interface{}](slice []T, resetTime time.Duration) *PollCo
 }
 
 func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) {
-	if len(container.slice) == 0 {
-		return
-	}
-
-	timeout, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	if !container.mu.Lock(timeout) {
-		return
-	}
-	defer container.mu.Unlock()
-
-	for _, value := range container.slice {
-		marker, ok := container.markers[value]
-		if !ok {
-			continue
+	s10 := 10 * time.Second
+	for {
+		if len(container.slice) == 0 {
+			time.Sleep(s10)
+			return
 		}
 
-		if marker.s == 0 { // 就绪状态
-			continue
+		timeout, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		if !container.mu.Lock(timeout) {
+			cancel()
+			time.Sleep(s10)
+			return
 		}
+		cancel()
 
-		// 1 使用中 2 异常冷却中
-		if time.Now().Add(-resetTime).After(marker.t) {
-			marker.s = 0
+		for _, value := range container.slice {
+			marker, ok := container.markers[value]
+			if !ok {
+				continue
+			}
+
+			if marker.s == 0 { // 就绪状态
+				continue
+			}
+
+			// 1 使用中 2 异常冷却中
+			if time.Now().Add(-resetTime).After(marker.t) {
+				marker.s = 0
+			}
 		}
+		container.mu.Unlock()
+		time.Sleep(s10)
 	}
 }
 
