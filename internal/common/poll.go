@@ -20,6 +20,7 @@ type PollContainer[T interface{}] struct {
 	Condition func(T) bool
 }
 
+// resetTime 用于复位状态：0 就绪状态，1 使用状态，2 异常状态
 func NewPollContainer[T interface{}](slice []T, resetTime time.Duration) *PollContainer[T] {
 	container := PollContainer[T]{
 		slice:   slice,
@@ -32,6 +33,7 @@ func NewPollContainer[T interface{}](slice []T, resetTime time.Duration) *PollCo
 	return &container
 }
 
+// 定时复位状态 0 就绪状态，1 使用状态，2 异常状态
 func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) {
 	s10 := 10 * time.Second
 	for {
@@ -90,6 +92,7 @@ func (container *PollContainer[T]) Poll() (T, error) {
 	return zero, fmt.Errorf("not roll result")
 }
 
+// 标记： 0 就绪状态，1 使用状态，2 异常状态
 func (container *PollContainer[T]) SetMarker(key interface{}, value byte) error {
 	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

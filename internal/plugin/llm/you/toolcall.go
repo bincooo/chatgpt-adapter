@@ -8,6 +8,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/you.com"
 	"github.com/gin-gonic/gin"
+	"strings"
 	"time"
 )
 
@@ -29,6 +30,10 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		chatResponse, err := chat.Reply(common.GetGinContext(ctx), nil, message, false)
 		if err != nil {
 			if retry > 0 {
+				if strings.Contains(err.Error(), "ZERO QUOTA") {
+					return "", err
+				}
+
 				logger.Errorf("Failed to complete tool calls: %v", err)
 				time.Sleep(time.Second)
 				goto label
@@ -50,6 +55,11 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 
 	if err != nil {
 		logger.Error(err)
+		// 交给下一步处理
+		if strings.Contains(err.Error(), "ZERO QUOTA") {
+			return false
+		}
+
 		response.Error(ctx, -1, err)
 		return true
 	}

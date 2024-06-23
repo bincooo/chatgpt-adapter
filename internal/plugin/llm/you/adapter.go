@@ -141,6 +141,7 @@ func (API) Completion(ctx *gin.Context) {
 		return
 	}
 
+	logger.Infof("curr cookies: %s", cookie)
 	defer resetMarker(cookie)
 
 	var (
@@ -173,7 +174,6 @@ func (API) Completion(ctx *gin.Context) {
 		return
 	}
 
-	// 清理多余的标签
 	var cancel chan error
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set(ginTokens, tokens)
@@ -182,16 +182,23 @@ func (API) Completion(ctx *gin.Context) {
 	if err != nil {
 		logger.Error(err)
 		var se emit.Error
+		code := -1
 		if errors.As(err, &se) && se.Code > 400 {
 			_ = youRollContainer.SetMarker(cookie, 2)
 			// 403 重定向？？？
 			if se.Code == 403 {
+				code = 429
 				mu.Lock()
 				clearance = ""
 				mu.Unlock()
 			}
 		}
-		response.Error(ctx, -1, err)
+
+		if strings.Contains(err.Error(), "ZERO QUOTA") {
+			_ = youRollContainer.SetMarker(cookie, 2)
+			code = 429
+		}
+		response.Error(ctx, code, err)
 		return
 	}
 

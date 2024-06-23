@@ -29,7 +29,7 @@ google:
 #      threshold: BLOCK_NONE
 
 you:
-  enabled: true
+  enabled: false
   helper: 8082
   cookies:
     - 'xxx1'
