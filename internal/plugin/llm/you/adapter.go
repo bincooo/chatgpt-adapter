@@ -52,7 +52,20 @@ func init() {
 }
 
 func (API) Match(_ *gin.Context, model string) bool {
-	return strings.HasPrefix(model, "you/")
+	if strings.HasPrefix(model, "you/") {
+		switch model[4:] {
+		case you.GPT_4,
+			you.GPT_4o,
+			you.GPT_4_TURBO,
+			you.CLAUDE_2,
+			you.CLAUDE_3_HAIKU,
+			you.CLAUDE_3_SONNET,
+			you.CLAUDE_3_5_SONNET,
+			you.CLAUDE_3_OPUS:
+			return true
+		}
+	}
+	return false
 }
 
 func (API) Models() []plugin.Model {
