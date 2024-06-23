@@ -11,6 +11,7 @@ import (
 	"github.com/bincooo/you.com"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -48,7 +49,7 @@ func init() {
 		}
 
 		if pkg.Config.GetBool("serverless.enabled") {
-			you.Exec(port)
+			you.Exec(port, os.Stdout, os.Stdout)
 			common.AddExited(you.Exit)
 		}
 	})

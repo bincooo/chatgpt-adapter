@@ -25,6 +25,8 @@
 
 # Go workspace file
 go.work
+simple_test.go
+cookies.txt
 
 # os system
 .DS_Store
