@@ -421,12 +421,16 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 				pos = len(req.Messages)
 			}
 
-			c := regexp.MustCompile(cmp, regexp.Compiled)
+			c, err := regexp.Compile(cmp, regexp.Compiled)
+			if err != nil {
+				logger.Warn("compile failed: "+cmp, err)
+				continue
+			}
 			for idx, message := range req.Messages {
 				if idx < pos && !message.Is("role", "system") {
-					replace, err := c.Replace(message.GetString("content"), value, -1, -1)
-					if err != nil {
-						logger.Warn("compile failed: "+cmp, err)
+					replace, e := c.Replace(message.GetString("content"), value, -1, -1)
+					if e != nil {
+						logger.Warn("compile failed: "+cmp, e)
 						continue
 					}
 					message["content"] = replace

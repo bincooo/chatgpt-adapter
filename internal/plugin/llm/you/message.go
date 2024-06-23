@@ -173,7 +173,7 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 		return
 	}
 
-	text = "continue"
+	text = "Please review the attached prompt"
 
 	// 获取最后一条用户消息
 	if is32 {
@@ -218,7 +218,6 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 		}
 		pMessages = append(pMessages, newMessage)
 		pos++
-		break
 	}
 	return
 }
