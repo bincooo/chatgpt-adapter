@@ -112,13 +112,22 @@ label:
 
 func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text string, tokens int, err error) {
 	var messages = completion.Messages
-	condition := func(expr string) string {
+	cond := func(expr string) string {
 		switch expr {
 		case "assistant", "end":
 			return expr
 		default:
 			return "user"
 		}
+	}
+
+	for _, message := range messages {
+		tokens += common.CalcTokens(message.GetString("content"))
+	}
+
+	is32 := false
+	if tokens < 32*1000 {
+		is32 = true
 	}
 
 	// 合并历史对话
@@ -130,8 +139,7 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 		Initial  func() pkg.Keyv[interface{}]
 	}) (result []map[string]string, err error) {
 		role := opts.Message["role"]
-		tokens += common.CalcTokens(opts.Message["content"])
-		if condition(role) == condition(opts.Next) {
+		if cond(role) == cond(opts.Next) {
 			// cache buffer
 			if role == "function" || role == "tool" {
 				opts.Buffer.WriteString(fmt.Sprintf("这是内置工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
@@ -139,7 +147,7 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 			}
 
 			prefix := ""
-			if condition(role) == "user" {
+			if !is32 && cond(role) == "user" {
 				prefix = "Human： "
 			}
 			opts.Buffer.WriteString(prefix + opts.Message["content"])
@@ -148,12 +156,12 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 
 		defer opts.Buffer.Reset()
 		prefix := ""
-		if condition(role) == "user" {
+		if !is32 && cond(role) == "user" {
 			prefix = "Human： "
 		}
 		opts.Buffer.WriteString(prefix + opts.Message["content"])
 		result = append(result, map[string]string{
-			"role":    condition(role),
+			"role":    cond(role),
 			"content": opts.Buffer.String(),
 		})
 		return
@@ -166,18 +174,16 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 	}
 
 	text = "continue"
-	is32 := false
+
 	// 获取最后一条用户消息
-	if tokens < 32*1000 {
+	if is32 {
 		messageL := len(newMessages)
 		message := newMessages[messageL-1]
 		if message["role"] == "user" {
 			newMessages = newMessages[:messageL-1]
 			text = strings.TrimSpace(message["content"])
-			text = strings.TrimLeft(text, "Human： ")
 			messageL -= 1
 		}
-		is32 = true
 	}
 
 	// 理论上合并后的上下文不存在相邻的相同消息
