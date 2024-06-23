@@ -1,11 +1,13 @@
 package you
 
 import (
+	"errors"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
+	"github.com/bincooo/emit.io"
 	"github.com/bincooo/you.com"
 	"github.com/gin-gonic/gin"
 	"strings"
@@ -14,6 +16,21 @@ import (
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.ChatCompletion) bool {
 	logger.Infof("completeTools ...")
+
+	var (
+		code    = -1
+		cookies []string
+	)
+
+	defer func(cookies []string) {
+		if len(cookies) == 0 {
+			return
+		}
+		for _, value := range cookies {
+			_ = youRollContainer.SetMarker(value, 0)
+		}
+	}(cookies)
+
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
 		retry := 3
 	label:
@@ -22,18 +39,34 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		chat.LimitWithE(true)
 		chat.Client(plugin.HTTPClient)
 
-		if err := tryCloudFlare(ctx); err != nil {
+		if err := tryCloudFlare(); err != nil {
 			return "", logger.WarpError(err)
 		}
 
 		chat.CloudFlare(clearance, userAgent)
-		chatResponse, err := chat.Reply(common.GetGinContext(ctx), nil, message, false)
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), []you.Message{
+			{"", message},
+		}, "Please review the attached prompt", true)
 		if err != nil {
-			if retry > 0 {
-				if strings.Contains(err.Error(), "ZERO QUOTA") {
-					return "", err
+			if strings.Contains(err.Error(), "ZERO QUOTA") {
+				code = 429
+				_ = youRollContainer.SetMarker(cookie, 2)
+				co, e := youRollContainer.Poll()
+				if e != nil {
+					return "", logger.WarpError(e)
 				}
+				cookie = co
+				cookies = append(cookies, cookie)
+			}
 
+			var se emit.Error
+			if errors.As(err, &se) {
+				if se.Code == 403 {
+					cleanCf()
+				}
+			}
+
+			if retry > 0 {
 				logger.Errorf("Failed to complete tool calls: %v", err)
 				time.Sleep(time.Second)
 				goto label
@@ -55,12 +88,12 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 
 	if err != nil {
 		logger.Error(err)
-		// 交给下一步处理
-		if strings.Contains(err.Error(), "ZERO QUOTA") {
-			return false
-		}
+		response.Error(ctx, code, err)
+		return true
+	}
 
-		response.Error(ctx, -1, err)
+	if code == 429 {
+		response.Error(ctx, code, err)
 		return true
 	}
 

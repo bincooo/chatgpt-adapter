@@ -29,13 +29,13 @@ google:
 #      threshold: BLOCK_NONE
 
 you:
-  enabled: false
+  enabled: true
   helper: 8082
   cookies:
     - 'xxx1'
     - 'xxx2'
 serverless:
-  enabled: true
+  enabled: false
   disabled-gpu: true
   proxies: http://127.0.0.1:7890
   headless: new

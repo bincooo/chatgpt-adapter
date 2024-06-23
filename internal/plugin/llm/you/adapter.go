@@ -1,10 +1,12 @@
 package you
 
 import (
+	"context"
 	"errors"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
@@ -140,8 +142,6 @@ func (API) Completion(ctx *gin.Context) {
 		response.Error(ctx, -1, err)
 		return
 	}
-
-	logger.Infof("curr cookies: %s", cookie)
 	defer resetMarker(cookie)
 
 	var (
@@ -161,7 +161,7 @@ func (API) Completion(ctx *gin.Context) {
 	chat.LimitWithE(true)
 	chat.Client(plugin.HTTPClient)
 
-	if err = tryCloudFlare(ctx); err != nil {
+	if err = tryCloudFlare(); err != nil {
 		response.Error(ctx, -1, err)
 		return
 	}
@@ -178,7 +178,7 @@ func (API) Completion(ctx *gin.Context) {
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set(ginTokens, tokens)
 
-	ch, err := chat.Reply(common.GetGinContext(ctx), pMessages, currMessage, tokens >= 32*1000)
+	ch, err := chat.Reply(common.GetGinContext(ctx), pMessages, currMessage, true /*tokens >= 32*1000*/)
 	if err != nil {
 		logger.Error(err)
 		var se emit.Error
@@ -188,9 +188,7 @@ func (API) Completion(ctx *gin.Context) {
 			// 403 重定向？？？
 			if se.Code == 403 {
 				code = 429
-				mu.Lock()
-				clearance = ""
-				mu.Unlock()
+				cleanCf()
 			}
 		}
 
@@ -206,6 +204,12 @@ func (API) Completion(ctx *gin.Context) {
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
+}
+
+func cleanCf() {
+	mu.Lock()
+	clearance = ""
+	mu.Unlock()
 }
 
 func resetMarker(cookie string) {
@@ -225,8 +229,10 @@ func resetMarker(cookie string) {
 	}
 }
 
-func tryCloudFlare(ctx *gin.Context) error {
+func tryCloudFlare() error {
 	if clearance == "" {
+		logger.Info("trying cloudflare ...")
+
 		mu.Lock()
 		defer mu.Unlock()
 		if clearance != "" {
@@ -245,7 +251,6 @@ func tryCloudFlare(ctx *gin.Context) error {
 		obj, err := emit.ToMap(r)
 		if err != nil {
 			logger.Error(err)
-			response.Error(ctx, -1, err)
 			return err
 		}
 
@@ -269,5 +274,30 @@ func condition(cookie string) bool {
 		logger.Error(err)
 		return false
 	}
-	return marker == 0
+
+	if marker != 0 {
+		return false
+	}
+
+	chat := you.New(cookie, you.CLAUDE_2, vars.Proxies)
+	chat.Client(plugin.HTTPClient)
+	chat.CloudFlare(clearance, userAgent)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	// 检查可用次数
+	count, err := chat.State(ctx)
+	if err != nil {
+		var se emit.Error
+		if errors.As(err, &se) && se.Code == 403 {
+			cleanCf()
+			_ = tryCloudFlare()
+		}
+		logger.Error(err)
+		return false
+	}
+
+	if count == 0 {
+		_ = youRollContainer.SetMarker(cookie, 2)
+	}
+	return count > 0
 }

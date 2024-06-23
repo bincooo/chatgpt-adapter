@@ -127,7 +127,7 @@ func Download(proxies, url, suffix string) (file string, err error) {
 	timePath := time.Now().Format("2006/01/02")
 	_, err = os.Stat("tmp/" + timePath)
 	if os.IsNotExist(err) {
-		err = os.Mkdir("tmp/"+timePath, 0766)
+		err = os.MkdirAll("tmp/"+timePath, 0766)
 		if err != nil {
 			logger.Error("download failed: ", err)
 			return "", err

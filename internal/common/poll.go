@@ -13,10 +13,10 @@ type state struct {
 }
 
 type PollContainer[T interface{}] struct {
-	slice   []T
-	markers map[interface{}]*state
-	mu      ExpireLock
-
+	slice     []T
+	markers   map[interface{}]*state
+	mu        ExpireLock
+	cmu       ExpireLock
 	Condition func(T) bool
 }
 
@@ -78,6 +78,14 @@ func (container *PollContainer[T]) Poll() (T, error) {
 	if container.Condition == nil {
 		return zero, errors.New("condition is nil")
 	}
+
+	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if !container.cmu.Lock(timeout) {
+		return zero, errors.New("lock timeout")
+	}
+	defer container.cmu.Unlock()
 
 	for _, value := range container.slice {
 		if container.Condition(value) {

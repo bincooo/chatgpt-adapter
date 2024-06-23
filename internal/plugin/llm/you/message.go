@@ -126,9 +126,9 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 	}
 
 	is32 := false
-	if tokens < 32*1000 {
-		is32 = true
-	}
+	//if tokens < 32*1000 {
+	//	is32 = true
+	//}
 
 	// 合并历史对话
 	iterator := func(opts struct {
@@ -190,7 +190,7 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 	pos := 0
 	messageL := len(newMessages)
 	for {
-		if pos >= messageL-1 {
+		if pos > messageL-1 {
 			break
 		}
 
@@ -198,10 +198,13 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 		message := newMessages[pos]
 		if message["role"] == "user" {
 			newMessage.Question = message["content"]
+		} else {
+			newMessage.Question = " "
 		}
 
 		pos++
 		if pos >= messageL-1 {
+			newMessage.Answer = "ok ~"
 			pMessages = append(pMessages, newMessage)
 			break
 		}
