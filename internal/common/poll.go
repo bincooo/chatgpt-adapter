@@ -7,23 +7,67 @@ import (
 	"time"
 )
 
-type RollContainer[T interface{}] struct {
+type state struct {
+	t time.Time
+	s byte
+}
+
+type PollContainer[T interface{}] struct {
 	slice   []T
-	markers map[interface{}]byte
+	markers map[interface{}]*state
 	mu      ExpireLock
 
 	Condition func(T) bool
 }
 
-func NewRollContainer[T interface{}](slice []T) RollContainer[T] {
-	return RollContainer[T]{
+func NewPollContainer[T interface{}](slice []T, resetTime time.Duration) *PollContainer[T] {
+	container := PollContainer[T]{
 		slice:   slice,
-		markers: make(map[interface{}]byte),
+		markers: make(map[interface{}]*state),
+	}
+
+	if resetTime > 0 {
+		go timer(&container, resetTime)
+	}
+	return &container
+}
+
+func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) {
+	if len(container.slice) == 0 {
+		return
+	}
+
+	timeout, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	if !container.mu.Lock(timeout) {
+		return
+	}
+	defer container.mu.Unlock()
+
+	for _, value := range container.slice {
+		marker, ok := container.markers[value]
+		if !ok {
+			continue
+		}
+
+		if marker.s == 0 { // 就绪状态
+			continue
+		}
+
+		// 1 使用中 2 异常冷却中
+		if time.Now().Add(-resetTime).After(marker.t) {
+			marker.s = 0
+		}
 	}
 }
 
-func (container *RollContainer[T]) Roll() (T, error) {
+func (container *PollContainer[T]) Poll() (T, error) {
 	var zero T
+	if len(container.slice) == 0 {
+		return zero, errors.New("no elements in slice")
+	}
+
 	if container.Condition == nil {
 		return zero, errors.New("condition is nil")
 	}
@@ -41,31 +85,38 @@ func (container *RollContainer[T]) Roll() (T, error) {
 	return zero, fmt.Errorf("not roll result")
 }
 
-func (container *RollContainer[T]) SetMarker(key interface{}, value byte) error {
+func (container *PollContainer[T]) SetMarker(key interface{}, value byte) error {
 	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if container.mu.Lock(timeout) {
 		defer container.mu.Unlock()
-		container.markers[key] = value
+		container.markers[key] = &state{
+			t: time.Now(),
+			s: value,
+		}
 	} else {
 		return context.DeadlineExceeded
 	}
 	return nil
 }
 
-func (container *RollContainer[T]) GetMarker(key interface{}) (byte, error) {
+func (container *PollContainer[T]) GetMarker(key interface{}) (byte, error) {
 	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if container.mu.Lock(timeout) {
 		defer container.mu.Unlock()
-		return container.markers[key], nil
+		marker, ok := container.markers[key]
+		if !ok {
+			return 0, nil
+		}
+		return marker.s, nil
 	} else {
 		return 0, context.DeadlineExceeded
 	}
 }
 
-func (container *RollContainer[T]) Len() int {
+func (container *PollContainer[T]) Len() int {
 	return len(container.slice)
 }

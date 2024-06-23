@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
+	"time"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 	clearance = ""
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0"
 
-	youRollContainer common.RollContainer[string]
+	youRollContainer *common.PollContainer[string]
 )
 
 type API struct {
@@ -38,7 +39,7 @@ func init() {
 		if len(cookies) == 0 {
 			return
 		}
-		youRollContainer = common.NewRollContainer[string](cookies)
+		youRollContainer = common.NewPollContainer[string](cookies, 30*time.Minute)
 		youRollContainer.Condition = condition
 
 		port := pkg.Config.GetString("you.helper")
@@ -46,8 +47,10 @@ func init() {
 			port = "8081"
 		}
 
-		you.Exec(port)
-		common.AddExited(you.Exit)
+		if pkg.Config.GetBool("serverless.enabled") {
+			you.Exec(port)
+			common.AddExited(you.Exit)
+		}
 	})
 }
 
@@ -71,7 +74,49 @@ func (API) Match(_ *gin.Context, model string) bool {
 func (API) Models() []plugin.Model {
 	return []plugin.Model{
 		{
-			Id:      Model,
+			Id:      "you/" + you.GPT_4,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.GPT_4o,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.GPT_4_TURBO,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.CLAUDE_2,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.CLAUDE_3_HAIKU,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.CLAUDE_3_SONNET,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.CLAUDE_3_5_SONNET,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.CLAUDE_3_OPUS,
 			Object:  "model",
 			Created: 1686935002,
 			By:      Model + "-adapter",
@@ -85,7 +130,7 @@ func (API) Completion(ctx *gin.Context) {
 		return
 	}
 
-	cookie, err := youRollContainer.Roll()
+	cookie, err := youRollContainer.Poll()
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)

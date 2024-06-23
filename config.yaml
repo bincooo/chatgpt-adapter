@@ -35,9 +35,10 @@ you:
     - 'xxx1'
     - 'xxx2'
 serverless:
+  enabled: true
   disabled-gpu: true
   proxies: http://127.0.0.1:7890
-  headless: false
+  headless: new
 
 # coze 默认配置；；；内置配置经常变动，难以维护改为配置化。新增webSdk模式，但还未得知速率是否有限制？？？
 #coze:
