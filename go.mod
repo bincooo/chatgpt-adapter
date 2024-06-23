@@ -8,7 +8,8 @@ require (
 	github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46
 	github.com/bincooo/coze-api v1.0.2-0.20240620163352-ad627f0dffd2
 	github.com/bincooo/edge-api v1.0.4-0.20240620163255-3f676529cccd
-	github.com/bincooo/emit.io v0.0.0-20240621115800-c89e848daf78
+	github.com/bincooo/emit.io v0.0.0-20240622171207-c5018480b050
+	github.com/bincooo/you.com v0.0.0-20240622222700-351015ad5846
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/eko/gocache/lib/v4 v4.1.6
 	github.com/eko/gocache/store/go_cache/v4 v4.2.1
@@ -40,6 +41,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/gingfrederik/docx v0.0.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.14.0 // indirect

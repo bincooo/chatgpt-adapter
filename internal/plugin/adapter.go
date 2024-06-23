@@ -24,8 +24,11 @@ type Model struct {
 func init() {
 	common.AddInitialized(func() {
 		var err error
+		whites := []string{
+			"127.0.0.1",
+		}
 
-		HTTPClient, err = emit.NewDefaultSession(vars.Proxies, common.GetIdleConnectOption())
+		HTTPClient, err = emit.NewDefaultSession(vars.Proxies, common.GetIdleConnectOption(), whites...)
 		if err != nil {
 			logger.Error("Error initializing HTTPClient: ", err)
 		}
@@ -35,7 +38,7 @@ func init() {
 			logger.Error("Error initializing HTTPJa3Client: ", err)
 		}
 
-		SocketClient, err := emit.NewSocketSession(vars.Proxies, common.GetIdleConnectOption())
+		SocketClient, err := emit.NewSocketSession(vars.Proxies, common.GetIdleConnectOption(), whites...)
 		if err != nil {
 			logger.Error("Error initializing HTTPJa3Client: ", err)
 		}

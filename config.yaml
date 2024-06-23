@@ -7,8 +7,17 @@ server-conn:
   idleConnTimeout: 0
   responseHeaderTimeout: 0
 
+# 开启特殊标记增强
+flags: true
+
 # 图片访问
 domain: "http://127.0.0.1:8080"
+
+# 内调llm，用于绘图时文本转tags
+llm:
+  baseUrl: "http://127.0.0.1:8081"
+  model: "bing"
+  token: "xxx"
 
 # lmsys fn、 trigger
 lmsys: [49 , 109]
@@ -19,14 +28,16 @@ google:
 #    - category: HARM_CATEGORY_HARASSMENT
 #      threshold: BLOCK_NONE
 
-# 开启特殊标记增强 
-flags: true
-
-# 内调llm，用于绘图时文本转tags
-llm:
-  baseUrl: "http://127.0.0.1:8081"
-  model: "bing"
-  token: "xxx"
+you:
+  enabled: false
+  helper: 8082
+  cookies:
+    - 'xxx1'
+    - 'xxx2'
+serverless:
+  disabled-gpu: true
+  proxies: http://127.0.0.1:7890
+  headless: false
 
 # coze 默认配置；；；内置配置经常变动，难以维护改为配置化。新增webSdk模式，但还未得知速率是否有限制？？？
 #coze:

@@ -16,6 +16,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/interpreter"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/lmsys"
 	v1 "github.com/bincooo/chatgpt-adapter/internal/plugin/llm/v1"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin/llm/you"
 	pg "github.com/bincooo/chatgpt-adapter/internal/plugin/playground"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
@@ -41,6 +42,7 @@ func init() {
 			gemini.Adapter,
 			interpreter.Adapter,
 			lmsys.Adapter,
+			you.Adapter,
 			pg.Adapter,
 			hf.Adapter,
 			v1.Adapter,
