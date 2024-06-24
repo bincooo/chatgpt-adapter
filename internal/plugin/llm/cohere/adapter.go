@@ -100,7 +100,7 @@ func (API) Completion(ctx *gin.Context) {
 	// TODO - 官方Go库出了，后续修改
 	if notebook {
 		//toolObject = coh.ToolObject{}
-		message = mergeMessages(completion.Messages)
+		message = mergeMessages(ctx, completion.Messages)
 		ctx.Set(ginTokens, common.CalcTokens(message))
 		chat = coh.New(cookie, completion.Temperature, completion.Model, false)
 		chat.TopK(completion.TopK)

@@ -123,13 +123,44 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	return
 }
 
-func mergeMessages(messages []pkg.Keyv[interface{}]) (content string) {
+func mergeMessages(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (content string) {
 	condition := func(expr string) string {
 		switch expr {
 		case "system", "user", "assistant", "function", "tool":
 			return expr
 		default:
 			return ""
+		}
+	}
+
+	var (
+		user      = ""
+		assistant = ""
+	)
+
+	{
+		keyv, ok := common.GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
+		if ok {
+			user = keyv.GetString("user")
+			assistant = keyv.GetString("assistant")
+		}
+
+		if user == "" {
+			user = "<|user|>"
+		}
+		if assistant == "" {
+			assistant = "<|assistant|>"
+		}
+	}
+
+	tor := func(r string) string {
+		switch r {
+		case "user":
+			return user
+		case "assistant":
+			return assistant
+		default:
+			return "<|" + r + "|>"
 		}
 	}
 
@@ -155,7 +186,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (content string) {
 		opts.Buffer.WriteString(fmt.Sprintf(opts.Message["content"]))
 		messages = []map[string]string{
 			{
-				"role":    condition(role),
+				"role":    tor(condition(role)),
 				"content": opts.Buffer.String(),
 			},
 		}
@@ -166,7 +197,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (content string) {
 	// 尾部添加一个assistant空消息
 	if newMessages[len(newMessages)-1]["role"] != "assistant" {
 		newMessages = append(newMessages, map[string]string{
-			"role":    "assistant",
+			"role":    tor("assistant"),
 			"content": "",
 		})
 	}

@@ -46,7 +46,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		chat.Session(plugin.HTTPClient)
 		var lock *common.ExpireLock
 		if mode == 'o' {
-			l, e := draftBot(ctx, pMessages, chat, completion)
+			l, e := draftBot(ctx, pMessages[0], chat, completion)
 			if e != nil {
 				return "", logger.WarpError(e.Err)
 			}

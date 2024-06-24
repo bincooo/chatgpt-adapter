@@ -29,7 +29,6 @@ google:
 #      threshold: BLOCK_NONE
 
 you:
-  enabled: true
   helper: 8082
   cookies:
     - 'xxx1'
@@ -37,7 +36,6 @@ you:
 serverless:
   enabled: false
   disabled-gpu: true
-  proxies: http://127.0.0.1:7890
   headless: new
 
 # coze 默认配置；；；内置配置经常变动，难以维护改为配置化。新增webSdk模式，但还未得知速率是否有限制？？？
@@ -59,13 +57,11 @@ serverless:
 
 interpreter:
   baseUrl: http://127.0.0.1:8000
-  useProxy: false
   echoCode: false
 #  reverseUrl: ws://127.0.0.1:8000/ws TODO -
 
 custom-llm:
   baseUrl: http://127.0.0.1:8080
-  useProxy: false
 
 # toolCall 默认配置化; 在 flags 关闭时也可用
 toolCall:

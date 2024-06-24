@@ -6,6 +6,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/coze-api"
@@ -123,7 +124,36 @@ func (API) Completion(ctx *gin.Context) {
 		proxies    = ctx.GetString("proxies")
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
+
+		user      = ""
+		assistant = ""
 	)
+
+	{
+		keyv, ok := common.GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
+		if ok {
+			user = keyv.GetString("user")
+			assistant = keyv.GetString("assistant")
+		}
+
+		if user == "" {
+			user = "user"
+		}
+		if assistant == "" {
+			assistant = "assistant"
+		}
+	}
+
+	tor := func(r string) string {
+		switch r {
+		case "user":
+			return user
+		case "assistant":
+			return assistant
+		default:
+			return r
+		}
+	}
 
 	if plugin.NeedToToolCall(ctx) {
 		if completeToolCalls(ctx, cookie, proxies, completion) {
@@ -151,7 +181,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	var lock *common.ExpireLock
 	if mode == 'o' {
-		l, e := draftBot(ctx, pMessages, chat, completion)
+		l, e := draftBot(ctx, pMessages[0], chat, completion)
 		if e != nil {
 			response.Error(ctx, e.Code, e.Err)
 			return
@@ -164,7 +194,13 @@ func (API) Completion(ctx *gin.Context) {
 		query = pMessages[len(pMessages)-1].Content
 		chat.WebSdk(chat.TransferMessages(pMessages[:len(pMessages)-1]))
 	} else {
-		query = coze.MergeMessages(pMessages)
+		var newP []coze.Message
+		for _, message := range pMessages {
+			message.Role = tor(message.Role)
+			newP = append(newP, message)
+		}
+		query = coze.MergeMessages(newP)
+		query = query[:len(query)-13] + "<|" + tor("assistant") + "|>"
 	}
 
 	chatResponse, err := chat.Reply(common.GetGinContext(ctx), coze.Text, query)
@@ -193,11 +229,10 @@ func (API) Completion(ctx *gin.Context) {
 }
 
 // return true 终止
-func draftBot(ctx *gin.Context, pMessages []coze.Message, chat coze.Chat, completion pkg.ChatCompletion) (eLock *common.ExpireLock, emitErr *emit.Error) {
+func draftBot(ctx *gin.Context, systemMessage coze.Message, chat coze.Chat, completion pkg.ChatCompletion) (eLock *common.ExpireLock, emitErr *emit.Error) {
 	var system string
-	message := pMessages[0]
-	if message.Role == "system" {
-		system = message.Content
+	if systemMessage.Role == "system" {
+		system = systemMessage.Content
 	}
 
 	var value map[string]interface{}

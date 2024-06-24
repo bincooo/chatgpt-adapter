@@ -16,5 +16,6 @@ const (
 	GinDebugger        = "__debug__"
 	GinTool            = "__tool__"
 	GinClose           = "__close__"
+	GinCharSequences   = "__char_sequences__"
 	GinCancelFunc      = "__cancelFunc__"
 )

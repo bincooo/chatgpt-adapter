@@ -269,7 +269,7 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}
 
-	newMessages := mergeMessages(completion.Messages)
+	newMessages := mergeMessages(ctx, completion.Messages)
 	ctx.Set(ginTokens, common.CalcTokens(newMessages))
 	retry := 3
 label:

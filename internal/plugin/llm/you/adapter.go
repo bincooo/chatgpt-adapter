@@ -37,24 +37,20 @@ type API struct {
 
 func init() {
 	common.AddInitialized(func() {
-		if !pkg.Config.GetBool("you.enabled") {
-			return
-		}
-
 		cookies := pkg.Config.GetStringSlice("you.cookies")
 		if len(cookies) == 0 {
 			return
 		}
-		youRollContainer = common.NewPollContainer[string](cookies, 30*time.Minute)
-		youRollContainer.Condition = condition
 
-		port := pkg.Config.GetString("you.helper")
-		if port == "" {
-			port = "8081"
-		}
+		youRollContainer = common.NewPollContainer[string](cookies, 30*time.Minute)
+		youRollContainer.Condition = Condition
 
 		if pkg.Config.GetBool("serverless.enabled") {
-			you.Exec(port, os.Stdout, os.Stdout)
+			port := pkg.Config.GetString("you.helper")
+			if port == "" {
+				port = "8081"
+			}
+			you.Exec(port, vars.Proxies, os.Stdout, os.Stdout)
 			common.AddExited(you.Exit)
 		}
 	})
@@ -183,7 +179,7 @@ label:
 	}
 
 	chat.CloudFlare(clearance, userAgent)
-	pMessages, currMessage, tokens, err := mergeMessages(completion)
+	pMessages, currMessage, tokens, err := mergeMessages(ctx, completion)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
@@ -289,7 +285,7 @@ func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []co
 	return cancel, matchers
 }
 
-func condition(cookie string) bool {
+func Condition(cookie string) bool {
 	marker, err := youRollContainer.GetMarker(cookie)
 	if err != nil {
 		logger.Error(err)

@@ -110,13 +110,44 @@ label:
 	return
 }
 
-func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages string) {
+func mergeMessages(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (newMessages string) {
 	condition := func(expr string) string {
 		switch expr {
 		case "system", "tool", "function", "assistant", "end":
 			return expr
 		default:
 			return "user"
+		}
+	}
+
+	var (
+		user      = ""
+		assistant = ""
+	)
+
+	{
+		keyv, ok := common.GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
+		if ok {
+			user = keyv.GetString("user")
+			assistant = keyv.GetString("assistant")
+		}
+
+		if user == "" {
+			user = "<|user|>"
+		}
+		if assistant == "" {
+			assistant = "<|assistant|>"
+		}
+	}
+
+	tor := func(r string) string {
+		switch r {
+		case "user":
+			return user
+		case "assistant":
+			return assistant
+		default:
+			return "<|" + r + "|>"
 		}
 	}
 
@@ -135,7 +166,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages string) {
 				return
 			}
 
-			opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, opts.Message["content"]))
+			opts.Buffer.WriteString(fmt.Sprintf("%s\n%s\n<|end|>", tor(role), opts.Message["content"]))
 			return
 		}
 
@@ -147,13 +178,13 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages string) {
 			opts.Buffer.Reset()
 		}
 
-		opts.Buffer.WriteString(fmt.Sprintf("<|%s|>\n%s\n<|end|>", role, opts.Message["content"]))
+		opts.Buffer.WriteString(fmt.Sprintf("%s\n%s\n<|end|>", tor(role), opts.Message["content"]))
 		messages = append(result, opts.Buffer.String())
 		return
 	}
 
 	slices, _ := common.TextMessageCombiner(messages, iterator)
 	newMessages = strings.Join(slices, "\n\n")
-	newMessages += "\n<|assistant|>"
+	newMessages += "\n" + tor("assistant")
 	return
 }

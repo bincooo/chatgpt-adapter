@@ -110,8 +110,31 @@ label:
 	return
 }
 
-func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text string, tokens int, err error) {
-	var messages = completion.Messages
+func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages []you.Message, text string, tokens int, err error) {
+	var (
+		messages = completion.Messages
+
+		user      = ""
+		assistant = ""
+	)
+
+	{
+		keyv, ok := common.GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
+		if ok {
+			user = keyv.GetString("user")
+			assistant = keyv.GetString("assistant")
+		}
+
+		if user == "" {
+			user = "Human："
+		}
+		if assistant == "" {
+			assistant = "Assistant："
+		}
+		user += "\n"
+		assistant += "\n"
+	}
+
 	cond := func(expr string) string {
 		switch expr {
 		case "assistant", "end":
@@ -145,7 +168,7 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 			prefix := ""
 			if role == "user" && len(opts.Message["content"]) > 0 {
 				if !strings.HasPrefix(opts.Message["content"], "Assistant:") {
-					prefix = "Human： "
+					prefix = user
 				}
 			}
 			opts.Buffer.WriteString(prefix + opts.Message["content"])
@@ -156,7 +179,7 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 		prefix := ""
 		if role == "user" && len(opts.Message["content"]) > 0 {
 			if !strings.HasPrefix(opts.Message["content"], "Assistant:") {
-				prefix = "Human： "
+				prefix = user
 			}
 		}
 
@@ -214,8 +237,7 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 
 		message = newMessages[pos]
 		if message["role"] == "assistant" {
-			prefix := "Assistant： "
-			newMessage.Answer = prefix + message["content"]
+			newMessage.Answer = assistant + message["content"]
 		} else {
 			newMessage.Answer = okey
 			pMessages = append(pMessages, newMessage)

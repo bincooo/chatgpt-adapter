@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"strings"
 )
@@ -41,6 +42,22 @@ func NewMatchers() []Matcher {
 func NewCancelMather(ctx *gin.Context) (chan error, Matcher) {
 	count := 0
 	cancel := make(chan error, 1)
+
+	newBlocks := make([]string, 0)
+	newBlocks = append(newBlocks, blocks...)
+
+	keyv, ok := GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
+	if ok {
+		user := keyv.GetString("user")
+		assistant := keyv.GetString("assistant")
+		if user != "" {
+			newBlocks = append(newBlocks, user)
+		}
+		if assistant != "" {
+			newBlocks = append(newBlocks, assistant)
+		}
+	}
+
 	return cancel, &SymbolMatcher{
 		Find: "<|",
 		H: func(index int, content string) (state int, result string) {
