@@ -136,13 +136,29 @@ func (API) Completion(ctx *gin.Context) {
 		return
 	}
 
+	var (
+		retry   = 3
+		cookies []string
+	)
+
+	defer func(cookies []string) {
+		if len(cookies) == 0 {
+			return
+		}
+		for _, value := range cookies {
+			resetMarker(value)
+		}
+	}(cookies)
+
+label:
+	retry--
 	cookie, err := youRollContainer.Poll()
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}
-	defer resetMarker(cookie)
+	cookies = append(cookies, cookie)
 
 	var (
 		proxies    = ctx.GetString("proxies")
@@ -177,8 +193,9 @@ func (API) Completion(ctx *gin.Context) {
 	var cancel chan error
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set(ginTokens, tokens)
+	is32 := tokens < 12000
 
-	ch, err := chat.Reply(common.GetGinContext(ctx), pMessages, currMessage, true /*tokens >= 32*1000*/)
+	ch, err := chat.Reply(common.GetGinContext(ctx), pMessages, currMessage, !is32)
 	if err != nil {
 		logger.Error(err)
 		var se emit.Error
@@ -195,6 +212,10 @@ func (API) Completion(ctx *gin.Context) {
 		if strings.Contains(err.Error(), "ZERO QUOTA") {
 			_ = youRollContainer.SetMarker(cookie, 2)
 			code = 429
+		}
+
+		if retry > 0 {
+			goto label
 		}
 		response.Error(ctx, code, err)
 		return
@@ -279,6 +300,7 @@ func condition(cookie string) bool {
 		return false
 	}
 
+	//return true
 	chat := you.New(cookie, you.CLAUDE_2, vars.Proxies)
 	chat.Client(plugin.HTTPClient)
 	chat.CloudFlare(clearance, userAgent)

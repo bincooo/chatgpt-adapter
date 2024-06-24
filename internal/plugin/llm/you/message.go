@@ -125,11 +125,7 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 		tokens += common.CalcTokens(message.GetString("content"))
 	}
 
-	is32 := false
-	//if tokens < 32*1000 {
-	//	is32 = true
-	//}
-
+	is32 := tokens < 12000
 	// 合并历史对话
 	iterator := func(opts struct {
 		Previous string
@@ -147,8 +143,10 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 			}
 
 			prefix := ""
-			if !is32 && cond(role) == "user" {
-				prefix = "Human： "
+			if role == "user" && len(opts.Message["content"]) > 0 {
+				if !strings.HasPrefix(opts.Message["content"], "Assistant:") {
+					prefix = "Human： "
+				}
 			}
 			opts.Buffer.WriteString(prefix + opts.Message["content"])
 			return
@@ -156,9 +154,12 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 
 		defer opts.Buffer.Reset()
 		prefix := ""
-		if !is32 && cond(role) == "user" {
-			prefix = "Human： "
+		if role == "user" && len(opts.Message["content"]) > 0 {
+			if !strings.HasPrefix(opts.Message["content"], "Assistant:") {
+				prefix = "Human： "
+			}
 		}
+
 		opts.Buffer.WriteString(prefix + opts.Message["content"])
 		result = append(result, map[string]string{
 			"role":    cond(role),
@@ -176,7 +177,9 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 	text = "Please review the attached prompt"
 
 	// 获取最后一条用户消息
+	okey := ""
 	if is32 {
+		okey = "ok ~"
 		messageL := len(newMessages)
 		message := newMessages[messageL-1]
 		if message["role"] == "user" {
@@ -199,22 +202,27 @@ func mergeMessages(completion pkg.ChatCompletion) (pMessages []you.Message, text
 		if message["role"] == "user" {
 			newMessage.Question = message["content"]
 		} else {
-			newMessage.Question = " "
+			newMessage.Question = okey
 		}
 
 		pos++
-		if pos >= messageL-1 {
-			newMessage.Answer = "ok ~"
+		if pos > messageL-1 {
+			newMessage.Answer = okey
 			pMessages = append(pMessages, newMessage)
 			break
 		}
 
+		message = newMessages[pos]
 		if message["role"] == "assistant" {
-			prefix := ""
-			if !is32 {
-				prefix = "Assistant： "
+			prefix := "Assistant： "
+			newMessage.Answer = prefix + message["content"]
+		} else {
+			newMessage.Answer = okey
+			pMessages = append(pMessages, newMessage)
+			newMessage = you.Message{
+				Question: message["content"],
+				Answer:   "",
 			}
-			newMessage.Question = prefix + message["content"]
 		}
 		pMessages = append(pMessages, newMessage)
 		pos++

@@ -27,7 +27,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			return
 		}
 		for _, value := range cookies {
-			_ = youRollContainer.SetMarker(value, 0)
+			resetMarker(value)
 		}
 	}(cookies)
 
