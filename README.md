@@ -194,6 +194,14 @@ interpreter:
 > 无需cookie， model参数为 `open-interpreter`
 > 
 > 在配置中设置 `interpreter` 属性值，需配合 [open-interpreter](https://github.com/OpenInterpreter/open-interpreter) 使用，具体搭建过程移步 [issue](https://github.com/bincooo/chatgpt-adapter/issues/36)
+
+you:
+> 无需cookie， model参数为 `you/xxx`， 具体有哪些请在启动服务后访问 `v1/models` 查看。
+> 
+> 该接口需要配合 `chrome/edge` 使用，所以请务必保证你的电脑、服务器中安装了浏览器。
+>
+> 配置步骤请移步：[issue](https://github.com/bincooo/chatgpt-adapter/discussions/47)
+
 #### free画图接口
 
 提供了 `coze.dall-e-3`、 `sd.dall-e-3`、`xl.dall-e-3`、 `pg.dall-e-3`、 `google.dall-e-3`，它们会根据你提供的 `Authorization` 选择其中的一个
