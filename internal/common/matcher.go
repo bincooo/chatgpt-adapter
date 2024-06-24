@@ -70,7 +70,7 @@ func NewCancelMather(ctx *gin.Context) (chan error, Matcher) {
 				return vars.MatMatching, content
 			}
 
-			for _, block := range blocks {
+			for _, block := range newBlocks {
 				if strings.Contains(content, block) {
 					if block == "<|assistant|>" && count == 0 {
 						count++
