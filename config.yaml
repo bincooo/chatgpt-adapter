@@ -40,7 +40,7 @@ you:
     - 'xxx1'
     - 'xxx2'
 serverless:
-  enabled: true
+  enabled: false
   disabled-gpu: true
   headless: new
 
