@@ -200,7 +200,7 @@ you:
 > 
 > 该接口需要配合 `chrome/edge` 使用，所以请务必保证你的电脑、服务器中安装了浏览器。
 >
-> 配置步骤请移步：[issue](https://github.com/bincooo/chatgpt-adapter/discussions/47)
+> 配置步骤请移步：[discussions](https://github.com/bincooo/chatgpt-adapter/discussions/47)
 
 #### free画图接口
 
