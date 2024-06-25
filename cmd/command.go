@@ -33,13 +33,25 @@ var (
 				return
 			}
 
+			banner()
+
+			logger.InitLogger(logPath, switchLogLevel())
+
 			pkg.InitConfig()
 			common.InitCommon()
-			logger.InitLogger(logPath, switchLogLevel())
 			handler.Bind(port, version, vars.Proxies)
 		},
 	}
 )
+
+func banner() {
+	fmt.Println("-----------------------------------------------------------")
+	fmt.Println("\n █████╗ ██████╗  █████╗ ██████╗ ████████╗███████╗██████╗ \n██╔══██╗██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝██╔════╝██╔══██╗\n███████║██║  ██║███████║██████╔╝   ██║   █████╗  ██████╔╝\n██╔══██║██║  ██║██╔══██║██╔═══╝    ██║   ██╔══╝  ██╔══██╗\n██║  ██║██████╔╝██║  ██║██║        ██║   ███████╗██║  ██║\n╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝  ╚═╝\n                                                         \n")
+	fmt.Println("PROJECT: https://github.com/bincooo/chatgpt-adapter")
+	fmt.Println("VERSION:", version)
+	fmt.Println("欢迎STAR！   Welcome STAR！")
+	fmt.Print("-----------------------------------------------------------\n\n\n")
+}
 
 func main() {
 	cmd.PersistentFlags().StringVar(&vars.Proxies, "proxies", "", "本地代理 proxies")
