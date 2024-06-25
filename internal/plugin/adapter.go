@@ -8,6 +8,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 var (
@@ -33,7 +34,7 @@ func init() {
 			logger.Error("Error initializing HTTPClient: ", err)
 		}
 
-		HTTPJa3Client, err := emit.NewJa3Session(vars.Proxies)
+		HTTPJa3Client := emit.NewJa3Session(vars.Proxies, 180*time.Second)
 		if err != nil {
 			logger.Error("Error initializing HTTPJa3Client: ", err)
 		}

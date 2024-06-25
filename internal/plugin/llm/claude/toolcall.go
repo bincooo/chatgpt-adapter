@@ -6,31 +6,36 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
-	api "github.com/bincooo/claude-api"
-	"github.com/bincooo/claude-api/types"
-	"github.com/bincooo/claude-api/vars"
+	claude3 "github.com/bincooo/claude-api"
 	"github.com/gin-gonic/gin"
 	"strings"
 )
 
-func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.ChatCompletion) bool {
+func completeToolCalls(ctx *gin.Context, cookie string, completion pkg.ChatCompletion) bool {
 	logger.Infof("completeTools ...")
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
-		model := vars.Model4WebClaude2
+		model := ""
 		if strings.HasPrefix(completion.Model, "claude-") {
-			model = completion.Model
+			if completion.Model != "claude-3" {
+				model = completion.Model
+			}
 		}
 
-		options := api.NewDefaultOptions(cookie, model)
-		options.Proxies = proxies
-
-		chat, err := api.New(options)
+		options, err := claude3.NewDefaultOptions(cookie, model)
 		if err != nil {
 			return "", logger.WarpError(err)
 		}
 
-		message = common.PadJunkMessage(padMaxCount-len(message), message)
-		chatResponse, err := chat.Reply(common.GetGinContext(ctx), "", []types.Attachment{
+		chat, err := claude3.New(options)
+		if err != nil {
+			return "", logger.WarpError(err)
+		}
+
+		if ctx.GetBool("pad") {
+			message = common.PadJunkMessage(padMaxCount-len(message), message)
+		}
+
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), "", []claude3.Attachment{
 			{
 				Content:  message,
 				FileName: "paste.txt",

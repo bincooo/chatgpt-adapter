@@ -8,7 +8,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
-	"github.com/bincooo/claude-api/types"
+	claude3 "github.com/bincooo/claude-api"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"time"
@@ -16,7 +16,7 @@ import (
 
 const ginTokens = "__tokens__"
 
-func waitMessage(chatResponse chan types.PartialResponse, cancel func(str string) bool) (content string, err error) {
+func waitMessage(chatResponse chan claude3.PartialResponse, cancel func(str string) bool) (content string, err error) {
 
 	for {
 		message, ok := <-chatResponse
@@ -39,7 +39,7 @@ func waitMessage(chatResponse chan types.PartialResponse, cancel func(str string
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan types.PartialResponse, sse bool) (content string) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan claude3.PartialResponse, sse bool) (content string) {
 	var (
 		created = time.Now().Unix()
 		tokens  = ctx.GetInt(ginTokens)
@@ -88,13 +88,44 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	return
 }
 
-func mergeMessages(messages []pkg.Keyv[interface{}]) (attachment []types.Attachment, tokens int) {
+func mergeMessages(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (attachment []claude3.Attachment, tokens int) {
 	condition := func(expr string) string {
 		switch expr {
 		case "system", "assistant", "function", "tool", "end":
 			return expr
 		default:
 			return "human"
+		}
+	}
+
+	var (
+		user      = ""
+		assistant = ""
+	)
+
+	{
+		keyv, ok := common.GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
+		if ok {
+			user = keyv.GetString("user")
+			assistant = keyv.GetString("assistant")
+		}
+
+		if user == "" {
+			user = "Human："
+		}
+		if assistant == "" {
+			assistant = "Assistant："
+		}
+	}
+
+	tor := func(r string) string {
+		switch r {
+		case "user":
+			return user
+		case "assistant":
+			return assistant
+		default:
+			return ""
 		}
 	}
 
@@ -121,17 +152,19 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (attachment []types.Attachm
 		defer opts.Buffer.Reset()
 		opts.Buffer.WriteString(fmt.Sprintf(opts.Message["content"]))
 		messages = []string{
-			fmt.Sprintf("%s： %s", condition(role), opts.Buffer.String()),
+			fmt.Sprintf("%s %s", tor(condition(role)), opts.Buffer.String()),
 		}
 		return
 	}
 
 	nMessages, _ := common.TextMessageCombiner(messages, iterator)
 	join := strings.Join(nMessages, "\n\n")
-	join = common.PadJunkMessage(padMaxCount-len(join), join)
+	if ctx.GetBool("pad") {
+		join = common.PadJunkMessage(padMaxCount-len(join), join)
+	}
 
 	tokens = common.CalcTokens(join)
-	attachment = append(attachment, types.Attachment{
+	attachment = append(attachment, claude3.Attachment{
 		Content:  join,
 		FileName: "paste.txt",
 		FileSize: len(join),

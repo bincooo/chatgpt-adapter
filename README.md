@@ -134,7 +134,7 @@ curl -i -X POST \
 
 #### Authorization 获取
 
-claude: ⚠︎ deprecated ⚠︎ 风控太严，弃用了
+claude: 对IP十分严格
 > 在 `claude.ai` 官网中登陆，浏览器 `cookies` 中取出 `sessionKey` 的值就是 `Authorization` 参数
 
 bing:
