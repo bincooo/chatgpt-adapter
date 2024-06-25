@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
+	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"strings"
@@ -77,6 +78,7 @@ func NewCancelMather(ctx *gin.Context) (chan error, Matcher) {
 						return vars.MatMatched, strings.ReplaceAll(content, "<|assistant|>", "")
 					}
 					cancel <- nil
+					logger.Infof("matched block will closed: %s", block)
 					return vars.MatMatched, ""
 				}
 			}
