@@ -6,6 +6,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"time"
@@ -29,17 +30,23 @@ func init() {
 			"127.0.0.1",
 		}
 
-		HTTPClient, err = emit.NewDefaultSession(vars.Proxies, common.GetIdleConnectOption(), whites...)
+		option := common.GetIdleConnectOption()
+		HTTPClient, err = emit.NewDefaultSession(vars.Proxies, option, whites...)
 		if err != nil {
 			logger.Error("Error initializing HTTPClient: ", err)
 		}
 
-		HTTPJa3Client := emit.NewJa3Session(vars.Proxies, 180*time.Second)
+		connTimeout := time.Duration(pkg.Config.GetInt("server-conn.connTimeout")) * time.Second
+		if connTimeout == 0 {
+			connTimeout = 180 * time.Second
+		}
+
+		HTTPJa3Client := emit.NewJa3Session(vars.Proxies, connTimeout)
 		if err != nil {
 			logger.Error("Error initializing HTTPJa3Client: ", err)
 		}
 
-		SocketClient, err := emit.NewSocketSession(vars.Proxies, common.GetIdleConnectOption(), whites...)
+		SocketClient, err := emit.NewSocketSession(vars.Proxies, option, whites...)
 		if err != nil {
 			logger.Error("Error initializing HTTPJa3Client: ", err)
 		}

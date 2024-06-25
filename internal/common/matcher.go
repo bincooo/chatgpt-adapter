@@ -60,7 +60,7 @@ func NewCancelMather(ctx *gin.Context) (chan error, Matcher) {
 	}
 
 	return cancel, &SymbolMatcher{
-		Find: "<|",
+		Find: "*",
 		H: func(index int, content string) (state int, result string) {
 			if ctx.GetBool(vars.GinClose) {
 				cancel <- context.Canceled
@@ -92,16 +92,16 @@ func ExecMatchers(matchers []Matcher, raw string) string {
 	// MAT_MATCHING 匹配中，缓存消息不执行下一个
 	// MAT_MATCHED 	命中，不再执行下一个
 	for _, mat := range matchers {
-		state, result := mat.match(raw)
-		if state == vars.MatDefault {
+		s, result := mat.match(raw)
+		if s == vars.MatDefault {
 			raw = result
 			continue
 		}
-		if state == vars.MatMatching {
+		if s == vars.MatMatching {
 			raw = result
 			break
 		}
-		if state == vars.MatMatched {
+		if s == vars.MatMatched {
 			raw = result
 			break
 		}
