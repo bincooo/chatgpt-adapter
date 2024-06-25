@@ -28,6 +28,12 @@ google:
 #    - category: HARM_CATEGORY_HARASSMENT
 #      threshold: BLOCK_NONE
 
+claude:
+  pad: 0
+  cookies:
+    - 'xxx1'
+    - 'xxx2'
+
 you:
   helper: 8082
   cookies:
@@ -58,7 +64,7 @@ serverless:
 interpreter:
   baseUrl: http://127.0.0.1:8000
   echoCode: false
-#  reverseUrl: ws://127.0.0.1:8000/ws TODO -
+#  reverse: true TODO -
 
 custom-llm:
   baseUrl: http://127.0.0.1:8080

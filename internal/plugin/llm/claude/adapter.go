@@ -5,19 +5,34 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	claude3 "github.com/bincooo/claude-api"
 	"github.com/gin-gonic/gin"
 	"strings"
+	"time"
 )
 
 var (
 	Adapter     = API{}
 	Model       = "claude"
 	padMaxCount = 25000
+
+	claudeRollContainer *common.PollContainer[string]
 )
 
 type API struct {
 	plugin.BaseAdapter
+}
+
+func init() {
+	common.AddInitialized(func() {
+		cookies := pkg.Config.GetStringSlice("claude.cookies")
+		if len(cookies) == 0 {
+			return
+		}
+		claudeRollContainer = common.NewPollContainer[string](cookies, 30*time.Minute)
+		claudeRollContainer.Condition = Condition
+	})
 }
 
 func (API) Match(_ *gin.Context, model string) bool {
@@ -66,7 +81,6 @@ func (API) Models() []plugin.Model {
 
 func (API) Completion(ctx *gin.Context) {
 	var (
-		cookie     = ctx.GetString("token")
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
 		model      = ""
@@ -78,6 +92,14 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}
 
+	cookie, err := claudeRollContainer.Poll()
+	if err != nil {
+		logger.Error(err)
+		response.Error(ctx, -1, err)
+		return
+	}
+
+	defer resetMarker(cookie)
 	options, err := claude3.NewDefaultOptions(cookie, model)
 	if err != nil {
 		logger.Error(err)
@@ -112,5 +134,32 @@ func (API) Completion(ctx *gin.Context) {
 	content := waitResponse(ctx, matchers, chatResponse, completion.Stream)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
+	}
+}
+
+func Condition(cookie string) bool {
+	marker, err := claudeRollContainer.GetMarker(cookie)
+	if err != nil {
+		logger.Error(err)
+		return false
+	}
+
+	return marker == 0
+}
+
+func resetMarker(cookie string) {
+	marker, e := claudeRollContainer.GetMarker(cookie)
+	if e != nil {
+		logger.Error(e)
+		return
+	}
+
+	if marker == 0 || marker > 1 {
+		return
+	}
+
+	e = claudeRollContainer.SetMarker(cookie, 0)
+	if e != nil {
+		logger.Error(e)
 	}
 }

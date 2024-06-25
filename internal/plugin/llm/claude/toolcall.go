@@ -32,7 +32,11 @@ func completeToolCalls(ctx *gin.Context, cookie string, completion pkg.ChatCompl
 		}
 
 		if ctx.GetBool("pad") {
-			message = common.PadJunkMessage(padMaxCount-len(message), message)
+			count := ctx.GetInt("claude.pad")
+			if count == 0 {
+				count = padMaxCount
+			}
+			message = common.PadJunkMessage(count-len(message), message)
 		}
 
 		chatResponse, err := chat.Reply(common.GetGinContext(ctx), "", []claude3.Attachment{

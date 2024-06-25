@@ -160,7 +160,11 @@ func mergeMessages(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (attachme
 	nMessages, _ := common.TextMessageCombiner(messages, iterator)
 	join := strings.Join(nMessages, "\n\n")
 	if ctx.GetBool("pad") {
-		join = common.PadJunkMessage(padMaxCount-len(join), join)
+		count := ctx.GetInt("claude.pad")
+		if count == 0 {
+			count = padMaxCount
+		}
+		join = common.PadJunkMessage(count-len(join), join)
 	}
 
 	tokens = common.CalcTokens(join)
