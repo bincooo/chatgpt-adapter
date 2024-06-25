@@ -220,7 +220,7 @@ func (API) Completion(ctx *gin.Context) {
 
 	// 自定义标记块中断
 	cancel, matcher := common.NewCancelMather(ctx)
-	matchers = append(matchers, matcher)
+	matchers = append(matchers, matcher...)
 
 	content := waitResponse(ctx, matchers, cancel, chatResponse, completion.Stream)
 	if content == "" && response.NotResponse(ctx) {

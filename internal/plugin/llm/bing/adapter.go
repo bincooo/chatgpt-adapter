@@ -196,6 +196,6 @@ func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []co
 
 	// 自定义标记块中断
 	cancel, matcher := common.NewCancelMather(ctx)
-	matchers = append(matchers, matcher)
+	matchers = append(matchers, matcher...)
 	return cancel, matchers
 }

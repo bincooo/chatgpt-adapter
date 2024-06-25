@@ -40,27 +40,24 @@ func NewMatchers() []Matcher {
 }
 
 // 中断匹配器，返回一个error channel，用于控制是否终止输出
-func NewCancelMather(ctx *gin.Context) (chan error, Matcher) {
+func NewCancelMather(ctx *gin.Context) (chan error, []Matcher) {
 	count := 0
 	cancel := make(chan error, 1)
 
-	newBlocks := make([]string, 0)
-	newBlocks = append(newBlocks, blocks...)
+	var (
+		user      = ""
+		assistant = ""
+	)
 
 	keyv, ok := GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
 	if ok {
-		user := keyv.GetString("user")
-		assistant := keyv.GetString("assistant")
-		if user != "" {
-			newBlocks = append(newBlocks, user)
-		}
-		if assistant != "" {
-			newBlocks = append(newBlocks, assistant)
-		}
+		user = keyv.GetString("user")
+		assistant = keyv.GetString("assistant")
 	}
 
-	return cancel, &SymbolMatcher{
-		Find: "*",
+	matchers := make([]Matcher, 0)
+	matchers = append(matchers, &SymbolMatcher{
+		Find: "<|",
 		H: func(index int, content string) (state int, result string) {
 			if ctx.GetBool(vars.GinClose) {
 				cancel <- context.Canceled
@@ -71,7 +68,7 @@ func NewCancelMather(ctx *gin.Context) (chan error, Matcher) {
 				return vars.MatMatching, content
 			}
 
-			for _, block := range newBlocks {
+			for _, block := range blocks {
 				if strings.Contains(content, block) {
 					if block == "<|assistant|>" && count == 0 {
 						count++
@@ -84,7 +81,41 @@ func NewCancelMather(ctx *gin.Context) (chan error, Matcher) {
 			}
 			return vars.MatMatched, content
 		},
+	})
+
+	if user != "" {
+		matchers = append(matchers, &SymbolMatcher{
+			Find: user,
+			H: func(index int, content string) (state int, result string) {
+				if ctx.GetBool(vars.GinClose) {
+					cancel <- context.Canceled
+					return vars.MatMatched, ""
+				}
+
+				cancel <- nil
+				logger.Infof("matched block will closed: %s", user)
+				return vars.MatMatched, ""
+			},
+		})
 	}
+
+	if assistant != "" {
+		matchers = append(matchers, &SymbolMatcher{
+			Find: assistant,
+			H: func(index int, content string) (state int, result string) {
+				if ctx.GetBool(vars.GinClose) {
+					cancel <- context.Canceled
+					return vars.MatMatched, ""
+				}
+
+				cancel <- nil
+				logger.Infof("matched block will closed: %s", assistant)
+				return vars.MatMatched, ""
+			},
+		})
+	}
+
+	return cancel, matchers
 }
 
 func ExecMatchers(matchers []Matcher, raw string) string {

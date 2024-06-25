@@ -300,7 +300,7 @@ label:
 func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []common.Matcher) {
 	// 自定义标记块中断
 	cancel, matcher := common.NewCancelMather(ctx)
-	matchers = append(matchers, matcher)
+	matchers = append(matchers, matcher...)
 
 	// 违反内容中断并返回错误1
 	matchers = append(matchers, &common.SymbolMatcher{
