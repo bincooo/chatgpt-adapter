@@ -10,10 +10,14 @@ import (
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"time"
+
+	socketio "github.com/zishang520/socket.io/socket"
 )
 
 var (
 	HTTPClient *emit.Session
+
+	IO *socketio.Server
 )
 
 type Model struct {
@@ -52,6 +56,7 @@ func init() {
 		}
 
 		HTTPClient = emit.MergeSession(HTTPClient, HTTPJa3Client, SocketClient)
+		IO = socketio.NewServer(nil, nil)
 	})
 }
 

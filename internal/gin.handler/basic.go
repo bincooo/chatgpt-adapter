@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
+	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -35,6 +36,11 @@ func Bind(port int, version, proxies string) {
 	route.GET("/proxies/v1/models", models)
 	route.GET("/v1/models", models)
 	route.Static("/file/tmp/", "tmp")
+
+	if plugin.IO != nil {
+		route.GET("/socket.io/*any", gin.WrapH(plugin.IO.ServeHandler(nil)))
+		route.POST("/socket.io/*any", gin.WrapH(plugin.IO.ServeHandler(nil)))
+	}
 
 	addr := ":" + strconv.Itoa(port)
 	logger.Info(fmt.Sprintf("server start by http://0.0.0.0%s/v1", addr))
