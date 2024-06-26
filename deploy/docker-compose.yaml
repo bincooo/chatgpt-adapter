@@ -6,5 +6,7 @@ services:
     restart: always
     ports:
       - "8080:8080"
+#    environment:
+#      - "ARG=--proxies http://127.0.0.1:7890 --port 8080"
     volumes:
       - ../config.yaml:/app/config.yaml
