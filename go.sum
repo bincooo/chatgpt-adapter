@@ -48,8 +48,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/bincooo/claude-api v1.0.5-0.20240625042502-60eed20ea35e h1:QU1Y//VqrsC05QZrmm5SJpDO34NHhn/6F6XrRZPOMJc=
-github.com/bincooo/claude-api v1.0.5-0.20240625042502-60eed20ea35e/go.mod h1:hxwQUOyfrtueb5yw59O8ZDAHh6xaqtp5YsxYgVOkqYQ=
+github.com/bincooo/claude-api v1.0.5-0.20240626224419-60ebc7d8a686 h1:l61/xuFqwLiw5NbNk3pRU9jtOhUN/jg1CSRVKcaSE+Y=
+github.com/bincooo/claude-api v1.0.5-0.20240626224419-60ebc7d8a686/go.mod h1:hxwQUOyfrtueb5yw59O8ZDAHh6xaqtp5YsxYgVOkqYQ=
 github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46 h1:12sHtk9r99icBCTBnsHaYep5DjH4gu6AzceFNSf216U=
 github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46/go.mod h1:X2PunEb/JOvEnkKkQnlm27UZnn96TR53hGH5TZ55Ak4=
 github.com/bincooo/coze-api v1.0.2-0.20240620163352-ad627f0dffd2 h1:hGVEWmJsFE4JNwmtucqYKnTNx7WET/Y1g10Px3iDiTw=
