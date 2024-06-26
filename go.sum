@@ -60,8 +60,8 @@ github.com/bincooo/emit.io v0.0.0-20240625032952-3368351dc592 h1:3yXYqGcxSGxs7VG
 github.com/bincooo/emit.io v0.0.0-20240625032952-3368351dc592/go.mod h1:SqOOr68aedVMkRKaCfWVQMRZWgQwV/D/mOEwbZoKsUY=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e h1:38ztKJW0K6qQGitqAlcJs8O2nal60qYoS9oNZnpkZWE=
 github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e/go.mod h1:0WuzYU+4cQL/hVbjoncY5TACMTbD9I+pLCdnPjfItp0=
-github.com/bincooo/you.com v0.0.0-20240626043025-b0228268cafc h1:2Pu0COfxfADBIDGqNQPpAbrwP4A5ITELZ6ehZP3vFfo=
-github.com/bincooo/you.com v0.0.0-20240626043025-b0228268cafc/go.mod h1:1QlkSxFhT1VGFFbWMCM31wnF2Jzuagk6Or15B/sjxXw=
+github.com/bincooo/you.com v0.0.0-20240626230203-cf0d17856e76 h1:I5Z8EZp6FcxIxHTSmDy/adBHUbuOElceLbi5TQ8K/sQ=
+github.com/bincooo/you.com v0.0.0-20240626230203-cf0d17856e76/go.mod h1:SOuP1CRtNiOr+gYyYsZ/K7pj/Wc6Ko5lT3rFn07yLng=
 github.com/bitly/go-simplejson v0.5.0 h1:6IH+V8/tVMab511d5bn4M7EwGXZf9Hj6i2xSwkNEM+Y=
 github.com/bitly/go-simplejson v0.5.0/go.mod h1:cXHtHw4XUPsvGaxgjIAn8PhEWG9NfngEKAMDJEczWVA=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 h1:DDGfHa7BWjL4YnC6+E63dPcxHo2sUxDIu8g3QgEJdRY=
