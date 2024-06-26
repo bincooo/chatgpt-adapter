@@ -43,7 +43,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			return "", logger.WarpError(err)
 		}
 
-		chat.CloudFlare(clearance, userAgent)
+		chat.CloudFlare(clearance, userAgent, lang)
 		chatResponse, err := chat.Reply(common.GetGinContext(ctx), []you.Message{
 			{"", message},
 		}, "Please review the attached prompt", true)

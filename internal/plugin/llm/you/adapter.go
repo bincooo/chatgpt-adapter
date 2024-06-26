@@ -25,6 +25,7 @@ var (
 	Adapter = API{}
 	Model   = "you"
 
+	lang      = "cn-ZN,cn;q=0.9"
 	clearance = ""
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0"
 
@@ -178,7 +179,7 @@ label:
 		return
 	}
 
-	chat.CloudFlare(clearance, userAgent)
+	chat.CloudFlare(clearance, userAgent, lang)
 	pMessages, currMessage, tokens, err := mergeMessages(ctx, completion)
 	if err != nil {
 		logger.Error(err)
@@ -274,6 +275,7 @@ func tryCloudFlare() error {
 		data := obj["data"].(map[string]interface{})
 		clearance = data["cookie"].(string)
 		userAgent = data["userAgent"].(string)
+		lang = data["lang"].(string)
 	}
 	return nil
 }
@@ -299,7 +301,7 @@ func Condition(cookie string) bool {
 	//return true
 	chat := you.New(cookie, you.CLAUDE_2, vars.Proxies)
 	chat.Client(plugin.HTTPClient)
-	chat.CloudFlare(clearance, userAgent)
+	chat.CloudFlare(clearance, userAgent, lang)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	// 检查可用次数
