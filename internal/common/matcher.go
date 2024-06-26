@@ -40,7 +40,7 @@ func NewMatchers() []Matcher {
 }
 
 // 中断匹配器，返回一个error channel，用于控制是否终止输出
-func NewCancelMather(ctx *gin.Context) (chan error, []Matcher) {
+func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 	count := 0
 	cancel := make(chan error, 1)
 

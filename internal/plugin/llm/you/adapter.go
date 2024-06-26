@@ -282,7 +282,7 @@ func tryCloudFlare() error {
 
 func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []common.Matcher) {
 	// 自定义标记块中断
-	cancel, matcher := common.NewCancelMather(ctx)
+	cancel, matcher := common.NewCancelMatcher(ctx)
 	matchers = append(matchers, matcher...)
 	return cancel, matchers
 }
