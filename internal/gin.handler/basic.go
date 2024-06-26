@@ -37,10 +37,7 @@ func Bind(port int, version, proxies string) {
 	route.GET("/v1/models", models)
 	route.Static("/file/tmp/", "tmp")
 
-	if plugin.IO != nil {
-		route.GET("/socket.io/*any", gin.WrapH(plugin.IO.ServeHandler(nil)))
-		route.POST("/socket.io/*any", gin.WrapH(plugin.IO.ServeHandler(nil)))
-	}
+	route.Any("/socket.io/*any", gin.WrapH(plugin.IO.ServeHandler(nil)))
 
 	addr := ":" + strconv.Itoa(port)
 	logger.Info(fmt.Sprintf("server start by http://0.0.0.0%s/v1", addr))

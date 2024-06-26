@@ -64,7 +64,7 @@ serverless:
 interpreter:
   baseUrl: http://127.0.0.1:8000
   echoCode: false
-  ws: false
+  ws: true
 
 custom-llm:
   baseUrl: http://127.0.0.1:8080

@@ -16,8 +16,9 @@ var (
 	Adapter = API{}
 	Model   = "open-interpreter"
 
-	mu sync.Mutex
-	ws *socketio.Socket
+	mu     sync.Mutex
+	ws     *socketio.Socket
+	wsChan chan string
 )
 
 type API struct {
@@ -55,13 +56,19 @@ func init() {
 }
 
 func (API) Match(_ *gin.Context, model string) bool {
-	return model == Model
+	return model == Model || model == Model+"-ws"
 }
 
 func (API) Models() []plugin.Model {
 	return []plugin.Model{
 		{
 			Id:      "open-interpreter",
+			Object:  "model",
+			Created: 1686935002,
+			By:      "interpreter-adapter",
+		},
+		{
+			Id:      "open-interpreter-ws",
 			Object:  "model",
 			Created: 1686935002,
 			By:      "interpreter-adapter",
@@ -76,6 +83,11 @@ func (API) Completion(ctx *gin.Context) {
 		matchers   = common.GetGinMatchers(ctx)
 	)
 
+	if completion.Model == Model+"-ws" {
+		completionWS(ctx)
+		return
+	}
+
 	r, tokens, err := fetch(ctx, proxies, completion)
 	if err != nil {
 		logger.Error(err)
@@ -88,35 +100,4 @@ func (API) Completion(ctx *gin.Context) {
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
-}
-
-func initSocketIO(w *socketio.Socket) bool {
-	if ws != nil {
-		return false
-	}
-
-	r := w.Request()
-	if token := r.GetPathInfo(); token != "/socket.io/open-i/" {
-		return false
-	}
-
-	w.On("disconnect", func(...any) {
-		mu.Lock()
-		defer mu.Unlock()
-		ws = nil
-	})
-
-	w.On("ping", func(...any) {
-		w.Emit("pong", "ok")
-	})
-
-	w.On("message", func(args ...any) {
-		message := args[0].(string)
-		// TODO -
-		logger.Infof("message: %s", message)
-		w.Emit("message", "ok")
-	})
-
-	ws = w
-	return true
 }

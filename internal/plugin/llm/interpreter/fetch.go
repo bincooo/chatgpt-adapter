@@ -15,14 +15,29 @@ import (
 
 func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (response *http.Response, tokens int, err error) {
 	var (
-		baseUrl  = pkg.Config.GetString("interpreter.baseUrl")
-		useProxy = pkg.Config.GetBool("interpreter.useProxy")
+		baseUrl = pkg.Config.GetString("interpreter.baseUrl")
 	)
 
-	if !useProxy {
-		proxies = ""
+	tokens, message, err := mergeMessages(ctx, proxies, baseUrl, completion)
+	if err != nil {
+		return nil, -1, err
 	}
 
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
+		Context(common.GetGinContext(ctx)).
+		Proxies(proxies).
+		POST(baseUrl+"/chat").
+		Body(map[string]string{
+			"message": message,
+		}).
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	if err != nil {
+		err = logger.WarpError(err)
+	}
+	return
+}
+
+func mergeMessages(ctx *gin.Context, proxies, baseUrl string, completion pkg.ChatCompletion) (tokens int, message string, err error) {
 	condition := func(role string) string {
 		switch role {
 		case "assistant", "end":
@@ -49,8 +64,7 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 		tokens += common.CalcTokens(opts.Message["content"])
 		// 复合消息
 		if _, ok := opts.Message["multi"]; ok && role == "user" {
-			message := opts.Initial()
-			content, e := common.MergeMultiMessage(ctx.Request.Context(), proxies, message)
+			content, e := common.MergeMultiMessage(ctx.Request.Context(), proxies, opts.Initial())
 			if e != nil {
 				return nil, e
 			}
@@ -87,10 +101,11 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 	})
 
 	if messageL := len(messages); !messages[messageL-1].Is("role", "user") {
-		return nil, 0, errors.Errorf("messages[%d] is not `user` role", messageL-1)
+		err = errors.Errorf("messages[%d] is not `user` role", messageL-1)
+		return
 	}
 
-	message := messages[len(messages)-1].GetString("content")
+	message = messages[len(messages)-1].GetString("content")
 	messages = messages[:len(messages)-1]
 
 	obj := map[string]interface{}{
@@ -101,28 +116,16 @@ func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (res
 		obj["system"] = system
 	}
 
-	response, err = emit.ClientBuilder(plugin.HTTPClient).
+	response, e := emit.ClientBuilder(plugin.HTTPClient).
 		Context(common.GetGinContext(ctx)).
 		Proxies(proxies).
 		POST(baseUrl+"/settings").
 		Body(obj).
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
-	if err != nil {
-		err = logger.WarpError(err)
+	if e != nil {
+		err = logger.WarpError(e)
 		return
 	}
 	logger.Info(emit.TextResponse(response))
-
-	response, err = emit.ClientBuilder(plugin.HTTPClient).
-		Context(common.GetGinContext(ctx)).
-		Proxies(proxies).
-		POST(baseUrl+"/chat").
-		Body(map[string]string{
-			"message": message,
-		}).
-		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
-	if err != nil {
-		err = logger.WarpError(err)
-	}
 	return
 }
