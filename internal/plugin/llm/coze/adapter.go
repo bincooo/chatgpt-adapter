@@ -355,7 +355,7 @@ func newOptions(proxies string, model string, pMessages []coze.Message) (options
 				mode = 'w'
 			}
 			options = coze.NewDefaultOptions(values[0], values[1], scene, isO, proxies)
-			logger.Infof("using custom coze options: botId = %s, version = %s, scene = %d", values[0], values[1], scene)
+			logger.Infof("using custom coze options: botId = %s, version = %s, scene = %d, mode = %s", values[0], values[1], scene, model)
 			return
 		}
 

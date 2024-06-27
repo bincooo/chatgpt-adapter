@@ -155,7 +155,7 @@ func resetMarker(cookie string) {
 		return
 	}
 
-	if marker == 0 || marker > 1 {
+	if marker != 1 {
 		return
 	}
 
