@@ -135,7 +135,7 @@ curl -i -X POST \
 #### Authorization 获取
 
 claude: 对IP十分严格
-> 在 `claude.ai` 官网中登陆，浏览器 `cookies` 中取出 `sessionKey` 的值就是 `Authorization` 参数
+> 在 `claude.ai` 官网中登陆，浏览器 `cookies` 中取出 `sessionKey` 的值。在 `config.yaml` 中的 `claude:`配置cookies
 
 bing:
 > 在 `www.bing.com` 官网中登陆，浏览器 `cookies` 中取出 `_U` 的值就是 `Authorization` 参数
@@ -224,6 +224,8 @@ Authorization: sk-dalle-3-xl
 // google.dall-e-3
 Authorization: sk-google-xl
 ```
+
+*TIPS：如果Authorization没有匹配，则会随机在上面几个里选一个*
 
 api:
 
