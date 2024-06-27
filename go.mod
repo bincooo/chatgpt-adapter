@@ -4,11 +4,11 @@ go 1.21.6
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
-	github.com/bincooo/claude-api v1.0.5-0.20240626224419-60ebc7d8a686
+	github.com/bincooo/claude-api v1.0.5-0.20240627073706-cfa8655001fe
 	github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46
 	github.com/bincooo/coze-api v1.0.2-0.20240620163352-ad627f0dffd2
 	github.com/bincooo/edge-api v1.0.4-0.20240620163255-3f676529cccd
-	github.com/bincooo/emit.io v0.0.0-20240625032952-3368351dc592
+	github.com/bincooo/emit.io v0.0.0-20240627072132-131b021f1619
 	github.com/bincooo/you.com v0.0.0-20240626230203-cf0d17856e76
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/eko/gocache/lib/v4 v4.1.6
@@ -29,7 +29,6 @@ require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bincooo/requests v0.0.0-20230720064210-7eae5d6c9d1e // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
@@ -81,7 +80,8 @@ require (
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/wangluozhe/fhttp v0.0.0-20230512135433-5c2ebfb4868a // indirect
+	github.com/wangluozhe/chttp v0.0.4 // indirect
+	github.com/wangluozhe/requests v1.2.4 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/zishang520/engine.io v1.5.9 // indirect
 	github.com/zishang520/engine.io-go-parser v1.2.2 // indirect

@@ -1,4 +1,33 @@
-# [](https://github.com/bincooo/chatgpt-adapter/compare/v2.1.0-dev-2...v) (2024-06-12)
+# [](https://github.com/bincooo/chatgpt-adapter/compare/v2.1.0-dev-3...v) (2024-06-26)
+
+
+### Bug Fixes
+
+* cohere application/stream validate ([#44](https://github.com/bincooo/chatgpt-adapter/issues/44)) ([ca9a8d1](https://github.com/bincooo/chatgpt-adapter/commit/ca9a8d1772ad467a841981fe0707e5821332a051))
+* matcher truncation ([c7e3e3f](https://github.com/bincooo/chatgpt-adapter/commit/c7e3e3f58413b417244bba28fce9669475cd7f36))
+* newbing 非search模式需添加特殊 optionSets 参数 ([#40](https://github.com/bincooo/chatgpt-adapter/issues/40)) ([c1b45e5](https://github.com/bincooo/chatgpt-adapter/commit/c1b45e5757be15eeb004a297f5e9489e78a2aee1))
+* sk-prodia-sd 绘图接口 ([aef2785](https://github.com/bincooo/chatgpt-adapter/commit/aef278552cd47c195c0ebb3600622225fddbf70c))
+* you 轮询cookie标记处理 ([b56aa49](https://github.com/bincooo/chatgpt-adapter/commit/b56aa4908b73dd07a9774800d3c6e8236290c195))
+* 正则标记异常处理 ([d869907](https://github.com/bincooo/chatgpt-adapter/commit/d86990751c3815c8128a37f6e589603c10c7ee08))
+* 空闲连接积压导致资源占用； 添加用户连接请求超时 ([#41](https://github.com/bincooo/chatgpt-adapter/issues/41)) ([a6417e0](https://github.com/bincooo/chatgpt-adapter/commit/a6417e06fd3db58bf821a8013205743823d86f54))
+
+
+### Features
+
+* add ws server ([9c4d2de](https://github.com/bincooo/chatgpt-adapter/commit/9c4d2dea4ec7a2e95adc946a27e4208d7588e061))
+* claude 摇号机制 ([e40d7ea](https://github.com/bincooo/chatgpt-adapter/commit/e40d7eae2286b461f5db0a97ba54d208951cb503))
+* CloudFlare 403 判断 ([ab17b47](https://github.com/bincooo/chatgpt-adapter/commit/ab17b472d11e964bbf9e74b77dc8ee1118a565df))
+* CloudFlare 过盾期间，所有请求等待 ([b9f46d7](https://github.com/bincooo/chatgpt-adapter/commit/b9f46d7f6dff9bd38ab1be36dca14872b6c5c51e))
+* interpreter ws 反向连接 ([7988f82](https://github.com/bincooo/chatgpt-adapter/commit/7988f82bc8066f3138b47b404c3a5fd81c909bc5))
+* open-interpreter 复合消息处理（image） ([076e709](https://github.com/bincooo/chatgpt-adapter/commit/076e709b77e8a1cc3c8c999b3299593ace0d8dd2))
+* you 预检可用次数 ([0784877](https://github.com/bincooo/chatgpt-adapter/commit/078487739e7748721c00c0ca4a3f9d70e4dc7e2f))
+* 池子轮询器 ([4fb5838](https://github.com/bincooo/chatgpt-adapter/commit/4fb5838a64b0386050e72cc20bc41ef628c2d1a6))
+* 添加 you.com 逆向api ([c83e975](https://github.com/bincooo/chatgpt-adapter/commit/c83e9752ef3a5286b5401b165462d25bfa7b37a7))
+* 添加角色序列映射标记 char_sequences ([58d85a8](https://github.com/bincooo/chatgpt-adapter/commit/58d85a862fe73a22a5d707d263162f2ac2b0c164))
+
+
+
+# [2.1.0-dev-3](https://github.com/bincooo/chatgpt-adapter/compare/v2.1.0-dev-2...v2.1.0-dev-3) (2024-06-12)
 
 
 ### Bug Fixes

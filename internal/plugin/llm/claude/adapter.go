@@ -123,6 +123,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	chat.Client(plugin.HTTPClient)
+	claude3.Ja3("771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,13-27-23-51-65037-10-16-17513-65281-35-18-43-11-5-45-0,25497-29-23-24,0")
 	chatResponse, err := chat.Reply(common.GetGinContext(ctx), "", attachments)
 	if err != nil {
 		logger.Error(err)
