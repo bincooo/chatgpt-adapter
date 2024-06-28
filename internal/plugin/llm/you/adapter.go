@@ -308,9 +308,14 @@ func Condition(cookie string) bool {
 	count, err := chat.State(ctx)
 	if err != nil {
 		var se emit.Error
-		if errors.As(err, &se) && se.Code == 403 {
-			cleanCf()
-			_ = tryCloudFlare()
+		if errors.As(err, &se) {
+			if se.Code == 403 {
+				cleanCf()
+				_ = tryCloudFlare()
+			}
+			if se.Code == 401 { // cookie 失效？？？
+				_ = youRollContainer.SetMarker(cookie, 2)
+			}
 		}
 		logger.Error(err)
 		return false
