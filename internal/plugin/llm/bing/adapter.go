@@ -6,6 +6,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
 	"regexp"
@@ -62,6 +63,8 @@ func (API) Completion(ctx *gin.Context) {
 
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
+
+		baseUrl = pkg.Config.GetString("bing.baseUrl")
 	)
 
 	if cookie == "xxx" {
@@ -72,7 +75,7 @@ func (API) Completion(ctx *gin.Context) {
 		pad = true
 	}
 
-	options, err := edge.NewDefaultOptions(cookie, "")
+	options, err := edge.NewDefaultOptions(cookie, baseUrl)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)

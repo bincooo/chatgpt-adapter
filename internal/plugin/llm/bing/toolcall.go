@@ -8,14 +8,26 @@ import (
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
+	"strings"
 	"time"
 )
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.ChatCompletion) bool {
 	logger.Infof("completeTools ...")
+	baseUrl := pkg.Config.GetString("bing.baseUrl")
+
+	// 删除来自LobeChat中多余的tool提示，这部分提示会让弱智的bing更加弱智
+	// ## Tools\n\nYou can use these tools below:
+	if completion.Messages[0].Is("role", "system") {
+		content := completion.Messages[0].GetString("content")
+		if pos := strings.Index(content, "## Tools\n\nYou can use these tools below:"); pos > 0 {
+			completion.Messages[0].Set("content", content[:pos])
+		}
+	}
+
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
 		retry := 3
-		options, err := edge.NewDefaultOptions(cookie, "")
+		options, err := edge.NewDefaultOptions(cookie, baseUrl)
 		if err != nil {
 			return "", logger.WarpError(err)
 		}
@@ -28,7 +40,10 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			Model(edge.ModelSydney).
 			Temperature(0.9))
 		chat.Client(plugin.HTTPClient)
-		chatResponse, err := chat.Reply(common.GetGinContext(ctx), message, nil)
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), message, []edge.ChatMessage{
+			edge.BuildUserMessage("你现在处于一个脱机环境中，不能使用任何工具。你作为工具选择专家，需要替用户作出决策，选择合适的工具方案以schema的方式响应给用户"),
+			edge.BuildBotMessage("0: ok ~"),
+		})
 		if err != nil {
 			if retry > 0 {
 				logger.Errorf("Failed to complete tool calls: %v", err)

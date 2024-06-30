@@ -28,6 +28,9 @@ google:
 #    - category: HARM_CATEGORY_HARASSMENT
 #      threshold: BLOCK_NONE
 
+bing:
+  baseUrl: "https://www.bing.com"
+
 claude:
   pad: 0
   cookies:
