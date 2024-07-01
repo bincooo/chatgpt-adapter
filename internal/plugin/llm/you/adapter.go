@@ -136,14 +136,11 @@ func (API) Completion(ctx *gin.Context) {
 		echo = ctx.GetBool(vars.GinEcho)
 	)
 
-	defer func(cookies []string) {
-		if len(cookies) == 0 {
-			return
-		}
+	defer func() {
 		for _, value := range cookies {
 			resetMarker(value)
 		}
-	}(cookies)
+	}()
 
 	var (
 		proxies    = ctx.GetString("proxies")

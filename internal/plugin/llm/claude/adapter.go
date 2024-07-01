@@ -1,6 +1,7 @@
 package claude
 
 import (
+	"errors"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
@@ -8,6 +9,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	claude3 "github.com/bincooo/claude-api"
+	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"time"
@@ -31,7 +33,7 @@ func init() {
 		if len(cookies) == 0 {
 			return
 		}
-		claudeRollContainer = common.NewPollContainer[string](cookies, 120*time.Second) // 请求失败 120秒静置
+		claudeRollContainer = common.NewPollContainer[string](cookies, 120*time.Second) // 请求失败 静置
 		claudeRollContainer.Condition = Condition
 	})
 }
@@ -87,6 +89,8 @@ func (API) Completion(ctx *gin.Context) {
 		model      = ""
 
 		echo = ctx.GetBool(vars.GinEcho)
+
+		cookies []string
 	)
 
 	if strings.HasPrefix(completion.Model, "claude-") {
@@ -95,6 +99,16 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}
 
+	defer func() {
+		for _, cookie := range cookies {
+			resetMarker(cookie)
+		}
+	}()
+
+	retry := 3
+label:
+
+	retry--
 	cookie, err := claudeRollContainer.Poll()
 	if err != nil {
 		logger.Error(err)
@@ -102,7 +116,7 @@ func (API) Completion(ctx *gin.Context) {
 		return
 	}
 
-	defer resetMarker(cookie)
+	cookies = append(cookies, cookie)
 	options, err := claude3.NewDefaultOptions(cookie, model)
 	if err != nil {
 		logger.Error(err)
@@ -134,8 +148,16 @@ func (API) Completion(ctx *gin.Context) {
 	chatResponse, err := chat.Reply(common.GetGinContext(ctx), " ", attachments)
 	if err != nil {
 		logger.Error(err)
+		var se emit.Error
+		if errors.As(err, &se) {
+			if se.Code == 429 {
+				_ = claudeRollContainer.SetMarker(cookie, 2)
+			}
+		}
+		if retry > 0 {
+			goto label
+		}
 		response.Error(ctx, -1, err)
-		_ = claudeRollContainer.SetMarker(cookie, 2)
 		return
 	}
 

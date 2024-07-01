@@ -25,14 +25,11 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		echo = ctx.GetBool(vars.GinEcho)
 	)
 
-	defer func(cookies []string) {
-		if len(cookies) == 0 {
-			return
-		}
+	defer func() {
 		for _, value := range cookies {
 			resetMarker(value)
 		}
-	}(cookies)
+	}()
 
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
 		if echo {
