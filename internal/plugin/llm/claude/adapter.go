@@ -33,7 +33,7 @@ func init() {
 		if len(cookies) == 0 {
 			return
 		}
-		claudeRollContainer = common.NewPollContainer[string](cookies, 120*time.Second) // 请求失败 静置
+		claudeRollContainer = common.NewPollContainer[string](cookies, time.Hour) // 请求失败 静置
 		claudeRollContainer.Condition = Condition
 	})
 }
