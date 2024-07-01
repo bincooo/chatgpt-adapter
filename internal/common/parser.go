@@ -551,6 +551,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 			"histories",
 			"char_sequences", // 角色序列映射
 			"tool",
+			"echo", // 不与AI交互，仅获取处理后的上下文
 		})
 	)
 
@@ -665,6 +666,13 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 			// debug 模式
 			if node.t == XML_TYPE_X && node.tag == "debug" {
 				ctx.Set(vars.GinDebugger, true)
+				clean(content[node.index:node.end])
+				continue
+			}
+
+			// 不与AI交互，仅获取处理后的上下文
+			if node.t == XML_TYPE_X && node.tag == "echo" {
+				ctx.Set(vars.GinEcho, true)
 				clean(content[node.index:node.end])
 				continue
 			}

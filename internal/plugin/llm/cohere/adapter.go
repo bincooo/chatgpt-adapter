@@ -2,9 +2,11 @@ package cohere
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	coh "github.com/bincooo/cohere-api"
@@ -88,6 +90,8 @@ func (API) Completion(ctx *gin.Context) {
 		//	Tools:   convertTools(completion),
 		//	Results: convertToolResults(completion),
 		//}
+
+		echo = ctx.GetBool(vars.GinEcho)
 	)
 
 	// 官方的文档toolCall描述十分模糊，简测功能不佳，改回提示词实现
@@ -102,6 +106,11 @@ func (API) Completion(ctx *gin.Context) {
 		//toolObject = coh.ToolObject{}
 		message = mergeMessages(ctx, completion.Messages)
 		ctx.Set(ginTokens, common.CalcTokens(message))
+		if echo {
+			response.Echo(ctx, completion.Model, message, completion.Stream)
+			return
+		}
+
 		chat = coh.New(cookie, completion.Temperature, completion.Model, false)
 		chat.TopK(completion.TopK)
 		chat.MaxTokens(completion.MaxTokens)
@@ -115,6 +124,12 @@ func (API) Completion(ctx *gin.Context) {
 		var tokens = 0
 		pMessages, system, message, tokens = mergeChatMessages(completion.Messages)
 		ctx.Set(ginTokens, tokens)
+		if echo {
+			bytes, _ := json.MarshalIndent(pMessages, "", "  ")
+			response.Echo(ctx, completion.Model, fmt.Sprintf("SYSTEM\n%s\n\n\n-------PREVIOUS MESSAGES:\n%s\n\n\n------\nCURR QUESTION:\n%s", system, bytes, message), completion.Stream)
+			return
+		}
+
 		chat = coh.New(cookie, completion.Temperature, completion.Model, true)
 
 	}

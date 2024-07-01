@@ -136,6 +136,17 @@ func Response(ctx *gin.Context, model, content string) {
 	})
 }
 
+func Echo(ctx *gin.Context, mode, content string, sse bool) {
+	if !sse {
+		Response(ctx, mode, content)
+	} else {
+		created := time.Now().Unix()
+		SSEResponse(ctx, mode, content, created)
+		time.Sleep(time.Second)
+		SSEResponse(ctx, mode, "[DONE]", created)
+	}
+}
+
 func SSEResponse(ctx *gin.Context, model, content string, created int64) {
 	ctx.Set(canResponse, "No!")
 	setSSEHeader(ctx)

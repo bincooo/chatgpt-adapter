@@ -260,6 +260,7 @@ func (API) Completion(ctx *gin.Context) {
 		proxies    = ctx.GetString("proxies")
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
+		echo       = ctx.GetBool(vars.GinEcho)
 	)
 
 	completion.Model = completion.Model[6:]
@@ -271,6 +272,11 @@ func (API) Completion(ctx *gin.Context) {
 
 	newMessages := mergeMessages(ctx, completion.Messages)
 	ctx.Set(ginTokens, common.CalcTokens(newMessages))
+	if echo {
+		response.Echo(ctx, completion.Model, newMessages, completion.Stream)
+		return
+	}
+
 	retry := 3
 label:
 	ch, err := fetch(common.GetGinContext(ctx), proxies, token, newMessages, options{

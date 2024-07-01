@@ -3,6 +3,7 @@ package you
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
@@ -128,14 +129,11 @@ func (API) Models() []plugin.Model {
 }
 
 func (API) Completion(ctx *gin.Context) {
-	if youRollContainer.Len() == 0 {
-		response.Error(ctx, -1, "empty cookies")
-		return
-	}
-
 	var (
 		retry   = 3
 		cookies []string
+
+		echo = ctx.GetBool(vars.GinEcho)
 	)
 
 	defer func(cookies []string) {
@@ -147,6 +145,32 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}(cookies)
 
+	var (
+		proxies    = ctx.GetString("proxies")
+		completion = common.GetGinCompletion(ctx)
+		matchers   = common.GetGinMatchers(ctx)
+	)
+
+	completion.Model = completion.Model[4:]
+	pMessages, currMessage, tokens, err := mergeMessages(ctx, completion)
+	if err != nil {
+		logger.Error(err)
+		response.Error(ctx, -1, err)
+		return
+	}
+
+	if echo {
+		is32 := tokens < 12000
+		pM, _ := you.MergeMessages(pMessages, !is32)
+		response.Echo(ctx, completion.Model, fmt.Sprintf("PREVIOUS MESSAGES:\n%s\n\n\n------\nCURR QUESTION:\n%s", pM, currMessage), completion.Stream)
+		return
+	}
+
+	if youRollContainer.Len() == 0 {
+		response.Error(ctx, -1, "empty cookies")
+		return
+	}
+
 label:
 	retry--
 	cookie, err := youRollContainer.Poll()
@@ -155,15 +179,8 @@ label:
 		response.Error(ctx, -1, err)
 		return
 	}
+
 	cookies = append(cookies, cookie)
-
-	var (
-		proxies    = ctx.GetString("proxies")
-		completion = common.GetGinCompletion(ctx)
-		matchers   = common.GetGinMatchers(ctx)
-	)
-
-	completion.Model = completion.Model[4:]
 	if plugin.NeedToToolCall(ctx) {
 		if completeToolCalls(ctx, cookie, proxies, completion) {
 			return
@@ -180,12 +197,6 @@ label:
 	}
 
 	chat.CloudFlare(clearance, userAgent, lang)
-	pMessages, currMessage, tokens, err := mergeMessages(ctx, completion)
-	if err != nil {
-		logger.Error(err)
-		response.Error(ctx, -1, err)
-		return
-	}
 
 	var cancel chan error
 	cancel, matchers = joinMatchers(ctx, matchers)

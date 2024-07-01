@@ -1,10 +1,12 @@
 package gemini
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/gin-gonic/gin"
 	"net/url"
@@ -70,12 +72,19 @@ func (API) Completion(ctx *gin.Context) {
 		proxies    = ctx.GetString("proxies")
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
+		echo       = ctx.GetBool(vars.GinEcho)
 	)
 
 	newMessages, tokens, err := mergeMessages(completion.Messages)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
+		return
+	}
+
+	if echo {
+		bytes, _ := json.MarshalIndent(newMessages, "", "  ")
+		response.Echo(ctx, completion.Model, string(bytes), completion.Stream)
 		return
 	}
 

@@ -1,6 +1,7 @@
 package coze
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
@@ -127,6 +128,8 @@ func (API) Completion(ctx *gin.Context) {
 
 		user      = ""
 		assistant = ""
+
+		echo = ctx.GetBool(vars.GinEcho)
 	)
 
 	{
@@ -165,6 +168,12 @@ func (API) Completion(ctx *gin.Context) {
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
+		return
+	}
+
+	if echo {
+		bytes, _ := json.MarshalIndent(pMessages, "", "  ")
+		response.Echo(ctx, completion.Model, string(bytes), completion.Stream)
 		return
 	}
 

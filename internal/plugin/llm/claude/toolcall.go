@@ -4,6 +4,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	claude3 "github.com/bincooo/claude-api"
@@ -13,8 +14,17 @@ import (
 
 func completeToolCalls(ctx *gin.Context, cookie string, completion pkg.ChatCompletion) bool {
 	logger.Infof("completeTools ...")
+	var (
+		model = ""
+		echo  = ctx.GetBool(vars.GinEcho)
+	)
+
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
-		model := ""
+		if echo {
+			logger.Infof("toolCall message: \n%s", message)
+			return "", nil
+		}
+
 		if strings.HasPrefix(completion.Model, "claude-") {
 			if completion.Model != "claude-3" {
 				model = completion.Model

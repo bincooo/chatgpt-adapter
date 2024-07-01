@@ -4,6 +4,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/edge-api"
@@ -14,7 +15,11 @@ import (
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.ChatCompletion) bool {
 	logger.Infof("completeTools ...")
-	baseUrl := pkg.Config.GetString("bing.baseUrl")
+
+	var (
+		baseUrl = pkg.Config.GetString("bing.baseUrl")
+		echo    = ctx.GetBool(vars.GinEcho)
+	)
 
 	// 删除来自LobeChat中多余的tool提示，这部分提示会让弱智的bing更加弱智
 	// ## Tools\n\nYou can use these tools below:
@@ -26,6 +31,11 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 	}
 
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
+		if echo {
+			logger.Infof("toolCall message: \n%s", message)
+			return "", nil
+		}
+
 		retry := 3
 		options, err := edge.NewDefaultOptions(cookie, baseUrl)
 		if err != nil {

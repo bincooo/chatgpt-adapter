@@ -20,6 +20,27 @@ flag: debug
 }
 ```
 
+#### 开启请求体响应：不消耗tokens，直接返回请求体
+```text
+flag: echo
+```
+例子：
+```text
+<echo />
+
+>>>>> 
+{
+  "messages": [
+    {
+      "content": "<echo />\n研读书籍，准备明天的测验",
+      "role": "user"
+    }
+  ],
+  "model": "coze",
+  "stream": false
+}
+```
+
 #### 注释，只为了标注说明，没有实际作用
 ```text
 <!-- 我是注释 -->

@@ -1,9 +1,11 @@
 package coze
 
 import (
+	"encoding/json"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/coze-api"
@@ -14,6 +16,8 @@ import (
 
 func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.ChatCompletion) bool {
 	logger.Info("completeTools ...")
+	echo := ctx.GetBool(vars.GinEcho)
+
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
 		message = strings.TrimSpace(message)
 		system := ""
@@ -35,6 +39,12 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 			Role:    "user",
 			Content: message,
 		})
+
+		if echo {
+			bytes, _ := json.MarshalIndent(pMessages, "", "  ")
+			logger.Infof("toolCall message: \n%s", bytes)
+			return "", nil
+		}
 
 		co, msToken := extCookie(cookie)
 		options, mode, err := newOptions(proxies, completion.Model, pMessages)

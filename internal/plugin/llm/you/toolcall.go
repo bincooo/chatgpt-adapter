@@ -5,6 +5,7 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
+	"github.com/bincooo/chatgpt-adapter/internal/vars"
 	"github.com/bincooo/chatgpt-adapter/logger"
 	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
@@ -20,6 +21,8 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 	var (
 		code    = -1
 		cookies []string
+
+		echo = ctx.GetBool(vars.GinEcho)
 	)
 
 	defer func(cookies []string) {
@@ -32,6 +35,11 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 	}(cookies)
 
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
+		if echo {
+			logger.Infof("toolCall message: \n%s", message)
+			return "", nil
+		}
+
 		retry := 3
 	label:
 		retry--

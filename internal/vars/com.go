@@ -14,6 +14,7 @@ const (
 	GinMatchers        = "__matchers__"
 	GinCompletionUsage = "__completion-usage__"
 	GinDebugger        = "__debug__"
+	GinEcho            = "__echo__"
 	GinTool            = "__tool__"
 	GinClose           = "__close__"
 	GinCharSequences   = "__char_sequences__"

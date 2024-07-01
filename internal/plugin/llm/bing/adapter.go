@@ -1,6 +1,8 @@
 package bing
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/bincooo/chatgpt-adapter/internal/common"
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
@@ -59,7 +61,9 @@ func (API) Completion(ctx *gin.Context) {
 		cookie   = ctx.GetString("token")
 		proxies  = ctx.GetString("proxies")
 		notebook = ctx.GetBool("notebook")
-		pad      = ctx.GetBool("pad")
+
+		pad  = ctx.GetBool("pad")
+		echo = ctx.GetBool(vars.GinEcho)
 
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
@@ -113,6 +117,12 @@ func (API) Completion(ctx *gin.Context) {
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
+		return
+	}
+
+	if echo {
+		bytes, _ := json.MarshalIndent(pMessages, "", "  ")
+		response.Echo(ctx, completion.Model, fmt.Sprintf("PREVIOUS MESSAGES:\n%s\n\n\n------\nCURR QUESTION:\n%s", bytes, currMessage), completion.Stream)
 		return
 	}
 
