@@ -148,7 +148,7 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages [
 		tokens += common.CalcTokens(message.GetString("content"))
 	}
 
-	is32 := tokens < 12000
+	//is32 := tokens < 12000
 	// 合并历史对话
 	iterator := func(opts struct {
 		Previous string
@@ -201,16 +201,16 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages [
 
 	// 获取最后一条用户消息
 	okey := ""
-	if is32 {
-		okey = "ok ~"
-		messageL := len(newMessages)
-		message := newMessages[messageL-1]
-		if message["role"] == "user" {
-			newMessages = newMessages[:messageL-1]
-			text = strings.TrimSpace(message["content"])
-			messageL -= 1
-		}
-	}
+	//if is32 {
+	//	okey = "ok ~"
+	//	messageL := len(newMessages)
+	//	message := newMessages[messageL-1]
+	//	if message["role"] == "user" {
+	//		newMessages = newMessages[:messageL-1]
+	//		text = strings.TrimSpace(message["content"])
+	//		messageL -= 1
+	//	}
+	//}
 
 	// 理论上合并后的上下文不存在相邻的相同消息
 	pos := 0

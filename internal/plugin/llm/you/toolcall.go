@@ -49,9 +49,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 		}
 
 		chat.CloudFlare(clearance, userAgent, lang)
-		chatResponse, err := chat.Reply(common.GetGinContext(ctx), []you.Message{
-			{"", message},
-		}, "Please review the attached prompt", true)
+		chatResponse, err := chat.Reply(common.GetGinContext(ctx), nil, message, "Please review the attached prompt")
 		if err != nil {
 			if strings.Contains(err.Error(), "ZERO QUOTA") {
 				code = 429

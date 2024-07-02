@@ -149,7 +149,7 @@ func (API) Completion(ctx *gin.Context) {
 	)
 
 	completion.Model = completion.Model[4:]
-	pMessages, currMessage, tokens, err := mergeMessages(ctx, completion)
+	chats, message, tokens, err := mergeMessages(ctx, completion)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
@@ -157,9 +157,8 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	if echo {
-		is32 := tokens < 12000
-		pM, _ := you.MergeMessages(pMessages, !is32)
-		response.Echo(ctx, completion.Model, fmt.Sprintf("PREVIOUS MESSAGES:\n%s\n\n\n------\nCURR QUESTION:\n%s", pM, currMessage), completion.Stream)
+		pM, _ := you.MergeMessages(chats, true)
+		response.Echo(ctx, completion.Model, fmt.Sprintf("--------FILE MESSAGE--------:\n%s\n\n\n--------CURR QUESTION--------:\n%s", pM, message), completion.Stream)
 		return
 	}
 
@@ -198,9 +197,14 @@ label:
 	var cancel chan error
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set(ginTokens, tokens)
-	is32 := tokens < 12000
 
-	ch, err := chat.Reply(common.GetGinContext(ctx), pMessages, currMessage, !is32)
+	messages, err := you.MergeMessages(chats, true)
+	if err != nil {
+		response.Error(ctx, -1, err)
+		return
+	}
+
+	ch, err := chat.Reply(common.GetGinContext(ctx), nil, messages, message)
 	if err != nil {
 		logger.Error(err)
 		var se emit.Error
