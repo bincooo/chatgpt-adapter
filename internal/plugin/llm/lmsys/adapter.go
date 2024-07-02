@@ -41,6 +41,11 @@ func (API) Models() []plugin.Model {
 	*/
 	return []plugin.Model{
 		{
+			Id:      "lmsys/claude-3-5-sonnet-20240620",
+			Object:  "model",
+			Created: 1686935002,
+			By:      "lmsys-adapter",
+		}, {
 			Id:      "lmsys/claude-3-haiku-20240307",
 			Object:  "model",
 			Created: 1686935002,
