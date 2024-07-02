@@ -275,6 +275,9 @@ func tryCloudFlare() error {
 			DoC(emit.Status(http.StatusOK), emit.IsJSON)
 		if err != nil {
 			logger.Error(err)
+			if emit.IsJSON(r) == nil {
+				logger.Error(emit.TextResponse(r))
+			}
 			return err
 		}
 
