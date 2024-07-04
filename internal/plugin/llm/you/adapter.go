@@ -297,6 +297,14 @@ func tryCloudFlare() error {
 
 func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []common.Matcher) {
 	// 自定义标记块中断
+	keyv, ok := common.GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
+	if ok {
+		if user := keyv.GetString("user"); user == "" {
+			keyv.Set("user", "\n\nHuman:")
+			ctx.Set(vars.GinCharSequences, keyv)
+		}
+	}
+
 	cancel, matcher := common.NewCancelMatcher(ctx)
 	matchers = append(matchers, matcher...)
 	return cancel, matchers
