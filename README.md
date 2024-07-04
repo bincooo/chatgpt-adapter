@@ -143,7 +143,7 @@ bing:
 gemini:
 > 在 `ai.google.dev` 中申请，获取 token凭证就是 `Authorization` 参数
 
-coze:
+coze: ❗~~DEPRECATED~~❗ 已开始收费，无法使用了
 > 在 `www.coze.com` 官网中登陆，浏览器 `cookies` 中复制完整的 `cookie` 就是 `Authorization` 参数
 
 > 》》支持指定bot模型 《《
