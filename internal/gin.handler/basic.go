@@ -5,11 +5,13 @@ import (
 	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
 	"github.com/bincooo/chatgpt-adapter/internal/plugin"
 	"github.com/bincooo/chatgpt-adapter/logger"
+	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -20,6 +22,7 @@ func Bind(port int, version, proxies string) {
 
 	route.Use(crosHandler)
 	route.Use(panicHandler)
+	route.Use(whiteIPHandler)
 	route.Use(tokenHandler)
 	route.Use(proxiesHandler(proxies))
 	route.Use(func(ctx *gin.Context) {
@@ -44,6 +47,21 @@ func Bind(port int, version, proxies string) {
 	if err := route.Run(addr); err != nil {
 		logger.Error(err)
 		os.Exit(1)
+	}
+}
+
+func whiteIPHandler(context *gin.Context) {
+	// 作用不大
+	slice := pkg.Config.GetStringSlice("white-addr")
+	if len(slice) != 0 {
+		addr := context.ClientIP()
+		if slices.Contains(slice, addr) {
+			context.Next()
+		} else {
+			logger.Errorf("IP address %s is not whitelisted", addr)
+			context.String(http.StatusForbidden, "refused")
+			context.Abort()
+		}
 	}
 }
 
