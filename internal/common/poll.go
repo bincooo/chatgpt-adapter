@@ -2,8 +2,10 @@ package common
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -100,8 +102,32 @@ func (container *PollContainer[T]) Poll() (T, error) {
 	return zero, fmt.Errorf("not roll result")
 }
 
+func (container *PollContainer[T]) Del(value T) {
+	if container.Len() == 0 {
+		return
+	}
+
+	for idx := 0; idx < len(container.slice); idx++ {
+		if reflect.DeepEqual(container.slice[idx], value) {
+			container.slice = append(container.slice[:idx], container.slice[idx+1:]...)
+			return
+		}
+	}
+}
+
+func (container *PollContainer[T]) Add(value T) {
+	container.slice = append(container.slice, value)
+}
+
 // 标记： 0 就绪状态，1 使用状态，2 异常状态
 func (container *PollContainer[T]) SetMarker(key interface{}, value byte) error {
+	if s, ok := key.(string); ok {
+		key = s
+	} else {
+		data, _ := json.Marshal(key)
+		key = string(data)
+	}
+
 	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -118,6 +144,13 @@ func (container *PollContainer[T]) SetMarker(key interface{}, value byte) error 
 }
 
 func (container *PollContainer[T]) GetMarker(key interface{}) (byte, error) {
+	if s, ok := key.(string); ok {
+		key = s
+	} else {
+		data, _ := json.Marshal(key)
+		key = string(data)
+	}
+
 	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

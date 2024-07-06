@@ -43,6 +43,8 @@ var (
 
 	mu    sync.Mutex
 	rwMus = make(map[string]*common.ExpireLock)
+
+	cookiesPollContainer *common.PollContainer[map[string]interface{}]
 )
 
 type API struct {
@@ -82,11 +84,27 @@ func init() {
 				scene35_16k = config["scene"].(int)
 			}
 		}
+
+		obj := pkg.Config.Get("coze.websdk")
+		if slice, ok := obj.([]interface{}); ok {
+			var values []map[string]interface{}
+			for _, value := range slice {
+				v := value.(map[string]interface{})
+				values = append(values, v)
+			}
+			cookiesPollContainer = common.NewPollContainer(make([]map[string]interface{}, 0), 0)
+			cookiesPollContainer.Condition = Condition
+			runTasks(values...)
+		}
 	})
 }
 
 func (API) Match(ctx *gin.Context, model string) bool {
 	if Model == model {
+		return true
+	}
+
+	if model == "coze/websdk" {
 		return true
 	}
 
@@ -99,6 +117,7 @@ func (API) Match(ctx *gin.Context, model string) bool {
 		}
 	}
 
+	// 检查绘图
 	token := ctx.GetString("token")
 	if model == "dall-e-3" {
 		if strings.Contains(token, "msToken=") || strings.Contains(token, "sessionid=") {
@@ -112,6 +131,12 @@ func (API) Models() []plugin.Model {
 	return []plugin.Model{
 		{
 			Id:      Model,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "coze/websdk",
 			Object:  "model",
 			Created: 1686935002,
 			By:      Model + "-adapter",
@@ -158,12 +183,6 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}
 
-	if plugin.NeedToToolCall(ctx) {
-		if completeToolCalls(ctx, cookie, proxies, completion) {
-			return
-		}
-	}
-
 	pMessages, tokens, err := mergeMessages(ctx)
 	if err != nil {
 		logger.Error(err)
@@ -175,6 +194,29 @@ func (API) Completion(ctx *gin.Context) {
 		bytes, _ := json.MarshalIndent(pMessages, "", "  ")
 		response.Echo(ctx, completion.Model, string(bytes), completion.Stream)
 		return
+	}
+
+	if completion.Model == "coze/websdk" {
+		meta, e := cookiesPollContainer.Poll()
+		if e != nil {
+			logger.Error(e)
+			response.Error(ctx, -1, e)
+			return
+		}
+
+		cookie = meta["cookies"].(string)
+		completion.Model, err = websdkModel(ctx, proxies, cookie)
+		if err != nil {
+			logger.Error(err)
+			response.Error(ctx, -1, err)
+			return
+		}
+	}
+
+	if plugin.NeedToToolCall(ctx) {
+		if completeToolCalls(ctx, cookie, proxies, completion) {
+			return
+		}
 	}
 
 	ctx.Set(ginTokens, tokens)
@@ -235,6 +277,36 @@ func (API) Completion(ctx *gin.Context) {
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
+}
+
+func websdkModel(ctx *gin.Context, proxies string, cookie string) (model string, err error) {
+	options, _, err := newOptions(proxies, "coze/websdk", nil)
+	if err != nil {
+		return "", err
+	}
+
+	co, msToken := extCookie(cookie)
+	chat := coze.New(co, msToken, options)
+	chat.Session(plugin.HTTPClient)
+	bots, err := chat.QueryBots(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	botId := ""
+	for _, value := range bots {
+		info := value.(map[string]interface{})
+		if info["name"] == "custom-128k" {
+			botId = info["id"].(string)
+			break
+		}
+	}
+
+	if botId == "" {
+		return "", errors.New("custom-128k bot not found")
+	}
+
+	return "coze/" + botId + "-xxx-1000-w", nil
 }
 
 // return true 终止
@@ -353,6 +425,12 @@ func customBotId(model string) string {
 }
 
 func newOptions(proxies string, model string, pMessages []coze.Message) (options coze.Options, mode byte, err error) {
+	if model == "coze/websdk" {
+		mode = 'w'
+		options = coze.NewDefaultOptions("xxx", "xxx", 1000, false, proxies)
+		return
+	}
+
 	if strings.HasPrefix(model, "coze/") {
 		values := strings.Split(model[5:], "-")
 		scene, e := strconv.Atoi(values[2])
@@ -364,7 +442,7 @@ func newOptions(proxies string, model string, pMessages []coze.Message) (options
 				mode = 'w'
 			}
 			options = coze.NewDefaultOptions(values[0], values[1], scene, isO, proxies)
-			logger.Infof("using custom coze options: botId = %s, version = %s, scene = %d, mode = %s", values[0], values[1], scene, model)
+			logger.Infof("using custom coze options: botId = %s, version = %s, scene = %d, mode = %c", values[0], values[1], scene, mode)
 			return
 		}
 

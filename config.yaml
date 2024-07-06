@@ -47,14 +47,14 @@ you:
     - 'xxx1'
     - 'xxx2'
 serverless:
-  enabled: false
+  enabled: true
   disabled-gpu: true
   # 当无法找到指定的浏览器时可以在此配置路径
   # execPath: /usr/bin/microsoft-edge
-  headless: new
+  headless: false
 
 # coze 默认配置；；；内置配置经常变动，难以维护改为配置化。新增webSdk模式，但还未得知速率是否有限制？？？
-#coze:
+coze:
 #  8k:
 #    botId: 114514
 #    version: 9527
@@ -69,6 +69,10 @@ serverless:
 #    botId: 114514
 #    version: 9527
 #    scene: 2
+  websdk:
+#    - email: xxx@gmail.com
+#      password: xxx
+#      validate: xxx@gmail.com
 
 interpreter:
   baseUrl: http://127.0.0.1:8000
