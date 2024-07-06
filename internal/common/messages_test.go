@@ -2,8 +2,8 @@ package common
 
 import (
 	"bytes"
+	"chatgpt-adapter/pkg"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"testing"
 )
 

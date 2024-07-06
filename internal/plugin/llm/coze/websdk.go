@@ -1,11 +1,11 @@
 package coze
 
 import (
+	"chatgpt-adapter/internal/plugin"
+	"chatgpt-adapter/internal/vars"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"context"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/coze-api"
 	"github.com/bincooo/emit.io"
 	"net/http"

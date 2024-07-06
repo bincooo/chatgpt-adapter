@@ -1,9 +1,9 @@
 package common
 
 import (
+	"chatgpt-adapter/internal/vars"
+	"chatgpt-adapter/pkg"
 	"context"
-	"github.com/bincooo/chatgpt-adapter/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"time"
 )

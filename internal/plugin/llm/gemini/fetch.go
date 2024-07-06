@@ -1,14 +1,14 @@
 package gemini
 
 import (
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/internal/plugin"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"net/http"
 	"net/url"

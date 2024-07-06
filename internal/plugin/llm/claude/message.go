@@ -2,12 +2,12 @@ package claude
 
 import (
 	"bytes"
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/internal/gin.handler/response"
+	"chatgpt-adapter/internal/vars"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	claude3 "github.com/bincooo/claude-api"
 	"github.com/gin-gonic/gin"
 	"strings"

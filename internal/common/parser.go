@@ -1,11 +1,11 @@
 package common
 
 import (
+	"chatgpt-adapter/internal/vars"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"encoding/json"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	"sort"

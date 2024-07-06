@@ -1,10 +1,10 @@
 package interpreter
 
 import (
-	"github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/internal/gin.handler/response"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	socketio "github.com/zishang520/socket.io/socket"
 )

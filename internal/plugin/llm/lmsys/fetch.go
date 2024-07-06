@@ -1,14 +1,14 @@
 package lmsys
 
 import (
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/internal/plugin"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	com "github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"net/http"
 	"strings"
@@ -312,7 +312,7 @@ func extCookies(token string) (fn []int) {
 
 func fetchCookies(ctx context.Context, proxies string) (cookies string) {
 	if ver != "" {
-		cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandString(5))
+		cookies = fmt.Sprintf("SERVERID=%s|%s", ver, common.RandString(5))
 		cookies = emit.MergeCookies(baseCookies, cookies)
 		return
 	}
@@ -358,7 +358,7 @@ label:
 		goto label
 	}
 	ver = co[0]
-	cookies = fmt.Sprintf("SERVERID=%s|%s", ver, com.RandString(5))
+	cookies = fmt.Sprintf("SERVERID=%s|%s", ver, common.RandString(5))
 	cookies = emit.MergeCookies(baseCookies, cookies)
 	return
 }

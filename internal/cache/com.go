@@ -1,9 +1,9 @@
 package cache
 
 import (
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/pkg"
 	"context"
-	"github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/eko/gocache/lib/v4/cache"
 	"github.com/eko/gocache/lib/v4/store"
 	gocacheStore "github.com/eko/gocache/store/go_cache/v4"

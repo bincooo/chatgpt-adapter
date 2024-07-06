@@ -9,9 +9,9 @@ TARGET_EXEC := server
 
 all: clean setup build-linux build-linux-arm64 build-osx build-windows copy
 
-# goland 中 go tool arguments 添加 echo 输出的命令参数
+# goland 中 go tool arguments 添加 echo 输出的命令参数，删除 -w -s
 echo:
-	@echo ${LDFLAGS}
+	@echo '${LDFLAGS}'
 
 clean:
 	rm -rf bin

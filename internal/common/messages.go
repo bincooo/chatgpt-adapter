@@ -2,11 +2,11 @@ package common
 
 import (
 	"bytes"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/google/uuid"
 	"mime/multipart"

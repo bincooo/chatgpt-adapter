@@ -1,4 +1,4 @@
-module github.com/bincooo/chatgpt-adapter
+module chatgpt-adapter
 
 go 1.21.6
 

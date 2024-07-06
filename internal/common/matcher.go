@@ -1,10 +1,10 @@
 package common
 
 import (
+	"chatgpt-adapter/internal/vars"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"context"
-	"github.com/bincooo/chatgpt-adapter/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"strings"
 )

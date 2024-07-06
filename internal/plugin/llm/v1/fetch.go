@@ -1,9 +1,9 @@
 package v1
 
 import (
-	"github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/pkg"
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/internal/plugin"
+	"chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"net/http"

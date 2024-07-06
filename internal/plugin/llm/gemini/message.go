@@ -3,14 +3,14 @@ package gemini
 import (
 	"bufio"
 	"bytes"
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/internal/gin.handler/response"
+	"chatgpt-adapter/internal/plugin"
+	"chatgpt-adapter/internal/vars"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"encoding/json"
 	"fmt"
-	com "github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -20,14 +20,14 @@ import (
 
 const ginTokens = "__tokens__"
 
-func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *http.Response, sse bool) (content string) {
+func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *http.Response, sse bool) (content string) {
 	defer partialResponse.Body.Close()
 
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
-	completion := com.GetGinCompletion(ctx)
-	toolId := com.GetGinToolValue(ctx).GetString("id")
+	completion := common.GetGinCompletion(ctx)
+	toolId := common.GetGinToolValue(ctx).GetString("id")
 	toolId = plugin.NameWithTools(toolId, completion.Tools)
 
 	reader := bufio.NewReader(partialResponse.Body)
@@ -113,7 +113,7 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 		logger.Debug(raw)
 
 		original = nil
-		raw = com.ExecMatchers(matchers, raw.(string))
+		raw = common.ExecMatchers(matchers, raw.(string))
 		if len(raw.(string)) == 0 {
 			continue
 		}
@@ -148,7 +148,7 @@ func waitResponse(ctx *gin.Context, matchers []com.Matcher, partialResponse *htt
 		return
 	}
 
-	ctx.Set(vars.GinCompletionUsage, com.CalcUsageTokens(content, tokens))
+	ctx.Set(vars.GinCompletionUsage, common.CalcUsageTokens(content, tokens))
 	if !sse {
 		response.Response(ctx, MODEL, content)
 	} else {
@@ -178,7 +178,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 		Initial  func() pkg.Keyv[interface{}]
 	}) (result []map[string]interface{}, err error) {
 		role := opts.Message["role"]
-		tokens += com.CalcTokens(opts.Message["content"])
+		tokens += common.CalcTokens(opts.Message["content"])
 		if condition(role) == condition(opts.Next) {
 			// cache buffer
 			opts.Buffer.WriteString(opts.Message["content"])
@@ -256,7 +256,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 
 				if keyv.Is("type", "image_url") {
 					o := keyv.GetKeyv("image_url")
-					mime, data, e := com.LoadImageMeta(o.GetString("url"))
+					mime, data, e := common.LoadImageMeta(o.GetString("url"))
 					if e != nil {
 						err = logger.WarpError(e)
 						return
@@ -314,7 +314,7 @@ func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]i
 		return
 	}
 
-	newMessages, err = com.TextMessageCombiner(messages, iterator)
+	newMessages, err = common.TextMessageCombiner(messages, iterator)
 	if err != nil {
 		err = logger.WarpError(err)
 	}

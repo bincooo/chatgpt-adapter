@@ -1,15 +1,15 @@
 package plugin
 
 import (
+	"chatgpt-adapter/internal/agent"
+	"chatgpt-adapter/internal/cache"
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/internal/gin.handler/response"
+	"chatgpt-adapter/internal/vars"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"encoding/json"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/internal/agent"
-	"github.com/bincooo/chatgpt-adapter/internal/cache"
-	"github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/internal/vars"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 	"slices"
 	"strconv"

@@ -1,10 +1,10 @@
 package v1
 
 import (
-	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
+	"chatgpt-adapter/internal/gin.handler/response"
+	"chatgpt-adapter/internal/plugin"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"github.com/gin-gonic/gin"
 )
 

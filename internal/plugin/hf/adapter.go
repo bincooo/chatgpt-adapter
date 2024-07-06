@@ -1,16 +1,16 @@
 package hf
 
 import (
+	"chatgpt-adapter/internal/agent"
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/internal/gin.handler/response"
+	"chatgpt-adapter/internal/plugin"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bincooo/chatgpt-adapter/internal/agent"
-	com "github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/internal/gin.handler/response"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"io"
@@ -74,7 +74,7 @@ func (API) Generation(ctx *gin.Context) {
 		modelSlice   []string
 		samplesSlice []string
 		space        = ctx.GetString(ginSpace)
-		generation   = com.GetGinGeneration(ctx)
+		generation   = common.GetGinGeneration(ctx)
 	)
 
 	message, err := completeTagsGenerator(ctx, generation.Message)
@@ -117,8 +117,8 @@ func (API) Generation(ctx *gin.Context) {
 		return
 	}
 
-	if (generation.Size == "HD" || strings.HasPrefix(generation.Size, "1792x")) && com.HasMfy() {
-		v, e := com.Magnify(ctx, value)
+	if (generation.Size == "HD" || strings.HasPrefix(generation.Size, "1792x")) && common.HasMfy() {
+		v, e := common.Magnify(ctx, value)
 		if e != nil {
 			logger.Error(e)
 		} else {
@@ -142,19 +142,19 @@ func (API) Generation(ctx *gin.Context) {
 func matchSamples(samples, spase string) string {
 	switch spase {
 	case "xl":
-		if com.Contains(xlSamples, samples) {
+		if common.Contains(xlSamples, samples) {
 			return samples
 		}
 		return "Euler a"
 	case "dalle-3xl":
 		return "none"
 	case "animagine-xl-3.1":
-		if com.Contains(animagineXl31Samples, samples) {
+		if common.Contains(animagineXl31Samples, samples) {
 			return samples
 		}
 		return "Euler a"
 	default:
-		if com.Contains(sdSamples, samples) {
+		if common.Contains(sdSamples, samples) {
 			return samples
 		}
 		return "Euler a"
@@ -164,19 +164,19 @@ func matchSamples(samples, spase string) string {
 func matchModel(style, spase string) string {
 	switch spase {
 	case "xl":
-		if com.Contains(xlModels, style) {
+		if common.Contains(xlModels, style) {
 			return style
 		}
 		return xlModels[rand.Intn(len(xlModels))]
 
 	case "dalle-4k":
-		if com.Contains(dalle4kModels, style) {
+		if common.Contains(dalle4kModels, style) {
 			return style
 		}
 		return dalle4kModels[rand.Intn(len(dalle4kModels))]
 
 	case "google":
-		if com.Contains(googleModels, style) {
+		if common.Contains(googleModels, style) {
 			return style
 		}
 		return googleModels[rand.Intn(len(googleModels))]
@@ -185,13 +185,13 @@ func matchModel(style, spase string) string {
 		return "none"
 
 	case "animagine-xl-3.1":
-		if com.Contains(animagineXl31Models, style) {
+		if common.Contains(animagineXl31Models, style) {
 			return style
 		}
 		return animagineXl31Models[rand.Intn(len(animagineXl31Models))]
 
 	default:
-		if com.Contains(sdModels, style) {
+		if common.Contains(sdModels, style) {
 			return style
 		}
 		return sdModels[rand.Intn(len(sdModels))]
@@ -230,7 +230,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		"max_tokens":  4096,
 	}
 
-	res, err := fetch(com.GetGinContext(ctx), proxies, baseUrl, cookie, obj)
+	res, err := fetch(common.GetGinContext(ctx), proxies, baseUrl, cookie, obj)
 	if err != nil {
 		return "", err
 	}

@@ -1,11 +1,11 @@
 package common
 
 import (
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"crypto/sha1"
 	"crypto/tls"
 	"encoding/hex"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"io"
 	"math/rand"

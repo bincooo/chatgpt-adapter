@@ -1,11 +1,11 @@
 package hf
 
 import (
+	"chatgpt-adapter/internal/common"
+	"chatgpt-adapter/internal/plugin"
+	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"fmt"
-	com "github.com/bincooo/chatgpt-adapter/internal/common"
-	"github.com/bincooo/chatgpt-adapter/internal/plugin"
-	"github.com/bincooo/chatgpt-adapter/logger"
-	"github.com/bincooo/chatgpt-adapter/pkg"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"math/rand"
@@ -32,7 +32,7 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 
 	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(com.GetGinContext(ctx)).
+		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
 		JHeader().
 		Header("User-Agent", userAgent).
@@ -60,7 +60,7 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 	logger.Info(emit.TextResponse(response))
 	response, err = emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(com.GetGinContext(ctx)).
+		Context(common.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("User-Agent", userAgent).
@@ -69,7 +69,7 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 		return
 	}
 
-	c, err := emit.NewGio(com.GetGinContext(ctx), response)
+	c, err := emit.NewGio(common.GetGinContext(ctx), response)
 	if err != nil {
 		return
 	}
@@ -110,7 +110,7 @@ func Ox001(ctx *gin.Context, model, samples, message string) (value string, err 
 	}
 	defer response.Body.Close()
 
-	c, err := emit.NewGio(com.GetGinContext(ctx), conn)
+	c, err := emit.NewGio(common.GetGinContext(ctx), conn)
 	if err != nil {
 		return
 	}
@@ -149,7 +149,7 @@ func Ox001(ctx *gin.Context, model, samples, message string) (value string, err 
 			return
 		}
 
-		if file, err = com.SaveBase64(d[0].(string), "png"); err != nil {
+		if file, err = common.SaveBase64(d[0].(string), "png"); err != nil {
 			c.Failed(fmt.Errorf("image save failed: %s", j.InitialBytes))
 			return
 		}
@@ -171,7 +171,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 
 	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(com.GetGinContext(ctx)).
+		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
 		JHeader().
 		Body(map[string]interface{}{
@@ -198,7 +198,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 	logger.Info(emit.TextResponse(response))
 	response, err = emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(com.GetGinContext(ctx)).
+		Context(common.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
@@ -206,7 +206,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 		return
 	}
 
-	c, err := emit.NewGio(com.GetGinContext(ctx), response)
+	c, err := emit.NewGio(common.GetGinContext(ctx), response)
 	if err != nil {
 		return
 	}
@@ -258,7 +258,7 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 
 	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(com.GetGinContext(ctx)).
+		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/?__theme=light").
@@ -287,7 +287,7 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 
 	response, err = emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(com.GetGinContext(ctx)).
+		Context(common.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("Origin", baseUrl).
@@ -337,7 +337,7 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = com.Download(proxies, info["url"].(string), "png")
+		value, err = common.Download(proxies, info["url"].(string), "png")
 		if err != nil {
 			c.Failed(fmt.Errorf("image generate failed: %v", err))
 			return
@@ -368,7 +368,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 
 	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(com.GetGinContext(ctx)).
+		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/?__theme=light").
@@ -404,7 +404,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 
 	response, err = emit.ClientBuilder(nil).
 		Proxies(proxies).
-		Context(com.GetGinContext(ctx)).
+		Context(common.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("Origin", baseUrl).
@@ -417,7 +417,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		return "", err
 	}
 
-	c, err := emit.NewGio(com.GetGinContext(ctx), response)
+	c, err := emit.NewGio(common.GetGinContext(ctx), response)
 	if err != nil {
 		return "", err
 	}
@@ -454,7 +454,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = com.Download(proxies, info["url"].(string), "png")
+		value, err = common.Download(proxies, info["url"].(string), "png")
 		if err != nil {
 			c.Failed(fmt.Errorf("image generate failed: %v", err))
 			return
@@ -483,7 +483,7 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 
 	conn, response, err := emit.SocketBuilder(plugin.HTTPClient).
 		Proxies(proxies).
-		Context(com.GetGinContext(ctx)).
+		Context(common.GetGinContext(ctx)).
 		URL(baseUrl + "/queue/join").
 		DoS(http.StatusSwitchingProtocols)
 	if err != nil {
@@ -491,7 +491,7 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 	}
 	defer response.Body.Close()
 
-	c, err := emit.NewGio(com.GetGinContext(ctx), conn)
+	c, err := emit.NewGio(common.GetGinContext(ctx), conn)
 	if err != nil {
 		return
 	}
@@ -532,7 +532,7 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 		}
 
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		if file, err = com.SaveBase64(values[r.Intn(len(values))].(string), "jpg"); err != nil {
+		if file, err = common.SaveBase64(values[r.Intn(len(values))].(string), "jpg"); err != nil {
 			c.Failed(fmt.Errorf("image save failed: %s", j.InitialBytes))
 			return
 		}
