@@ -27,6 +27,7 @@
 go.work
 simple_test.go
 cookies.txt
+config.yaml
 
 # os system
 .DS_Store

@@ -22,7 +22,7 @@ setup:
 	mkdir -p bin/windows
 
 copy: clean setup
-	cp config.yaml bin/config.yaml
+	cp example.config.yaml bin/config.yaml
 
 build-linux: copy
 	${BUILD_ENV} GOARCH=amd64 GOOS=linux go build ${LDFLAGS} -o bin/linux/${TARGET_EXEC} -trimpath cmd/command.go
