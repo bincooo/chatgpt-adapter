@@ -65,7 +65,7 @@ func Condition(value map[string]interface{}) bool {
 		return false
 	}
 
-	logger.Debugf("coze websdk credits[%s]: %v", value["email"], credits)
+	logger.Infof("coze websdk credits[%s]: %v", value["email"], credits)
 	if credits == 0 { // 额度用尽，放入重置任务容器中
 		cookiesPollContainer.Del(value)
 		taskContainer = append(taskContainer, value)
@@ -125,6 +125,7 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 		if err != nil {
 			cancel()
 			logger.Errorf("coze websdk 同步失败[%s]：%v", value["email"], err)
+			taskContainer = append(taskContainer, value)
 			continue
 		}
 
@@ -132,11 +133,13 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 		cancel()
 		if err != nil {
 			logger.Errorf("coze websdk 同步失败[%s]：%v", value["email"], err)
+			taskContainer = append(taskContainer, value)
 			continue
 		}
 
 		if v, ok := obj["ok"].(bool); !ok || !v {
 			logger.Errorf("coze websdk 同步失败[%s]", value["email"])
+			taskContainer = append(taskContainer, value)
 			continue
 		}
 
