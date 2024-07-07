@@ -110,7 +110,7 @@ label:
 	return
 }
 
-func messageResponse(ctx *gin.Context, ch chan string) (content string) {
+func waitMessageResponse(ctx *gin.Context, ch chan string) (content string) {
 	logger.Info("waitResponse ...")
 	for {
 		select {

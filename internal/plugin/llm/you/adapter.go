@@ -312,7 +312,7 @@ label:
 		return
 	}
 
-	content := messageResponse(ctx, ch)
+	content := waitMessageResponse(ctx, ch)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}

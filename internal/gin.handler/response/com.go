@@ -308,6 +308,9 @@ func setSSEHeader(ctx *gin.Context) {
 }
 
 func Event(ctx *gin.Context, event string, data interface{}) {
+	ctx.Set(canResponse, "No!")
+	setSSEHeader(ctx)
+
 	w := ctx.Writer
 	str, ok := data.(string)
 	if ok {
