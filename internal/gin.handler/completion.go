@@ -50,6 +50,27 @@ func init() {
 	})
 }
 
+func messages(ctx *gin.Context) {
+	var completion pkg.ChatCompletion
+	if err := ctx.BindJSON(&completion); err != nil {
+		response.Error(ctx, -1, err)
+		return
+	}
+
+	_ = ctx.Request.Body.Close()
+	matchers := common.NewMatchers()
+	ctx.Set(vars.GinCompletion, completion)
+	ctx.Set(vars.GinMatchers, matchers)
+
+	if !GlobalExtension.Match(ctx, completion.Model) {
+		response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", completion.Model))
+		return
+	}
+
+	defer postProc(ctx)
+	GlobalExtension.Messages(ctx)
+}
+
 func completions(ctx *gin.Context) {
 	var completion pkg.ChatCompletion
 	if err := ctx.BindJSON(&completion); err != nil {

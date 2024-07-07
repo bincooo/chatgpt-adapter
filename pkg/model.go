@@ -6,6 +6,7 @@ import (
 )
 
 type ChatCompletion struct {
+	System        string              `json:"system"`
 	Messages      []Keyv[interface{}] `json:"messages"`
 	Tools         []Keyv[interface{}] `json:"tools"`
 	Model         string              `json:"model"`

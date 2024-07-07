@@ -119,6 +119,20 @@ func (adapter ExtensionAdapter) Completion(ctx *gin.Context) {
 	response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", completion.Model))
 }
 
+func (adapter ExtensionAdapter) Messages(ctx *gin.Context) {
+	completion := common.GetGinCompletion(ctx)
+	for _, extension := range adapter.Extensions {
+		if extension.Match(ctx, completion.Model) {
+			exec, ok := extension.(interface{ Messages(ctx *gin.Context) })
+			if ok {
+				exec.Messages(ctx)
+				return
+			}
+		}
+	}
+	response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", completion.Model))
+}
+
 func (adapter ExtensionAdapter) Generation(ctx *gin.Context) {
 	completion := common.GetGinGeneration(ctx)
 	for _, extension := range adapter.Extensions {

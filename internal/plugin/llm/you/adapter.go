@@ -236,6 +236,88 @@ label:
 	}
 }
 
+func (API) Messages(ctx *gin.Context) {
+	var (
+		retry   = 3
+		cookies []string
+	)
+
+	defer func() {
+		for _, value := range cookies {
+			resetMarker(value)
+		}
+	}()
+
+	var (
+		proxies    = ctx.GetString("proxies")
+		completion = common.GetGinCompletion(ctx)
+		//matchers   = common.GetGinMatchers(ctx)
+	)
+
+	completion.Model = completion.Model[4:]
+
+	messages := make([]string, 0)
+	for _, message := range completion.Messages {
+		messages = append(messages, message.GetString("content"))
+	}
+
+	if youRollContainer.Len() == 0 {
+		response.Error(ctx, -1, "empty cookies")
+		return
+	}
+
+label:
+	retry--
+	cookie, err := youRollContainer.Poll()
+	if err != nil {
+		logger.Error(err)
+		response.Error(ctx, -1, err)
+		return
+	}
+
+	cookies = append(cookies, cookie)
+	chat := you.New(cookie, completion.Model, proxies)
+	chat.LimitWithE(true)
+	chat.Client(plugin.HTTPClient)
+
+	if err = tryCloudFlare(); err != nil {
+		response.Error(ctx, -1, err)
+		return
+	}
+
+	chat.CloudFlare(clearance, userAgent, lang)
+	ch, err := chat.Reply(common.GetGinContext(ctx), nil, strings.Join(messages, "\n\n"), " ")
+	if err != nil {
+		logger.Error(err)
+		var se emit.Error
+		code := -1
+		if errors.As(err, &se) && se.Code > 400 {
+			_ = youRollContainer.SetMarker(cookie, 2)
+			// 403 重定向？？？
+			if se.Code == 403 {
+				code = 429
+				cleanCf()
+			}
+		}
+
+		if strings.Contains(err.Error(), "ZERO QUOTA") {
+			_ = youRollContainer.SetMarker(cookie, 2)
+			code = 429
+		}
+
+		if retry > 0 {
+			goto label
+		}
+		response.Error(ctx, code, err)
+		return
+	}
+
+	content := messageResponse(ctx, ch)
+	if content == "" && response.NotResponse(ctx) {
+		response.Error(ctx, -1, "EMPTY RESPONSE")
+	}
+}
+
 func cleanCf() {
 	mu.Lock()
 	clearance = ""

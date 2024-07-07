@@ -183,11 +183,11 @@ func SSEResponse(ctx *gin.Context, model, content string, created int64) {
 		response.Choices[0].FinishReason = &finishReason
 	}
 
-	Event(ctx, response)
+	Event(ctx, "", response)
 
 	if done {
 		time.Sleep(100 * time.Millisecond)
-		Event(ctx, "[DONE]")
+		Event(ctx, "", "[DONE]")
 	}
 }
 
@@ -257,21 +257,21 @@ func SSEToolCallResponse(ctx *gin.Context, model, name, args string, created int
 		ToolCalls: []pkg.Keyv[interface{}]{toolCall},
 	}
 
-	Event(ctx, response)
+	Event(ctx, "", response)
 
 	delete(toolCall, "id")
 	delete(toolCall, "type")
 	toolCall["function"] = map[string]string{"arguments": args}
 	response.Choices[0].Delta.ToolCalls[0] = toolCall
 	response.Choices[0].Delta.Role = ""
-	Event(ctx, response)
+	Event(ctx, "", response)
 
 	response.Choices[0].FinishReason = &toolCalls
 	response.Choices[0].Delta = nil
 	response.Usage = usage
-	Event(ctx, response)
+	Event(ctx, "", response)
 
-	Event(ctx, "[DONE]")
+	Event(ctx, "", "[DONE]")
 }
 
 func NotResponse(ctx *gin.Context) bool {
@@ -307,11 +307,16 @@ func setSSEHeader(ctx *gin.Context) {
 	}
 }
 
-func Event(ctx *gin.Context, data interface{}) {
+func Event(ctx *gin.Context, event string, data interface{}) {
 	w := ctx.Writer
 	str, ok := data.(string)
 	if ok {
-		layout := "data: %s\n\n"
+		layout := ""
+		if event != "" {
+			layout = "event: " + event + "\n"
+		}
+
+		layout = "data: %s\n\n"
 		_, err := fmt.Fprintf(w, layout, str)
 		if err != nil {
 			logger.Error(err)
@@ -330,7 +335,12 @@ func Event(ctx *gin.Context, data interface{}) {
 		return
 	}
 
-	_, err = fmt.Fprintf(w, "data: %s\n\n", marshal)
+	layout := ""
+	if event != "" {
+		layout = "event: " + event + "\n"
+	}
+	layout += "data: %s\n\n"
+	_, err = fmt.Fprintf(w, layout, marshal)
 	if err != nil {
 		logger.Error(err)
 		ctx.Set(vars.GinClose, true)

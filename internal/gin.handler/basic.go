@@ -40,6 +40,8 @@ func Bind(port int, version, proxies string) {
 	route.GET("/v1/models", models)
 	route.Static("/file/tmp/", "tmp")
 
+	route.POST("/anthropic/v1/messages", messages)
+
 	route.Any("/socket.io/*any", gin.WrapH(plugin.IO.ServeHandler(nil)))
 
 	addr := ":" + strconv.Itoa(port)

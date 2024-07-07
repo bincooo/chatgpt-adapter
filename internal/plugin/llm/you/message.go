@@ -110,6 +110,71 @@ label:
 	return
 }
 
+func messageResponse(ctx *gin.Context, ch chan string) (content string) {
+	logger.Info("waitResponse ...")
+	for {
+		select {
+		case <-ctx.Request.Context().Done():
+			logger.Error("context deadline exceeded")
+			if response.NotSSEHeader(ctx) {
+				response.Error(ctx, -1, "context deadline exceeded")
+			}
+			return
+		default:
+			message, ok := <-ch
+			if !ok {
+				goto label
+			}
+
+			if strings.HasPrefix(message, "error:") {
+				logger.Error(message[6:])
+				if response.NotSSEHeader(ctx) {
+					response.Error(ctx, -1, message[6:])
+				}
+				return
+			}
+
+			if strings.HasPrefix(message, "limits:") {
+				continue
+			}
+
+			logger.Debug("----- raw -----")
+			logger.Debug(message)
+			if len(message) == 0 {
+				continue
+			}
+
+			response.Event(ctx, "content_block_delta", map[string]interface{}{
+				"index": 0,
+				"type":  "content_block_delta",
+				"delta": map[string]interface{}{
+					"type": "text_delta", "text": message,
+				},
+			})
+			content += message
+		}
+	}
+
+label:
+	if content == "" && response.NotSSEHeader(ctx) {
+		return
+	}
+
+	response.Event(ctx, "message_delta", map[string]interface{}{
+		"type":  "message_delta",
+		"usage": map[string]int{"output_tokens": common.CalcTokens(content)},
+		"delta": map[string]interface{}{
+			"stop_reason":   "end_turn",
+			"stop_sequence": nil,
+		},
+	})
+	time.Sleep(time.Second)
+	response.Event(ctx, "message_stop", map[string]interface{}{
+		"type": "message_stop",
+	})
+	return
+}
+
 func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages []you.Message, text string, tokens int, err error) {
 	var (
 		messages = completion.Messages

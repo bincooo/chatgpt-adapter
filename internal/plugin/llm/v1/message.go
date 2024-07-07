@@ -158,7 +158,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 			}
 			ctx.Set(vars.GinCompletionUsage, chat.Usage)
 			if sse {
-				response.Event(ctx, chat)
+				response.Event(ctx, "", chat)
 			}
 			continue
 		}
@@ -182,7 +182,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 
 		choice.Delta.Content = raw
 		if sse && len(raw) > 0 {
-			response.Event(ctx, chat)
+			response.Event(ctx, "", chat)
 		}
 		content += raw
 	}
@@ -204,7 +204,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 	if !sse {
 		response.Response(ctx, Model, content)
 	} else {
-		response.Event(ctx, "[DONE]")
+		response.Event(ctx, "", "[DONE]")
 	}
 	return
 }
