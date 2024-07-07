@@ -60,11 +60,11 @@ var safetySettings = []map[string]interface{}{
 type funcDecl struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Params      struct {
-		Properties map[string]interface{} `json:"properties"`
-		Required   []string               `json:"required"`
+	Params      *struct {
+		Properties map[string]interface{} `json:"properties,omitempty"`
+		Required   []string               `json:"required,omitempty"`
 		Type       string                 `json:"type"`
-	} `json:"parameters"`
+	} `json:"parameters,omitempty"`
 }
 
 func init() {
@@ -92,6 +92,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	}
 
 	toStrings := func(slice []interface{}) (values []string) {
+		values = make([]string, 0)
 		for _, v := range slice {
 			values = append(values, v.(string))
 		}
@@ -100,35 +101,35 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 
 	condition := func(str string) string {
 		switch str {
-		case "string":
-			return "STRING"
-		case "boolean":
-			return "BOOLEAN"
-		case "number":
-			return "NUMBER"
+		case "string", "boolean", "number":
+			return str
 		default:
 			if strings.HasPrefix(str, "array") {
-				return "ARRAY"
+				return "array"
 			}
-			return "OBJECT"
+			return "object"
 		}
 	}
 
 	// fix: type 枚举必须符合google定义，否则报错400
 	// https://ai.google.dev/api/rest/v1beta/Schema?hl=zh-cn#type
-	var fix func(keyv pkg.Keyv[interface{}]) pkg.Keyv[interface{}]
+	var fix func(keyv pkg.Keyv[interface{}]) (pkg.Keyv[interface{}], bool)
 	{
-		fix = func(keyv pkg.Keyv[interface{}]) pkg.Keyv[interface{}] {
+		fix = func(keyv pkg.Keyv[interface{}]) (pkg.Keyv[interface{}], bool) {
 			if keyv.Has("type") {
 				keyv.Set("type", condition(keyv.GetString("type")))
 			}
+			hasKeys := false
 			for k, _ := range keyv {
+				hasKeys = true
 				child := keyv.GetKeyv(k)
 				if child != nil {
-					keyv.Set(k, fix(child))
+					if v, h := fix(child); h {
+						keyv.Set(k, v)
+					}
 				}
 			}
-			return keyv
+			return keyv, hasKeys
 		}
 	}
 
@@ -138,20 +139,26 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		for _, v := range completion.Tools {
 			kv := v.GetKeyv("function").GetKeyv("parameters")
 			required := kv.GetSlice("required")
-			_funcDecls = append(_funcDecls, funcDecl{
+			fd := funcDecl{
 				// 必须为 a-z、A-Z、0-9，或包含下划线和短划线，长度上限为 63 个字符
 				Name:        strings.Replace(v.GetKeyv("function").GetString("name"), "-", "_", -1),
 				Description: v.GetKeyv("function").GetString("description"),
-				Params: struct {
-					Properties map[string]interface{} `json:"properties"`
-					Required   []string               `json:"required"`
+			}
+
+			props, hasKeys := fix(kv.GetKeyv("properties"))
+			if hasKeys {
+				fd.Params = &struct {
+					Properties map[string]interface{} `json:"properties,omitempty"`
+					Required   []string               `json:"required,omitempty"`
 					Type       string                 `json:"type"`
 				}{
-					Properties: fix(kv.GetKeyv("properties")),
+					Properties: props,
 					Required:   toStrings(required),
 					Type:       condition(kv.GetString("type")),
-				},
-			})
+				}
+			}
+
+			_funcDecls = append(_funcDecls, fd)
 		}
 	}
 
@@ -245,9 +252,11 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		if errors.As(err, &e) {
 			e.URL = strings.Replace(e.URL, token, "AIzaSy***", -1)
 		}
-		h := res.Header
-		if c := h.Get("content-type"); !strings.Contains(c, "text/html") {
-			logger.Errorf(emit.TextResponse(res))
+		if res != nil {
+			h := res.Header
+			if c := h.Get("content-type"); !strings.Contains(c, "text/html") {
+				logger.Errorf(emit.TextResponse(res))
+			}
 		}
 		return nil, err
 	}
