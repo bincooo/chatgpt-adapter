@@ -257,6 +257,10 @@ func (API) Messages(ctx *gin.Context) {
 	completion.Model = completion.Model[4:]
 
 	messages := make([]string, 0)
+	if completion.System != "" {
+		messages = append(messages, completion.System)
+	}
+
 	for _, message := range completion.Messages {
 		messages = append(messages, message.GetString("content"))
 	}
