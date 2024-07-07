@@ -15,19 +15,19 @@ import (
 )
 
 var (
-	t_mu          sync.Mutex
+	w_mu          sync.Mutex
 	taskContainer = make([]map[string]interface{}, 0)
 )
 
 func addTask(value map[string]interface{}) {
-	t_mu.Lock()
-	defer t_mu.Unlock()
+	w_mu.Lock()
+	defer w_mu.Unlock()
 	taskContainer = append(taskContainer, value)
 }
 
 func delTask(value map[string]interface{}) {
-	t_mu.Lock()
-	defer t_mu.Unlock()
+	w_mu.Lock()
+	defer w_mu.Unlock()
 	if len(taskContainer) == 0 {
 		return
 	}
@@ -44,6 +44,16 @@ func Condition(value map[string]interface{}) bool {
 	cookies, ok := value["cookies"]
 	if !ok {
 		return false
+	}
+
+	count := pkg.Config.GetInt("coze.websdk-counter")
+	if count > 0 {
+		num := counter[cookies.(string)]
+		if num >= count {
+			_ = cookiesPollContainer.SetMarker(value, 2) // 达到计数数量，进入静置区
+			counter[cookies.(string)] = 0                // 重置计数
+			return false
+		}
 	}
 
 	options, _, err := newOptions(vars.Proxies, "coze/websdk", nil)
@@ -68,7 +78,7 @@ func Condition(value map[string]interface{}) bool {
 	logger.Infof("coze websdk credits[%s]: %v", value["email"], credits)
 	if credits == 0 { // 额度用尽，放入重置任务容器中
 		cookiesPollContainer.Del(value)
-		taskContainer = append(taskContainer, value)
+		addTask(value)
 	}
 	return credits > 0
 }
@@ -78,8 +88,14 @@ func runTasks(opts ...map[string]interface{}) {
 	go _loopTasks()
 }
 
+// 重置任务函数
 func _loopTasks() {
 	s5 := 5 * time.Second
+	baseUrl := pkg.Config.GetString("serverless.baseUrl")
+	if baseUrl == "" {
+		baseUrl = "http://127.0.0.1:" + pkg.Config.GetString("you.helper")
+	}
+
 	for {
 		if len(taskContainer) == 0 {
 			time.Sleep(s5)
@@ -89,17 +105,42 @@ func _loopTasks() {
 		container := make([]map[string]interface{}, len(taskContainer))
 		copy(container, taskContainer)
 		for _, value := range container {
-			timeout, cancel := context.WithTimeout(context.Background(), 50*time.Second)
-			_, err := emit.ClientBuilder(plugin.HTTPClient).
-				Context(timeout).
-				POST("http://127.0.0.1:" + pkg.Config.GetString("you.helper") + "/coze/del").
-				JHeader().
-				Body(value).
-				DoS(http.StatusOK)
-			cancel()
-			if err != nil {
-				logger.Errorf("coze websdk 删除失败[%s]：%v", value["email"], err)
-				continue
+			cookies, ok := value["cookies"]
+			if ok {
+				options, _, err := newOptions(vars.Proxies, "coze/websdk", nil)
+				if err != nil {
+					logger.Error(err)
+					continue
+				}
+
+				co, msToken := extCookie(cookies.(string))
+				chat := coze.New(co, msToken, options)
+				chat.Session(plugin.HTTPClient)
+
+				timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				credits, err := chat.QueryWebSdkCredits(timeout)
+				cancel()
+
+				if err == nil && credits > 0 {
+					logger.Infof("有剩余额度：%d, 不用重置", credits)
+					if _tasks(value) {
+						delTask(value)
+					}
+					continue
+				}
+
+				timeout, cancel = context.WithTimeout(context.Background(), 120*time.Second)
+				_, err = emit.ClientBuilder(plugin.HTTPClient).
+					Context(timeout).
+					POST(baseUrl + "/coze/del").
+					JHeader().
+					Body(value).
+					DoS(http.StatusOK)
+				cancel()
+				if err != nil {
+					logger.Errorf("coze websdk 删除失败[%s]：%v", value["email"], err)
+					continue
+				}
 			}
 
 			if _tasks(value) {
@@ -109,16 +150,22 @@ func _loopTasks() {
 	}
 }
 
+// 初始任务函数
 func _tasks(opts ...map[string]interface{}) (exec bool) {
 	time.Sleep(6 * time.Second) // 等待程序启动就绪
+	baseUrl := pkg.Config.GetString("serverless.baseUrl")
+	if baseUrl == "" {
+		baseUrl = "http://127.0.0.1:" + pkg.Config.GetString("you.helper")
+	}
+
 	for _, value := range opts {
-		timeout, cancel := context.WithTimeout(context.Background(), 50*time.Second)
+		timeout, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		payload := make(map[string]interface{})
 		copyMap(payload, value)
 		payload["bot"] = "custom-128k"
 		response, err := emit.ClientBuilder(plugin.HTTPClient).
 			Context(timeout).
-			POST("http://127.0.0.1:" + pkg.Config.GetString("you.helper") + "/coze/login").
+			POST(baseUrl + "/coze/login").
 			JHeader().
 			Body(payload).
 			DoS(http.StatusOK)
@@ -162,7 +209,7 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 		cancel()
 		if err != nil {
 			logger.Error(err)
-			return false
+			continue
 		}
 
 		botId := ""
@@ -176,7 +223,7 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 
 		if botId == "" {
 			logger.Error("custom-128k bot not found")
-			return false
+			continue
 		}
 
 		timeout, cancel = context.WithTimeout(context.Background(), 5*time.Second)
@@ -184,7 +231,7 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 		cancel()
 		if err != nil {
 			logger.Error(err)
-			return false
+			continue
 		}
 
 		logger.Info("发布bot成功")

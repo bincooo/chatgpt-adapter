@@ -4,6 +4,7 @@ import (
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
 	"context"
+	"errors"
 	"github.com/bincooo/emit.io"
 	"net/http"
 	"sync"
@@ -11,38 +12,39 @@ import (
 )
 
 var (
-	clashNames []string
-	clashPos   int
-	clashOnce  sync.Once
+	poster    = make(map[string]int)
+	clashOnce = make(map[string]*sync.Once)
 )
 
-func init() {
-	// 将初始化时机转移，而不是包引用则执行
-	AddInitialized(func() {
-		names := pkg.Config.GetStringSlice("clash.names")
-		if len(names) == 0 {
-			return
-		}
-		clashNames = names
-		clashPos = 0
-	})
-}
-
-func ChangeClashIP() {
+func ChangeClashIP(key string) error {
+	clashNames := pkg.Config.GetStringSlice("clash." + key + ".names")
 	nameL := len(clashNames)
 	if nameL == 0 {
-		logger.Info("clash配置未开启")
-		return
+		return nil
 	}
 
-	url := pkg.Config.GetString("clash.url")
-	clashOnce.Do(func() {
-		clashPos++
-		if clashPos >= nameL {
-			clashPos = 0
+	url := pkg.Config.GetString("clash." + key + ".url")
+	if url == "" {
+		return errors.New("clash未配置: " + key)
+	}
+
+	once, ok := clashOnce[key]
+	if !ok {
+		once = new(sync.Once)
+		clashOnce[key] = once
+	}
+
+	once.Do(func() {
+		pos, o := poster[key]
+		if !o {
+			pos = 0
 		}
 
-		str := clashNames[clashPos]
+		if pos >= nameL {
+			pos = 0
+		}
+
+		str := clashNames[pos]
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 
@@ -57,5 +59,8 @@ func ChangeClashIP() {
 			return
 		}
 		logger.Infof("clash[%s]切换执行完毕", str)
+		poster[key] = pos + 1
+		delete(clashOnce, key)
 	})
+	return nil
 }

@@ -32,9 +32,10 @@ TOOL_CALL:
 
 你的每次输出都必须以0,1开头，代表是否需要拆解任务：
 
-每个拆解的 task-item 包含 "toolId" (string)、"task" (string) 两个key。
+每个拆解的 task-item 包含 "toolId" (string 字符串)、"task" (string 字符串) 两个key。
 0: 无拆解任务。
-1: [task1, task2, ....]。
+1: [{"toolId": "xxx", "task": "今天xxx的天气"}, ...]。
+
 例如：
 
 USER: 你好呀 <|end|>

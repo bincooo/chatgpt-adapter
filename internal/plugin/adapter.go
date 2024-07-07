@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	HTTPClient *emit.Session
+	HTTPClient     *emit.Session
+	ClashAPIClient *emit.Session
 
 	IO *socketio.Server
 )
@@ -57,6 +58,13 @@ func init() {
 
 		HTTPClient = emit.MergeSession(HTTPClient, HTTPJa3Client, SocketClient)
 		IO = socketio.NewServer(nil, nil)
+
+		if value := pkg.Config.GetString("clash.proxies"); value != "" {
+			ClashAPIClient, err = emit.NewDefaultSession(value, option, whites...)
+			if err != nil {
+				logger.Error("Error initializing ClashAPIClient: ", err)
+			}
+		}
 	})
 }
 

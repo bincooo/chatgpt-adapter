@@ -69,6 +69,9 @@ coze:
 #    botId: 114514
 #    version: 9527
 #    scene: 2
+
+# 多个websdk账号可开启，用于请求计数，超过count数量该账号进入静置区
+  websdk-counter: 0
   websdk:
 #    - email: xxx@gmail.com
 #      password: xxx

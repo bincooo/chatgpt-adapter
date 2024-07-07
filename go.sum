@@ -52,8 +52,8 @@ github.com/bincooo/claude-api v1.0.5-0.20240701123553-4d8ff283f8a3 h1:WQXGXYrbXm
 github.com/bincooo/claude-api v1.0.5-0.20240701123553-4d8ff283f8a3/go.mod h1:5pE4rNVYJTfwsvPkkQhegLO1PqCjuNdG8idccxjXW3s=
 github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46 h1:12sHtk9r99icBCTBnsHaYep5DjH4gu6AzceFNSf216U=
 github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46/go.mod h1:X2PunEb/JOvEnkKkQnlm27UZnn96TR53hGH5TZ55Ak4=
-github.com/bincooo/coze-api v1.0.2-0.20240706021432-2c814106e807 h1:OWqCzuFdKaRnkFURue+UWB2IgIBu2b3m6J9iiTkMd1c=
-github.com/bincooo/coze-api v1.0.2-0.20240706021432-2c814106e807/go.mod h1:bjubsmanaC507lGXSVTYWVaIQRs+b9AJM6S1yxEk8Ts=
+github.com/bincooo/coze-api v1.0.2-0.20240707030731-6a2921dfbddd h1:dQNH0RGAEWmw/SMlNon4eyTFcg9zNia+ZJBEVlRYT+I=
+github.com/bincooo/coze-api v1.0.2-0.20240707030731-6a2921dfbddd/go.mod h1:bjubsmanaC507lGXSVTYWVaIQRs+b9AJM6S1yxEk8Ts=
 github.com/bincooo/edge-api v1.0.4-0.20240630075039-f55db93af0ab h1:X10eWl5imQOMyVbTO2VDNi9V8wGUCPA77XAzIxQWvQo=
 github.com/bincooo/edge-api v1.0.4-0.20240630075039-f55db93af0ab/go.mod h1:cSJi20GKnl0PCe4UIzxJ8xHZkQy9xGOF7tR/T7aE/9U=
 github.com/bincooo/emit.io v0.0.0-20240702162758-27d516d8f566 h1:bJNwKep2EzxAMpRoVhcAhIl/6H7jTEKr1VthgHNofEU=

@@ -44,6 +44,7 @@ var (
 	mu    sync.Mutex
 	rwMus = make(map[string]*common.ExpireLock)
 
+	counter              = make(map[string]int)
 	cookiesPollContainer *common.PollContainer[map[string]interface{}]
 )
 
@@ -92,7 +93,7 @@ func init() {
 				v := value.(map[string]interface{})
 				values = append(values, v)
 			}
-			cookiesPollContainer = common.NewPollContainer(make([]map[string]interface{}, 0), 0)
+			cookiesPollContainer = common.NewPollContainer(make([]map[string]interface{}, 0), 60*time.Second) // 报错进入60秒冷却
 			cookiesPollContainer.Condition = Condition
 			runTasks(values...)
 		}
@@ -190,21 +191,21 @@ func (API) Completion(ctx *gin.Context) {
 		return
 	}
 
-	if echo {
-		bytes, _ := json.MarshalIndent(pMessages, "", "  ")
-		response.Echo(ctx, completion.Model, string(bytes), completion.Stream)
-		return
-	}
-
-	if completion.Model == "coze/websdk" {
-		meta, e := cookiesPollContainer.Poll()
-		if e != nil {
-			logger.Error(e)
-			response.Error(ctx, -1, e)
+	var meta map[string]interface{}
+	if completion.Model == "coze/websdk" && !echo {
+		meta, err = cookiesPollContainer.Poll()
+		if err != nil {
+			logger.Error(err)
+			response.Error(ctx, -1, err)
 			return
 		}
 
 		cookie = meta["cookies"].(string)
+		count := pkg.Config.GetInt("coze.websdk-counter")
+		if count > 0 {
+			counter[cookie] += 1
+		}
+
 		completion.Model, err = websdkModel(ctx, proxies, cookie)
 		if err != nil {
 			logger.Error(err)
@@ -217,6 +218,12 @@ func (API) Completion(ctx *gin.Context) {
 		if completeToolCalls(ctx, cookie, proxies, completion) {
 			return
 		}
+	}
+
+	if echo {
+		bytes, _ := json.MarshalIndent(pMessages, "", "  ")
+		response.Echo(ctx, completion.Model, string(bytes), completion.Stream)
+		return
 	}
 
 	ctx.Set(ginTokens, tokens)
@@ -266,6 +273,10 @@ func (API) Completion(ctx *gin.Context) {
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
+		if meta != nil {
+			_ = cookiesPollContainer.SetMarker(meta, 2)
+			logger.Infof("coze websdk[%s] 进入冷却状态", meta["email"])
+		}
 		return
 	}
 
