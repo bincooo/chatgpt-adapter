@@ -18,44 +18,52 @@ import (
 
 const GOOGLE_BASE_FORMAT = "https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s"
 
-var safetySettings = []map[string]interface{}{
-	//{
-	//	"category":  "HARM_CATEGORY_DEROGATORY",
-	//	"threshold": "BLOCK_NONE",
-	//},
-	//{
-	//	"category":  "HARM_CATEGORY_TOXICITY",
-	//	"threshold": "BLOCK_NONE",
-	//},
-	//{
-	//	"category":  "HARM_CATEGORY_VIOLENCE",
-	//	"threshold": "BLOCK_NONE",
-	//},
-	//{
-	//	"category":  "HARM_CATEGORY_SEXUAL",
-	//	"threshold": "BLOCK_NONE",
-	//},
-	//{
-	//	"category":  "HARM_CATEGORY_DANGEROUS",
-	//	"threshold": "BLOCK_NONE",
-	//},
-	{
-		"category":  "HARM_CATEGORY_HARASSMENT",
-		"threshold": "BLOCK_NONE",
-	},
-	{
-		"category":  "HARM_CATEGORY_HATE_SPEECH",
-		"threshold": "BLOCK_NONE",
-	},
-	{
-		"category":  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-		"threshold": "BLOCK_NONE",
-	},
-	{
-		"category":  "HARM_CATEGORY_DANGEROUS_CONTENT",
-		"threshold": "BLOCK_NONE",
-	},
-}
+var (
+	safetySettings = []map[string]interface{}{
+		//{
+		//	"category":  "HARM_CATEGORY_DEROGATORY",
+		//	"threshold": "BLOCK_NONE",
+		//},
+		//{
+		//	"category":  "HARM_CATEGORY_TOXICITY",
+		//	"threshold": "BLOCK_NONE",
+		//},
+		//{
+		//	"category":  "HARM_CATEGORY_VIOLENCE",
+		//	"threshold": "BLOCK_NONE",
+		//},
+		//{
+		//	"category":  "HARM_CATEGORY_SEXUAL",
+		//	"threshold": "BLOCK_NONE",
+		//},
+		//{
+		//	"category":  "HARM_CATEGORY_DANGEROUS",
+		//	"threshold": "BLOCK_NONE",
+		//},
+		{
+			"category":  "HARM_CATEGORY_HARASSMENT",
+			"threshold": "BLOCK_NONE",
+		},
+		{
+			"category":  "HARM_CATEGORY_HATE_SPEECH",
+			"threshold": "BLOCK_NONE",
+		},
+		{
+			"category":  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+			"threshold": "BLOCK_NONE",
+		},
+		{
+			"category":  "HARM_CATEGORY_DANGEROUS_CONTENT",
+			"threshold": "BLOCK_NONE",
+		},
+	}
+
+	emp = map[string]interface{}{
+		"-": map[string]string{
+			"type": "string",
+		},
+	}
+)
 
 type funcDecl struct {
 	Name        string `json:"name"`
@@ -115,21 +123,43 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	// https://ai.google.dev/api/rest/v1beta/Schema?hl=zh-cn#type
 	var fix func(keyv pkg.Keyv[interface{}]) (pkg.Keyv[interface{}], bool)
 	{
-		fix = func(keyv pkg.Keyv[interface{}]) (pkg.Keyv[interface{}], bool) {
-			if keyv.Has("type") {
-				keyv.Set("type", condition(keyv.GetString("type")))
+		fix = func(properties pkg.Keyv[interface{}]) (pkg.Keyv[interface{}], bool) {
+			if properties == nil {
+				return nil, false
 			}
+
+			if properties.Has("type") {
+				properties.Set("type", condition(properties.GetString("type")))
+			}
+
 			hasKeys := false
-			for k, _ := range keyv {
+			for range properties {
 				hasKeys = true
-				child := keyv.GetKeyv(k)
-				if child != nil {
-					if v, h := fix(child); h {
-						keyv.Set(k, v)
+				break
+			}
+
+			if !hasKeys {
+				// object 类型不允许空keyv
+				properties.Set("properties", emp)
+				return properties, false
+			}
+
+			for key := range properties {
+				keyv := properties.GetKeyv(key)
+				if keyv.Has("type") {
+					keyv.Set("type", condition(keyv.GetString("type")))
+				}
+				value, _ := fix(keyv.GetKeyv("properties"))
+				if value == nil {
+					if keyv.Is("type", "object") {
+						keyv.Set("properties", emp)
 					}
+				} else {
+					keyv.Set("properties", value)
 				}
 			}
-			return keyv, hasKeys
+
+			return properties, hasKeys
 		}
 	}
 
