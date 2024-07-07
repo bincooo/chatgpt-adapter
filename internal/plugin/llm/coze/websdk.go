@@ -46,6 +46,16 @@ func Condition(value map[string]interface{}) bool {
 		return false
 	}
 
+	marker, err := cookiesPollContainer.GetMarker(value)
+	if err != nil {
+		logger.Error(err)
+		return false
+	}
+
+	if marker != 0 {
+		return false
+	}
+
 	count := pkg.Config.GetInt("coze.websdk-counter")
 	if count > 0 {
 		num := counter[cookies.(string)]
@@ -81,6 +91,23 @@ func Condition(value map[string]interface{}) bool {
 		addTask(value)
 	}
 	return credits > 0
+}
+
+func resetMarker(key interface{}) {
+	marker, err := cookiesPollContainer.GetMarker(key)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+
+	if marker != 1 {
+		return
+	}
+
+	err = cookiesPollContainer.SetMarker(key, 0)
+	if err != nil {
+		logger.Error(err)
+	}
 }
 
 func runTasks(opts ...map[string]interface{}) {

@@ -200,6 +200,7 @@ func (API) Completion(ctx *gin.Context) {
 			return
 		}
 
+		defer resetMarker(meta)
 		cookie = meta["cookies"].(string)
 		count := pkg.Config.GetInt("coze.websdk-counter")
 		if count > 0 {
