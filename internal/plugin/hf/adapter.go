@@ -209,7 +209,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 	prefix := ""
 	if model == "bing" {
 		// prefix += "<pad />"
-		prefix += "<notebook />"
+		//prefix += "<notebook />"
 	}
 
 	w := prefix + agent.SDWords

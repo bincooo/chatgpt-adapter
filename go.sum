@@ -54,8 +54,8 @@ github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46 h1:12sHtk9r99ic
 github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46/go.mod h1:X2PunEb/JOvEnkKkQnlm27UZnn96TR53hGH5TZ55Ak4=
 github.com/bincooo/coze-api v1.0.2-0.20240707030731-6a2921dfbddd h1:dQNH0RGAEWmw/SMlNon4eyTFcg9zNia+ZJBEVlRYT+I=
 github.com/bincooo/coze-api v1.0.2-0.20240707030731-6a2921dfbddd/go.mod h1:bjubsmanaC507lGXSVTYWVaIQRs+b9AJM6S1yxEk8Ts=
-github.com/bincooo/edge-api v1.0.4-0.20240630075039-f55db93af0ab h1:X10eWl5imQOMyVbTO2VDNi9V8wGUCPA77XAzIxQWvQo=
-github.com/bincooo/edge-api v1.0.4-0.20240630075039-f55db93af0ab/go.mod h1:cSJi20GKnl0PCe4UIzxJ8xHZkQy9xGOF7tR/T7aE/9U=
+github.com/bincooo/edge-api v1.0.4-0.20240708092054-d92610338ccb h1:P5W+FZ9n/4AEVdpNoSJ6xnyHc8iJa7xk3V50oAsttwM=
+github.com/bincooo/edge-api v1.0.4-0.20240708092054-d92610338ccb/go.mod h1:OBBrqmW8rUMTsF/sPH1GsPQT5K9QKJCZkHdYkTIR09Q=
 github.com/bincooo/emit.io v0.0.0-20240702162758-27d516d8f566 h1:bJNwKep2EzxAMpRoVhcAhIl/6H7jTEKr1VthgHNofEU=
 github.com/bincooo/emit.io v0.0.0-20240702162758-27d516d8f566/go.mod h1:TM7ofgLvBROkDM6SWaLduIMYWNiTOvYtRbQy0u4X5SY=
 github.com/bincooo/you.com v0.0.0-20240702171358-0e86fdf0c3be h1:uPTJoCQZj5BSjS14CMp0y46/ndwcive/92KKR04HSJ4=

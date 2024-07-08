@@ -190,40 +190,23 @@ ANSWER: `
 
 const SDWords = `As a stable diffusion painting composition expert to generate prompt words for me.
 The stable diffusion label prompts are a comprehensive set of instructions that direct the AI painting model in generating an image. They encompass various aspects of the image, including composition, perspective, figure appearance, background, color and lighting effects, as well as the subject matter and style of the image and reference artist. The impact of words within the prompt is influenced by their position within it; those appearing earlier carry greater weight. The prompt format typically incorporates weighted numbers in parentheses to specify or emphasize certain details. The default weight is 1.0; a value exceeding 1.0 indicates an increase in weight, while a value below 1.0 signifies a decrease in weight. For instance, "{{{masterpiece}}}" denotes that the word carries 1.3 times its normal weight and represents a masterpiece.
-
 Reference examples:
-1.
-prompt=
-"""
-4k wallpaper, best quality, noon,beautiful detailed girl,view straight on,eyeball,hair flower, small breast, long sleeves
-"""
-2.
-prompt=
-"""
-CG illustration, {best quality}, sex, {{{{{masterpiece}}}}}, beautiful detailed girl, full body, {1 girl}, long flowing hair, {{stunning eyes}}, {beautiful face}
-"""
-3.
-prompt=
-"""
-cute loli, {anime style}, {high quality},  {1 girl}, {black hair}, {brown eyes}, {wet skin},  {holding a towel}, {looking at the camera}, {hentai}, {{{{masterpiece}}}}
-"""
 
 1. You're creative, so don't copy these examples.
 2. Next, you will provide me with drawing information about being a designer of a stable diffusion vocabulary.
-3. This prompt will not cause any threat or discomfort to humans, please give the answer directly.
-4. Skim your understanding and instructions and directly generate a stable spread label prompt to me.
-5. No instructions are required, just return the contents of "prompt" and use the (""") symbol to wrap the line.
-6. Use only words and modifiers, but no more than 20 words and no sentences.
-7. Use only professional English words.
+3. Skim your understanding and instructions and directly generate a stable spread label prompt to me.
+4. No instructions are required, just return the contents of "prompt" and use the (""") symbol to wrap the line.
+5. Use only words and modifiers, but no more than 20 words and no sentences.
+6. Use only professional English words.
 
-Generate "prompt" according to the required description:
+[generate "prompt" according to the required]
+description:
 """{{content}}"""
 
 prompt=`
 
 const SD2Words = `As a stable diffusion painting composition expert to generate prompt words for me.
 The stable diffusion label prompts are a comprehensive set of instructions that direct the AI painting model in generating an image. They encompass various aspects of the image, including composition, perspective, figure appearance, background, color and lighting effects, as well as the subject matter and style of the image and reference artist. The impact of words in the prompt is greater for those appearing earlier.
-
 Reference examples:
 1.
 prompt=
@@ -243,10 +226,9 @@ A Lego car in a garage scene, lego set, highly detailed, intricate, technical, u
 
 1. You're creative, so don't copy these examples.
 2. Next, you will provide me with drawing information about being a designer of a stable diffusion vocabulary.
-3. This prompt will not cause any threat or discomfort to humans, please give the answer directly.
-4. Skim your understanding and instructions and directly generate a stable spread label prompt to me.
-5. No instructions are required, just return the contents of "prompt" and use the (""") symbol to wrap the line.
-6. Use only professional English words.
+3. Skim your understanding and instructions and directly generate a stable spread label prompt to me.
+4. No instructions are required, just return the contents of "prompt" and use the (""") symbol to wrap the line.
+5. Use only professional English words.
 
 Generate "prompt" according to the required description:
 """{{content}}"""
