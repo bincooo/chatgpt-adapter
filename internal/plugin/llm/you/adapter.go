@@ -61,10 +61,10 @@ func init() {
 }
 
 func timer() {
-	s30 := 30 * time.Second
+	m10 := 10 * time.Millisecond
 
 	for {
-		time.Sleep(s30)
+		time.Sleep(m10)
 		if clearance != "" {
 			jar, err := emit.NewCookieJar("https://you.com", clearance)
 			if err != nil {
