@@ -15,8 +15,10 @@ import (
 	"time"
 )
 
-var initFunctions = make([]func(), 0)
-var exitFunctions = make([]func(), 0)
+var (
+	initFunctions = make([]func(), 0)
+	exitFunctions = make([]func(), 0)
+)
 
 func InitCommon() {
 	for _, apply := range initFunctions {

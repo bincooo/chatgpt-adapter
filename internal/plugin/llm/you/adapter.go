@@ -55,7 +55,63 @@ func init() {
 			you.Exec(port, vars.Proxies, os.Stdout, os.Stdout)
 			common.AddExited(you.Exit)
 		}
+
+		go timer()
 	})
+}
+
+func timer() {
+	s30 := 30 * time.Second
+
+	for {
+		time.Sleep(s30)
+		if clearance != "" {
+			jar, err := emit.NewCookieJar("https://you.com", clearance)
+			if err != nil {
+				logger.Errorf("检查you.com 5秒盾失败：%v", err)
+				continue
+			}
+
+			timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			_, err = emit.ClientBuilder(plugin.HTTPClient).
+				Context(timeout).
+				Proxies(vars.Proxies).
+				GET("https://you.com/").
+				CookieJar(jar).
+				Header("Accept", "application/json, text/plain, */*").
+				Header("Accept-Language", lang).
+				Header("Referer", "https://you.com/?chatMode=custom").
+				Header("Origin", "https://you.com").
+				Header("User-Agent", userAgent).
+				DoS(http.StatusOK)
+			cancel()
+			if err == nil {
+				continue
+			}
+
+			var se emit.Error
+			if !errors.As(err, &se) {
+				logger.Error("定时器 you.com 过盾检查失败：%v", err)
+				continue
+			}
+
+			if se.Code == 403 {
+				// 需要重新过盾
+				clearance = ""
+			} else {
+				logger.Error("定时器 you.com 过盾检查失败：%v", err)
+				continue
+			}
+		}
+
+		// 尝试过盾
+		if err := tryCloudFlare(); err != nil {
+			logger.Errorf("you.com 尝试过盾失败：%v", err)
+			continue
+		}
+
+		logger.Info("定时器执行 you.com 过盾成功")
+	}
 }
 
 func (API) Match(_ *gin.Context, model string) bool {
