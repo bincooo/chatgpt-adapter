@@ -61,7 +61,7 @@ func init() {
 }
 
 func timer() {
-	m10 := 10 * time.Millisecond
+	m10 := 10 * time.Minute
 
 	for {
 		time.Sleep(m10)
