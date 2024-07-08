@@ -141,7 +141,7 @@ func (API) Generation(ctx *gin.Context) {
 
 func matchSamples(samples, spase string) string {
 	switch spase {
-	case "xl":
+	case "prodia-xl":
 		if common.Contains(xlSamples, samples) {
 			return samples
 		}
@@ -163,7 +163,7 @@ func matchSamples(samples, spase string) string {
 
 func matchModel(style, spase string) string {
 	switch spase {
-	case "xl":
+	case "prodia-xl":
 		if common.Contains(xlModels, style) {
 			return style
 		}

@@ -26,6 +26,12 @@ llm:
 # lmsys fn、 trigger
 lmsys: [49 , 109]
 
+# hf 绘图接口配置化
+hf:
+#  dalle-4k: https://mukaist-dalle-4k.hf.space
+#  animagine-xl-3.1: https://cagliostrolab-animagine-xl-3-1.hf.space
+#  dalle-3-xl: https://ehristoforu-dalle-3-xl-lora-v2.hf.space
+
 # gemini 自定义安全设置
 google:
 #  safes:
@@ -33,7 +39,7 @@ google:
 #      threshold: BLOCK_NONE
 
 bing:
-  baseUrl: "https://www.bing.com"
+  baseUrl: "https://edgeservices.bing.com/edgesvc"
 
 claude:
   pad: 0

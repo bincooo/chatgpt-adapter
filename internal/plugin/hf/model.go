@@ -7,6 +7,7 @@ var (
 		"absolutereality_v181.safetensors [3d9d4d2b]",
 		"amIReal_V41.safetensors [0a8a2e61]",
 		"analog-diffusion-1.0.ckpt [9ca13f02]",
+		"aniverse_v30.safetensors [579e6f85]",
 		"anythingv3_0-pruned.ckpt [2700c435]",
 		"anything-v4.5-pruned.ckpt [65745d25]",
 		"anythingV5_PrtRE.safetensors [893e49b9]",
@@ -54,6 +55,7 @@ var (
 		"Realistic_Vision_V2.0.safetensors [79587710]",
 		"Realistic_Vision_V4.0.safetensors [29a7afaa]",
 		"Realistic_Vision_V5.0.safetensors [614d1063]",
+		"Realistic_Vision_V5.1.safetensors [a0f13c83]",
 		"redshift_diffusion-V10.safetensors [1400e684]",
 		"revAnimated_v122.safetensors [3f4fefd9]",
 		"rundiffusionFX25D_v10.safetensors [cd12b0ee]",
@@ -103,10 +105,13 @@ var (
 
 var (
 	xlModels = []string{
+		"animagineXLV3_v30.safetensors [75f2f05b]",
+		"devlishphotorealism_sdxl15.safetensors [77cba69f]",
 		"dreamshaperXL10_alpha2.safetensors [c8afe2ef]",
 		"dynavisionXL_0411.safetensors [c39cc051]",
 		"juggernautXL_v45.safetensors [e75f5471]",
 		"realismEngineSDXL_v10.safetensors [af771c3f]",
+		"realvisxlV40.safetensors [f7fdcb51]",
 		"sd_xl_base_1.0.safetensors [be9edd61]",
 		"sd_xl_base_1.0_inpainting_0.1.safetensors [5679a81a]",
 		"turbovisionXL_v431.safetensors [78890989]",

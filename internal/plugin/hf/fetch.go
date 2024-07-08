@@ -166,8 +166,12 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 	var (
 		hash    = emit.GioHash()
 		proxies = ctx.GetString("proxies")
-		baseUrl = "https://prithivmlmods-dalle-4k.hf.space"
+		baseUrl = "https://mukaist-dalle-4k.hf.space"
 	)
+
+	if u := pkg.Config.GetString("hf.dalle-4k"); u != "" {
+		baseUrl = u
+	}
 
 	response, err := emit.ClientBuilder(nil).
 		Proxies(proxies).
@@ -254,6 +258,10 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 
 	if domain == "" {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
+	}
+
+	if u := pkg.Config.GetString("hf.dalle-3-xl"); u != "" {
+		baseUrl = u
 	}
 
 	response, err := emit.ClientBuilder(nil).
@@ -364,6 +372,10 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 
 	if domain == "" {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
+	}
+
+	if u := pkg.Config.GetString("hf.animagine-xl-3.1"); u != "" {
+		baseUrl = u
 	}
 
 	response, err := emit.ClientBuilder(nil).
