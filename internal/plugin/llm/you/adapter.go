@@ -56,7 +56,7 @@ func init() {
 			common.AddExited(you.Exit)
 		}
 
-		go timer()
+		//go timer()
 	})
 }
 
