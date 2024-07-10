@@ -403,7 +403,7 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, erro
 		return n
 	}
 
-	isClaude := strings.Contains(completion.Model, "claude-")
+	isClaude := strings.Contains(completion.Model, "claude")
 	for _, h := range handles {
 		// 正则替换
 		if !isClaude && h['t'] == "regex" {
