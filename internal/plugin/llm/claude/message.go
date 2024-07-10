@@ -1,13 +1,11 @@
 package claude
 
 import (
-	"bytes"
 	"chatgpt-adapter/internal/common"
 	"chatgpt-adapter/internal/gin.handler/response"
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
-	"fmt"
 	claude3 "github.com/bincooo/claude-api"
 	"github.com/gin-gonic/gin"
 	"strings"
@@ -88,77 +86,14 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	return
 }
 
-func mergeMessages(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (attachment []claude3.Attachment, tokens int) {
-	condition := func(expr string) string {
-		switch expr {
-		case "system", "assistant", "function", "tool", "end":
-			return expr
-		default:
-			return "human"
-		}
+func mergeMessages(ctx *gin.Context) (attachment []claude3.Attachment, tokens int) {
+	messages, _ := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
+	var contents []string
+	for _, message := range messages {
+		contents = append(contents, message.GetString("content"))
 	}
 
-	var (
-		user      = ""
-		assistant = ""
-	)
-
-	{
-		keyv, ok := common.GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
-		if ok {
-			user = keyv.GetString("user")
-			assistant = keyv.GetString("assistant")
-		}
-
-		if user == "" {
-			user = "Human："
-		}
-		if assistant == "" {
-			assistant = "Assistant："
-		}
-	}
-
-	tor := func(r string) string {
-		switch r {
-		case "user":
-			return user
-		case "assistant":
-			return assistant
-		default:
-			return ""
-		}
-	}
-
-	// 合并历史对话
-	iterator := func(opts struct {
-		Previous string
-		Next     string
-		Message  map[string]string
-		Buffer   *bytes.Buffer
-		Initial  func() pkg.Keyv[interface{}]
-	}) (messages []string, _ error) {
-		role := opts.Message["role"]
-		tokens += common.CalcTokens(opts.Message["content"])
-		if condition(role) == condition(opts.Next) {
-			// cache buffer
-			if role == "function" || role == "tool" {
-				opts.Buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
-				return
-			}
-			opts.Buffer.WriteString(opts.Message["content"])
-			return
-		}
-
-		defer opts.Buffer.Reset()
-		opts.Buffer.WriteString(fmt.Sprintf(opts.Message["content"]))
-		messages = []string{
-			fmt.Sprintf("%s %s", tor(condition(role)), opts.Buffer.String()),
-		}
-		return
-	}
-
-	nMessages, _ := common.TextMessageCombiner(messages, iterator)
-	join := strings.Join(nMessages, "\n\n")
+	join := strings.Join(contents, "\n\n")
 	if ctx.GetBool("pad") {
 		count := ctx.GetInt("claude.pad")
 		if count == 0 {

@@ -62,6 +62,7 @@ func Condition(value map[string]interface{}) bool {
 		if num >= count {
 			_ = cookiesPollContainer.SetMarker(value, 2) // 达到计数数量，进入静置区
 			counter[cookies.(string)] = 0                // 重置计数
+			logger.Infof("[coze] 到达计数数量，进入静置区")
 			return false
 		}
 	}

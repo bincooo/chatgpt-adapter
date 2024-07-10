@@ -67,37 +67,26 @@ func messages(ctx *gin.Context) {
 		return
 	}
 
-	defer postProc(ctx)
+	defer afterProcess(ctx)
 	GlobalExtension.Messages(ctx)
 }
 
 func completions(ctx *gin.Context) {
 	var completion pkg.ChatCompletion
 	if err := ctx.BindJSON(&completion); err != nil {
+		logger.Error(err)
 		response.Error(ctx, -1, err)
 		return
 	}
 
 	_ = ctx.Request.Body.Close()
-	ctx.Set(vars.GinDebugger, pkg.Config.GetBool("debug"))
-	toolCall := pkg.Config.GetStringMap("toolCall")
-	if enabled, ok := toolCall["enabled"]; ok && enabled.(bool) {
-		id := fmt.Sprintf("%v", toolCall["id"])
-		if id == "" {
-			id = "-1"
-		}
-
-		ctx.Set(vars.GinTool, pkg.Keyv[interface{}]{
-			"id":      id,
-			"enabled": enabled,
-			"tasks":   toolCall["tasks"].(bool),
-		})
+	err := beforeProcess(ctx, completion)
+	if err != nil {
+		logger.Error(err)
+		response.Error(ctx, -1, err)
+		return
 	}
 
-	matchers := common.XmlFlags(ctx, &completion)
-	ctx.Set(vars.GinCompletion, completion)
-
-	ctx.Set(vars.GinMatchers, matchers)
 	if common.GinDebugger(ctx) {
 		bodyLogger(completion)
 	}
@@ -111,7 +100,7 @@ func completions(ctx *gin.Context) {
 		return
 	}
 
-	defer postProc(ctx)
+	defer afterProcess(ctx)
 	GlobalExtension.Completion(ctx)
 }
 
@@ -149,7 +138,7 @@ func generations(ctx *gin.Context) {
 		}
 	}
 
-	defer postProc(ctx)
+	defer afterProcess(ctx)
 	GlobalExtension.Generation(ctx)
 }
 
@@ -162,7 +151,38 @@ func bodyLogger(completion pkg.ChatCompletion) {
 	}
 }
 
-func postProc(ctx *gin.Context) {
+func beforeProcess(ctx *gin.Context, completion pkg.ChatCompletion) (err error) {
+	// init debug
+	ctx.Set(vars.GinDebugger, pkg.Config.GetBool("debug"))
+
+	// init toolCall
+	toolCall := pkg.Config.GetStringMap("toolCall")
+	if enabled, ok := toolCall["enabled"]; ok && enabled.(bool) {
+		id := fmt.Sprintf("%v", toolCall["id"])
+		if id == "" {
+			id = "-1"
+		}
+
+		ctx.Set(vars.GinTool, pkg.Keyv[interface{}]{
+			"id":      id,
+			"enabled": enabled,
+			"tasks":   toolCall["tasks"].(bool),
+		})
+	}
+
+	// init flogs
+	matchers, err := common.XmlFlags(ctx, &completion)
+	if err != nil {
+		return err
+	}
+	ctx.Set(vars.GinCompletion, completion)
+
+	// init matchers
+	ctx.Set(vars.GinMatchers, matchers)
+	return
+}
+
+func afterProcess(ctx *gin.Context) {
 	cancel, exist := common.GetGinValue[context.CancelFunc](ctx, vars.GinCancelFunc)
 	if exist {
 		cancel()

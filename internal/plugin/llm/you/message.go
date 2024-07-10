@@ -176,6 +176,24 @@ label:
 }
 
 func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages []you.Message, text string, tokens int, err error) {
+	text = "Please review the attached prompt"
+	{
+		values, ok := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
+		if ok {
+			var contents []string
+			for _, message := range values {
+				contents = append(contents, message.GetString("content"))
+			}
+
+			join := strings.Join(contents, "\n\n")
+			tokens += common.CalcTokens(join)
+			pMessages = []you.Message{
+				{Answer: join},
+			}
+			return
+		}
+	}
+
 	var (
 		messages = completion.Messages
 
@@ -261,8 +279,6 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages [
 		err = logger.WarpError(err)
 		return
 	}
-
-	text = "Please review the attached prompt"
 
 	// 获取最后一条用户消息
 	okey := ""

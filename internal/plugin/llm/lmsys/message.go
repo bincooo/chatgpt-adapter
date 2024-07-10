@@ -111,6 +111,18 @@ label:
 }
 
 func mergeMessages(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (newMessages string) {
+	{
+		values, ok := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
+		if ok {
+			var contents []string
+			for _, message := range values {
+				contents = append(contents, message.GetString("content"))
+			}
+			newMessages = strings.Join(contents, "\n\n")
+			return
+		}
+	}
+
 	condition := func(expr string) string {
 		switch expr {
 		case "system", "tool", "function", "assistant", "end":

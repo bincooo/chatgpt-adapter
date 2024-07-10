@@ -19,4 +19,5 @@ const (
 	GinClose           = "__close__"
 	GinCharSequences   = "__char_sequences__"
 	GinCancelFunc      = "__cancelFunc__"
+	GinClaudeMessages  = "__claude_messages__"
 )

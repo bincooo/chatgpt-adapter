@@ -7,10 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
+	"github.com/dop251/goja"
 	"github.com/gin-gonic/gin"
 	"sort"
 	"strconv"
 	"strings"
+
+	_ "embed"
 )
 
 const (
@@ -275,25 +278,26 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 					// =========================================================
 					//
 
-				} else if nextStr(content, i, "!--") {
+					/*
+						} else if nextStr(content, i, "!--") {
 
-					//
-					// ⬇⬇⬇⬇⬇ 是否是注释 <!-- xxx --> ⬇⬇⬇⬇⬇
+							//
+							// ⬇⬇⬇⬇⬇ 是否是注释 <!-- xxx --> ⬇⬇⬇⬇⬇
 
-					n := searchStr(content, i+3, "-->")
-					if n < 0 {
-						i += 3
-						continue
-					}
+							n := searchStr(content, i+3, "-->")
+							if n < 0 {
+								i += 3
+								continue
+							}
 
-					node := XmlNode{index: i, end: n + 3, content: content[i : n+3], t: XML_TYPE_I}
-					slice = append(slice, node)
-					// ⬆⬆⬆⬆⬆ 是否是注释 <!-- xxx --> ⬆⬆⬆⬆⬆
-					// 循环后置++，所以-1
-					i = node.end - 1
-					// =========================================================
-					//
-
+							node := XmlNode{index: i, end: n + 3, content: content[i : n+3], t: XML_TYPE_I}
+							slice = append(slice, node)
+							// ⬆⬆⬆⬆⬆ 是否是注释 <!-- xxx --> ⬆⬆⬆⬆⬆
+							// 循环后置++，所以-1
+							i = node.end - 1
+							// =========================================================
+							//
+					*/
 				} else {
 
 					//
@@ -376,18 +380,21 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 	return recursive(value)
 }
 
-func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
+func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, error) {
 	matchers := NewMatchers()
 	flags := pkg.Config.GetBool("flags")
 	if !flags {
-		return matchers
+		if err := handleClaudeMessages(ctx, *completion); err != nil {
+			return nil, err
+		}
+		return matchers, nil
 	}
 
-	if len(req.Messages) == 0 {
-		return matchers
+	if len(completion.Messages) == 0 {
+		return matchers, nil
 	}
 
-	handles := xmlFlagsToContents(ctx, req.Messages)
+	handles := xmlFlagsToContents(ctx, completion.Messages)
 
 	abs := func(n int) int {
 		if n < 0 {
@@ -396,9 +403,10 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 		return n
 	}
 
+	isClaude := strings.Contains(completion.Model, "claude-")
 	for _, h := range handles {
 		// 正则替换
-		if h['t'] == "regex" {
+		if !isClaude && h['t'] == "regex" {
 			s := split(h['v'])
 			if len(s) < 2 {
 				continue
@@ -413,12 +421,12 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 			// 忽略尾部n条
 			pos, _ := strconv.Atoi(h['m'])
 			if pos > -1 {
-				pos = len(req.Messages) - 1 - pos
+				pos = len(completion.Messages) - 1 - pos
 				if pos < 0 {
 					pos = 0
 				}
 			} else {
-				pos = len(req.Messages)
+				pos = len(completion.Messages)
 			}
 
 			c, err := regexp.Compile(cmp, regexp.Compiled)
@@ -426,7 +434,7 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 				logger.Warn("compile failed: "+cmp, err)
 				continue
 			}
-			for idx, message := range req.Messages {
+			for idx, message := range completion.Messages {
 				if idx < pos && !message.Is("role", "system") {
 					replace, e := c.Replace(message.GetString("content"), value, -1, -1)
 					if e != nil {
@@ -439,9 +447,9 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 		}
 
 		// 深度插入
-		if h['t'] == "insert" {
+		if !isClaude && h['t'] == "insert" {
 			i, _ := strconv.Atoi(h['i'])
-			messageL := len(req.Messages)
+			messageL := len(completion.Messages)
 			if h['m'] == "true" && messageL-1 < abs(i) {
 				continue
 			}
@@ -461,9 +469,9 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 				}
 			}
 
-			req.Messages = append(req.Messages[:pos+1], append([]pkg.Keyv[interface{}]{
+			completion.Messages = append(completion.Messages[:pos+1], append([]pkg.Keyv[interface{}]{
 				{"role": h['r'], "content": h['v']},
-			}, req.Messages[pos+1:]...)...)
+			}, completion.Messages[pos+1:]...)...)
 		}
 
 		// matcher 流响应干预
@@ -487,16 +495,63 @@ func XmlFlags(ctx *gin.Context, req *pkg.ChatCompletion) []Matcher {
 				continue
 			}
 
-			for idx := 0; idx < len(req.Messages); idx++ {
-				if req.Messages[idx].In("role", "assistant", "user") {
-					req.Messages = append(req.Messages[:idx], append(baseMessages, req.Messages[idx:]...)...)
+			for idx := 0; idx < len(completion.Messages); idx++ {
+				if completion.Messages[idx].In("role", "assistant", "user") {
+					completion.Messages = append(completion.Messages[:idx], append(baseMessages, completion.Messages[idx:]...)...)
 					break
 				}
 			}
 		}
 	}
 
-	return matchers
+	if err := handleClaudeMessages(ctx, *completion); err != nil {
+		return nil, err
+	}
+	values, ok := GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
+	if ok {
+		_ = xmlFlagsToContents(ctx, values)
+	}
+
+	return matchers, nil
+}
+
+func handleClaudeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (err error) {
+	// claude messages
+	if strings.Contains(completion.Model, "claude") {
+		vm := goja.New()
+		_ = vm.Set("messages", completion.Messages)
+		_ = vm.Set("console", map[string]interface{}{
+			"log": func(args ...interface{}) {
+				fmt.Println(args...)
+			},
+		})
+		_ = vm.Set("JSON", map[string]interface{}{
+			"stringify": func(obj interface{}) (string, error) {
+				value, e := json.Marshal(obj)
+				return string(value), e
+			},
+			"parse": func(value string) (obj interface{}, e error) {
+				e = json.Unmarshal([]byte(value), &obj)
+				return
+			},
+		})
+
+		v, e := vm.RunString(vars.Script)
+		if e != nil {
+			err = e
+			return
+		}
+
+		var msgs []pkg.Keyv[interface{}]
+		err = vm.ExportTo(v, &msgs)
+		if err != nil {
+			return
+		}
+
+		ctx.Set(vars.GinClaudeMessages, msgs)
+	}
+
+	return nil
 }
 
 // matcher 流响应干预

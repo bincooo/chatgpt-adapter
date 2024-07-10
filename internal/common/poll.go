@@ -43,7 +43,8 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 	s10 := 10 * time.Second
 	for {
 		if len(container.slice) == 0 {
-			return
+			time.Sleep(s10)
+			continue
 		}
 
 		timeout, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -56,7 +57,15 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 		cancel()
 
 		for _, value := range container.slice {
-			marker, ok := container.markers[value]
+			var obj interface{} = value
+			if s, ok := obj.(string); ok {
+				obj = s
+			} else {
+				data, _ := json.Marshal(obj)
+				obj = string(data)
+			}
+
+			marker, ok := container.markers[obj]
 			if !ok {
 				continue
 			}
@@ -68,7 +77,7 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 			// 1 使用中 2 异常冷却中
 			if time.Now().Add(-resetTime).After(marker.t) {
 				marker.s = 0
-				logger.Infof("[%s] PollContainer 冷却完毕: %v", container.name, value)
+				logger.Infof("[%s] PollContainer 冷却完毕: %v", container.name, obj)
 			}
 		}
 		container.mu.Unlock()
@@ -142,6 +151,7 @@ func (container *PollContainer[T]) SetMarker(key interface{}, value byte) error 
 			t: time.Now(),
 			s: value,
 		}
+		logger.Infof("[%s] 设置状态值：%d", container.name, value)
 	} else {
 		return context.DeadlineExceeded
 	}

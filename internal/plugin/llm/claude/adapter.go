@@ -130,7 +130,7 @@ label:
 		}
 	}
 
-	attachments, tokens := mergeMessages(ctx, completion.Messages)
+	attachments, tokens := mergeMessages(ctx)
 	ctx.Set(ginTokens, tokens)
 	if echo {
 		response.Echo(ctx, completion.Model, attachments[0].Content, completion.Stream)

@@ -19,6 +19,7 @@
 /images/
 /tmp/
 /plugins/
+node_modules/
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
@@ -28,6 +29,7 @@ go.work
 simple_test.go
 cookies.txt
 config.yaml
+package-lock.json
 
-# os system
+# osx system
 .DS_Store
