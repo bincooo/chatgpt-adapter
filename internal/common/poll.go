@@ -1,6 +1,7 @@
 package common
 
 import (
+	"chatgpt-adapter/logger"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,7 @@ type state struct {
 }
 
 type PollContainer[T interface{}] struct {
+	name      string
 	slice     []T
 	markers   map[interface{}]*state
 	mu        ExpireLock
@@ -23,8 +25,9 @@ type PollContainer[T interface{}] struct {
 }
 
 // resetTime 用于复位状态：0 就绪状态，1 使用状态，2 异常状态
-func NewPollContainer[T interface{}](slice []T, resetTime time.Duration) *PollContainer[T] {
+func NewPollContainer[T interface{}](name string, slice []T, resetTime time.Duration) *PollContainer[T] {
 	container := PollContainer[T]{
+		name:    name,
 		slice:   slice,
 		markers: make(map[interface{}]*state),
 	}
@@ -47,6 +50,7 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 		if !container.mu.Lock(timeout) {
 			cancel()
 			time.Sleep(s10)
+			logger.Errorf("[%s] PollContainer 获取锁失败", container.name)
 			continue
 		}
 		cancel()
@@ -64,6 +68,7 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 			// 1 使用中 2 异常冷却中
 			if time.Now().Add(-resetTime).After(marker.t) {
 				marker.s = 0
+				logger.Infof("[%s] PollContainer 冷却完毕: %v", container.name, value)
 			}
 		}
 		container.mu.Unlock()

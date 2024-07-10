@@ -93,7 +93,7 @@ func init() {
 				v := value.(map[string]interface{})
 				values = append(values, v)
 			}
-			cookiesPollContainer = common.NewPollContainer(make([]map[string]interface{}, 0), 60*time.Second) // 报错进入60秒冷却
+			cookiesPollContainer = common.NewPollContainer("coze", make([]map[string]interface{}, 0), 60*time.Second) // 报错进入60秒冷却
 			cookiesPollContainer.Condition = Condition
 			runTasks(values...)
 		}

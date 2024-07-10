@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"github.com/spf13/viper"
 	"os"
-	"time"
 )
 
 var (
@@ -27,7 +26,7 @@ func LoadConfig() (*viper.Viper, error) {
 }
 
 func InitConfig() {
-	time.Sleep(3 * time.Second)
+	//time.Sleep(3 * time.Second)
 	config, err := LoadConfig()
 	if err != nil {
 		panic(err)

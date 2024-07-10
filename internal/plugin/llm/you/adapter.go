@@ -44,7 +44,7 @@ func init() {
 			return
 		}
 
-		youRollContainer = common.NewPollContainer[string](cookies, 30*time.Minute)
+		youRollContainer = common.NewPollContainer[string]("you", cookies, 30*time.Minute)
 		youRollContainer.Condition = Condition
 
 		if pkg.Config.GetBool("serverless.enabled") {
