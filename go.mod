@@ -6,7 +6,7 @@ require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/claude-api v1.0.5-0.20240701123553-4d8ff283f8a3
 	github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46
-	github.com/bincooo/coze-api v1.0.2-0.20240710150018-e6299c502839
+	github.com/bincooo/coze-api v1.0.2-0.20240710234419-e6beb08835cf
 	github.com/bincooo/edge-api v1.0.4-0.20240708092054-d92610338ccb
 	github.com/bincooo/emit.io v0.0.0-20240702162758-27d516d8f566
 	github.com/bincooo/you.com v0.0.0-20240702171358-0e86fdf0c3be

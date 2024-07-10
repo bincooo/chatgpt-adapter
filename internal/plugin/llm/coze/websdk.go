@@ -255,6 +255,31 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 		}
 
 		timeout, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+		space, err := chat.GetSpace(timeout)
+		cancel()
+		if err != nil {
+			logger.Errorf("custom-128k space err: %v", err)
+			continue
+		}
+
+		chat.Bot(botId, space, 1000, false)
+		timeout, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+		err = chat.DraftBot(context.Background(), coze.DraftInfo{
+			Model:            coze.ModelGpt4o_128k,
+			Temperature:      0.75,
+			TopP:             1,
+			FrequencyPenalty: 0,
+			PresencePenalty:  0,
+			MaxTokens:        8192,
+			ResponseFormat:   0,
+		}, "")
+		cancel()
+		if err != nil {
+			logger.Errorf("custom-128k drafbot err: %v", err)
+			continue
+		}
+
+		timeout, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 		err = chat.Publish(timeout, botId)
 		cancel()
 		if err != nil {
