@@ -394,7 +394,8 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, erro
 		return matchers, nil
 	}
 
-	handles := xmlFlagsToContents(ctx, completion.Messages)
+	isClaude := strings.Contains(completion.Model, "claude")
+	handles := xmlFlagsToContents(ctx, completion.Messages, isClaude)
 
 	abs := func(n int) int {
 		if n < 0 {
@@ -403,10 +404,9 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, erro
 		return n
 	}
 
-	isClaude := strings.Contains(completion.Model, "claude")
 	for _, h := range handles {
 		// 正则替换
-		if !isClaude && h['t'] == "regex" {
+		if h['t'] == "regex" {
 			s := split(h['v'])
 			if len(s) < 2 {
 				continue
@@ -447,7 +447,7 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, erro
 		}
 
 		// 深度插入
-		if !isClaude && h['t'] == "insert" {
+		if h['t'] == "insert" {
 			i, _ := strconv.Atoi(h['i'])
 			messageL := len(completion.Messages)
 			if h['m'] == "true" && messageL-1 < abs(i) {
@@ -509,7 +509,7 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, erro
 	}
 	values, ok := GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
 	if ok {
-		_ = xmlFlagsToContents(ctx, values)
+		_ = xmlFlagsToContents(ctx, values, true)
 	}
 
 	return matchers, nil
@@ -594,7 +594,7 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 	})
 }
 
-func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (handles []map[uint8]string) {
+func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isClaude bool) (handles []map[uint8]string) {
 	var (
 		parser = NewParser([]string{
 			"regex",
@@ -634,7 +634,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 
 			// 自由深度插入
 			// inserts: 深度插入, i 是深度索引，v 是插入内容， o 是指令
-			if node.t == XML_TYPE_X && node.tag[0] == '@' {
+			if !isClaude && node.t == XML_TYPE_X && node.tag[0] == '@' {
 				c, _ := regexp.Compile(`@-*\d+`, regexp.Compiled)
 				if matched, _ := c.MatchString(node.tag); matched {
 					// 消息上下文次数少于插入深度时，是否忽略
@@ -672,8 +672,10 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (han
 					miss = fmt.Sprintf("%v", m)
 				}
 
-				handles = append(handles, map[uint8]string{'m': miss, 'o': order, 'v': node.content, 't': "regex"})
-				clean(content[node.index:node.end])
+				if !isClaude || miss != "-1" {
+					handles = append(handles, map[uint8]string{'m': miss, 'o': order, 'v': node.content, 't': "regex"})
+					clean(content[node.index:node.end])
+				}
 				continue
 			}
 
