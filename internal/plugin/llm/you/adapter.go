@@ -255,7 +255,7 @@ label:
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set(ginTokens, tokens)
 
-	ch, err := chat.Reply(common.GetGinContext(ctx), nil, "```\n"+fileMessage, message)
+	ch, err := chat.Reply(common.GetGinContext(ctx), nil, fileMessage, message)
 	if err != nil {
 		logger.Error(err)
 		var se emit.Error
@@ -341,7 +341,7 @@ label:
 	}
 
 	chat.CloudFlare(clearance, userAgent, lang)
-	ch, err := chat.Reply(common.GetGinContext(ctx), nil, "```\n"+strings.Join(messages, "\n\n"), notice)
+	ch, err := chat.Reply(common.GetGinContext(ctx), nil, strings.Join(messages, "\n\n"), notice)
 	if err != nil {
 		logger.Error(err)
 		var se emit.Error

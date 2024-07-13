@@ -141,8 +141,24 @@ func Echo(ctx *gin.Context, mode, content string, sse bool) {
 		Response(ctx, mode, content)
 	} else {
 		created := time.Now().Unix()
-		SSEResponse(ctx, mode, content, created)
-		time.Sleep(time.Second)
+		pos := 0
+
+		for {
+			// fix: 太长了有些流客户端无法接收
+			contentL := len(content[pos:])
+			if contentL > 500 {
+				SSEResponse(ctx, mode, content[pos:pos+500], created)
+				pos += 500
+
+				time.Sleep(time.Second)
+				continue
+			}
+
+			SSEResponse(ctx, mode, content[pos:], created)
+			time.Sleep(time.Second)
+			break
+		}
+
 		SSEResponse(ctx, mode, "[DONE]", created)
 	}
 }
