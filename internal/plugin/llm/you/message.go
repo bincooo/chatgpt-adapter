@@ -184,9 +184,8 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (fileMessage
 				contents = append(contents, message.GetString("content"))
 			}
 
-			join := strings.Join(contents, "\n\n")
-			tokens += common.CalcTokens(join)
-			fileMessage = join
+			fileMessage = strings.Join(contents, "\n\n")
+			tokens += common.CalcTokens(fileMessage)
 			return
 		}
 	}

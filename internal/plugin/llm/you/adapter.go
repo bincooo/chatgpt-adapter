@@ -341,7 +341,8 @@ label:
 	}
 
 	chat.CloudFlare(clearance, userAgent, lang)
-	ch, err := chat.Reply(common.GetGinContext(ctx), nil, strings.Join(messages, "\n\n"), notice)
+	fileMessage := strings.Join(messages, "\n\n")
+	ch, err := chat.Reply(common.GetGinContext(ctx), nil, fileMessage, notice)
 	if err != nil {
 		logger.Error(err)
 		var se emit.Error

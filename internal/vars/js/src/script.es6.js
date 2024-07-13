@@ -133,7 +133,9 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
             }));
 
             const lastAssistant = realLogs.findLast((message => !message.merged && 'assistant' === message.role));
+            lastAssistant && Config.Settings.StripAssistant && (lastAssistant.strip = true);
             const lastUser = realLogs.findLast((message => !message.merged && 'user' === message.role));
+            lastUser && Config.Settings.StripHuman && (lastUser.strip = true);
             const systemMessages = messagesClone.filter((message => 'system' === message.role && !('name' in message)));
             systemMessages.forEach(((message, idx) => {
                 const scenario = message.content.match(rgxScenario)?.[1], personality = message.content.match(rgxPerson);
@@ -215,7 +217,7 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
         /******************************** */
         let system;
         if (messagesAPI) {
-            const rounds = prompt.replace(/^(?!.*\n\nHuman:)/m, '\n\nHuman:').split('\n\nHuman:');
+            const rounds = prompt.replace(/^(?!.*\n\nHuman:)/s, '\n\nHuman:').split('\n\nHuman:');
             messages = rounds.slice(1).flatMap(round => {
                 const turns = round.split('\n\nAssistant:');
                 return [{role: 'user', content: turns[0].trim()}].concat(turns.slice(1).flatMap(turn => [{role: 'assistant', content: turn.trim()}]));

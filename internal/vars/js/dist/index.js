@@ -172,9 +172,11 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
         var lastAssistant = realLogs.findLast(function (message) {
           return !message.merged && 'assistant' === message.role;
         });
+        lastAssistant && Config.Settings.StripAssistant && (lastAssistant.strip = true);
         var lastUser = realLogs.findLast(function (message) {
           return !message.merged && 'user' === message.role;
         });
+        lastUser && Config.Settings.StripHuman && (lastUser.strip = true);
         var systemMessages = messagesClone.filter(function (message) {
           return 'system' === message.role && !('name' in message);
         });
@@ -261,7 +263,7 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
     /******************************** */
     var system;
     if (messagesAPI) {
-      var rounds = prompt.replace(/^(?!.*\n\nHuman:)/m, '\n\nHuman:').split('\n\nHuman:');
+      var rounds = prompt.replace(/^(?![\s\S]*\n\nHuman:)/, '\n\nHuman:').split('\n\nHuman:');
       messages = rounds.slice(1).flatMap(function (round) {
         var turns = round.split('\n\nAssistant:');
         return [{
