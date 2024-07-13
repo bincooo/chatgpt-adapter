@@ -220,7 +220,6 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
                 const turns = round.split('\n\nAssistant:');
                 return [{role: 'user', content: turns[0].trim()}].concat(turns.slice(1).flatMap(turn => [{role: 'assistant', content: turn.trim()}]));
             }).reduce((acc, current) => {
-                console.log(Config.Settings.FullColon)
                 if (Config.Settings.FullColon && acc.length > 0 && (acc[acc.length - 1].role === current.role || !acc[acc.length - 1].content)) {
                     acc[acc.length - 1].content += (current.role === 'user' ? 'Human' : 'Assistant').replace(/.*/, legacy ? '\n$&﹕ ' : '\n' + wedge + '\n$&: ') + current.content;
                 } else acc.push(current);

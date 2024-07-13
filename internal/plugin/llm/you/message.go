@@ -176,7 +176,7 @@ label:
 }
 
 func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages []you.Message, text string, tokens int, err error) {
-	text = "Please review the attached prompt"
+	text = notice
 	{
 		values, ok := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
 		if ok {
@@ -188,7 +188,7 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages [
 			join := strings.Join(contents, "\n\n")
 			tokens += common.CalcTokens(join)
 			pMessages = []you.Message{
-				{Answer: join},
+				{Answer: "```\n" + join},
 			}
 			return
 		}

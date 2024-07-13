@@ -49,6 +49,7 @@ claude:
 
 you:
   helper: 8082
+  notice: "Creative Writing Mode"
   cookies:
     - 'xxx1'
     - 'xxx2'

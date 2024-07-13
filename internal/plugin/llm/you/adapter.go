@@ -30,6 +30,7 @@ var (
 	clearance = ""
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0"
 
+	notice           string
 	youRollContainer *common.PollContainer[string]
 )
 
@@ -44,6 +45,7 @@ func init() {
 			return
 		}
 
+		notice = pkg.Config.GetString("you.notice")
 		youRollContainer = common.NewPollContainer[string]("you", cookies, 30*time.Minute)
 		youRollContainer.Condition = Condition
 
@@ -346,7 +348,7 @@ label:
 	}
 
 	chat.CloudFlare(clearance, userAgent, lang)
-	ch, err := chat.Reply(common.GetGinContext(ctx), nil, strings.Join(messages, "\n\n"), " ")
+	ch, err := chat.Reply(common.GetGinContext(ctx), nil, "```\n"+strings.Join(messages, "\n\n"), notice)
 	if err != nil {
 		logger.Error(err)
 		var se emit.Error
