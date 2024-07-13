@@ -9,7 +9,6 @@ import (
 	"chatgpt-adapter/pkg"
 	"errors"
 	"fmt"
-	"github.com/bincooo/you.com"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"time"
@@ -175,7 +174,7 @@ label:
 	return
 }
 
-func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages []you.Message, text string, tokens int, err error) {
+func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (fileMessage string, text string, tokens int, err error) {
 	text = notice
 	{
 		values, ok := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
@@ -187,9 +186,7 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages [
 
 			join := strings.Join(contents, "\n\n")
 			tokens += common.CalcTokens(join)
-			pMessages = []you.Message{
-				{Answer: "```\n" + join},
-			}
+			fileMessage = join
 			return
 		}
 	}
@@ -209,13 +206,11 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages [
 		}
 
 		if user == "" {
-			user = "Human："
+			user = "Human: "
 		}
 		if assistant == "" {
-			assistant = "Assistant："
+			assistant = "Assistant: "
 		}
-		user += "\n"
-		assistant += "\n"
 	}
 
 	cond := func(expr string) string {
@@ -227,11 +222,6 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages [
 		}
 	}
 
-	for _, message := range messages {
-		tokens += common.CalcTokens(message.GetString("content"))
-	}
-
-	//is32 := tokens < 12000
 	// 合并历史对话
 	iterator := func(opts struct {
 		Previous string
@@ -280,20 +270,8 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages [
 		return
 	}
 
-	// 获取最后一条用户消息
-	okey := ""
-	//if is32 {
-	//	okey = "ok ~"
-	//	messageL := len(newMessages)
-	//	message := newMessages[messageL-1]
-	//	if message["role"] == "user" {
-	//		newMessages = newMessages[:messageL-1]
-	//		text = strings.TrimSpace(message["content"])
-	//		messageL -= 1
-	//	}
-	//}
-
 	// 理论上合并后的上下文不存在相邻的相同消息
+	var contents []string
 	pos := 0
 	messageL := len(newMessages)
 	for {
@@ -301,34 +279,12 @@ func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (pMessages [
 			break
 		}
 
-		newMessage := you.Message{}
 		message := newMessages[pos]
-		if message["role"] == "user" {
-			newMessage.Question = message["content"]
-		} else {
-			newMessage.Question = okey
-		}
-
-		pos++
-		if pos > messageL-1 {
-			newMessage.Answer = okey
-			pMessages = append(pMessages, newMessage)
-			break
-		}
-
-		message = newMessages[pos]
-		if message["role"] == "assistant" {
-			newMessage.Answer = assistant + message["content"]
-		} else {
-			newMessage.Answer = okey
-			pMessages = append(pMessages, newMessage)
-			newMessage = you.Message{
-				Question: message["content"],
-				Answer:   "",
-			}
-		}
-		pMessages = append(pMessages, newMessage)
+		contents = append(contents, message["content"])
 		pos++
 	}
+
+	fileMessage = strings.Join(contents, "\n\n")
+	tokens += common.CalcTokens(fileMessage)
 	return
 }

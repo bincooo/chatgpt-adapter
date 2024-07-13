@@ -207,7 +207,7 @@ func (API) Completion(ctx *gin.Context) {
 	)
 
 	completion.Model = completion.Model[4:]
-	chats, message, tokens, err := mergeMessages(ctx, completion)
+	fileMessage, message, tokens, err := mergeMessages(ctx, completion)
 	if err != nil {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
@@ -215,8 +215,7 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	if echo {
-		pM, _ := you.MergeMessages(chats, true)
-		response.Echo(ctx, completion.Model, fmt.Sprintf("--------FILE MESSAGE--------:\n%s\n\n\n--------CURR QUESTION--------:\n%s", pM, message), completion.Stream)
+		response.Echo(ctx, completion.Model, fmt.Sprintf("--------FILE MESSAGE--------:\n%s\n\n\n--------CURR QUESTION--------:\n%s", fileMessage, message), completion.Stream)
 		return
 	}
 
@@ -256,13 +255,7 @@ label:
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set(ginTokens, tokens)
 
-	messages, err := you.MergeMessages(chats, true)
-	if err != nil {
-		response.Error(ctx, -1, err)
-		return
-	}
-
-	ch, err := chat.Reply(common.GetGinContext(ctx), nil, messages, message)
+	ch, err := chat.Reply(common.GetGinContext(ctx), nil, "```\n"+fileMessage, message)
 	if err != nil {
 		logger.Error(err)
 		var se emit.Error
