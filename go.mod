@@ -4,7 +4,7 @@ go 1.21.6
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
-	github.com/bincooo/claude-api v1.0.5-0.20240701123553-4d8ff283f8a3
+	github.com/bincooo/claude-api v1.0.5-0.20240714172946-3a5a9adb162f
 	github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46
 	github.com/bincooo/coze-api v1.0.2-0.20240710234419-e6beb08835cf
 	github.com/bincooo/edge-api v1.0.4-0.20240708092054-d92610338ccb
@@ -25,6 +25,8 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/zishang520/socket.io v1.3.2
 )
+
+replace github.com/wangluozhe/requests v1.2.4 => github.com/bincooo/requests v0.0.0-20240627215101-765935c797c5
 
 require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect

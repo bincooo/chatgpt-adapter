@@ -48,8 +48,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/bincooo/claude-api v1.0.5-0.20240701123553-4d8ff283f8a3 h1:WQXGXYrbXmVYLEQLL5xquDbdEwA6BTQGXdJHrfv4Vvc=
-github.com/bincooo/claude-api v1.0.5-0.20240701123553-4d8ff283f8a3/go.mod h1:5pE4rNVYJTfwsvPkkQhegLO1PqCjuNdG8idccxjXW3s=
+github.com/bincooo/claude-api v1.0.5-0.20240714172946-3a5a9adb162f h1:ZVLeCrb3oJRYJb9es9WhoXG73dgixvBBQqqegC7fryg=
+github.com/bincooo/claude-api v1.0.5-0.20240714172946-3a5a9adb162f/go.mod h1:faoE0krFUAt2phSV0YHqa9jfO0xxutncShMLb9/HWqY=
 github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46 h1:12sHtk9r99icBCTBnsHaYep5DjH4gu6AzceFNSf216U=
 github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46/go.mod h1:X2PunEb/JOvEnkKkQnlm27UZnn96TR53hGH5TZ55Ak4=
 github.com/bincooo/coze-api v1.0.2-0.20240710234419-e6beb08835cf h1:ncIRh22lnsDhzkTmuedG217tSJSYD2fYZO948VnLk2I=
@@ -58,6 +58,8 @@ github.com/bincooo/edge-api v1.0.4-0.20240708092054-d92610338ccb h1:P5W+FZ9n/4AE
 github.com/bincooo/edge-api v1.0.4-0.20240708092054-d92610338ccb/go.mod h1:OBBrqmW8rUMTsF/sPH1GsPQT5K9QKJCZkHdYkTIR09Q=
 github.com/bincooo/emit.io v0.0.0-20240702162758-27d516d8f566 h1:bJNwKep2EzxAMpRoVhcAhIl/6H7jTEKr1VthgHNofEU=
 github.com/bincooo/emit.io v0.0.0-20240702162758-27d516d8f566/go.mod h1:TM7ofgLvBROkDM6SWaLduIMYWNiTOvYtRbQy0u4X5SY=
+github.com/bincooo/requests v0.0.0-20240627215101-765935c797c5 h1:a1+ujE1FAw34eq3EEA8phaXVdlOWS56PLgrJxremEv4=
+github.com/bincooo/requests v0.0.0-20240627215101-765935c797c5/go.mod h1:uxRiqW1jQ+6teXMziwT7Rx0WFFG2SW5prxHxp+ga9nE=
 github.com/bincooo/you.com v0.0.0-20240711142536-190746ce3279 h1:khgvDVQH2g+QTRL/SwyTboMgwr9kXtPu+UlgUv93nns=
 github.com/bincooo/you.com v0.0.0-20240711142536-190746ce3279/go.mod h1:SOuP1CRtNiOr+gYyYsZ/K7pj/Wc6Ko5lT3rFn07yLng=
 github.com/bitly/go-simplejson v0.5.0 h1:6IH+V8/tVMab511d5bn4M7EwGXZf9Hj6i2xSwkNEM+Y=
@@ -359,8 +361,6 @@ github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAh
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
 github.com/wangluozhe/chttp v0.0.4 h1:6qpxXGPG+DjPM5JDZTKteIQinZvDn6XslsrDu/cxxIA=
 github.com/wangluozhe/chttp v0.0.4/go.mod h1:a89dXbcRV/36MT66nkqzOJXejTBpYfYJvQ3Fw8Z4+HY=
-github.com/wangluozhe/requests v1.2.4 h1:9Q8nXBmP9NQwyIv5usOgDFHmBRDq7Cn3tKZMxf63q34=
-github.com/wangluozhe/requests v1.2.4/go.mod h1:uxRiqW1jQ+6teXMziwT7Rx0WFFG2SW5prxHxp+ga9nE=
 github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 h1:QldyIu/L63oPpyvQmHgvgickp1Yw510KJOqX7H24mg8=
 github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778/go.mod h1:2MuV+tbUrU1zIOPMxZ5EncGwgmMJsa+9ucAQZXxsObs=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

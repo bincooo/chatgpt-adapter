@@ -302,7 +302,7 @@ func (API) Messages(ctx *gin.Context) {
 	var (
 		proxies    = ctx.GetString("proxies")
 		completion = common.GetGinCompletion(ctx)
-		//matchers   = common.GetGinMatchers(ctx)
+		matchers   = common.GetGinMatchers(ctx)
 	)
 
 	completion.Model = completion.Model[4:]
@@ -368,7 +368,9 @@ label:
 		return
 	}
 
-	content := waitMessageResponse(ctx, ch)
+	var cancel chan error
+	cancel, matchers = joinMatchers(ctx, matchers)
+	content := waitMessageResponse(ctx, ch, matchers, cancel)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}

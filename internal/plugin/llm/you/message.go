@@ -109,11 +109,11 @@ label:
 	return
 }
 
-func waitMessageResponse(ctx *gin.Context, ch chan string) (content string) {
+func waitMessageResponse(ctx *gin.Context, ch chan string, matchers []common.Matcher, cancel chan error) (content string) {
 	logger.Info("waitResponse ...")
 	for {
 		select {
-		case <-ctx.Request.Context().Done():
+		case <-cancel:
 			logger.Error("context deadline exceeded")
 			if response.NotSSEHeader(ctx) {
 				response.Error(ctx, -1, "context deadline exceeded")
@@ -139,7 +139,8 @@ func waitMessageResponse(ctx *gin.Context, ch chan string) (content string) {
 
 			logger.Debug("----- raw -----")
 			logger.Debug(message)
-			if len(message) == 0 {
+			raw := common.ExecMatchers(matchers, message)
+			if len(raw) == 0 {
 				continue
 			}
 
@@ -147,10 +148,10 @@ func waitMessageResponse(ctx *gin.Context, ch chan string) (content string) {
 				"index": 0,
 				"type":  "content_block_delta",
 				"delta": map[string]interface{}{
-					"type": "text_delta", "text": message,
+					"type": "text_delta", "text": raw,
 				},
 			})
-			content += message
+			content += raw
 		}
 	}
 

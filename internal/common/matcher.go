@@ -43,6 +43,7 @@ func NewMatchers() []Matcher {
 func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 	count := 0
 	cancel := make(chan error, 1)
+	completion := GetGinCompletion(ctx)
 
 	var (
 		user      = ""
@@ -110,6 +111,22 @@ func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 
 				cancel <- nil
 				logger.Infof("matched block will closed: %s", assistant)
+				return vars.MatMatched, ""
+			},
+		})
+	}
+
+	for _, value := range completion.StopSequences {
+		matchers = append(matchers, &SymbolMatcher{
+			Find: value,
+			H: func(index int, content string) (state int, result string) {
+				if ctx.GetBool(vars.GinClose) {
+					cancel <- context.Canceled
+					return vars.MatMatched, ""
+				}
+
+				cancel <- nil
+				logger.Infof("matched block will closed: %s", value)
 				return vars.MatMatched, ""
 			},
 		})
