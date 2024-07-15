@@ -11,7 +11,7 @@ type ChatCompletion struct {
 	Tools         []Keyv[interface{}] `json:"tools"`
 	Model         string              `json:"model"`
 	MaxTokens     int                 `json:"max_tokens"`
-	StopSequences []string            `json:"stop_sequences"`
+	StopSequences []string            `json:"stop"`
 	Temperature   float32             `json:"temperature"`
 	TopK          int                 `json:"topK"`
 	TopP          float32             `json:"topP"`
