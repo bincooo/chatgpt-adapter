@@ -18,6 +18,8 @@ import (
 
 var cached []cache = nil
 
+const ja3 = "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513-21,29-23-24,0"
+
 type cache struct {
 	time.Time
 	key     string
@@ -103,24 +105,36 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 	return tempFile.Name(), nil
 }
 
-func Download(proxies, url, suffix string) (file string, err error) {
-	response, err := emit.ClientBuilder(nil).
+func Download(session *emit.Session, proxies, url, suffix string, jar http.CookieJar, header map[string]string) (file string, err error) {
+	builder := emit.ClientBuilder(session).
+		Ja3(ja3).
 		Proxies(proxies).
-		URL(url).
-		Do()
-	if err != nil {
-		logger.Error("download failed: ", err)
-		return "", err
+		GET(url).
+		CookieJar(jar)
+	for k, v := range header {
+		builder.Header(k, v)
 	}
 
-	if response.StatusCode != http.StatusOK {
-		logger.Error("download failed: ", response.Status)
-		return "", errors.New(response.Status)
+	var response *http.Response
+	retry := 3
+label:
+
+	retry--
+	response, err = builder.DoS(http.StatusOK)
+	if err != nil {
+		if retry > 0 {
+			time.Sleep(time.Second)
+			goto label
+		}
+		return "", err
 	}
 
 	dec, err := io.ReadAll(response.Body)
 	if err != nil {
-		logger.Error("download failed: ", err)
+		if retry > 0 {
+			time.Sleep(time.Second)
+			goto label
+		}
 		return "", err
 	}
 
@@ -129,21 +143,18 @@ func Download(proxies, url, suffix string) (file string, err error) {
 	if os.IsNotExist(err) {
 		err = os.MkdirAll("tmp/"+timePath, 0766)
 		if err != nil {
-			logger.Error("download failed: ", err)
 			return "", err
 		}
 	}
 
 	tempFile, err := os.CreateTemp("tmp/"+timePath, "*."+suffix)
 	if err != nil {
-		logger.Error("download failed: ", err)
 		return "", err
 	}
 	defer tempFile.Close()
 
 	_, err = tempFile.Write(dec)
 	if err != nil {
-		logger.Error("download failed: ", err)
 		return "", err
 	}
 

@@ -30,7 +30,7 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	response, err := emit.ClientBuilder(nil).
+	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
@@ -58,7 +58,7 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 	}
 
 	logger.Info(emit.TextResponse(response))
-	response, err = emit.ClientBuilder(nil).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
@@ -86,6 +86,9 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 	})
 
 	err = c.Do()
+	if err == nil && value == "" {
+		err = fmt.Errorf("image generate failed")
+	}
 	return
 }
 
@@ -159,6 +162,9 @@ func Ox001(ctx *gin.Context, model, samples, message string) (value string, err 
 	})
 
 	err = c.Do()
+	if err == nil && value == "" {
+		err = fmt.Errorf("image generate failed")
+	}
 	return
 }
 
@@ -173,7 +179,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 		baseUrl = u
 	}
 
-	response, err := emit.ClientBuilder(nil).
+	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
@@ -200,7 +206,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 	}
 
 	logger.Info(emit.TextResponse(response))
-	response, err = emit.ClientBuilder(nil).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
@@ -244,6 +250,9 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 	})
 
 	err = c.Do()
+	if err == nil && value == "" {
+		err = fmt.Errorf("image generate failed")
+	}
 	return
 }
 
@@ -264,7 +273,7 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		baseUrl = u
 	}
 
-	response, err := emit.ClientBuilder(nil).
+	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
@@ -293,7 +302,7 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 	}
 	logger.Info(emit.TextResponse(response))
 
-	response, err = emit.ClientBuilder(nil).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
@@ -345,9 +354,14 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = common.Download(proxies, info["url"].(string), "png")
+		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", nil, map[string]string{
+			"User-Agent":      userAgent,
+			"Accept-Language": "en-US,en;q=0.9",
+			"Origin":          baseUrl,
+			"Referer":         baseUrl + "/?__theme=light",
+		})
 		if err != nil {
-			c.Failed(fmt.Errorf("image generate failed: %v", err))
+			c.Failed(fmt.Errorf("image download failed: %v", err))
 			return
 		}
 
@@ -356,7 +370,9 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 	})
 
 	err = c.Do()
-
+	if err == nil && value == "" {
+		err = fmt.Errorf("image generate failed")
+	}
 	return
 }
 
@@ -377,11 +393,34 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 	if u := pkg.Config.GetString("hf.animagine-xl-3.1"); u != "" {
 		baseUrl = u
 	}
+	jar, _ := emit.NewCookieJar(baseUrl, "")
+	response, err := emit.ClientBuilder(plugin.HTTPClient).
+		Proxies(proxies).
+		Context(common.GetGinContext(ctx)).
+		POST(baseUrl+"/run/predict").
+		CookieJar(jar).
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept-Language", "en-US,en;q=0.9").
+		JHeader().
+		Body(map[string]interface{}{
+			"data":         []interface{}{0, true},
+			"event_data":   nil,
+			"fn_index":     4,
+			"trigger_id":   49,
+			"session_hash": hash,
+		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return "", err
+	}
+	logger.Info(emit.TextResponse(response))
 
-	response, err := emit.ClientBuilder(nil).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
+		CookieJar(jar).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/?__theme=light").
 		Header("User-Agent", userAgent).
@@ -394,8 +433,8 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 				r.Intn(9068457) + 300000000,
 				1024,
 				1024,
-				7,
-				50,
+				8,
+				35,
 				samples,
 				"1024 x 1024",
 				model,
@@ -414,10 +453,11 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 	}
 	logger.Info(emit.TextResponse(response))
 
-	response, err = emit.ClientBuilder(nil).
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
+		CookieJar(jar).
 		Query("session_hash", hash).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/?__theme=light").
@@ -466,9 +506,14 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = common.Download(proxies, info["url"].(string), "png")
+		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", jar, map[string]string{
+			"User-Agent":      userAgent,
+			"Accept-Language": "en-US,en;q=0.9",
+			"Origin":          baseUrl,
+			"Referer":         baseUrl + "/?__theme=light",
+		})
 		if err != nil {
-			c.Failed(fmt.Errorf("image generate failed: %v", err))
+			c.Failed(fmt.Errorf("image download failed: %v", err))
 			return
 		}
 
@@ -477,7 +522,9 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 	})
 
 	err = c.Do()
-
+	if err == nil && value == "" {
+		err = fmt.Errorf("image generate failed")
+	}
 	return
 }
 
@@ -554,5 +601,8 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 	})
 
 	err = c.Do()
+	if err == nil && value == "" {
+		err = fmt.Errorf("image generate failed")
+	}
 	return
 }
