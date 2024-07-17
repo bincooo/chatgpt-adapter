@@ -5,11 +5,13 @@ import (
 	"chatgpt-adapter/internal/plugin"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
+	"encoding/json"
 	"fmt"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -30,6 +32,18 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
+	fn := []int{0, 15}
+	data := []interface{}{
+		message + ", {{{{by famous artist}}}, beautiful, 4k",
+		negative,
+		model,
+		25,
+		samples,
+		10,
+		1024,
+		1024,
+		-1,
+	}
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
@@ -37,19 +51,9 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 		JHeader().
 		Header("User-Agent", userAgent).
 		Body(map[string]interface{}{
-			"data": []interface{}{
-				message + ", {{{{by famous artist}}}, beautiful, 4k",
-				negative,
-				model,
-				25,
-				samples,
-				10,
-				1024,
-				1024,
-				-1,
-			},
-			"fn_index":     0,
-			"trigger_id":   15,
+			"data":         data,
+			"fn_index":     fn[0],
+			"trigger_id":   fn[1],
 			"session_hash": hash,
 		}).
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
@@ -175,29 +179,32 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 		baseUrl = "https://mukaist-dalle-4k.hf.space"
 	)
 
-	if u := pkg.Config.GetString("hf.dalle-4k"); u != "" {
+	if u := pkg.Config.GetString("hf.dalle-4k.baseUrl"); u != "" {
 		baseUrl = u
 	}
 
+	fn := []int{3, 6}
+	data := []interface{}{
+		message,
+		negative,
+		true,
+		model,
+		30,
+		1024,
+		1024,
+		6,
+		true,
+	}
+	fn, data, err = attrFormat("dalle-4k", fn, data, message, negative, "", model)
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
 		JHeader().
 		Body(map[string]interface{}{
-			"data": []interface{}{
-				message,
-				negative,
-				true,
-				model,
-				30,
-				1024,
-				1024,
-				6,
-				true,
-			},
-			"fn_index":     3,
-			"trigger_id":   6,
+			"data":         data,
+			"fn_index":     fn[0],
+			"trigger_id":   fn[1],
 			"session_hash": hash,
 		}).
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
@@ -269,10 +276,22 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	if u := pkg.Config.GetString("hf.dalle-3-xl"); u != "" {
+	if u := pkg.Config.GetString("hf.dalle-3-xl.baseUrl"); u != "" {
 		baseUrl = u
 	}
 
+	fn := []int{3, 6}
+	data := []interface{}{
+		message + ", {{{{by famous artist}}}, beautiful, 4k",
+		negative + ", extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
+		true,
+		r.Intn(51206501) + 1100000000,
+		1024,
+		1024,
+		12,
+		true,
+	}
+	fn, data, err = attrFormat("dalle-3-xl", fn, data, message, negative, "", "")
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
@@ -283,18 +302,9 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		Header("Accept-Language", "en-US,en;q=0.9").
 		JHeader().
 		Body(map[string]interface{}{
-			"data": []interface{}{
-				message + ", {{{{by famous artist}}}, beautiful, 4k",
-				negative + ", extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, disgusting, blurry, amputation",
-				true,
-				r.Intn(51206501) + 1100000000,
-				1024,
-				1024,
-				12,
-				true,
-			},
-			"fn_index":     3,
-			"trigger_id":   6,
+			"data":         data,
+			"fn_index":     fn[0],
+			"trigger_id":   fn[1],
 			"session_hash": hash,
 		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
@@ -390,33 +400,31 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	if u := pkg.Config.GetString("hf.animagine-xl-3.1"); u != "" {
+	if u := pkg.Config.GetString("hf.animagine-xl-3.1.baseUrl"); u != "" {
 		baseUrl = u
 	}
+
+	fn := []int{5, 49}
+	data := []interface{}{
+		message + ", {{{{by famous artist}}}, beautiful, 4k",
+		negative,
+		r.Intn(9068457) + 300000000,
+		1024,
+		1024,
+		8,
+		35,
+		samples,
+		"1024 x 1024",
+		model,
+		"Light v3.1",
+		true,
+		0.55,
+		1.5,
+		false,
+	}
+	fn, data, err = attrFormat("animagine-xl-3.1", fn, data, message, negative, samples, model)
 	jar, _ := emit.NewCookieJar(baseUrl, "")
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
-		Proxies(proxies).
-		Context(common.GetGinContext(ctx)).
-		POST(baseUrl+"/run/predict").
-		CookieJar(jar).
-		Header("Origin", baseUrl).
-		Header("Referer", baseUrl+"/?__theme=light").
-		Header("User-Agent", userAgent).
-		Header("Accept-Language", "en-US,en;q=0.9").
-		JHeader().
-		Body(map[string]interface{}{
-			"data":         []interface{}{0, true},
-			"event_data":   nil,
-			"fn_index":     4,
-			"trigger_id":   49,
-			"session_hash": hash,
-		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
-	if err != nil {
-		return "", err
-	}
-	logger.Info(emit.TextResponse(response))
-
-	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
@@ -427,25 +435,9 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		Header("Accept-Language", "en-US,en;q=0.9").
 		JHeader().
 		Body(map[string]interface{}{
-			"data": []interface{}{
-				message + ", {{{{by famous artist}}}, beautiful, 4k",
-				negative,
-				r.Intn(9068457) + 300000000,
-				1024,
-				1024,
-				8,
-				35,
-				samples,
-				"1024 x 1024",
-				model,
-				"Light v3.1",
-				true,
-				0.55,
-				1.5,
-				false,
-			},
-			"fn_index":     5,
-			"trigger_id":   49,
+			"data":         data,
+			"fn_index":     fn[0],
+			"trigger_id":   fn[1],
 			"session_hash": hash,
 		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
@@ -605,4 +597,23 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 		err = fmt.Errorf("image generate failed")
 	}
 	return
+}
+
+func attrFormat(key string, fn []int, data []interface{}, message, negative, sampler, style string) ([]int, []interface{}, error) {
+	slice := pkg.Config.GetIntSlice("hf." + key + ".fn")
+	if len(slice) >= 2 {
+		fn = slice
+	}
+	dataStr := pkg.Config.GetString("hf." + key + ".data")
+	if dataStr != "" {
+		dataStr = strings.ReplaceAll(dataStr, "{{prompt}}", message)
+		dataStr = strings.ReplaceAll(dataStr, "{{negative_prompt}}", negative)
+		dataStr = strings.ReplaceAll(dataStr, "{{sampler}}", sampler)
+		dataStr = strings.ReplaceAll(dataStr, "{{style}}", style)
+		err := json.Unmarshal([]byte(dataStr), &data)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return fn, data, nil
 }

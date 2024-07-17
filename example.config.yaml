@@ -27,10 +27,36 @@ llm:
 lmsys: [49 , 109]
 
 # hf 绘图接口配置化
+# 若旧接口不可用，可以到huggingface上查找同类型的接口配置
+# 参数替换：{{prompt}}、{{negative_prompt}}、{{sampler}}、{{style}}
 hf:
-#  dalle-4k: https://mukaist-dalle-4k.hf.space
-#  animagine-xl-3.1: https://cagliostrolab-animagine-xl-3-1.hf.space
-#  dalle-3-xl: https://ehristoforu-dalle-3-xl-lora-v2.hf.space
+#  animagine-xl-3.1:
+#    baseUrl: https://boboiazumi-animagine-xl-3-1.hf.space
+#    fn: [5, 61]
+#    data: '[
+#      "{{prompt}}",
+#      "{{negative_prompt}}",
+#      324718393,
+#      1024,
+#      1024,
+#      8,
+#      35,
+#      "{{sampler}}",
+#      "1024 x 1024",
+#      "{{style}}",
+#      "Standard v3.1",
+#      true,
+#      0.55,
+#      1.5,
+#      false,
+#      false,
+#      null,
+#      0.65
+#    ]'
+#  dalle-4k:
+#    baseUrl: https://mukaist-dalle-4k.hf.space
+#  dalle-3-xl:
+#    baseUrl: https://ehristoforu-dalle-3-xl-lora-v2.hf.space
 
 # gemini 自定义安全设置
 google:
