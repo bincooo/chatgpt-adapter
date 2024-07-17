@@ -77,11 +77,17 @@ func (API) Generation(ctx *gin.Context) {
 		generation   = common.GetGinGeneration(ctx)
 	)
 
-	message, err := completeTagsGenerator(ctx, generation.Message)
-	if err != nil {
-		logger.Error(err)
-		response.Error(ctx, -1, err)
-		return
+	var err error
+	message := generation.Message
+	if !strings.HasPrefix(generation.Message, "<tag />") {
+		message, err = completeTagsGenerator(ctx, generation.Message)
+		if err != nil {
+			logger.Error(err)
+			response.Error(ctx, -1, err)
+			return
+		}
+	} else {
+		message = message[7:]
 	}
 
 	model := matchModel(generation.Style, space)
