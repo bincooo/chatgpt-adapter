@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -195,7 +196,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 		6,
 		true,
 	}
-	fn, data, err = attrFormat("dalle-4k", fn, data, message, negative, "", model)
+	fn, data, err = attrFormat("dalle-4k", fn, data, message, negative, "", model, -1)
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
@@ -291,7 +292,7 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		12,
 		true,
 	}
-	fn, data, err = attrFormat("dalle-3-xl", fn, data, message, negative, "", "")
+	fn, data, err = attrFormat("dalle-3-xl", fn, data, message, negative, "", "", r.Intn(51206501)+1100000000)
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
@@ -422,13 +423,11 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		1.5,
 		false,
 	}
-	fn, data, err = attrFormat("animagine-xl-3.1", fn, data, message, negative, samples, model)
-	jar, _ := emit.NewCookieJar(baseUrl, "")
+	fn, data, err = attrFormat("animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(9068457)+300000000)
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		POST(baseUrl+"/queue/join").
-		CookieJar(jar).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/?__theme=light").
 		Header("User-Agent", userAgent).
@@ -449,7 +448,6 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
 		GET(baseUrl+"/queue/data").
-		CookieJar(jar).
 		Query("session_hash", hash).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/?__theme=light").
@@ -498,7 +496,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", jar, map[string]string{
+		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", nil, map[string]string{
 			"User-Agent":      userAgent,
 			"Accept-Language": "en-US,en;q=0.9",
 			"Origin":          baseUrl,
@@ -599,7 +597,7 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 	return
 }
 
-func attrFormat(key string, fn []int, data []interface{}, message, negative, sampler, style string) ([]int, []interface{}, error) {
+func attrFormat(key string, fn []int, data []interface{}, message, negative, sampler, style string, seed int) ([]int, []interface{}, error) {
 	slice := pkg.Config.GetIntSlice("hf." + key + ".fn")
 	if len(slice) >= 2 {
 		fn = slice
@@ -610,6 +608,7 @@ func attrFormat(key string, fn []int, data []interface{}, message, negative, sam
 		dataStr = strings.ReplaceAll(dataStr, "{{negative_prompt}}", negative)
 		dataStr = strings.ReplaceAll(dataStr, "{{sampler}}", sampler)
 		dataStr = strings.ReplaceAll(dataStr, "{{style}}", style)
+		dataStr = strings.ReplaceAll(dataStr, "{{seed}}", strconv.Itoa(seed))
 		err := json.Unmarshal([]byte(dataStr), &data)
 		if err != nil {
 			return nil, nil, err
