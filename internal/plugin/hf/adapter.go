@@ -16,6 +16,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -77,17 +78,11 @@ func (API) Generation(ctx *gin.Context) {
 		generation   = common.GetGinGeneration(ctx)
 	)
 
-	var err error
-	message := generation.Message
-	if !strings.HasPrefix(generation.Message, "<tag />") {
-		message, err = completeTagsGenerator(ctx, generation.Message)
-		if err != nil {
-			logger.Error(err)
-			response.Error(ctx, -1, err)
-			return
-		}
-	} else {
-		message = message[7:]
+	message, err := completeTagsGenerator(ctx, generation.Message)
+	if err != nil {
+		logger.Error(err)
+		response.Error(ctx, -1, err)
+		return
 	}
 
 	model := matchModel(generation.Style, space)
@@ -212,6 +207,21 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		baseUrl = pkg.Config.GetString("llm.baseUrl")
 	)
 
+	c := regexp.MustCompile("<tag content=\"([^>]+)\"\\s?/>")
+	matched := c.FindAllStringSubmatch(content, -1)
+	var contents []string
+	if len(matched) > 0 {
+		for _, slice := range matched {
+			content = strings.Replace(content, slice[0], "", -1)
+			contents = append(contents, slice[1])
+		}
+	}
+
+	content = strings.TrimSpace(content)
+	if len(content) == 0 {
+		return strings.Join(contents, ", "), nil
+	}
+
 	prefix := ""
 	if model == "bing" {
 		// prefix += "<pad />"
@@ -266,14 +276,16 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 
 	if left > -1 && left < right {
 		message = strings.ReplaceAll(message[left+3:right], "\"", "")
-		logger.Infof("system assistant generate message[%s]: %s", model, message)
-		return strings.TrimSpace(message), nil
+		contents = append(contents, message)
+		logger.Infof("system assistant generate message[%s]: %s", model, strings.Join(contents, ", "))
+		return strings.Join(contents, ", "), nil
 	}
 
 	if strings.HasSuffix(message, `"""`) { // 哎。bing 偶尔会漏掉前面的"""
 		message = strings.ReplaceAll(message[:len(message)-3], "\"", "")
-		logger.Infof("system assistant generate message[%s]: %s", model, message)
-		return strings.TrimSpace(message), nil
+		contents = append(contents, message)
+		logger.Infof("system assistant generate message[%s]: %s", model, strings.Join(contents, ", "))
+		return strings.Join(contents, ", "), nil
 	}
 
 	left = strings.Index(message, "```")
@@ -281,8 +293,9 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 
 	if left > -1 && left < right {
 		message = strings.ReplaceAll(message[left+3:right], "\"", "")
-		logger.Infof("system assistant generate message[%s]: %s", model, message)
-		return strings.TrimSpace(message), nil
+		contents = append(contents, message)
+		logger.Infof("system assistant generate message[%s]: %s", model, strings.Join(contents, ", "))
+		return strings.Join(contents, ", "), nil
 	}
 
 	logger.Info("response content: ", message)

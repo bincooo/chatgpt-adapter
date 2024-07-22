@@ -365,10 +365,10 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", nil, map[string]string{
+		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", map[string]string{
 			"User-Agent":      userAgent,
 			"Accept-Language": "en-US,en;q=0.9",
-			"Origin":          baseUrl,
+			"Origin":          "https://huggingface.co",
 			"Referer":         baseUrl + "/?__theme=light",
 		})
 		if err != nil {
@@ -417,11 +417,11 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		samples,
 		"1024 x 1024",
 		model,
-		"Light v3.1",
-		true,
+		"Heavy v3.1",
+		false,
 		0.55,
 		1.5,
-		false,
+		true,
 	}
 	fn, data, err = attrFormat("animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(9068457)+300000000)
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
@@ -496,10 +496,10 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", nil, map[string]string{
+		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", map[string]string{
 			"User-Agent":      userAgent,
 			"Accept-Language": "en-US,en;q=0.9",
-			"Origin":          baseUrl,
+			"Origin":          "https://huggingface.co",
 			"Referer":         baseUrl + "/?__theme=light",
 		})
 		if err != nil {

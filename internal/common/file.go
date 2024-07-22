@@ -105,12 +105,15 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 	return tempFile.Name(), nil
 }
 
-func Download(session *emit.Session, proxies, url, suffix string, jar http.CookieJar, header map[string]string) (file string, err error) {
+func Download(session *emit.Session, proxies, url, suffix string, header map[string]string) (file string, err error) {
 	builder := emit.ClientBuilder(session).
 		Ja3(ja3).
 		Proxies(proxies).
 		GET(url).
-		CookieJar(jar)
+		Header("Sec-Ch-Ua-Mobile", "?0").
+		Header("Sec-Ch-Ua-Platform", "\"macOS\"").
+		Header("Sec-Fetch-Dest", "image").
+		Header("accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
 	for k, v := range header {
 		builder.Header(k, v)
 	}
