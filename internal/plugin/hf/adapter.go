@@ -222,6 +222,11 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		return strings.Join(contents, ", "), nil
 	}
 
+	if strings.Contains(content, "<tag llm=false />") {
+		contents = append(contents, strings.Replace(content, "<tag llm=false />", "", -1))
+		return strings.Join(contents, ", "), nil
+	}
+
 	prefix := ""
 	if model == "bing" {
 		// prefix += "<pad />"
