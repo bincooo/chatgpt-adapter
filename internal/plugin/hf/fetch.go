@@ -407,12 +407,12 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 
 	fn := []int{5, 49}
 	data := []interface{}{
-		message + ", {{{{by famous artist}}}, beautiful, 4k",
-		negative,
-		r.Intn(9068457) + 300000000,
+		message,
+		"",
+		r.Intn(1490935504) + 9068457,
 		1024,
 		1024,
-		8,
+		7,
 		35,
 		samples,
 		"1024 x 1024",
@@ -423,7 +423,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		1.5,
 		true,
 	}
-	fn, data, err = attrFormat("animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(9068457)+300000000)
+	fn, data, err = attrFormat("animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(1490935504)+9068457)
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).

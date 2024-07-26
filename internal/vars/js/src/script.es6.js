@@ -44,7 +44,12 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
     matches && matches.forEach(match => {
         try {
             const reg = /<regex(?: +order *= *\d)?> *"(\/?)(.*)\1(.*?)" *: *"(.*?)" *<\/regex>/.exec(match);
-            content = content.replace(new RegExp(reg[2], reg[3]), JSON.parse(`"${reg[4].replace(/\\?"/g, '\\"')}"`));
+            let reg2 = reg[2], reg3 = reg[3]
+            if (reg3.includes('s')) {
+                reg2 = reg2.replace(/([^\\])\./g, '$1[\\s\\S]')
+                reg3 = reg3.replace('s', 'm')
+            }
+            content = content.replace(new RegExp(reg2, reg3), JSON.parse(`"${reg[4].replace(/\\?"/g, '\\"')}"`));
         } catch (err) {
             console.log(`[33mRegex error: [0m` + match + '\n' + err);
         }

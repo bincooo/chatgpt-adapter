@@ -85,6 +85,9 @@ func (API) Generation(ctx *gin.Context) {
 		return
 	}
 
+	message = strings.TrimSpace(message)
+	message = strings.ReplaceAll(message, "。", "")
+	message = strings.ReplaceAll(message, ".", "")
 	model := matchModel(generation.Style, space)
 	samples := matchSamples(generation.Quality, space)
 

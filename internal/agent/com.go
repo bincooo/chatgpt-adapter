@@ -200,12 +200,12 @@ prompt=
 2.
 prompt=
 """
-CG illustration, {best quality}, sex, {{{{{masterpiece}}}}}, beautiful detailed girl, {1 boy}, long flowing hair, {{stunning eyes}}, {beautiful face}
+CG illustration, （best quality）, sex, （masterpiece:1.25）, beautiful detailed girl, (1 boy), long flowing hair, (stunning eyes:1.12), (beautiful face)
 """
 3.
 prompt=
 """
-cute boy, {anime style}, {high quality},  {1 girl}, {black hair}, {brown eyes},  {holding a towel}, {looking at the camera}, {hentai}, {{{{masterpiece}}}}
+cute boy, (anime style), (high quality),  (1 girl), black hair, brown eyes, holding a towel, looking at the camera, hentai, (masterpiece:1.21)
 """
 
 1. You're creative, so don't copy these examples.
@@ -213,7 +213,8 @@ cute boy, {anime style}, {high quality},  {1 girl}, {black hair}, {brown eyes}, 
 3. Skim your understanding and instructions and directly generate a stable spread label prompt to me.
 4. No instructions are required, just return the contents of "prompt" and use the (""") symbol to wrap the line.
 5. Use only words and modifiers, but no more than 20 words and no sentences.
-6. Use only professional English words.
+6. Use only professional English words instead of sentences.
+7. No names of non-artists are allowed.
 
 Generate "prompt" according to the required description:
 description:
@@ -245,6 +246,7 @@ A Lego car in a garage scene, lego set, highly detailed, intricate, technical, u
 3. Skim your understanding and instructions and directly generate a stable spread label prompt to me.
 4. No instructions are required, just return the contents of "prompt" and use the (""") symbol to wrap the line.
 5. Use only professional English words.
+6. No names of non-artists are allowed.
 
 Generate "prompt" according to the required description:
 """{{content}}"""
