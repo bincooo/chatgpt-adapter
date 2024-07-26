@@ -84,12 +84,12 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
     //自定义插入
     var splitContent = content.split(/\n\n(?=Assistant:|Human:)/g),
       match;
-    while ((match = /<@(\d+)>(.*?)<\/@\1>/gm.exec(content)) !== null) {
+    while ((match = /<@(\d+)>([\s\S]*?)<\/@\1>/g.exec(content)) !== null) {
       var index = splitContent.length - parseInt(match[1]) - 1;
       index >= 0 && (splitContent[index] += '\n\n' + match[2]);
       content = content.replace(match[0], '');
     }
-    content = splitContent.join('\n\n').replace(/<@(\d+)>.*?<\/@\1>/gm, '');
+    content = splitContent.join('\n\n').replace(/<@(\d+)>[\s\S]*?<\/@\1>/g, '');
     //二次正则
     content = xmlPlot_regex(content, 2);
     //二次role合并
@@ -98,7 +98,7 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
     //三次正则
     content = xmlPlot_regex(content, 3);
     //消除空XML tags、两端空白符和多余的\n
-    content = content.replace(/<regex( +order *= *\d)?>.*?<\/regex>/gm, '').replace(/\r\n|\r/gm, '\n').replace(/\s*<\|curtail\|>\s*/g, '\n').replace(/\s*<\|join\|>\s*/g, '').replace(/\s*<\|space\|>\s*/g, ' ').replace(/\s*\n\n(H(uman)?|A(ssistant)?): +/g, '\n\n$1: ').replace(/<\|(\\.*?)\|>/g, function (match, p1) {
+    content = content.replace(/<regex( +order *= *\d)?>[\s\S]*?<\/regex>/g, '').replace(/\r\n|\r/gm, '\n').replace(/\s*<\|curtail\|>\s*/g, '\n').replace(/\s*<\|join\|>\s*/g, '').replace(/\s*<\|space\|>\s*/g, ' ').replace(/\s*\n\n(H(uman)?|A(ssistant)?): +/g, '\n\n$1: ').replace(/<\|(\\.*?)\|>/g, function (match, p1) {
       try {
         return JSON.parse("\"".concat(p1.replace(/\\?"/g, '\\"'), "\""));
       } catch (e) {

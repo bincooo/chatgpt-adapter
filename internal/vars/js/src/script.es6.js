@@ -68,12 +68,12 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
     content = xmlPlot_merge(content, mergeTag, nonsys);
     //自定义插入
     let splitContent = content.split(/\n\n(?=Assistant:|Human:)/g), match;
-    while ((match = /<@(\d+)>(.*?)<\/@\1>/gm.exec(content)) !== null) {
+    while ((match = /<@(\d+)>(.*?)<\/@\1>/gs.exec(content)) !== null) {
         let index = splitContent.length - parseInt(match[1]) - 1;
         index >= 0 && (splitContent[index] += '\n\n' + match[2]);
         content = content.replace(match[0], '');
     }
-    content = splitContent.join('\n\n').replace(/<@(\d+)>.*?<\/@\1>/gm, '');
+    content = splitContent.join('\n\n').replace(/<@(\d+)>.*?<\/@\1>/gs, '');
     //二次正则
     content = xmlPlot_regex(content, 2);
     //二次role合并
@@ -82,7 +82,7 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
     //三次正则
     content = xmlPlot_regex(content, 3);
     //消除空XML tags、两端空白符和多余的\n
-    content = content.replace(/<regex( +order *= *\d)?>.*?<\/regex>/gm, '')
+    content = content.replace(/<regex( +order *= *\d)?>.*?<\/regex>/gs, '')
         .replace(/\r\n|\r/gm, '\n')
         .replace(/\s*<\|curtail\|>\s*/g, '\n')
         .replace(/\s*<\|join\|>\s*/g, '')
