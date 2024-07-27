@@ -31,6 +31,7 @@ var (
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0"
 
 	notice           string
+	iCookie          string
 	youRollContainer *common.PollContainer[string]
 )
 
@@ -46,7 +47,7 @@ func init() {
 		}
 
 		notice = pkg.Config.GetString("you.notice")
-		youRollContainer = common.NewPollContainer[string]("you", cookies, 30*time.Minute)
+		youRollContainer = common.NewPollContainer[string]("you", cookies, 4*time.Hour)
 		youRollContainer.Condition = Condition
 
 		if pkg.Config.GetBool("serverless.enabled") {
@@ -58,7 +59,7 @@ func init() {
 			common.AddExited(you.Exit)
 		}
 
-		//go timer()
+		go timer()
 	})
 }
 
@@ -67,25 +68,16 @@ func timer() {
 
 	for {
 		time.Sleep(m10)
-		if clearance != "" {
-			jar, err := emit.NewCookieJar("https://you.com", clearance)
-			if err != nil {
-				logger.Errorf("检查you.com 5秒盾失败：%v", err)
-				continue
-			}
+		if iCookie == "" {
+			continue
+		}
 
+		if clearance != "" {
 			timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			_, err = emit.ClientBuilder(plugin.HTTPClient).
-				Context(timeout).
-				Proxies(vars.Proxies).
-				GET("https://you.com/").
-				CookieJar(jar).
-				Header("Accept", "application/json, text/plain, */*").
-				Header("Accept-Language", lang).
-				Header("Referer", "https://you.com/?chatMode=custom").
-				Header("Origin", "https://you.com").
-				Header("User-Agent", userAgent).
-				DoS(http.StatusOK)
+			chat := you.New(iCookie, you.GPT_4, vars.Proxies)
+			chat.CloudFlare(clearance, userAgent, lang)
+			chat.Client(plugin.HTTPClient)
+			_, err := chat.State(timeout)
 			cancel()
 			if err == nil {
 				continue
@@ -484,8 +476,9 @@ func Condition(cookie string) bool {
 		return false
 	}
 
-	if count == 0 {
+	if count <= 0 {
 		_ = youRollContainer.SetMarker(cookie, 2)
 	}
-	return count > 0
+	iCookie = cookie
+	return true
 }

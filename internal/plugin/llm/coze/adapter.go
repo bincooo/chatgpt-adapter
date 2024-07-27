@@ -222,8 +222,14 @@ func (API) Completion(ctx *gin.Context) {
 	}
 
 	if echo {
-		bytes, _ := json.MarshalIndent(pMessages, "", "  ")
-		response.Echo(ctx, completion.Model, string(bytes), completion.Stream)
+		content := ""
+		if common.IsClaude(ctx, cookie, completion.Model) {
+			content = pMessages[0].Content
+		} else {
+			bytes, _ := json.MarshalIndent(pMessages, "", "  ")
+			content = string(bytes)
+		}
+		response.Echo(ctx, completion.Model, content, completion.Stream)
 		return
 	}
 
@@ -328,7 +334,6 @@ func draftBot(ctx *gin.Context, systemMessage coze.Message, chat coze.Chat, comp
 		system = systemMessage.Content
 	}
 
-	var value map[string]interface{}
 	value, err := chat.BotInfo(common.GetGinContext(ctx))
 	if err != nil {
 		logger.Error(err)

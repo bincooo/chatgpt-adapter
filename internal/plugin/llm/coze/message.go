@@ -123,6 +123,25 @@ func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, tokens int, er
 		proxies  = ctx.GetString("proxies")
 		messages = common.GetGinCompletion(ctx).Messages
 	)
+
+	{
+		values, ok := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
+		if ok {
+			var contents []string
+			for _, message := range values {
+				contents = append(contents, message.GetString("content"))
+			}
+
+			message := strings.Join(contents, "\n\n")
+			tokens += common.CalcTokens(message)
+			newMessages = append(newMessages, coze.Message{
+				Role:    "user",
+				Content: message,
+			})
+			return
+		}
+	}
+
 	condition := func(expr string) string {
 		switch expr {
 		case "system", "assistant", "function", "tool", "end":

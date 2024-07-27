@@ -4,6 +4,7 @@ import (
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
@@ -12,8 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	_ "embed"
 )
 
 const (
@@ -394,8 +393,8 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, erro
 		return matchers, nil
 	}
 
-	isClaude := strings.Contains(completion.Model, "claude")
-	handles := xmlFlagsToContents(ctx, completion.Messages, isClaude)
+	token := ctx.GetString("token")
+	handles := xmlFlagsToContents(ctx, completion.Messages, IsClaude(ctx, token, completion.Model))
 
 	abs := func(n int) int {
 		if n < 0 {
@@ -515,9 +514,35 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, erro
 	return matchers, nil
 }
 
+func IsClaude(ctx *gin.Context, token, model string) bool {
+	key := "__is-claude__"
+	if ctx.GetBool(key) {
+		return true
+	}
+
+	isc := strings.Contains(model, "claude") || model == "coze/websdk"
+	if isc {
+		ctx.Set(key, true)
+		return true
+	}
+
+	if strings.HasPrefix(model, "coze/") {
+		values := strings.Split(model[5:], "-")
+		if len(values) > 3 && "w" == values[3] && strings.Contains(token, "[claude=true]") {
+			ctx.Set(key, true)
+			return true
+		}
+
+		return false
+	}
+
+	return isc
+}
+
 func handleClaudeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (err error) {
 	// claude messages
-	if strings.Contains(completion.Model, "claude") {
+	token := ctx.GetString("token")
+	if IsClaude(ctx, token, completion.Model) {
 		vm := goja.New()
 		_ = vm.Set("messages", completion.Messages)
 		_ = vm.Set("console", map[string]interface{}{
@@ -594,7 +619,7 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 	})
 }
 
-func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isClaude bool) (handles []map[uint8]string) {
+func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isc bool) (handles []map[uint8]string) {
 	var (
 		parser = NewParser([]string{
 			"regex",
@@ -634,7 +659,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isCl
 
 			// 自由深度插入
 			// inserts: 深度插入, i 是深度索引，v 是插入内容， o 是指令
-			if !isClaude && node.t == XML_TYPE_X && node.tag[0] == '@' {
+			if !isc && node.t == XML_TYPE_X && node.tag[0] == '@' {
 				c, _ := regexp.Compile(`@-*\d+`, regexp.Compiled)
 				if matched, _ := c.MatchString(node.tag); matched {
 					// 消息上下文次数少于插入深度时，是否忽略
@@ -672,7 +697,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isCl
 					miss = fmt.Sprintf("%v", m)
 				}
 
-				if !isClaude || miss != "-1" {
+				if !isc || miss != "-1" {
 					handles = append(handles, map[uint8]string{'m': miss, 'o': order, 'v': node.content, 't': "regex"})
 					clean(content[node.index:node.end])
 				}
