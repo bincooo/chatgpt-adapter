@@ -17,6 +17,7 @@ type state struct {
 
 type PollContainer[T interface{}] struct {
 	name      string
+	pos       int
 	slice     []T
 	markers   map[interface{}]*state
 	mu        ExpireLock
@@ -103,8 +104,23 @@ func (container *PollContainer[T]) Poll() (T, error) {
 	}
 	defer container.cmu.Unlock()
 
-	for _, value := range container.slice {
+	pos := container.pos
+	sliceL := len(container.slice)
+	if pos >= sliceL {
+		container.pos = 0
+		pos = 0
+	}
+
+	for index := 0; index < sliceL; index++ {
+		if pos+index >= sliceL {
+			pos = pos + index - sliceL
+		} else {
+			pos = pos + index
+		}
+
+		value := container.slice[pos]
 		if container.Condition(value) {
+			container.pos = pos + 1
 			err := container.SetMarker(value, 1)
 			if err != nil {
 				return zero, err
@@ -112,6 +128,15 @@ func (container *PollContainer[T]) Poll() (T, error) {
 			return value, nil
 		}
 	}
+	//for _, value := range container.slice {
+	//	if container.Condition(value) {
+	//		err := container.SetMarker(value, 1)
+	//		if err != nil {
+	//			return zero, err
+	//		}
+	//		return value, nil
+	//	}
+	//}
 
 	return zero, fmt.Errorf("not roll result")
 }

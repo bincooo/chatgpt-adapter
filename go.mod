@@ -9,7 +9,7 @@ require (
 	github.com/bincooo/coze-api v1.0.2-0.20240726075046-d61d5eec794a
 	github.com/bincooo/edge-api v1.0.4-0.20240708092054-d92610338ccb
 	github.com/bincooo/emit.io v0.0.0-20240714181306-871ad0939cdd
-	github.com/bincooo/you.com v0.0.0-20240711142536-190746ce3279
+	github.com/bincooo/you.com v0.0.0-20240727140935-803ad76a12ce
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
 	github.com/eko/gocache/lib/v4 v4.1.6
