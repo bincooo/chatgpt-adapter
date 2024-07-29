@@ -104,8 +104,10 @@ coze:
 #    scene: 2
 
 # 多个websdk账号可开启，用于请求计数，超过count数量该账号进入静置区
-  websdk-counter: 0
   websdk:
+#    counter: 0
+#    model:
+#    accounts:
 #    - email: xxx@gmail.com
 #      password: xxx
 #      validate: xxx@gmail.com
