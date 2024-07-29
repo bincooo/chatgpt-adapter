@@ -9,23 +9,27 @@ import (
 	"github.com/bincooo/coze-api"
 	"github.com/bincooo/emit.io"
 	"net/http"
-	"reflect"
 	"sync"
 	"time"
 )
 
+type obj struct {
+	keyv  map[string]interface{}
+	count int
+}
+
 var (
 	w_mu          sync.Mutex
-	taskContainer = make([]map[string]interface{}, 0)
+	taskContainer = make([]*obj, 0)
 )
 
 func addTask(value map[string]interface{}) {
 	w_mu.Lock()
 	defer w_mu.Unlock()
-	taskContainer = append(taskContainer, value)
+	taskContainer = append(taskContainer, &obj{value, 3})
 }
 
-func delTask(value map[string]interface{}) {
+func delTask(value *obj) {
 	w_mu.Lock()
 	defer w_mu.Unlock()
 	if len(taskContainer) == 0 {
@@ -33,7 +37,7 @@ func delTask(value map[string]interface{}) {
 	}
 
 	for idx := 0; idx < len(taskContainer); idx++ {
-		if reflect.DeepEqual(taskContainer[idx], value) {
+		if taskContainer[idx] == value {
 			taskContainer = append(taskContainer[:idx], taskContainer[idx+1:]...)
 			return
 		}
@@ -56,7 +60,7 @@ func Condition(value map[string]interface{}) bool {
 		return false
 	}
 
-	count := pkg.Config.GetInt("coze.websdk-counter")
+	count := pkg.Config.GetInt("coze.websdk.counter")
 	if count > 0 {
 		num := counter[cookies.(string)]
 		if num >= count {
@@ -112,12 +116,12 @@ func resetMarker(key interface{}) {
 }
 
 func runTasks(opts ...map[string]interface{}) {
-	go _tasks(opts...)
-	go _loopTasks()
+	go initTasks(opts...)
+	go loopTasks()
 }
 
 // 重置任务函数
-func _loopTasks() {
+func loopTasks() {
 	s5 := 5 * time.Second
 	baseUrl := pkg.Config.GetString("serverless.baseUrl")
 	if baseUrl == "" {
@@ -130,10 +134,10 @@ func _loopTasks() {
 			continue
 		}
 
-		container := make([]map[string]interface{}, len(taskContainer))
+		container := make([]*obj, len(taskContainer))
 		copy(container, taskContainer)
 		for _, value := range container {
-			cookies, ok := value["cookies"]
+			cookies, ok := value.keyv["cookies"]
 			if ok {
 				options, _, err := newOptions(vars.Proxies, "coze/websdk", nil)
 				if err != nil {
@@ -151,27 +155,34 @@ func _loopTasks() {
 
 				if err == nil && credits > 0 {
 					logger.Infof("有剩余额度：%d, 不用重置", credits)
-					if _tasks(value) {
+					if initTasks(value.keyv) {
 						delTask(value)
 					}
 					continue
 				}
 
 				timeout, cancel = context.WithTimeout(context.Background(), 120*time.Second)
-				_, err = emit.ClientBuilder(plugin.HTTPClient).
+				response, err := emit.ClientBuilder(plugin.HTTPClient).
 					Context(timeout).
 					POST(baseUrl + "/coze/del").
 					JHeader().
-					Body(value).
+					Body(value.keyv).
 					DoS(http.StatusOK)
 				cancel()
 				if err != nil {
-					logger.Errorf("coze websdk 删除失败[%s]：%v", value["email"], err)
+					logger.Errorf("coze websdk 删除失败[%s]：%v", value.keyv["email"], err)
+					if emit.IsJSON(response) == nil {
+						logger.Error(emit.TextResponse(response))
+					}
+					if value.count == 0 {
+						delTask(value)
+					}
+					value.count--
 					continue
 				}
 			}
 
-			if _tasks(value) {
+			if initTasks(value.keyv) {
 				delTask(value)
 			}
 		}
@@ -179,7 +190,7 @@ func _loopTasks() {
 }
 
 // 初始任务函数
-func _tasks(opts ...map[string]interface{}) (exec bool) {
+func initTasks(opts ...map[string]interface{}) (exec bool) {
 	time.Sleep(6 * time.Second) // 等待程序启动就绪
 	baseUrl := pkg.Config.GetString("serverless.baseUrl")
 	if baseUrl == "" {
@@ -200,25 +211,25 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 		if err != nil {
 			cancel()
 			logger.Errorf("coze websdk 同步失败[%s]：%v", value["email"], err)
-			taskContainer = append(taskContainer, value)
+			taskContainer = append(taskContainer, &obj{value, 3})
 			continue
 		}
 
-		obj, err := emit.ToMap(response)
+		o, err := emit.ToMap(response)
 		cancel()
 		if err != nil {
 			logger.Errorf("coze websdk 同步失败[%s]：%v", value["email"], err)
-			taskContainer = append(taskContainer, value)
+			taskContainer = append(taskContainer, &obj{value, 3})
 			continue
 		}
 
-		if v, ok := obj["ok"].(bool); !ok || !v {
+		if v, ok := o["ok"].(bool); !ok || !v {
 			logger.Errorf("coze websdk 同步失败[%s]", value["email"])
-			taskContainer = append(taskContainer, value)
+			taskContainer = append(taskContainer, &obj{value, 3})
 			continue
 		}
 
-		value["cookies"] = obj["data"]
+		value["cookies"] = o["data"]
 		cookiesPollContainer.Add(value)
 		logger.Infof("coze websdk 同步成功[%s]", value["email"])
 
@@ -228,7 +239,7 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 			return false
 		}
 
-		co, msToken := extCookie(obj["data"].(string))
+		co, msToken := extCookie(o["data"].(string))
 		chat := coze.New(co, msToken, options)
 		chat.Session(plugin.HTTPClient)
 
@@ -262,16 +273,24 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 			continue
 		}
 
-		chat.Bot(botId, space, 1000, false)
+		model := pkg.Config.GetString("coze.websdk.model")
+		if model == "" {
+			model = coze.ModelGpt4o_128k
+		}
+		logger.Infof("publish model: %s ...", model)
+
+		maxTokens := 8192
+		if model == coze.ModelClaude3Haiku_200k || model == coze.ModelClaude35Sonnet_200k {
+			maxTokens = 4096
+		}
+
+		chat.Bot(botId, space, 4, true)
 		timeout, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 		err = chat.DraftBot(context.Background(), coze.DraftInfo{
-			Model:            coze.ModelGpt4o_128k,
-			Temperature:      0.75,
-			TopP:             1,
-			FrequencyPenalty: 0,
-			PresencePenalty:  0,
-			MaxTokens:        8192,
-			ResponseFormat:   0,
+			Model:       model,
+			Temperature: 0.75,
+			TopP:        1,
+			MaxTokens:   maxTokens,
 		}, "")
 		cancel()
 		if err != nil {
@@ -279,11 +298,17 @@ func _tasks(opts ...map[string]interface{}) (exec bool) {
 			continue
 		}
 
+		time.Sleep(3 * time.Second)
 		timeout, cancel = context.WithTimeout(context.Background(), 5*time.Second)
-		err = chat.Publish(timeout, botId)
+		err = chat.Publish(timeout, botId, map[string]interface{}{
+			"999": map[string]interface{}{
+				"sdk_version": "0.1.0-beta.5",
+			},
+		})
 		cancel()
 		if err != nil {
 			logger.Error(err)
+			addTask(value)
 			continue
 		}
 

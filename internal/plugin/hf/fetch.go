@@ -196,7 +196,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 		6,
 		true,
 	}
-	fn, data, err = attrFormat("dalle-4k", fn, data, message, negative, "", model, -1)
+	fn, data, err = bindAttr("dalle-4k", fn, data, message, negative, "", model, -1)
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
@@ -292,7 +292,7 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		12,
 		true,
 	}
-	fn, data, err = attrFormat("dalle-3-xl", fn, data, message, negative, "", "", r.Intn(51206501)+1100000000)
+	fn, data, err = bindAttr("dalle-3-xl", fn, data, message, negative, "", "", r.Intn(51206501)+1100000000)
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
@@ -366,10 +366,10 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 
 		// 锁环境了，只能先下载下来
 		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", map[string]string{
-			"User-Agent":      userAgent,
-			"Accept-Language": "en-US,en;q=0.9",
-			"Origin":          "https://huggingface.co",
-			"Referer":         baseUrl + "/?__theme=light",
+			//"User-Agent":      userAgent,
+			//"Accept-Language": "en-US,en;q=0.9",
+			"Origin":  "https://huggingface.co",
+			"Referer": baseUrl + "/?__theme=light",
 		})
 		if err != nil {
 			c.Failed(fmt.Errorf("image download failed: %v", err))
@@ -423,7 +423,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		1.5,
 		true,
 	}
-	fn, data, err = attrFormat("animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(1490935504)+9068457)
+	fn, data, err = bindAttr("animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(1490935504)+9068457)
 	response, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
@@ -497,10 +497,10 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 
 		// 锁环境了，只能先下载下来
 		value, err = common.Download(plugin.HTTPClient, proxies, info["url"].(string), "png", map[string]string{
-			"User-Agent":      userAgent,
-			"Accept-Language": "en-US,en;q=0.9",
-			"Origin":          "https://huggingface.co",
-			"Referer":         baseUrl + "/?__theme=light",
+			//"User-Agent":      userAgent,
+			//"Accept-Language": "en-US,en;q=0.9",
+			"Origin":  "https://huggingface.co",
+			"Referer": baseUrl + "/?__theme=light",
 		})
 		if err != nil {
 			c.Failed(fmt.Errorf("image download failed: %v", err))
@@ -597,7 +597,7 @@ func google(ctx *gin.Context, model, message string) (value string, err error) {
 	return
 }
 
-func attrFormat(key string, fn []int, data []interface{}, message, negative, sampler, style string, seed int) ([]int, []interface{}, error) {
+func bindAttr(key string, fn []int, data []interface{}, message, negative, sampler, style string, seed int) ([]int, []interface{}, error) {
 	slice := pkg.Config.GetIntSlice("hf." + key + ".fn")
 	if len(slice) >= 2 {
 		fn = slice

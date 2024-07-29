@@ -7,6 +7,7 @@ import (
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -86,8 +87,8 @@ func init() {
 			}
 		}
 
-		obj := pkg.Config.Get("coze.websdk")
-		if slice, ok := obj.([]interface{}); ok {
+		o := pkg.Config.Get("coze.websdk.accounts")
+		if slice, ok := o.([]interface{}); ok {
 			var values []map[string]interface{}
 			for _, value := range slice {
 				v := value.(map[string]interface{})
@@ -202,7 +203,8 @@ func (API) Completion(ctx *gin.Context) {
 
 		defer resetMarker(meta)
 		cookie = meta["cookies"].(string)
-		count := pkg.Config.GetInt("coze.websdk-counter")
+		logger.Infof("roll now cookies: %s", cookie)
+		count := pkg.Config.GetInt("coze.websdk.counter")
 		if count > 0 {
 			counter[cookie] += 1
 		}
@@ -256,6 +258,15 @@ func (API) Completion(ctx *gin.Context) {
 
 	query := ""
 	if mode == 'w' {
+		if meta != nil {
+			// 不清楚为什么发布的模型会变，先手动检查一下
+			if err = validateWebsdkModel(ctx, chat); err != nil {
+				logger.Errorf("validate websdkModel error: %v", err)
+				response.Error(ctx, -1, err)
+				return
+			}
+		}
+
 		query = pMessages[len(pMessages)-1].Content
 		chat.WebSdk(chat.TransferMessages(pMessages[:len(pMessages)-1]))
 	} else {
@@ -297,6 +308,42 @@ func (API) Completion(ctx *gin.Context) {
 	}
 }
 
+func validateWebsdkModel(ctx *gin.Context, chat coze.Chat) error {
+	model := pkg.Config.GetString("coze.websdk.model")
+	if model == "" {
+		return nil
+	}
+
+	completion := common.GetGinCompletion(ctx)
+	timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	value, err := chat.BotInfo(timeout)
+	if err != nil {
+		return err
+	}
+	mod := value["model"].(string)
+	if coze.ModelToId(model) == mod {
+		return nil
+	}
+
+	err = chat.DraftBot(common.GetGinContext(ctx), coze.DraftInfo{
+		Model:       model,
+		TopP:        completion.TopP,
+		Temperature: completion.Temperature,
+		MaxTokens:   completion.MaxTokens,
+	}, "")
+	if err != nil {
+		return err
+	}
+
+	return chat.Publish(common.GetGinContext(ctx), value["id"].(string), map[string]interface{}{
+		"999": map[string]interface{}{
+			"sdk_version": "0.1.0-beta.5",
+		},
+	})
+}
+
 func websdkModel(ctx *gin.Context, proxies string, cookie string) (model string, err error) {
 	options, _, err := newOptions(proxies, "coze/websdk", nil)
 	if err != nil {
@@ -324,7 +371,8 @@ func websdkModel(ctx *gin.Context, proxies string, cookie string) (model string,
 		return "", errors.New("custom-128k bot not found")
 	}
 
-	return "coze/" + botId + "-xxx-1000-w", nil
+	space, _ := chat.GetSpace(ctx)
+	return "coze/" + botId + "-" + space + "-1000-w", nil
 }
 
 // return true 终止

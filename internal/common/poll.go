@@ -112,15 +112,14 @@ func (container *PollContainer[T]) Poll() (T, error) {
 	}
 
 	for index := 0; index < sliceL; index++ {
-		if pos+index >= sliceL {
-			pos = pos + index - sliceL
-		} else {
-			pos = pos + index
+		curr := pos + index
+		if curr >= sliceL {
+			curr = curr - sliceL
 		}
 
-		value := container.slice[pos]
+		value := container.slice[curr]
 		if container.Condition(value) {
-			container.pos = pos + 1
+			container.pos = curr + 1
 			err := container.SetMarker(value, 1)
 			if err != nil {
 				return zero, err
@@ -128,15 +127,6 @@ func (container *PollContainer[T]) Poll() (T, error) {
 			return value, nil
 		}
 	}
-	//for _, value := range container.slice {
-	//	if container.Condition(value) {
-	//		err := container.SetMarker(value, 1)
-	//		if err != nil {
-	//			return zero, err
-	//		}
-	//		return value, nil
-	//	}
-	//}
 
 	return zero, fmt.Errorf("not roll result")
 }

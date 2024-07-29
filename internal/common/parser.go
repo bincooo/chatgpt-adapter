@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"github.com/bincooo/coze-api"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/dop251/goja"
 	"github.com/gin-gonic/gin"
@@ -520,7 +521,12 @@ func IsClaude(ctx *gin.Context, token, model string) bool {
 		return true
 	}
 
-	isc := strings.Contains(model, "claude") || model == "coze/websdk"
+	if model == "coze/websdk" {
+		model = pkg.Config.GetString("coze.websdk.model")
+		return model == coze.ModelClaude35Sonnet_200k || model == coze.ModelClaude3Haiku_200k
+	}
+
+	isc := strings.Contains(model, "claude")
 	if isc {
 		ctx.Set(key, true)
 		return true
