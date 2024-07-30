@@ -13,6 +13,7 @@ import (
 	"chatgpt-adapter/internal/plugin/llm/interpreter"
 	"chatgpt-adapter/internal/plugin/llm/lmsys"
 	"chatgpt-adapter/internal/plugin/llm/v1"
+	"chatgpt-adapter/internal/plugin/llm/vecmul"
 	"chatgpt-adapter/internal/plugin/llm/you"
 	pg "chatgpt-adapter/internal/plugin/playground"
 	"chatgpt-adapter/internal/vars"
@@ -46,6 +47,7 @@ func init() {
 			pg.Adapter,
 			hf.Adapter,
 			v1.Adapter,
+			vecmul.Adapter,
 		}
 	})
 }

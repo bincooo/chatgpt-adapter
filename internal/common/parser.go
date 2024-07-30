@@ -526,7 +526,7 @@ func IsClaude(ctx *gin.Context, token, model string) bool {
 		return model == coze.ModelClaude35Sonnet_200k || model == coze.ModelClaude3Haiku_200k
 	}
 
-	isc := strings.Contains(model, "claude")
+	isc := strings.Contains(strings.ToLower(model), "claude")
 	if isc {
 		ctx.Set(key, true)
 		return true
