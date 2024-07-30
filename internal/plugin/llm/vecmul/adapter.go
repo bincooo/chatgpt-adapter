@@ -92,8 +92,8 @@ func (API) Completion(ctx *gin.Context) {
 	var (
 		proxies = ctx.GetString("proxies")
 
-		echo = ctx.GetBool(vars.GinEcho)
-
+		echo       = ctx.GetBool(vars.GinEcho)
+		token      = ctx.GetString("token")
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
 	)
@@ -104,7 +104,7 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}
 
-	chat := vec.New(proxies, completion.Model[7:])
+	chat := vec.New(proxies, completion.Model[7:], token)
 	chat.Session(plugin.HTTPClient)
 	message, tokens, err := mergeMessages(ctx, completion)
 	if err != nil {

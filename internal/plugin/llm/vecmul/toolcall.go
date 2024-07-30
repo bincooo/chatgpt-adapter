@@ -15,7 +15,8 @@ func completeToolCalls(ctx *gin.Context, proxies string, completion pkg.ChatComp
 	logger.Infof("completeTools ...")
 
 	var (
-		echo = ctx.GetBool(vars.GinEcho)
+		echo  = ctx.GetBool(vars.GinEcho)
+		token = ctx.GetString("token")
 	)
 
 	exec, err := plugin.CompleteToolCalls(ctx, completion, func(message string) (string, error) {
@@ -24,7 +25,7 @@ func completeToolCalls(ctx *gin.Context, proxies string, completion pkg.ChatComp
 			return "", nil
 		}
 
-		chat := vecmul.New(proxies, completion.Model[7:])
+		chat := vecmul.New(proxies, completion.Model[7:], token)
 		chat.Session(plugin.HTTPClient)
 		data, err := chat.Reply(common.GetGinContext(ctx), message, "")
 		if err != nil {

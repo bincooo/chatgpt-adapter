@@ -9,7 +9,7 @@ require (
 	github.com/bincooo/coze-api v1.0.2-0.20240729084555-5d300d7e64ed
 	github.com/bincooo/edge-api v1.0.4-0.20240708092054-d92610338ccb
 	github.com/bincooo/emit.io v0.0.0-20240714181306-871ad0939cdd
-	github.com/bincooo/vecmul.com v0.0.0-20240730061421-c3db338a27bf
+	github.com/bincooo/vecmul.com v0.0.0-20240730090440-3cbdf4950821
 	github.com/bincooo/you.com v0.0.0-20240730055438-cc84d0cfa36a
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
