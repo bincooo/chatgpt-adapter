@@ -21,12 +21,15 @@ type obj struct {
 var (
 	w_mu          sync.Mutex
 	taskContainer = make([]*obj, 0)
+
+	w_init  = true
+	w_retry = 3
 )
 
 func addTask(value map[string]interface{}) {
 	w_mu.Lock()
 	defer w_mu.Unlock()
-	taskContainer = append(taskContainer, &obj{value, 3})
+	taskContainer = append(taskContainer, &obj{value, w_retry})
 }
 
 func delTask(value *obj) {
@@ -116,7 +119,11 @@ func resetMarker(key interface{}) {
 }
 
 func runTasks(opts ...map[string]interface{}) {
-	go initTasks(opts...)
+	objs := make([]*obj, 0)
+	for _, opt := range opts {
+		objs = append(objs, &obj{opt, w_retry})
+	}
+	go initTasks(objs...)
 	go loopTasks()
 }
 
@@ -129,6 +136,12 @@ func loopTasks() {
 	}
 
 	for {
+		// 等待初始化完成
+		if w_init {
+			time.Sleep(s5)
+			continue
+		}
+
 		if len(taskContainer) == 0 {
 			time.Sleep(s5)
 			continue
@@ -155,8 +168,9 @@ func loopTasks() {
 
 				if err == nil && credits > 0 {
 					logger.Infof("有剩余额度：%d, 不用重置", credits)
-					if initTasks(value.keyv) {
-						delTask(value)
+					delTask(value)
+					if initTasks(value) {
+						//
 					}
 					continue
 				}
@@ -177,20 +191,21 @@ func loopTasks() {
 					if value.count == 0 {
 						delTask(value)
 					}
-					value.count--
+					value.count -= 1
 					continue
 				}
 			}
 
-			if initTasks(value.keyv) {
-				delTask(value)
+			delTask(value)
+			if initTasks(value) {
+				//
 			}
 		}
 	}
 }
 
 // 初始任务函数
-func initTasks(opts ...map[string]interface{}) (exec bool) {
+func initTasks(opts ...*obj) (exec bool) {
 	time.Sleep(6 * time.Second) // 等待程序启动就绪
 	baseUrl := pkg.Config.GetString("serverless.baseUrl")
 	if baseUrl == "" {
@@ -198,9 +213,13 @@ func initTasks(opts ...map[string]interface{}) (exec bool) {
 	}
 
 	for _, value := range opts {
+		if value.count <= 0 {
+			continue
+		}
+
 		timeout, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		payload := make(map[string]interface{})
-		copyMap(payload, value)
+		copyMap(payload, value.keyv)
 		payload["bot"] = "custom-128k"
 		response, err := emit.ClientBuilder(plugin.HTTPClient).
 			Context(timeout).
@@ -210,32 +229,33 @@ func initTasks(opts ...map[string]interface{}) (exec bool) {
 			DoS(http.StatusOK)
 		if err != nil {
 			cancel()
-			logger.Errorf("coze websdk 同步失败[%s]：%v", value["email"], err)
-			taskContainer = append(taskContainer, &obj{value, 3})
+			logger.Errorf("coze websdk 同步失败[%s]：%v", value.keyv["email"], err)
+			taskContainer = append(taskContainer, &obj{value.keyv, value.count - 1})
 			continue
 		}
 
 		o, err := emit.ToMap(response)
 		cancel()
 		if err != nil {
-			logger.Errorf("coze websdk 同步失败[%s]：%v", value["email"], err)
-			taskContainer = append(taskContainer, &obj{value, 3})
+			logger.Errorf("coze websdk 同步失败[%s]：%v", value.keyv["email"], err)
+			taskContainer = append(taskContainer, &obj{value.keyv, value.count - 1})
 			continue
 		}
 
 		if v, ok := o["ok"].(bool); !ok || !v {
-			logger.Errorf("coze websdk 同步失败[%s]", value["email"])
-			taskContainer = append(taskContainer, &obj{value, 3})
+			logger.Errorf("coze websdk 同步失败[%s]", value.keyv["email"])
+			taskContainer = append(taskContainer, &obj{value.keyv, value.count - 1})
 			continue
 		}
 
-		value["cookies"] = o["data"]
-		cookiesPollContainer.Add(value)
-		logger.Infof("coze websdk 同步成功[%s]", value["email"])
+		value.keyv["cookies"] = o["data"]
+		cookiesPollContainer.Add(value.keyv)
+		logger.Infof("coze websdk 同步成功[%s]", value.keyv["email"])
 
 		options, _, err := newOptions(vars.Proxies, "coze/websdk", nil)
 		if err != nil {
 			logger.Error(err)
+			w_init = false
 			return false
 		}
 
@@ -308,7 +328,7 @@ func initTasks(opts ...map[string]interface{}) (exec bool) {
 		cancel()
 		if err != nil {
 			logger.Error(err)
-			addTask(value)
+			addTask(value.keyv)
 			continue
 		}
 
@@ -316,6 +336,7 @@ func initTasks(opts ...map[string]interface{}) (exec bool) {
 		exec = true
 	}
 
+	w_init = false
 	return
 }
 
