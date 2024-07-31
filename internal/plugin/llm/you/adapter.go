@@ -65,10 +65,10 @@ func init() {
 }
 
 func timer() {
-	m10 := 10 * time.Minute
+	m30 := 30 * time.Minute
 
 	for {
-		time.Sleep(m10)
+		time.Sleep(m30)
 		if clearance != "" {
 			timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			chat := you.New(iCookie, you.GPT_4, vars.Proxies)
