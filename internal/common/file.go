@@ -119,10 +119,17 @@ func Download(session *emit.Session, proxies, url, suffix string, header map[str
 	}
 
 	var response *http.Response
+	responses := make([]*http.Response, 0)
+	defer func() {
+		for _, r := range responses {
+			_ = r.Body.Close()
+		}
+	}()
+
 	retry := 3
 label:
-
 	retry--
+
 	response, err = builder.DoS(http.StatusOK)
 	if err != nil {
 		if retry > 0 {
@@ -132,6 +139,7 @@ label:
 		return "", err
 	}
 
+	responses = append(responses, response)
 	dec, err := io.ReadAll(response.Body)
 	if err != nil {
 		if retry > 0 {
@@ -190,6 +198,7 @@ func LoadImageMeta(url string) (mime string, data string, err error) {
 		return
 	}
 
+	defer response.Body.Close()
 	dataBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return

@@ -63,6 +63,8 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 	}
 
 	logger.Info(emit.TextResponse(response))
+	_ = response.Body.Close()
+
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
@@ -74,6 +76,7 @@ func Ox000(ctx *gin.Context, model, samples, message string) (value string, err 
 		return
 	}
 
+	defer response.Body.Close()
 	c, err := emit.NewGio(common.GetGinContext(ctx), response)
 	if err != nil {
 		return
@@ -116,8 +119,8 @@ func Ox001(ctx *gin.Context, model, samples, message string) (value string, err 
 	if err != nil {
 		return
 	}
-	defer response.Body.Close()
 
+	defer response.Body.Close()
 	c, err := emit.NewGio(common.GetGinContext(ctx), conn)
 	if err != nil {
 		return
@@ -214,6 +217,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 	}
 
 	logger.Info(emit.TextResponse(response))
+	_ = response.Body.Close()
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
@@ -224,6 +228,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 		return
 	}
 
+	defer response.Body.Close()
 	c, err := emit.NewGio(common.GetGinContext(ctx), response)
 	if err != nil {
 		return
@@ -311,7 +316,9 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 	if err != nil {
 		return "", err
 	}
+
 	logger.Info(emit.TextResponse(response))
+	_ = response.Body.Close()
 
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
@@ -328,6 +335,7 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		return "", err
 	}
 
+	defer response.Body.Close()
 	c, err := emit.NewGio(ctx.Request.Context(), response)
 	if err != nil {
 		return "", err
@@ -408,7 +416,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 	fn := []int{5, 49}
 	data := []interface{}{
 		message,
-		"",
+		"(text:1.3), (strip cartoon:1.3), worst quality, low quality",
 		r.Intn(1490935504) + 9068457,
 		1024,
 		1024,
@@ -443,6 +451,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		return "", err
 	}
 	logger.Info(emit.TextResponse(response))
+	_ = response.Body.Close()
 
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
@@ -459,6 +468,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		return "", err
 	}
 
+	defer response.Body.Close()
 	c, err := emit.NewGio(common.GetGinContext(ctx), response)
 	if err != nil {
 		return "", err
