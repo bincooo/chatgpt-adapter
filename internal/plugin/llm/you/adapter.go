@@ -69,10 +69,6 @@ func timer() {
 
 	for {
 		time.Sleep(m10)
-		if iCookie == "" {
-			continue
-		}
-
 		if clearance != "" {
 			timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			chat := you.New(iCookie, you.GPT_4, vars.Proxies)
