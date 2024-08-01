@@ -90,6 +90,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	}
 
 	obj, err = emit.ToMap(response)
+	_ = response.Body.Close()
 	if err != nil {
 		return nil, logger.WarpError(err)
 	}
@@ -118,6 +119,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		return nil, logger.WarpError(err)
 	}
 
+	defer response.Body.Close()
 	e, err := emit.NewGio(ctx, response)
 	if err != nil {
 		return nil, logger.WarpError(err)
@@ -245,6 +247,8 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 	}
 
 	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
+	_ = response.Body.Close()
+
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
@@ -262,6 +266,7 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 		return "", logger.WarpError(err)
 	}
 
+	defer response.Body.Close()
 	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
 	e, err := emit.NewGio(ctx, response)
 	if err != nil {
@@ -340,6 +345,7 @@ label:
 		return
 	}
 
+	_ = response.Body.Close()
 	cookie := emit.GetCookie(response, "SERVERID")
 	if cookie == "" {
 		goto label

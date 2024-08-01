@@ -107,7 +107,7 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 
 func Download(session *emit.Session, proxies, url, suffix string, header map[string]string) (file string, err error) {
 	builder := emit.ClientBuilder(session).
-		Ja3(ja3).
+		//Ja3(ja3).
 		Proxies(proxies).
 		GET(url).
 		Header("Sec-Ch-Ua-Mobile", "?0").
@@ -124,6 +124,7 @@ func Download(session *emit.Session, proxies, url, suffix string, header map[str
 		for _, r := range responses {
 			_ = r.Body.Close()
 		}
+		//session.IdleClose()
 	}()
 
 	retry := 3

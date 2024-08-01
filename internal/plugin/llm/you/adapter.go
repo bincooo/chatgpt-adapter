@@ -48,7 +48,7 @@ func init() {
 		}
 
 		notice = pkg.Config.GetString("you.notice")
-		youRollContainer = common.NewPollContainer[string]("you", cookies, 4*time.Hour)
+		youRollContainer = common.NewPollContainer[string]("you", cookies, 6*time.Hour)
 		youRollContainer.Condition = Condition
 
 		if pkg.Config.GetBool("serverless.enabled") {
@@ -410,6 +410,7 @@ func tryCloudFlare() error {
 			return err
 		}
 
+		defer r.Body.Close()
 		obj, err := emit.ToMap(r)
 		if err != nil {
 			logger.Error(err)

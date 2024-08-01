@@ -48,8 +48,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/bincooo/claude-api v1.0.5-0.20240714184839-f7a3f619010a h1:nLnRSR+9lz3LIrSnoVvSuf7xI5F9dT0GqksYB7vBRrQ=
-github.com/bincooo/claude-api v1.0.5-0.20240714184839-f7a3f619010a/go.mod h1:OuHBChbZxWv1HzbzO5+Y8iL+ZE7IofX1yUytlP7GMVM=
+github.com/bincooo/claude-api v1.0.5-0.20240731190230-6ecb96e099f9 h1:lAlwIcd4O1Yok06qFeLumWDSgNR1s1tWdqxYF22yZ44=
+github.com/bincooo/claude-api v1.0.5-0.20240731190230-6ecb96e099f9/go.mod h1:OuHBChbZxWv1HzbzO5+Y8iL+ZE7IofX1yUytlP7GMVM=
 github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46 h1:12sHtk9r99icBCTBnsHaYep5DjH4gu6AzceFNSf216U=
 github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46/go.mod h1:X2PunEb/JOvEnkKkQnlm27UZnn96TR53hGH5TZ55Ak4=
 github.com/bincooo/coze-api v1.0.2-0.20240729084555-5d300d7e64ed h1:6g3seOEsg4S8DXEm7xd0nexEWbTklW68WhC9KNVkeqM=
@@ -62,8 +62,8 @@ github.com/bincooo/requests v0.0.0-20240627215101-765935c797c5 h1:a1+ujE1FAw34eq
 github.com/bincooo/requests v0.0.0-20240627215101-765935c797c5/go.mod h1:uxRiqW1jQ+6teXMziwT7Rx0WFFG2SW5prxHxp+ga9nE=
 github.com/bincooo/vecmul.com v0.0.0-20240730090440-3cbdf4950821 h1:1EgZzIufHTXavhzdJDVvoetaL+dE7+DJDbStURKrwds=
 github.com/bincooo/vecmul.com v0.0.0-20240730090440-3cbdf4950821/go.mod h1:YqrsM+ORzIuR/2guKHE89xHiJ1+tvHm+aPV7pVbvFO4=
-github.com/bincooo/you.com v0.0.0-20240730055438-cc84d0cfa36a h1:oub+NBy2I1paVJX9/SaZEqJ2LZHvg8nT37RxtJkBJ20=
-github.com/bincooo/you.com v0.0.0-20240730055438-cc84d0cfa36a/go.mod h1:SOuP1CRtNiOr+gYyYsZ/K7pj/Wc6Ko5lT3rFn07yLng=
+github.com/bincooo/you.com v0.0.0-20240731191749-115776e7cf64 h1:jRnEfGK6M987RJAVhGOWLVfyfsJaW/uzy5zJQ1giWwA=
+github.com/bincooo/you.com v0.0.0-20240731191749-115776e7cf64/go.mod h1:SOuP1CRtNiOr+gYyYsZ/K7pj/Wc6Ko5lT3rFn07yLng=
 github.com/bitly/go-simplejson v0.5.0 h1:6IH+V8/tVMab511d5bn4M7EwGXZf9Hj6i2xSwkNEM+Y=
 github.com/bitly/go-simplejson v0.5.0/go.mod h1:cXHtHw4XUPsvGaxgjIAn8PhEWG9NfngEKAMDJEczWVA=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 h1:DDGfHa7BWjL4YnC6+E63dPcxHo2sUxDIu8g3QgEJdRY=

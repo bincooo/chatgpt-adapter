@@ -62,6 +62,7 @@ label:
 		return
 	}
 
+	defer r.Body.Close()
 	content := waitResponse(ctx, matchers, r, completion.Stream)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")

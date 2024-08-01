@@ -260,6 +260,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		return "", err
 	}
 
+	defer res.Body.Close()
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err

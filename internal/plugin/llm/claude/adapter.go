@@ -103,6 +103,7 @@ func (API) Completion(ctx *gin.Context) {
 		for _, cookie := range cookies {
 			resetMarker(cookie)
 		}
+		plugin.HTTPClient.IdleClose()
 	}()
 
 	retry := 3
