@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
-	"time"
-
 	socketio "github.com/zishang520/socket.io/socket"
 )
 
@@ -41,12 +39,12 @@ func init() {
 			logger.Error("Error initializing HTTPClient: ", err)
 		}
 
-		connTimeout := time.Duration(pkg.Config.GetInt("server-conn.connTimeout")) * time.Second
+		connTimeout := pkg.Config.GetInt("server-conn.connTimeout")
 		if connTimeout == 0 {
-			connTimeout = 180 * time.Second
+			connTimeout = 180
 		}
 
-		HTTPJa3Client := emit.NewJa3Session(vars.Proxies, connTimeout)
+		HTTPJa3Client, err := emit.NewJa3Session(vars.Proxies, connTimeout)
 		if err != nil {
 			logger.Error("Error initializing HTTPJa3Client: ", err)
 		}

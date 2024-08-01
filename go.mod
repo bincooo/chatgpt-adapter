@@ -4,11 +4,11 @@ go 1.21.6
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
-	github.com/bincooo/claude-api v1.0.5-0.20240731190230-6ecb96e099f9
+	github.com/bincooo/claude-api v1.0.5-0.20240801221048-b9f4245795e5
 	github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46
 	github.com/bincooo/coze-api v1.0.2-0.20240729084555-5d300d7e64ed
-	github.com/bincooo/edge-api v1.0.4-0.20240708092054-d92610338ccb
-	github.com/bincooo/emit.io v0.0.0-20240714181306-871ad0939cdd
+	github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5
+	github.com/bincooo/emit.io v1.0.1-0.20240801214718-19c366da89a7
 	github.com/bincooo/vecmul.com v0.0.0-20240730090440-3cbdf4950821
 	github.com/bincooo/you.com v0.0.0-20240731191749-115776e7cf64
 	github.com/dlclark/regexp2 v1.7.0
@@ -27,13 +27,13 @@ require (
 	github.com/zishang520/socket.io v1.3.2
 )
 
-replace github.com/wangluozhe/requests v1.2.4 => github.com/bincooo/requests v0.0.0-20240627215101-765935c797c5
-
 require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bitly/go-simplejson v0.5.0 // indirect
+	github.com/bogdanfinn/fhttp v0.5.28 // indirect
+	github.com/bogdanfinn/tls-client v1.7.7 // indirect
+	github.com/bogdanfinn/utls v1.6.1 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
@@ -73,7 +73,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/refraction-networking/utls v1.6.6 // indirect
+	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/samber/lo v1.37.0 // indirect
@@ -82,12 +82,11 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/wangluozhe/chttp v0.0.4 // indirect
-	github.com/wangluozhe/requests v1.2.4 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/zishang520/engine.io v1.5.9 // indirect
 	github.com/zishang520/engine.io-go-parser v1.2.2 // indirect
