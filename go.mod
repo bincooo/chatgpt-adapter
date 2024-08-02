@@ -6,11 +6,11 @@ require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/claude-api v1.0.5-0.20240801221048-b9f4245795e5
 	github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46
-	github.com/bincooo/coze-api v1.0.2-0.20240729084555-5d300d7e64ed
+	github.com/bincooo/coze-api v1.0.2-0.20240802091514-37832ce9b014
 	github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5
-	github.com/bincooo/emit.io v1.0.1-0.20240801214718-19c366da89a7
+	github.com/bincooo/emit.io v1.0.1-0.20240802064836-3c7c7851d923
 	github.com/bincooo/vecmul.com v0.0.0-20240730090440-3cbdf4950821
-	github.com/bincooo/you.com v0.0.0-20240731191749-115776e7cf64
+	github.com/bincooo/you.com v0.0.0-20240801225601-151038268325
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
 	github.com/eko/gocache/lib/v4 v4.1.6
