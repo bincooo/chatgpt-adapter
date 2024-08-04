@@ -1,15 +1,22 @@
 package handler
 
 import (
+	"bytes"
 	"chatgpt-adapter/internal/gin.handler/response"
 	"chatgpt-adapter/internal/plugin"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -32,6 +39,7 @@ func Bind(port int, version, proxies string) {
 	})
 
 	route.GET("/", welcome(version))
+	route.POST("/encipher", encipher)
 	route.POST("/v1/chat/completions", completions)
 	route.POST("/v1/object/completions", completions)
 	route.POST("/proxies/v1/chat/completions", completions)
@@ -52,6 +60,72 @@ func Bind(port int, version, proxies string) {
 		logger.Error(err)
 		os.Exit(1)
 	}
+}
+
+func encipher(context *gin.Context) {
+	key := context.GetHeader("x-key")
+	if key == "" {
+		response.Error(context, -1, "请提供 `x-key` 请求头")
+		return
+	}
+
+	defer context.Request.Body.Close()
+	db, err := io.ReadAll(context.Request.Body)
+	if err != nil {
+		logger.Error(err)
+		response.Error(context, -1, err)
+		return
+	}
+
+	content, err := encrypt(key, string(db))
+	if err != nil {
+		logger.Error(err)
+		response.Error(context, -1, err)
+		return
+	}
+
+	context.String(http.StatusOK, content)
+}
+
+func encrypt(key string, content string) (string, error) {
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", err
+	}
+
+	ctx := pad(content)
+
+	db := make([]byte, aes.BlockSize+len(ctx))
+	iv := db[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+
+	iToB := func(n int) []byte {
+		x := int32(n)
+		buffer := bytes.NewBuffer([]byte{})
+		_ = binary.Write(buffer, binary.BigEndian, x)
+		return buffer.Bytes()
+	}
+
+	cipher.NewCBCEncrypter(block, iv).CryptBlocks(db[aes.BlockSize:], ctx)
+	toBytes := iToB(len(content))
+	db = append(db, toBytes...)
+	return hex.EncodeToString(db), nil
+}
+
+func pad(content string) (in []byte) {
+	in = []byte(content)
+	contentL := len(content)
+
+	if remain := contentL % 16; remain != 0 {
+		contentL = contentL + 16 - remain
+		contentL = contentL - len(content)
+		for i := 0; i < contentL; i++ {
+			in = append(in, 0)
+		}
+	}
+	return
 }
 
 func whiteIPHandler(context *gin.Context) {

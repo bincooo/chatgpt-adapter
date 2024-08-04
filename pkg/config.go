@@ -14,6 +14,14 @@ import (
 
 var (
 	Config *viper.Viper
+
+	keys = []string{
+		"white-addr",
+		"you.cookies",
+		"claude.cookies",
+		"coze.websdk.accounts",
+		"llm.token",
+	}
 )
 
 func InitConfig() {
@@ -47,14 +55,18 @@ func LoadConfig() (*viper.Viper, error) {
 		return nil, err
 	}
 
-	content := vip.GetString("white-addr")
-	if content != "" {
-		d, err := decrypt(newCipher, content)
-		if err != nil {
-			return nil, err
+	for _, key := range keys {
+		content := vip.GetString(key)
+		if content != "" {
+			var d any
+			d, err = decrypt(newCipher, content)
+			if err != nil {
+				return nil, err
+			}
+			vip.Set(key, d)
 		}
-		vip.Set("white-addr", d)
 	}
+
 	return vip, nil
 }
 
@@ -77,6 +89,8 @@ func decrypt(block cipher.Block, content string) (data any, err error) {
 	cipher.NewCBCDecrypter(block, iv).CryptBlocks(ctx, ctx[:len(ctx)-4])
 	ctx = ctx[:contentL]
 
-	err = json.Unmarshal(ctx, &data)
+	if json.Unmarshal(ctx, &data) != nil {
+		return string(ctx), nil
+	}
 	return
 }
