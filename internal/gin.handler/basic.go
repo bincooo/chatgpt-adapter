@@ -5,6 +5,8 @@ import (
 	"chatgpt-adapter/internal/plugin"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -56,7 +58,7 @@ func whiteIPHandler(context *gin.Context) {
 	// 作用不大
 	slice := pkg.Config.GetStringSlice("white-addr")
 	if len(slice) != 0 {
-		addr := context.ClientIP()
+		addr := getIp(context)
 		if slices.Contains(slice, addr) {
 			context.Next()
 		} else {
@@ -65,6 +67,43 @@ func whiteIPHandler(context *gin.Context) {
 			context.Abort()
 		}
 	}
+}
+
+func getIp(context *gin.Context) (ip string) {
+	ip = context.ClientIP()
+	header := context.GetHeader("X-Ip-Token")
+	if header == "" {
+		return
+	}
+
+	slice := strings.Split(header, ".")
+	if len(slice) != 3 {
+		return
+	}
+
+	db, err := base64.StdEncoding.DecodeString(slice[1] + "==")
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+
+	var obj map[string]interface{}
+	if err = json.Unmarshal(db, &obj); err != nil {
+		logger.Error(err)
+		return
+	}
+
+	value, ok := obj["ip"].(string)
+	if !ok {
+		return
+	}
+
+	if pkg.Config.GetString("x-addr") != ip {
+		return
+	}
+
+	ip = value
+	return
 }
 
 func proxiesHandler(proxies string) gin.HandlerFunc {

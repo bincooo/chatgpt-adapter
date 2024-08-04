@@ -88,7 +88,7 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 
 func (container *PollContainer[T]) Poll() (T, error) {
 	var zero T
-	if len(container.slice) == 0 {
+	if container == nil || len(container.slice) == 0 {
 		return zero, errors.New("no elements in slice")
 	}
 
