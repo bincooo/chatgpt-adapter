@@ -8,9 +8,10 @@ import (
 	"chatgpt-adapter/logger"
 	"encoding/json"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"net/url"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 const MODEL = "gemini"
@@ -38,7 +39,7 @@ type API struct {
 
 func (API) Match(_ *gin.Context, model string) bool {
 	switch model {
-	case "gemini-1.0-pro-latest", "gemini-1.5-pro-latest", "gemini-1.5-flash-latest":
+	case "gemini-1.0-pro-latest", "gemini-1.5-pro-latest", "gemini-1.5-flash-latest", "models/text-embedding-004":
 		return true
 	default:
 		return false
@@ -59,6 +60,11 @@ func (API) Models() []plugin.Model {
 			By:      "gemini-adapter",
 		}, {
 			Id:      "gemini-1.5-flash-latest",
+			Object:  "model",
+			Created: 1686935002,
+			By:      "gemini-adapter",
+		}, {
+			Id:      "models/text-embedding-004",
 			Object:  "model",
 			Created: 1686935002,
 			By:      "gemini-adapter",

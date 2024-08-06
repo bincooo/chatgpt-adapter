@@ -4,8 +4,9 @@ import (
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/pkg"
 	"context"
-	"github.com/gin-gonic/gin"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func GinDebugger(ctx *gin.Context) bool {
@@ -18,6 +19,11 @@ func GinDebugger(ctx *gin.Context) bool {
 
 func GetGinCompletion(ctx *gin.Context) (value pkg.ChatCompletion) {
 	value, _ = GetGinValue[pkg.ChatCompletion](ctx, vars.GinCompletion)
+	return
+}
+
+func GetGinEmbedding(ctx *gin.Context) (value pkg.EmbedRequest) {
+	value, _ = GetGinValue[pkg.EmbedRequest](ctx, vars.GinEmbedding)
 	return
 }
 

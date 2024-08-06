@@ -28,6 +28,14 @@ type ChatGeneration struct {
 	Quality string `json:"quality"`
 }
 
+type EmbedRequest struct {
+	Input          interface{} `json:"input"`
+	Model          string      `json:"model"`
+	EncodingFormat string      `json:"encoding_format,omitempty"`
+	Dimensions     int         `json:"dimensions,omitempty"`
+	User           string      `json:"user,omitempty"`
+}
+
 type Keyv[V any] map[string]V
 
 type ChatResponse struct {

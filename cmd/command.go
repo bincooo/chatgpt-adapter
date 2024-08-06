@@ -2,11 +2,12 @@ package main
 
 import (
 	"chatgpt-adapter/internal/common"
-	"chatgpt-adapter/internal/gin.handler"
+	handler "chatgpt-adapter/internal/gin.handler"
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
 	"fmt"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

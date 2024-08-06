@@ -14,8 +14,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -23,6 +21,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func Bind(port int, version, proxies string) {
@@ -43,6 +44,7 @@ func Bind(port int, version, proxies string) {
 	route.POST("/v1/chat/completions", completions)
 	route.POST("/v1/object/completions", completions)
 	route.POST("/proxies/v1/chat/completions", completions)
+	route.POST("/v1/embeddings", embedding)
 	route.POST("v1/images/generations", generations)
 	route.POST("v1/object/generations", generations)
 	route.POST("proxies/v1/images/generations", generations)
