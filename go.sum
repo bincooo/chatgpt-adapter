@@ -58,10 +58,10 @@ github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5 h1:LXwjKFfwyOSi
 github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5/go.mod h1:OBBrqmW8rUMTsF/sPH1GsPQT5K9QKJCZkHdYkTIR09Q=
 github.com/bincooo/emit.io v1.0.1-0.20240802064836-3c7c7851d923 h1:yNU1xq3eT7ct3+dJzRBjIYPWNUarvzXhUjI+Vu7lE9c=
 github.com/bincooo/emit.io v1.0.1-0.20240802064836-3c7c7851d923/go.mod h1:pR3KSIIoS+5KHYF+l2BQn427+C6PeDFI71DnhnakELI=
-github.com/bincooo/vecmul.com v0.0.0-20240730090440-3cbdf4950821 h1:1EgZzIufHTXavhzdJDVvoetaL+dE7+DJDbStURKrwds=
-github.com/bincooo/vecmul.com v0.0.0-20240730090440-3cbdf4950821/go.mod h1:YqrsM+ORzIuR/2guKHE89xHiJ1+tvHm+aPV7pVbvFO4=
-github.com/bincooo/you.com v0.0.0-20240801225601-151038268325 h1:apsumFLAdS/poYWUZTUwKvaBAkdIknGhcbfm1x4MK7Y=
-github.com/bincooo/you.com v0.0.0-20240801225601-151038268325/go.mod h1:1Nz7XPpSyrWuEhJoEechws3OoddrtU7h3MNBDG0zcmE=
+github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e h1:NEPtfaeaLrY5fSAykG9gopRovHwIvORJGGCSRhVyHTQ=
+github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e/go.mod h1:YqrsM+ORzIuR/2guKHE89xHiJ1+tvHm+aPV7pVbvFO4=
+github.com/bincooo/you.com v0.0.0-20240806094511-83932c01f99e h1:K4FMuH0c7cpMExNlPLgK1I7QAU1zGR8NKZnNATNHMwM=
+github.com/bincooo/you.com v0.0.0-20240806094511-83932c01f99e/go.mod h1:1Nz7XPpSyrWuEhJoEechws3OoddrtU7h3MNBDG0zcmE=
 github.com/bogdanfinn/fhttp v0.5.28 h1:G6thT8s8v6z1IuvXMUsX9QKy3ZHseTQTzxuIhSiaaAw=
 github.com/bogdanfinn/fhttp v0.5.28/go.mod h1:oJiYPG3jQTKzk/VFmogH8jxjH5yiv2rrOH48Xso2lrE=
 github.com/bogdanfinn/tls-client v1.7.7 h1:c3mf6LX6bxEsunJhP2BJeJE7qN/7BniWUpIpBc9Igu8=

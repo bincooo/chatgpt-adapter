@@ -9,8 +9,8 @@ require (
 	github.com/bincooo/coze-api v1.0.2-0.20240802091514-37832ce9b014
 	github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5
 	github.com/bincooo/emit.io v1.0.1-0.20240802064836-3c7c7851d923
-	github.com/bincooo/vecmul.com v0.0.0-20240730090440-3cbdf4950821
-	github.com/bincooo/you.com v0.0.0-20240801225601-151038268325
+	github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e
+	github.com/bincooo/you.com v0.0.0-20240806094511-83932c01f99e
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
 	github.com/eko/gocache/lib/v4 v4.1.6

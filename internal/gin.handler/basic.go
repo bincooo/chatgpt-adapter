@@ -155,7 +155,7 @@ func getIp(context *gin.Context) (ip string) {
 		return
 	}
 
-	db, err := base64.StdEncoding.DecodeString(slice[1] + "==")
+	db, err := base64.RawURLEncoding.DecodeString(slice[1])
 	if err != nil {
 		logger.Error(err)
 		return
