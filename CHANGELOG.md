@@ -1,4 +1,49 @@
-# [](https://github.com/bincooo/chatgpt-adapter/compare/v2.1.0-dev-3...v) (2024-06-26)
+# [](https://github.com/bincooo/chatgpt-adapter/compare/v2.1.0...v) (2024-08-06)
+
+
+### Bug Fixes
+
+* claude js regex ([0601453](https://github.com/bincooo/chatgpt-adapter/commit/0601453be7bec0077fa9385cf29e3380af9b7405))
+* claude pro账号请求403 ([6349006](https://github.com/bincooo/chatgpt-adapter/commit/63490068a386c7fc6613ade5d65b0f733b0493e2))
+* **claude:** 对话时间短截断 ([e1dd635](https://github.com/bincooo/chatgpt-adapter/commit/e1dd63504a52bdbc894990e0306941cfd0bd3554))
+* **coze:** websdk serverless模式没有时释放占用账号 ([ba4f811](https://github.com/bincooo/chatgpt-adapter/commit/ba4f8118b54cc1649b20370917769ab9daf21233))
+* **coze:** 修复 websdk 网络不可用 ([2bf642e](https://github.com/bincooo/chatgpt-adapter/commit/2bf642e54020814b4705153cd455c32b4e0b6abd))
+* **coze:** 旧签名服务被ban，更新新的签名地址 ([62e87f3](https://github.com/bincooo/chatgpt-adapter/commit/62e87f331eafe0afedf3de0e2fe6396fae582008))
+* **echo:** 太长了有些流客户端无法接收 ([4d4307d](https://github.com/bincooo/chatgpt-adapter/commit/4d4307d83b505c80cfb45dd99b5a6c624fa2d61d))
+* **gemini:** 400 Request contains an invalid argument ([2ab3baf](https://github.com/bincooo/chatgpt-adapter/commit/2ab3baf456515634e239f7391889e837a723417b))
+* **gemini:** 400 Request contains an invalid argument ([256cde0](https://github.com/bincooo/chatgpt-adapter/commit/256cde0711788344a379e61ced6da1718255e99a))
+* **hf:** 部分绘图接口失效 ([4372c9a](https://github.com/bincooo/chatgpt-adapter/commit/4372c9a80f41c8bf2c292493846358f215b9f444))
+* **you:** helper多平台路径错误 ([ec95c8c](https://github.com/bincooo/chatgpt-adapter/commit/ec95c8c34a5f359db5651761ecc2a5f23134539a))
+* **you:** 删除url中传chats ([60fb6ad](https://github.com/bincooo/chatgpt-adapter/commit/60fb6ad5f35d83937a80b6435e4868306655a267))
+* **you:** 过盾在window下的兼容问题 ([f098389](https://github.com/bincooo/chatgpt-adapter/commit/f0983897528ce0e05d6cacec0c3fb05f7cc9cd17))
+* **you:** 过盾逻辑修改，修复一直循环过盾问题 ([4c50c1a](https://github.com/bincooo/chatgpt-adapter/commit/4c50c1a52999967f4253417e3b4ffe3fcccf5b7d))
+* 尝试解决hf图片访问404问题 ([771b5e0](https://github.com/bincooo/chatgpt-adapter/commit/771b5e0366e58a353b13b756bc5756d019f39110))
+
+
+### Features
+
+* **cdoze:** claude websdk兼容实现 ([9bfa22e](https://github.com/bincooo/chatgpt-adapter/commit/9bfa22e67f5036a1793691754a1be3f5fb5133b0))
+* **claude:** 请求失败时，120秒静置不参与轮询 ([d8bb5f4](https://github.com/bincooo/chatgpt-adapter/commit/d8bb5f4413916bdae4eba959f96d6faf9cda81ec))
+* config.yaml数据加密 ([9b10aa1](https://github.com/bincooo/chatgpt-adapter/commit/9b10aa17bc54e437eeb3ff0027325c12ea870419))
+* config.yaml数据加密 ([1734a25](https://github.com/bincooo/chatgpt-adapter/commit/1734a2501658ad24fe4694fbec31b7726df8537b))
+* coze/websdk 启动时publish参数 ([39fc197](https://github.com/bincooo/chatgpt-adapter/commit/39fc19788bce343fe5bc75ed4f6c6a324154bb45))
+* **coze:** websdk serverless模式 ([e2283ee](https://github.com/bincooo/chatgpt-adapter/commit/e2283ee684e4294f52ce8a009f82777241779abe))
+* **coze:** websdk serverless模式下，初始化失败也添加到任务容器 ([e49394d](https://github.com/bincooo/chatgpt-adapter/commit/e49394d04b9c16bf8f23a953188bf8c17ead5716))
+* **coze:** websdk优化 ([a614ecd](https://github.com/bincooo/chatgpt-adapter/commit/a614ecd9e22c6d097d3e9c76c0aea4773d6db1fe))
+* **hf:** 接口参数配置化 ([53602d3](https://github.com/bincooo/chatgpt-adapter/commit/53602d34f03c2a5b1181ed2d2cc398266807fa12))
+* **hf:** 接口参数配置化 ([1aea1cc](https://github.com/bincooo/chatgpt-adapter/commit/1aea1cc1a1c8bc8e11abfa187c203986be00772d))
+* **llm:** add new model lmsys/claude-3-5-sonnet-20240620 ([98bf1ce](https://github.com/bincooo/chatgpt-adapter/commit/98bf1ce5370ac5253fd0e194921cc36a43a33765))
+* **vecmul:** add vecmul api ([f64c9e7](https://github.com/bincooo/chatgpt-adapter/commit/f64c9e7ea2dcd7127c0cb190be6e67af63e9395a))
+* **you:** pro额度判断 ([2fbae4f](https://github.com/bincooo/chatgpt-adapter/commit/2fbae4f1e139050772c5154cf060b295826e58e2))
+* **you:** update you-helper ([9bed6f1](https://github.com/bincooo/chatgpt-adapter/commit/9bed6f16850f29c07d63a1788d9cc0c71258d5da))
+* **you:** 定时器执行检查过盾 ([1a09124](https://github.com/bincooo/chatgpt-adapter/commit/1a09124d6d473343f657598f7d4c63537b15700c))
+* **you:** 添加notice配置 ([0f70bf5](https://github.com/bincooo/chatgpt-adapter/commit/0f70bf54d59ec268f13cd79c5daebb21b32a9d8b))
+* 与clewd处理兼容 ([7ffe04b](https://github.com/bincooo/chatgpt-adapter/commit/7ffe04bb97d2c353c04df5255759d1191622850b))
+* 添加终止序列 ([76157e2](https://github.com/bincooo/chatgpt-adapter/commit/76157e2d2fb7cd1608de08965ed33f3baede48b6))
+
+
+
+# [2.1.0](https://github.com/bincooo/chatgpt-adapter/compare/v2.1.0-dev-3...v2.1.0) (2024-06-26)
 
 
 ### Bug Fixes

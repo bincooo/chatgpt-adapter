@@ -5,13 +5,16 @@ DIR := $(shell pwd)
 LDFLAGS := -ldflags "-w -s -X main.version=${VERSION} -X ${PROJECT}/logger.project=${PROJECT} -X ${PROJECT}/logger.projectDir=${DIR}"
 TARGET_EXEC := server
 
-.PHONY: all echo clean setup build-linux build-osx build-windows copy
+.PHONY: all echo changelog clean setup build-linux build-osx build-windows copy
 
 all: clean setup build-linux build-linux-arm64 build-osx build-windows copy
 
 # goland 中 go tool arguments 添加 echo 输出的命令参数，删除 -w -s
 echo:
 	@echo '${LDFLAGS}'
+
+changelog:
+	conventional-changelog -p angular -o CHANGELOG.md -w -r 0
 
 clean:
 	rm -rf bin
