@@ -11,6 +11,7 @@ const (
 
 	GinCompletion      = "__completion__"
 	GinGeneration      = "__generation__"
+	GinEmbedding       = "__embedding__"
 	GinMatchers        = "__matchers__"
 	GinCompletionUsage = "__completion-usage__"
 	GinDebugger        = "__debug__"

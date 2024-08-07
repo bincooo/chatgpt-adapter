@@ -5,8 +5,13 @@ import (
 	"chatgpt-adapter/internal/gin.handler/response"
 	"chatgpt-adapter/internal/plugin"
 	"chatgpt-adapter/logger"
-	"github.com/gin-gonic/gin"
+	"chatgpt-adapter/pkg"
+	"io"
+	"net/http"
 	"strings"
+
+	"github.com/bincooo/emit.io"
+	"github.com/gin-gonic/gin"
 )
 
 var (
@@ -67,4 +72,39 @@ label:
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
+}
+
+func (API) Embedding(ctx *gin.Context) {
+	embedding := common.GetGinEmbedding(ctx)
+	embedding.Model = embedding.Model[7:]
+	var (
+		token    = ctx.GetString("token")
+		proxies  = ctx.GetString("proxies")
+		baseUrl  = pkg.Config.GetString("custom-llm.baseUrl")
+		useProxy = pkg.Config.GetBool("custom-llm.useProxy")
+	)
+	if !useProxy {
+		proxies = ""
+	}
+	resp, err := emit.ClientBuilder(plugin.HTTPClient).
+		Proxies(proxies).
+		Context(common.GetGinContext(ctx)).
+		POST(baseUrl+"/v1/embeddings").
+		Header("Authorization", "Bearer "+token).
+		JHeader().
+		Body(embedding).DoC(emit.Status(http.StatusOK))
+	if err != nil {
+		ctx.JSON(http.StatusBadGateway, gin.H{
+			"error": "can't send request to upstream",
+		})
+	}
+	ctx.Header("Content-Type", "application/json; charset=utf-8")
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		ctx.JSON(http.StatusBadGateway, gin.H{
+			"error": "can't read from upstream",
+		})
+	}
+	ctx.Writer.Write(content)
+	ctx.Writer.Flush()
 }

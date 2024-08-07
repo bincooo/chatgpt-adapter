@@ -7,6 +7,7 @@ import (
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
 	"fmt"
+
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	socketio "github.com/zishang520/socket.io/socket"
@@ -71,6 +72,7 @@ type Adapter interface {
 	Models() []Model
 	Completion(ctx *gin.Context)
 	Generation(ctx *gin.Context)
+	Embedding(ctx *gin.Context)
 }
 
 type BaseAdapter struct {
@@ -89,6 +91,8 @@ func (BaseAdapter) Completion(*gin.Context) {
 
 func (BaseAdapter) Generation(*gin.Context) {
 }
+
+func (BaseAdapter) Embedding(*gin.Context) {}
 
 func (adapter ExtensionAdapter) Match(ctx *gin.Context, model string) bool {
 	for _, extension := range adapter.Extensions {
@@ -115,6 +119,17 @@ func (adapter ExtensionAdapter) Completion(ctx *gin.Context) {
 		}
 	}
 	response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", completion.Model))
+}
+
+func (adapter ExtensionAdapter) Embedding(ctx *gin.Context) {
+	embedding := common.GetGinEmbedding(ctx)
+	for _, extension := range adapter.Extensions {
+		if extension.Match(ctx, embedding.Model) {
+			extension.Embedding(ctx)
+			return
+		}
+	}
+	response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", embedding.Model))
 }
 
 func (adapter ExtensionAdapter) Messages(ctx *gin.Context) {
