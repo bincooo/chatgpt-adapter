@@ -416,7 +416,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 	fn := []int{5, 49}
 	data := []interface{}{
 		message,
-		"(text:1.3), (strip cartoon:1.3), worst quality, low quality",
+		"(text:1.3), (strip cartoon:1.3), out of focus",
 		r.Intn(1490935504) + 9068457,
 		1024,
 		1024,

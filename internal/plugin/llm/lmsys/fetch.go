@@ -76,6 +76,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
 		JHeader().
+		Ja3("yes").
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
@@ -105,6 +106,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
+		Ja3("yes").
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("User-Agent", ua).
@@ -119,7 +121,6 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		return nil, logger.WarpError(err)
 	}
 
-	defer response.Body.Close()
 	e, err := emit.NewGio(ctx, response)
 	if err != nil {
 		return nil, logger.WarpError(err)
@@ -221,6 +222,7 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
 		JHeader().
+		Ja3("yes").
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
 		Header("Origin", "https://arena.lmsys.org").
@@ -252,6 +254,7 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
+		Ja3("yes").
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("User-Agent", ua).
@@ -331,6 +334,7 @@ label:
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/info").
+		Ja3("yes").
 		Header("pragma", "no-cache").
 		Header("cache-control", "no-cache").
 		Header("Accept-Language", "en-US,en;q=0.9").

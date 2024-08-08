@@ -9,6 +9,7 @@ import (
 	"github.com/bincooo/coze-api"
 	"github.com/bincooo/emit.io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -185,7 +186,7 @@ func loopTasks() {
 				cancel()
 				if err != nil {
 					logger.Errorf("coze websdk 删除失败[%s]：%v", value.keyv["email"], err)
-					if emit.IsJSON(response) == nil {
+					if response != nil && strings.Contains(response.Header.Get("content-type"), "application/json") {
 						logger.Error(emit.TextResponse(response))
 					}
 					if value.count == 0 {
@@ -231,6 +232,9 @@ func initTasks(opts ...*obj) (exec bool) {
 			cancel()
 			logger.Errorf("coze websdk 同步失败[%s]：%v", value.keyv["email"], err)
 			taskContainer = append(taskContainer, &obj{value.keyv, value.count - 1})
+			if response != nil && strings.Contains(response.Header.Get("content-type"), "application/json") {
+				logger.Error(emit.TextResponse(response))
+			}
 			continue
 		}
 
