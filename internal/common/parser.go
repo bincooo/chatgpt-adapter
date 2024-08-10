@@ -141,7 +141,7 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 			n := search(it, 0, '=')
 			if n <= 0 {
 				if len(it) > 0 && it != "=" {
-					attr[it] = true
+					attr[strings.TrimSpace(it)] = true
 				}
 				continue
 			}
@@ -151,25 +151,25 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 			}
 
 			if it[n+1] == '"' && it[len(it)-1] == '"' {
-				attr[it[:n]] = trimCdata(it[n+2 : len(it)-1])
+				attr[strings.TrimSpace(it[:n])] = trimCdata(it[n+2 : len(it)-1])
 			}
 
 			s := trimCdata(it[n+1:])
 			v1, err := strconv.Atoi(s)
 			if err == nil {
-				attr[it[:n]] = v1
+				attr[strings.TrimSpace(it[:n])] = v1
 				continue
 			}
 
 			v2, err := strconv.ParseFloat(s, 10)
 			if err == nil {
-				attr[it[:n]] = v2
+				attr[strings.TrimSpace(it[:n])] = v2
 				continue
 			}
 
 			v3, err := strconv.ParseBool(s)
 			if err == nil {
-				attr[it[:n]] = v3
+				attr[strings.TrimSpace(it[:n])] = v3
 				continue
 			}
 		}
@@ -178,13 +178,13 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 
 	// 跳过 CDATA标记
 	igCd := func(content string, i, j int) int {
-		content = content[i:j]
-		n := searchStr(content, 0, "<![CDATA[")
+		ctx := content[i:j]
+		n := searchStr(ctx, 0, "<![CDATA[")
 		if n < 0 { // 不是CD
 			return j
 		}
 
-		n = searchStr(content, n, "]]>")
+		n = searchStr(ctx, n, "]]>")
 		if n < 0 { // 没有闭合
 			return -1
 		}
@@ -194,7 +194,7 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 		}
 
 		// 已经闭合
-		return j
+		return i + n + 3
 	}
 
 	// =============
@@ -233,7 +233,7 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 					}
 					// 找不到 ⬆⬆⬆⬆⬆
 
-					s := strings.Split(curr.tag, " ")
+					s := split2(curr.tag, " ")
 					if s[0] == content[i+2:n] {
 						step := 2 + len(curr.tag)
 						curr.t = XML_TYPE_X
@@ -278,26 +278,24 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 					// =========================================================
 					//
 
-					/*
-						} else if nextStr(content, i, "!--") {
+				} else if nextStr(content, i, "!--") {
 
-							//
-							// ⬇⬇⬇⬇⬇ 是否是注释 <!-- xxx --> ⬇⬇⬇⬇⬇
+					//
+					// ⬇⬇⬇⬇⬇ 是否是注释 <!-- xxx --> ⬇⬇⬇⬇⬇
 
-							n := searchStr(content, i+3, "-->")
-							if n < 0 {
-								i += 3
-								continue
-							}
+					n := searchStr(content, i+3, "-->")
+					if n < 0 {
+						i += 3
+						continue
+					}
 
-							node := XmlNode{index: i, end: n + 3, content: content[i : n+3], t: XML_TYPE_I}
-							slice = append(slice, node)
-							// ⬆⬆⬆⬆⬆ 是否是注释 <!-- xxx --> ⬆⬆⬆⬆⬆
-							// 循环后置++，所以-1
-							i = node.end - 1
-							// =========================================================
-							//
-					*/
+					node := XmlNode{index: i, end: n + 3, content: content[i : n+3], t: XML_TYPE_I}
+					slice = append(slice, node)
+					// ⬆⬆⬆⬆⬆ 是否是注释 <!-- xxx --> ⬆⬆⬆⬆⬆
+					// 循环后置++，所以-1
+					i = node.end - 1
+					// =========================================================
+					//
 				} else {
 
 					//
@@ -310,10 +308,15 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 						break
 					}
 
-					idx = igCd(content, i, n)
-					if idx == -1 {
-						idx = n
-						n = search(content, idx+1, '>')
+					tmp := igCd(content, idx, n)
+					if tmp == -1 {
+						tmp = n
+						n = search(content, tmp+1, '>')
+						goto label
+					}
+
+					if tmp < n {
+						idx = tmp
 						goto label
 					}
 
@@ -476,7 +479,7 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, erro
 
 		// matcher 流响应干预
 		if h['t'] == "matcher" {
-			handleMatcher(h, matchers)
+			matchers = handleMatcher(h, matchers)
 		}
 
 		// 历史记录
@@ -586,13 +589,18 @@ func handleClaudeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (err 
 }
 
 // matcher 流响应干预
-func handleMatcher(h map[uint8]string, matchers []Matcher) {
+func handleMatcher(h map[uint8]string, matchers []Matcher) []Matcher {
 	find := ""
 	if f, ok := h['f']; ok {
 		find = f
 	}
 	if find == "" {
-		return
+		return matchers
+	}
+
+	end := ""
+	if e, ok := h['e']; ok {
+		end = e
 	}
 
 	findL := 5
@@ -602,7 +610,7 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 
 	values := split(h['v'])
 	if len(values) < 2 {
-		return
+		return matchers
 	}
 
 	c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
@@ -611,18 +619,29 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) {
 	matchers = append(matchers, &SymbolMatcher{
 		Find: find,
 		H: func(index int, content string) (state int, result string) {
-			r := []rune(content)
-			if index+findL > len(r)-1 {
-				return vars.MatMatching, content
+			var err error
+			if end != "" {
+				if !strings.Contains(content, end) {
+					return vars.MatMatching, content
+				}
+			} else {
+				r := []rune(content)
+				if index+findL > len(r)-1 {
+					return vars.MatMatching, content
+				}
 			}
-			replace, err := c.Replace(content, join, -1, -1)
+
+			result, err = c.Replace(content, join, -1, -1)
 			if err != nil {
 				logger.Warn("compile failed: "+values[0], err)
 				return vars.MatMatched, content
 			}
-			return vars.MatMatched, replace
+
+			return vars.MatMatched, result
 		},
 	})
+
+	return matchers
 }
 
 func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isc bool) (handles []map[uint8]string) {
@@ -659,7 +678,7 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isc 
 		for _, node := range nodes {
 			// 注释内容删除
 			if node.t == XML_TYPE_I {
-				clean(content[node.index:node.end])
+				//clean(content[node.index:node.end])
 				continue
 			}
 
@@ -725,7 +744,12 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isc 
 					findLen = fmt.Sprintf("%v", l)
 				}
 
-				handles = append(handles, map[uint8]string{'f': find, 'l': findLen, 'v': node.content, 't': "matcher"})
+				end := ""
+				if l, ok := node.attr["end"]; ok {
+					end = fmt.Sprintf("%v", l)
+				}
+
+				handles = append(handles, map[uint8]string{'f': find, 'l': findLen, 'v': node.content, 'e': end, 't': "matcher"})
 				clean(content[node.index:node.end])
 				continue
 			}
@@ -850,4 +874,59 @@ func split(value string) []string {
 		}
 	}
 	return nil
+}
+
+func split2(content string, delimiter string) (result []string) {
+	// 查找从 index 开始，符合的字符串返回其下标，没有则-1
+	searchStr := func(content string, index int, s string) int {
+		l := len(s)
+		contentL := len(content)
+		for i := index + 1; i < contentL; i++ {
+			if i+l > contentL {
+				return -1
+			}
+			if content[i:i+l] == s {
+				return i
+			}
+		}
+		return -1
+	}
+
+	// 比较 index 的下一个字符串，如果相同返回 true
+	//nextStr := func(content string, index int, s string) bool {
+	//	contentL := len(content)
+	//	if index+1+len(s) >= contentL {
+	//		return false
+	//	}
+	//	return content[index+1:index+1+len(s)] == s
+	//}
+
+	contentL := len(content)
+	pos := 0
+	for i := 0; i < contentL; i++ {
+		n := searchStr(content, i, delimiter)
+		if n == -1 {
+			break
+		}
+
+		if n >= 0 {
+			tmp := searchStr(content, pos, "![CDATA[")
+			if tmp >= 0 && n > tmp {
+				tmp = searchStr(content, tmp+9, "]]>")
+				if tmp >= 0 && n < tmp+3 {
+					i = tmp + 2
+					continue
+				}
+			}
+
+			result = append(result, content[pos:n])
+			pos = n
+			i = n
+		}
+	}
+
+	if pos < contentL-1 {
+		result = append(result, content[pos:])
+	}
+	return
 }

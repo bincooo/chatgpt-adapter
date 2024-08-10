@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bytes"
+	"chatgpt-adapter/logger"
 	"crypto/cipher"
 	"encoding/binary"
 	"encoding/hex"
@@ -61,7 +62,8 @@ func LoadConfig() (*viper.Viper, error) {
 			var d any
 			d, err = decrypt(newCipher, content)
 			if err != nil {
-				return nil, err
+				logger.Infof("[%s]解码失败", key)
+				d = content
 			}
 			vip.Set(key, d)
 		}
