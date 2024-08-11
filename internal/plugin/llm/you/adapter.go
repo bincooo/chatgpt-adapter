@@ -115,7 +115,10 @@ func (API) Match(_ *gin.Context, model string) bool {
 			you.CLAUDE_3_HAIKU,
 			you.CLAUDE_3_SONNET,
 			you.CLAUDE_3_5_SONNET,
-			you.CLAUDE_3_OPUS:
+			you.CLAUDE_3_OPUS,
+			you.GEMINI_1_0_PRO,
+			you.GEMINI_1_5_PRO,
+			you.GEMINI_1_5_FLASH:
 			return true
 		}
 	}
@@ -168,6 +171,24 @@ func (API) Models() []plugin.Model {
 		},
 		{
 			Id:      "you/" + you.CLAUDE_3_OPUS,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.GEMINI_1_0_PRO,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.GEMINI_1_5_PRO,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.GEMINI_1_5_FLASH,
 			Object:  "model",
 			Created: 1686935002,
 			By:      Model + "-adapter",
