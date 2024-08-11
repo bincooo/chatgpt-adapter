@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -135,7 +134,25 @@ func whiteIPHandler(context *gin.Context) {
 	slice := pkg.Config.GetStringSlice("white-addr")
 	if len(slice) != 0 {
 		addr := getIp(context)
-		if slices.Contains(slice, addr) {
+
+		next := true
+		for _, w := range slice {
+			if len(w) > 0 && w[0] == '!' {
+				if w[1:] == addr {
+					next = false
+					break
+				}
+				continue
+			}
+
+			next = false
+			if w == addr {
+				next = true
+				break
+			}
+		}
+
+		if next {
 			context.Next()
 		} else {
 			logger.Errorf("IP address %s is not whitelisted", addr)
@@ -214,6 +231,13 @@ func crosHandler(context *gin.Context) {
 
 	if method == "OPTIONS" {
 		context.Status(http.StatusOK)
+		return
+	}
+
+	if context.Request.RequestURI == "/" ||
+		context.Request.RequestURI == "/favicon.ico" {
+		//处理请求
+		context.Next()
 		return
 	}
 
