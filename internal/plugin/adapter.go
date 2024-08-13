@@ -7,6 +7,7 @@ import (
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
 	"fmt"
+	"github.com/bogdanfinn/tls-client/profiles"
 
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
@@ -45,7 +46,7 @@ func init() {
 			connTimeout = 180
 		}
 
-		HTTPJa3Client, err := emit.NewJa3Session(vars.Proxies, connTimeout)
+		HTTPJa3Client, err := emit.NewJa3Session(profiles.Chrome_124, vars.Proxies, connTimeout)
 		if err != nil {
 			logger.Error("Error initializing HTTPJa3Client: ", err)
 		}

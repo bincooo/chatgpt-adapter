@@ -56,8 +56,8 @@ github.com/bincooo/coze-api v1.0.2-0.20240802091514-37832ce9b014 h1:V5j3ufQ46IZ6
 github.com/bincooo/coze-api v1.0.2-0.20240802091514-37832ce9b014/go.mod h1:bjubsmanaC507lGXSVTYWVaIQRs+b9AJM6S1yxEk8Ts=
 github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5 h1:LXwjKFfwyOSinPSKMRI8mRNUkkLhJoexl8jGn/t9ZOk=
 github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5/go.mod h1:OBBrqmW8rUMTsF/sPH1GsPQT5K9QKJCZkHdYkTIR09Q=
-github.com/bincooo/emit.io v1.0.1-0.20240802064836-3c7c7851d923 h1:yNU1xq3eT7ct3+dJzRBjIYPWNUarvzXhUjI+Vu7lE9c=
-github.com/bincooo/emit.io v1.0.1-0.20240802064836-3c7c7851d923/go.mod h1:pR3KSIIoS+5KHYF+l2BQn427+C6PeDFI71DnhnakELI=
+github.com/bincooo/emit.io v1.0.1-0.20240813155024-e5c2deb080a6 h1:6Xdc+mHaZn20uUPrsucOLj2nHNzb1aKxvtwaW9i3inI=
+github.com/bincooo/emit.io v1.0.1-0.20240813155024-e5c2deb080a6/go.mod h1:pR3KSIIoS+5KHYF+l2BQn427+C6PeDFI71DnhnakELI=
 github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e h1:NEPtfaeaLrY5fSAykG9gopRovHwIvORJGGCSRhVyHTQ=
 github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e/go.mod h1:YqrsM+ORzIuR/2guKHE89xHiJ1+tvHm+aPV7pVbvFO4=
 github.com/bincooo/you.com v0.0.0-20240811060426-157d8d1dabd6 h1:5Uw31ZB3nksGl08+eCMr+rjhYCgUwpz8bFcNhQdn/jQ=

@@ -8,9 +8,10 @@ require (
 	github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46
 	github.com/bincooo/coze-api v1.0.2-0.20240802091514-37832ce9b014
 	github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5
-	github.com/bincooo/emit.io v1.0.1-0.20240802064836-3c7c7851d923
+	github.com/bincooo/emit.io v1.0.1-0.20240813155024-e5c2deb080a6
 	github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e
 	github.com/bincooo/you.com v0.0.0-20240811060426-157d8d1dabd6
+	github.com/bogdanfinn/tls-client v1.7.7
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
 	github.com/eko/gocache/lib/v4 v4.1.6
@@ -32,7 +33,6 @@ require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bogdanfinn/fhttp v0.5.28 // indirect
-	github.com/bogdanfinn/tls-client v1.7.7 // indirect
 	github.com/bogdanfinn/utls v1.6.1 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
