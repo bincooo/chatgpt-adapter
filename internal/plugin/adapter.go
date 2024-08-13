@@ -7,9 +7,8 @@ import (
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
 	"fmt"
-	"github.com/bogdanfinn/tls-client/profiles"
-
 	"github.com/bincooo/emit.io"
+	"github.com/bogdanfinn/tls-client/profiles"
 	"github.com/gin-gonic/gin"
 	socketio "github.com/zishang520/socket.io/socket"
 )
@@ -80,7 +79,7 @@ type BaseAdapter struct {
 }
 
 type ExtensionAdapter struct {
-	Extensions []Adapter
+	slice []Adapter
 }
 
 func (BaseAdapter) Models() []Model {
@@ -95,8 +94,14 @@ func (BaseAdapter) Generation(*gin.Context) {
 
 func (BaseAdapter) Embedding(*gin.Context) {}
 
-func (adapter ExtensionAdapter) Match(ctx *gin.Context, model string) bool {
-	for _, extension := range adapter.Extensions {
+func NewGlobalAdapter() *ExtensionAdapter {
+	return &ExtensionAdapter{
+		slice: make([]Adapter, 0),
+	}
+}
+
+func (adapter *ExtensionAdapter) Match(ctx *gin.Context, model string) bool {
+	for _, extension := range adapter.slice {
 		if extension.Match(ctx, model) {
 			return true
 		}
@@ -104,16 +109,16 @@ func (adapter ExtensionAdapter) Match(ctx *gin.Context, model string) bool {
 	return false
 }
 
-func (adapter ExtensionAdapter) Models() (models []Model) {
-	for _, extension := range adapter.Extensions {
+func (adapter *ExtensionAdapter) Models() (models []Model) {
+	for _, extension := range adapter.slice {
 		models = append(models, extension.Models()...)
 	}
 	return
 }
 
-func (adapter ExtensionAdapter) Completion(ctx *gin.Context) {
+func (adapter *ExtensionAdapter) Completion(ctx *gin.Context) {
 	completion := common.GetGinCompletion(ctx)
-	for _, extension := range adapter.Extensions {
+	for _, extension := range adapter.slice {
 		if extension.Match(ctx, completion.Model) {
 			extension.Completion(ctx)
 			return
@@ -122,9 +127,9 @@ func (adapter ExtensionAdapter) Completion(ctx *gin.Context) {
 	response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", completion.Model))
 }
 
-func (adapter ExtensionAdapter) Embedding(ctx *gin.Context) {
+func (adapter *ExtensionAdapter) Embedding(ctx *gin.Context) {
 	embedding := common.GetGinEmbedding(ctx)
-	for _, extension := range adapter.Extensions {
+	for _, extension := range adapter.slice {
 		if extension.Match(ctx, embedding.Model) {
 			extension.Embedding(ctx)
 			return
@@ -133,9 +138,9 @@ func (adapter ExtensionAdapter) Embedding(ctx *gin.Context) {
 	response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", embedding.Model))
 }
 
-func (adapter ExtensionAdapter) Messages(ctx *gin.Context) {
+func (adapter *ExtensionAdapter) Messages(ctx *gin.Context) {
 	completion := common.GetGinCompletion(ctx)
-	for _, extension := range adapter.Extensions {
+	for _, extension := range adapter.slice {
 		if extension.Match(ctx, completion.Model) {
 			exec, ok := extension.(interface{ Messages(ctx *gin.Context) })
 			if ok {
@@ -147,12 +152,16 @@ func (adapter ExtensionAdapter) Messages(ctx *gin.Context) {
 	response.Error(ctx, -1, fmt.Sprintf("model '%s' is not not yet supported", completion.Model))
 }
 
-func (adapter ExtensionAdapter) Generation(ctx *gin.Context) {
+func (adapter *ExtensionAdapter) Generation(ctx *gin.Context) {
 	completion := common.GetGinGeneration(ctx)
-	for _, extension := range adapter.Extensions {
+	for _, extension := range adapter.slice {
 		if extension.Match(ctx, completion.Model) {
 			extension.Generation(ctx)
 			return
 		}
 	}
+}
+
+func (adapter *ExtensionAdapter) Add(adapters ...Adapter) {
+	adapter.slice = append(adapter.slice, adapters...)
 }

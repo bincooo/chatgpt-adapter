@@ -13,7 +13,6 @@ import (
 	"chatgpt-adapter/internal/plugin/llm/interpreter"
 	"chatgpt-adapter/internal/plugin/llm/lmsys"
 	"chatgpt-adapter/internal/plugin/llm/v1"
-	"chatgpt-adapter/internal/plugin/llm/vecmul"
 	"chatgpt-adapter/internal/plugin/llm/you"
 	pg "chatgpt-adapter/internal/plugin/playground"
 	"chatgpt-adapter/internal/vars"
@@ -28,14 +27,12 @@ import (
 )
 
 var (
-	GlobalExtension = plugin.ExtensionAdapter{
-		Extensions: make([]plugin.Adapter, 0),
-	}
+	GlobalExtension = plugin.NewGlobalAdapter()
 )
 
 func init() {
 	common.AddInitialized(func() {
-		GlobalExtension.Extensions = []plugin.Adapter{
+		GlobalExtension.Add(
 			bing.Adapter,
 			claude.Adapter,
 			cohere.Adapter,
@@ -47,8 +44,7 @@ func init() {
 			pg.Adapter,
 			hf.Adapter,
 			v1.Adapter,
-			vecmul.Adapter,
-		}
+		)
 	})
 }
 

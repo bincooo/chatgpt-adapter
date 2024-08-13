@@ -2,7 +2,7 @@ BUILD_ENV := CGO_ENABLED=0
 PROJECT := $(shell go list -m)
 VERSION := $(shell cat VERSION)
 DIR := $(shell pwd)
-LDFLAGS := -ldflags "-w -s -X main.version=${VERSION} -X ${PROJECT}/logger.project=${PROJECT} -X ${PROJECT}/logger.projectDir=${DIR}"
+LDFLAGS := $(argv) -ldflags "-w -s -X main.version=${VERSION} -X ${PROJECT}/logger.project=${PROJECT} -X ${PROJECT}/logger.projectDir=${DIR}"
 TARGET_EXEC := server
 
 .PHONY: all echo changelog clean setup build-linux build-osx build-windows copy
@@ -38,4 +38,3 @@ build-osx: copy
 
 build-windows: copy
 	${BUILD_ENV} GOARCH=amd64 GOOS=windows go build ${LDFLAGS} -o bin/windows/${TARGET_EXEC}.exe -trimpath cmd/command.go
-
