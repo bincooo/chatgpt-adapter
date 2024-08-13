@@ -184,7 +184,7 @@ func whiteIPHandler(context *gin.Context) {
 			context.Next()
 		} else {
 			logger.Errorf("IP address %s is not whitelisted", addr)
-			context.String(http.StatusForbidden, "refused")
+			context.String(http.StatusNotFound, "refused")
 			context.Abort()
 		}
 	}
