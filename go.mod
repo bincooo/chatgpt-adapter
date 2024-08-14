@@ -4,12 +4,12 @@ go 1.21.6
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
-	github.com/bincooo/claude-api v1.0.5-0.20240801221048-b9f4245795e5
+	github.com/bincooo/claude-api v1.0.5-0.20240814184031-56ad31d90db8
 	github.com/bincooo/cohere-api v0.0.0-20240620172202-4b7697448b46
-	github.com/bincooo/coze-api v1.0.2-0.20240802091514-37832ce9b014
+	github.com/bincooo/coze-api v1.0.2-0.20240814183726-b9eb08bb183c
 	github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5
-	github.com/bincooo/emit.io v1.0.1-0.20240813232243-734a360cb190
-	github.com/bincooo/you.com v0.0.0-20240813232653-3a0bab0e1e81
+	github.com/bincooo/emit.io v1.0.1-0.20240814182208-c5236f8f202c
+	github.com/bincooo/you.com v0.0.0-20240814182626-5af42c373fc4
 	github.com/bogdanfinn/tls-client v1.7.7
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5

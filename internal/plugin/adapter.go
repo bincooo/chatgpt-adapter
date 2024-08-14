@@ -45,7 +45,7 @@ func init() {
 			connTimeout = 180
 		}
 
-		HTTPJa3Client, err := emit.NewJa3Session(profiles.CloudflareCustom, vars.Proxies, connTimeout)
+		HTTPJa3Client, err := emit.NewJa3Session(emit.Echo{RandomTLSExtension: true, HelloID: profiles.Chrome_124}, vars.Proxies, connTimeout)
 		if err != nil {
 			logger.Error("Error initializing HTTPJa3Client: ", err)
 		}
