@@ -254,10 +254,10 @@ label:
 	chat.LimitWithE(true)
 	chat.Client(plugin.HTTPClient)
 
-	if err = tryCloudFlare(); err != nil {
-		response.Error(ctx, -1, err)
-		return
-	}
+	//if err = tryCloudFlare(); err != nil {
+	//	response.Error(ctx, -1, err)
+	//	return
+	//}
 
 	chat.CloudFlare(clearance, userAgent, lang)
 

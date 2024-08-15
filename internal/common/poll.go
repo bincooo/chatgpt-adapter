@@ -166,7 +166,11 @@ func (container *PollContainer[T]) SetMarker(key interface{}, value byte) error 
 			t: time.Now(),
 			s: value,
 		}
-		logger.Infof("[%s] 索引 [%d] 设置状态值：%d", container.name, container.pos, value)
+		if value == 1 {
+			logger.Infof("[%s] 索引 [%d] 设置状态值：%d", container.name, container.pos, value)
+		} else {
+			logger.Infof("[%s] 设置状态值：%d", container.name, value)
+		}
 	} else {
 		return context.DeadlineExceeded
 	}
