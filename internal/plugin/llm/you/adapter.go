@@ -358,11 +358,14 @@ label:
 		var se emit.Error
 		code := -1
 		if errors.As(err, &se) && se.Code > 400 {
-			_ = youRollContainer.SetMarker(cookie, 2)
 			// 403 重定向？？？
 			if se.Code == 403 {
 				code = 429
 				cleanCf()
+			}
+
+			if se.Code != 504 {
+				_ = youRollContainer.SetMarker(cookie, 2)
 			}
 		}
 
