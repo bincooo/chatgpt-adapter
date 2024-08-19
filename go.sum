@@ -58,8 +58,8 @@ github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5 h1:LXwjKFfwyOSi
 github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5/go.mod h1:OBBrqmW8rUMTsF/sPH1GsPQT5K9QKJCZkHdYkTIR09Q=
 github.com/bincooo/emit.io v1.0.1-0.20240814182208-c5236f8f202c h1:+E1m0U39B0AA54+/p75+yz+GoN1yAFQ99SCuRs9tRsM=
 github.com/bincooo/emit.io v1.0.1-0.20240814182208-c5236f8f202c/go.mod h1:OJbKJoZ6x6vSpCC+JNtfcaXo3ilpvQscWrcGEmtmrZI=
-github.com/bincooo/you.com v0.0.0-20240814182626-5af42c373fc4 h1:oXeTzIWy0pc7vYbtpcEsspJpzE3vyXrAy90rZpY/wWM=
-github.com/bincooo/you.com v0.0.0-20240814182626-5af42c373fc4/go.mod h1:pCSXDSfILyPKttpOOM3yBlzl99mNEzmw5bfrGVzXCaA=
+github.com/bincooo/you.com v0.0.0-20240819002641-ea605dd2c07c h1:gaQBt/jOQhKIWMSCcjzprivs2BBESYd/fdFbk1EA0AI=
+github.com/bincooo/you.com v0.0.0-20240819002641-ea605dd2c07c/go.mod h1:pCSXDSfILyPKttpOOM3yBlzl99mNEzmw5bfrGVzXCaA=
 github.com/bogdanfinn/fhttp v0.5.28 h1:G6thT8s8v6z1IuvXMUsX9QKy3ZHseTQTzxuIhSiaaAw=
 github.com/bogdanfinn/fhttp v0.5.28/go.mod h1:oJiYPG3jQTKzk/VFmogH8jxjH5yiv2rrOH48Xso2lrE=
 github.com/bogdanfinn/tls-client v1.7.7 h1:c3mf6LX6bxEsunJhP2BJeJE7qN/7BniWUpIpBc9Igu8=
