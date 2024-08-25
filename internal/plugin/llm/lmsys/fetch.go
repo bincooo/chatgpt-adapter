@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	baseUrl = "https://arena.lmsys.org"
+	baseUrl = "https://lmarena.ai"
 	ua      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"
 )
 
@@ -79,8 +79,8 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Ja3("yes").
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
-		Header("Origin", "https://arena.lmsys.org").
-		Header("Referer", "https://arena.lmsys.org/").
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/").
 		Header("Accept-Language", "en-US,en;q=0.9").
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
@@ -111,8 +111,8 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (
 		Query("session_hash", hash).
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
-		Header("Origin", "https://arena.lmsys.org").
-		Header("Referer", "https://arena.lmsys.org/").
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/").
 		Header("Accept-Language", "en-US,en;q=0.9").
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
@@ -225,8 +225,8 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 		Ja3("yes").
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
-		Header("Origin", "https://arena.lmsys.org").
-		Header("Referer", "https://arena.lmsys.org/").
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/").
 		Header("Accept-Language", "en-US,en;q=0.9").
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
@@ -259,8 +259,8 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 		Query("session_hash", hash).
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
-		Header("Origin", "https://arena.lmsys.org").
-		Header("Referer", "https://arena.lmsys.org/").
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/").
 		Header("Accept-Language", "en-US,en;q=0.9").
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
@@ -338,8 +338,8 @@ label:
 		Header("pragma", "no-cache").
 		Header("cache-control", "no-cache").
 		Header("Accept-Language", "en-US,en;q=0.9").
-		Header("Origin", "https://arena.lmsys.org").
-		Header("Referer", "https://arena.lmsys.org/").
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/").
 		Header("priority", "u=1, i").
 		Header("cookie", baseCookies).
 		Header("User-Agent", ua).
