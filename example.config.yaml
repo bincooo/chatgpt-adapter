@@ -12,7 +12,7 @@ white-addr:
 #  - 'xxx.xxx.xxx.xxx'
 
 # 开启特殊标记增强
-flags: true
+flags: false
 
 # 图片访问
 domain: "http://127.0.0.1:8080"
@@ -79,7 +79,7 @@ you:
   cookies:
     - 'xxx1'
     - 'xxx2'
-serverless:
+browser-less:
   enabled: false
   disabled-gpu: true
   # 当无法找到指定的浏览器时可以在此配置路径
