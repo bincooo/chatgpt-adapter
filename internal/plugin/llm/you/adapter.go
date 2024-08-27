@@ -51,7 +51,7 @@ func init() {
 		youRollContainer = common.NewPollContainer[string]("you", cookies, 6*time.Hour)
 		youRollContainer.Condition = Condition
 
-		if pkg.Config.GetBool("serverless.enabled") {
+		if pkg.Config.GetBool("browser-less.enabled") {
 			port := pkg.Config.GetString("you.helper")
 			if port == "" {
 				port = "8081"
