@@ -55,12 +55,90 @@ func fetch(ctx context.Context, proxies, token, messages string, opts options) (
 		)
 	}
 
-	return partTwo(ctx, proxies, cookies, hash, opts)
+	err = partTwo(ctx, proxies, cookies, hash, opts)
+	if err != nil {
+		return nil, logger.WarpError(err)
+	}
+
+	return partThree(ctx, proxies, cookies, hash, opts)
 }
 
-func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) (chan string, error) {
+func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) error {
 	obj := map[string]interface{}{
-		"fn_index":     opts.fn[0] + 1,
+		"event_data":   nil,
+		"session_hash": hash,
+		"data":         make([]interface{}, 0),
+	}
+
+	var response *http.Response
+	var err error
+	obj["fn_index"] = opts.fn[0] + 1
+	obj["trigger_id"] = opts.fn[1]
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
+		Context(ctx).
+		Proxies(proxies).
+		POST(baseUrl+"/queue/join").
+		JHeader().
+		Ja3("yes").
+		Header("User-Agent", ua).
+		Header("Cookie", cookies).
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Cache-Control", "no-cache").
+		Header("Priority", "u=1, i").
+		Body(obj).
+		DoS(http.StatusOK)
+	if err != nil {
+		ver = ""
+		return logger.WarpError(err)
+	}
+
+	obj, err = emit.ToMap(response)
+	if err != nil {
+		return logger.WarpError(err)
+	}
+
+	if eventId, ok := obj["event_id"]; ok {
+		logger.Infof("lmsys eventId: %s", eventId)
+	} else {
+		return errors.New("fetch failed")
+	}
+
+	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
+	_ = response.Body.Close()
+
+	response, err = emit.ClientBuilder(plugin.HTTPClient).
+		Context(ctx).
+		Proxies(proxies).
+		Ja3("yes").
+		GET(baseUrl+"/queue/data").
+		Query("session_hash", hash).
+		Header("User-Agent", ua).
+		Header("Cookie", cookies).
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Cache-Control", "no-cache").
+		Header("Priority", "u=1, i").
+		DoS(http.StatusOK)
+	if err != nil {
+		return logger.WarpError(err)
+	}
+
+	defer response.Body.Close()
+	cookies = emit.MergeCookies(cookies, emit.GetCookies(response))
+	e, err := emit.NewGio(ctx, response)
+	if err != nil {
+		return logger.WarpError(err)
+	}
+
+	return e.Do()
+}
+
+func partThree(ctx context.Context, proxies, cookies, hash string, opts options) (chan string, error) {
+	obj := map[string]interface{}{
+		"fn_index":     opts.fn[0] + 2,
 		"trigger_id":   opts.fn[1],
 		"session_hash": hash,
 		"data": []interface{}{
@@ -203,7 +281,10 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 		"data": []interface{}{
 			nil,
 			opts.model,
-			messages,
+			map[string]string{
+				"text": messages,
+				// TODO - image
+			},
 			nil,
 		},
 	}
