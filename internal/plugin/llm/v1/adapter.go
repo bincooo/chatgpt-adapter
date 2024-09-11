@@ -20,6 +20,7 @@ var (
 	key     = "__custom-url__"
 	upKey   = "__custom-proxies__"
 	modKey  = "__custom-model__"
+	tcKey   = "__custom-toolCall__"
 )
 
 type API struct {
@@ -47,6 +48,7 @@ func (API) Match(ctx *gin.Context, model string) bool {
 			ctx.Set(key, it["base-url"])
 			ctx.Set(upKey, it["use-proxies"] == "true")
 			ctx.Set(modKey, model[len(prefix)+1:])
+			ctx.Set(tcKey, it["tc"] == "true")
 			return true
 		}
 	}
@@ -73,7 +75,7 @@ func (API) Completion(ctx *gin.Context) {
 	)
 
 	completion.Model = completion.Model[7:]
-	if plugin.NeedToToolCall(ctx) {
+	if ctx.GetBool(tcKey) && plugin.NeedToToolCall(ctx) {
 		if completeToolCalls(ctx, proxies, completion) {
 			return
 		}

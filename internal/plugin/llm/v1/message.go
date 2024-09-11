@@ -187,10 +187,6 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 		content += raw
 	}
 
-	if content == "" && response.NotSSEHeader(ctx) {
-		return
-	}
-
 	if toolCall != nil {
 		args, _ := json.Marshal(toolCall["args"])
 		if !sse {
@@ -198,6 +194,10 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 		} else {
 			response.SSEToolCallResponse(ctx, Model, toolId, string(args), time.Now().Unix())
 		}
+		return
+	}
+
+	if content == "" && response.NotSSEHeader(ctx) {
 		return
 	}
 
