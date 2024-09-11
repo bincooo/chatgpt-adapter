@@ -68,7 +68,7 @@ func (API) Completion(ctx *gin.Context) {
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)
 
-		baseUrl = pkg.Config.GetString("bing.baseUrl")
+		baseUrl = pkg.Config.GetString("bing.base-url")
 	)
 
 	if cookie == "xxx" {

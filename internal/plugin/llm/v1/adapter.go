@@ -6,7 +6,6 @@ import (
 	"chatgpt-adapter/internal/plugin"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
-	"io"
 	"net/http"
 	"strings"
 
@@ -17,14 +16,41 @@ import (
 var (
 	Adapter = API{}
 	Model   = "custom"
+	schema  = make([]map[string]interface{}, 0)
+	key     = "__custom-url__"
+	upKey   = "__custom-proxies__"
+	modKey  = "__custom-model__"
 )
 
 type API struct {
 	plugin.BaseAdapter
 }
 
-func (API) Match(_ *gin.Context, model string) bool {
-	return strings.HasPrefix(model, "custom/")
+func init() {
+	common.AddInitialized(func() {
+		llm := pkg.Config.Get("custom-llm")
+		if slice, ok := llm.([]interface{}); ok {
+			for _, it := range slice {
+				item, o := it.(map[string]interface{})
+				if !o {
+					continue
+				}
+				schema = append(schema, item)
+			}
+		}
+	})
+}
+
+func (API) Match(ctx *gin.Context, model string) bool {
+	for _, it := range schema {
+		if prefix, ok := it["prefix"].(string); ok && strings.HasPrefix(model, prefix+"/") {
+			ctx.Set(key, it["base-url"])
+			ctx.Set(upKey, it["use-proxies"] == "true")
+			ctx.Set(modKey, model[len(prefix)+1:])
+			return true
+		}
+	}
+	return false
 }
 
 func (API) Models() []plugin.Model {
@@ -33,7 +59,7 @@ func (API) Models() []plugin.Model {
 			Id:      "custom",
 			Object:  "model",
 			Created: 1686935002,
-			By:      "lmsys-adapter",
+			By:      "custom-adapter",
 		},
 	}
 }
@@ -76,35 +102,33 @@ label:
 
 func (API) Embedding(ctx *gin.Context) {
 	embedding := common.GetGinEmbedding(ctx)
-	embedding.Model = embedding.Model[7:]
+	embedding.Model = ctx.GetString(modKey)
 	var (
-		token    = ctx.GetString("token")
-		proxies  = ctx.GetString("proxies")
-		baseUrl  = pkg.Config.GetString("custom-llm.baseUrl")
-		useProxy = pkg.Config.GetBool("custom-llm.useProxy")
+		token   = ctx.GetString("token")
+		proxies = ctx.GetString("proxies")
+		baseUrl = ctx.GetString(key)
 	)
-	if !useProxy {
+	if !ctx.GetBool(upKey) {
 		proxies = ""
 	}
+
 	resp, err := emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
-		POST(baseUrl+"/v1/embeddings").
+		POST(baseUrl+"/embeddings").
 		Header("Authorization", "Bearer "+token).
 		JHeader().
-		Body(embedding).DoC(emit.Status(http.StatusOK))
+		Body(embedding).DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
-		ctx.JSON(http.StatusBadGateway, gin.H{
-			"error": "can't send request to upstream",
-		})
+		response.Error(ctx, http.StatusBadGateway, err)
+		return
 	}
-	ctx.Header("Content-Type", "application/json; charset=utf-8")
-	content, err := io.ReadAll(resp.Body)
+
+	obj, err := emit.ToMap(resp)
 	if err != nil {
-		ctx.JSON(http.StatusBadGateway, gin.H{
-			"error": "can't read from upstream",
-		})
+		response.Error(ctx, http.StatusBadGateway, err)
+		return
 	}
-	ctx.Writer.Write(content)
-	ctx.Writer.Flush()
+
+	ctx.JSON(http.StatusOK, obj)
 }

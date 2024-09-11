@@ -208,7 +208,7 @@ func completeTagsGenerator(ctx *gin.Context, content string) (string, error) {
 		proxies = ctx.GetString("proxies")
 		model   = pkg.Config.GetString("llm.model")
 		cookie  = pkg.Config.GetString("llm.token")
-		baseUrl = pkg.Config.GetString("llm.baseUrl")
+		baseUrl = pkg.Config.GetString("llm.base-url")
 	)
 
 	c := regexp.MustCompile("<tag content=\"([^>]+)\"\\s?/>")

@@ -17,7 +17,7 @@ func completeToolCalls(ctx *gin.Context, cookie, proxies string, completion pkg.
 	logger.Infof("completeTools ...")
 
 	var (
-		baseUrl = pkg.Config.GetString("bing.baseUrl")
+		baseUrl = pkg.Config.GetString("bing.base-url")
 		echo    = ctx.GetBool(vars.GinEcho)
 	)
 

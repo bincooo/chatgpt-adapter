@@ -131,7 +131,7 @@ func runTasks(opts ...map[string]interface{}) {
 // 重置任务函数
 func loopTasks() {
 	s5 := 5 * time.Second
-	baseUrl := pkg.Config.GetString("serverless.baseUrl")
+	baseUrl := pkg.Config.GetString("serverless.base-url")
 	if baseUrl == "" {
 		baseUrl = "http://127.0.0.1:" + pkg.Config.GetString("you.helper")
 	}
@@ -208,7 +208,7 @@ func loopTasks() {
 // 初始任务函数
 func initTasks(opts ...*obj) (exec bool) {
 	time.Sleep(6 * time.Second) // 等待程序启动就绪
-	baseUrl := pkg.Config.GetString("serverless.baseUrl")
+	baseUrl := pkg.Config.GetString("serverless.base-url")
 	if baseUrl == "" {
 		baseUrl = "http://127.0.0.1:" + pkg.Config.GetString("you.helper")
 	}

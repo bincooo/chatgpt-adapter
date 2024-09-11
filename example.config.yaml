@@ -19,7 +19,7 @@ domain: "http://127.0.0.1:8080"
 
 # 内调llm，用于绘图时文本转tags
 llm:
-  baseUrl: "http://127.0.0.1:8081"
+  base-url: "http://127.0.0.1:8081"
   model: "bing"
   token: "xxx"
 
@@ -31,7 +31,7 @@ lmsys: [49 , 109]
 # 参数替换：{{prompt}}、{{negative_prompt}}、{{sampler}}、{{style}}、{{seed}}
 hf:
 #  animagine-xl-3.1:
-#    baseUrl: https://boboiazumi-animagine-xl-3-1.hf.space
+#    base-url: https://boboiazumi-animagine-xl-3-1.hf.space
 #    fn: [5, 61]
 #    data: '[
 #      "{{prompt}}",
@@ -54,9 +54,9 @@ hf:
 #      0.65
 #    ]'
 #  dalle-4k:
-#    baseUrl: https://mukaist-dalle-4k.hf.space
+#    base-url: https://mukaist-dalle-4k.hf.space
 #  dalle-3-xl:
-#    baseUrl: https://ehristoforu-dalle-3-xl-lora-v2.hf.space
+#    base-url: https://ehristoforu-dalle-3-xl-lora-v2.hf.space
 
 # gemini 自定义安全设置
 google:
@@ -65,7 +65,7 @@ google:
 #      threshold: BLOCK_NONE
 
 bing:
-  baseUrl: "https://edgeservices.bing.com/edgesvc"
+  base-url: "https://edgeservices.bing.com/edgesvc"
 
 claude:
   pad: 0
@@ -113,12 +113,14 @@ coze:
 #      validate: xxx@gmail.com
 
 interpreter:
-  baseUrl: http://127.0.0.1:8000
-  echoCode: false
+  base-url: http://127.0.0.1:8000
+  echo-code: false
   ws: true
 
 custom-llm:
-  baseUrl: http://127.0.0.1:8080
+  - base-url: http://127.0.0.1:8080/v1
+    prefix: custom
+    use-proxies: false
 
 # toolCall 默认配置化; 在 flags 关闭时也可用
 toolCall:

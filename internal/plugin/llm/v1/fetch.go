@@ -4,6 +4,7 @@ import (
 	"chatgpt-adapter/internal/common"
 	"chatgpt-adapter/internal/plugin"
 	"chatgpt-adapter/pkg"
+	"encoding/json"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -11,11 +12,10 @@ import (
 
 func fetch(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletion) (response *http.Response, err error) {
 	var (
-		baseUrl  = pkg.Config.GetString("custom-llm.baseUrl")
-		useProxy = pkg.Config.GetBool("custom-llm.useProxy")
+		baseUrl = ctx.GetString(key)
 	)
 
-	if !useProxy {
+	if !ctx.GetBool(upKey) {
 		proxies = ""
 	}
 
@@ -38,13 +38,37 @@ func fetch(ctx *gin.Context, proxies, token string, completion pkg.ChatCompletio
 	ctx.Set(ginTokens, token)
 
 	completion.Stream = true
+	completion.Model = ctx.GetString(modKey)
+	obj, err := toMap(completion)
+	if err != nil {
+		return nil, err
+	}
+
+	if completion.TopK == 0 {
+		delete(obj, "top_k")
+	}
+
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Proxies(proxies).
 		Context(common.GetGinContext(ctx)).
-		POST(baseUrl+"/v1/chat/completions").
+		POST(baseUrl+"/chat/completions").
 		Header("Authorization", "Bearer "+token).
 		JHeader().
-		Body(completion).
+		Body(obj).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	return
+}
+
+func toMap(obj interface{}) (mo map[string]interface{}, err error) {
+	if obj == nil {
+		return
+	}
+
+	bytes, err := json.Marshal(obj)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(bytes, &mo)
 	return
 }

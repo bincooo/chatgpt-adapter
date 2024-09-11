@@ -183,7 +183,7 @@ func Ox002(ctx *gin.Context, model, message string) (value string, err error) {
 		baseUrl = "https://mukaist-dalle-4k.hf.space"
 	)
 
-	if u := pkg.Config.GetString("hf.dalle-4k.baseUrl"); u != "" {
+	if u := pkg.Config.GetString("hf.dalle-4k.base-url"); u != "" {
 		baseUrl = u
 	}
 
@@ -282,7 +282,7 @@ func Ox003(ctx *gin.Context, message string) (value string, err error) {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	if u := pkg.Config.GetString("hf.dalle-3-xl.baseUrl"); u != "" {
+	if u := pkg.Config.GetString("hf.dalle-3-xl.base-url"); u != "" {
 		baseUrl = u
 	}
 
@@ -409,7 +409,7 @@ func Ox004(ctx *gin.Context, model, samples, message string) (value string, err 
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
 
-	if u := pkg.Config.GetString("hf.animagine-xl-3.1.baseUrl"); u != "" {
+	if u := pkg.Config.GetString("hf.animagine-xl-3.1.base-url"); u != "" {
 		baseUrl = u
 	}
 

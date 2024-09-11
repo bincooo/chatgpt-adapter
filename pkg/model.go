@@ -6,16 +6,16 @@ import (
 )
 
 type ChatCompletion struct {
-	System        string              `json:"system"`
+	System        string              `json:"system,omitempty"`
 	Messages      []Keyv[interface{}] `json:"messages"`
 	Tools         []Keyv[interface{}] `json:"tools"`
 	Model         string              `json:"model"`
 	MaxTokens     int                 `json:"max_tokens"`
 	StopSequences []string            `json:"stop"`
 	Temperature   float32             `json:"temperature"`
-	TopK          int                 `json:"topK"`
-	TopP          float32             `json:"topP"`
-	Stream        bool                `json:"stream"`
+	TopK          int                 `json:"top_k,omitempty"`
+	TopP          float32             `json:"top_p,omitempty"`
+	Stream        bool                `json:"stream,omitempty"`
 	ToolChoice    interface{}         `json:"tool_choice"`
 }
 

@@ -16,7 +16,7 @@ func completionWS(ctx *gin.Context) {
 	}
 
 	var (
-		baseUrl    = pkg.Config.GetString("interpreter.baseUrl")
+		baseUrl    = pkg.Config.GetString("interpreter.base-url")
 		proxies    = ctx.GetString("proxies")
 		completion = common.GetGinCompletion(ctx)
 		matchers   = common.GetGinMatchers(ctx)

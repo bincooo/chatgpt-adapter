@@ -48,6 +48,7 @@ func Bind(port int, version, proxies string) {
 	route.POST("/v1/object/completions", completions)
 	route.POST("/proxies/v1/chat/completions", completions)
 	route.POST("/v1/embeddings", embedding)
+	route.POST("/proxies/v1/embeddings", embedding)
 	route.POST("v1/images/generations", generations)
 	route.POST("v1/object/generations", generations)
 	route.POST("proxies/v1/images/generations", generations)

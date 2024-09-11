@@ -15,7 +15,7 @@ import (
 
 func fetch(ctx *gin.Context, proxies string, completion pkg.ChatCompletion) (response *http.Response, tokens int, err error) {
 	var (
-		baseUrl = pkg.Config.GetString("interpreter.baseUrl")
+		baseUrl = pkg.Config.GetString("interpreter.base-url")
 	)
 
 	tokens, message, err := mergeMessages(ctx, proxies, baseUrl, completion)
