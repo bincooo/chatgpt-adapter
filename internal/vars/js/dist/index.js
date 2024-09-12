@@ -227,10 +227,11 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
         });
         var systems = [];
         var prompt = messagesClone.map(function (message, idx) {
+          var _message$content;
           if (message.merged || message.discard) {
             return '';
           }
-          if (message.content.length < 1) {
+          if (((_message$content = message.content) === null || _message$content === void 0 ? void 0 : _message$content.length) < 1) {
             return message.content;
           }
           var spacing = '';

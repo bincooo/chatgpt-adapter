@@ -187,7 +187,7 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
                 if (message.merged || message.discard) {
                     return '';
                 }
-                if (message.content.length < 1) {
+                if (message.content?.length < 1) {
                     return message.content;
                 }
                 let spacing = '';

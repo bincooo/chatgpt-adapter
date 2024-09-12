@@ -129,6 +129,9 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 
 		data = data[6:]
 		if data == "[DONE]" {
+			if htc && !sse {
+				toolCall["args"] = content
+			}
 			break
 		}
 
@@ -150,6 +153,20 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 
 		if choice.Delta.ToolCalls != nil && len(choice.Delta.ToolCalls) > 0 {
 			htc = true
+			if sse {
+				response.Event(ctx, "", chat)
+				continue
+			}
+
+			keyv := choice.Delta.ToolCalls[0].GetKeyv("function")
+			if name := keyv.GetString("name"); name != "" {
+				toolCall = map[string]interface{}{
+					"name": name,
+					"args": "",
+				}
+			}
+			content += keyv.GetString("arguments")
+			continue
 		}
 
 		if choice.FinishReason != nil && *choice.FinishReason == "stop" {
@@ -175,7 +192,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 		if !htc && toolId != "-1" {
 			toolCall = map[string]interface{}{
 				"name": toolId,
-				"args": map[string]interface{}{},
+				"args": "",
 			}
 			break
 		}
@@ -188,11 +205,10 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 	}
 
 	if toolCall != nil {
-		args, _ := json.Marshal(toolCall["args"])
 		if !sse {
-			response.ToolCallResponse(ctx, Model, toolId, string(args))
+			response.ToolCallResponse(ctx, Model, toolCall["name"].(string), toolCall["args"].(string))
 		} else {
-			response.SSEToolCallResponse(ctx, Model, toolId, string(args), time.Now().Unix())
+			response.SSEToolCallResponse(ctx, Model, toolCall["name"].(string), toolCall["args"].(string), time.Now().Unix())
 		}
 		return
 	}
