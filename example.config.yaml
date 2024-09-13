@@ -134,3 +134,15 @@ toolCall:
 # 目前注册没有限制，可配置多个key轮询
 #magnify:
 #  - "xxx"
+
+# 用于处理llm响应时的内容
+# find: 开头匹配
+# end: 结束匹配
+# content: 正则处理
+#matcher:
+#  - find: <!-- Attack
+#    end: -->
+#    content: "<!-- Attack [\\s\\S]+ -->:"
+#  - find: <thinking>
+#    end: </thinking>
+#    content: "<thinking>[\\s\\S]+<\\/thinking>:thinking..."
