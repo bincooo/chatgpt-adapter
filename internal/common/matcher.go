@@ -21,7 +21,7 @@ var (
 		"<|end|>",
 	}
 
-	globalMatchers = make([]Matcher, 0)
+	globalMatchers func() []Matcher
 )
 
 // 匹配器接口
@@ -51,71 +51,80 @@ func init() {
 }
 
 func initMatchers(slice []interface{}) {
-	for _, it := range slice {
-		if m, o := it.(map[string]interface{}); o {
-			find, ok := m["find"]
-			if !ok {
-				continue
-			}
+	if len(slice) == 0 {
+		return
+	}
 
-			end, ok := m["end"]
-			if !ok {
-				end = ""
-			}
+	globalMatchers = func() (matchers []Matcher) {
+		for _, it := range slice {
+			if m, o := it.(map[string]interface{}); o {
+				find, ok := m["find"]
+				if !ok {
+					continue
+				}
 
-			l, ok := m["len"]
-			if !ok {
-				l = "5"
-			}
+				end, ok := m["end"]
+				if !ok {
+					end = ""
+				}
 
-			findL, err := strconv.Atoi(l.(string))
-			if err != nil {
-				continue
-			}
+				l, ok := m["len"]
+				if !ok {
+					l = "5"
+				}
 
-			str, ok := m["content"]
-			if !ok {
-				str = ""
-			}
+				findL, err := strconv.Atoi(l.(string))
+				if err != nil {
+					continue
+				}
 
-			values := split(str.(string))
-			if len(values) < 2 {
-				continue
-			}
+				str, ok := m["content"]
+				if !ok {
+					str = ""
+				}
 
-			c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
-			join := strings.TrimSpace(values[1])
+				values := split(str.(string))
+				if len(values) < 2 {
+					continue
+				}
 
-			globalMatchers = append(globalMatchers, &SymbolMatcher{
-				Find: find.(string),
-				H: func(index int, content string) (state int, result string) {
-					if end != "" {
-						if !strings.Contains(content, end.(string)) {
-							return vars.MatMatching, content
+				c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
+				join := strings.TrimSpace(values[1])
+
+				matchers = append(matchers, &SymbolMatcher{
+					Find: find.(string),
+					H: func(index int, content string) (state int, result string) {
+						if end != "" {
+							if !strings.Contains(content, end.(string)) {
+								return vars.MatMatching, content
+							}
+						} else {
+							r := []rune(content)
+							if index+findL > len(r)-1 {
+								return vars.MatMatching, content
+							}
 						}
-					} else {
-						r := []rune(content)
-						if index+findL > len(r)-1 {
-							return vars.MatMatching, content
+
+						result, err = c.Replace(content, join, -1, -1)
+						if err != nil {
+							logger.Warn("compile failed: "+values[0], err)
+							return vars.MatMatched, content
 						}
-					}
 
-					result, err = c.Replace(content, join, -1, -1)
-					if err != nil {
-						logger.Warn("compile failed: "+values[0], err)
-						return vars.MatMatched, content
-					}
-
-					return vars.MatMatched, result
-				},
-			})
+						return vars.MatMatched, result
+					},
+				})
+			}
 		}
+		return
 	}
 }
 
 func NewMatchers() []Matcher {
 	slice := make([]Matcher, 0)
-	slice = append(slice, globalMatchers...)
+	if globalMatchers != nil {
+		slice = append(slice, globalMatchers()...)
+	}
 	return slice
 }
 
