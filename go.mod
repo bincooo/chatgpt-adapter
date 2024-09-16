@@ -10,7 +10,7 @@ require (
 	github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5
 	github.com/bincooo/emit.io v1.0.1-0.20240814182208-c5236f8f202c
 	github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e
-	github.com/bincooo/you.com v0.0.0-20240819002641-ea605dd2c07c
+	github.com/bincooo/you.com v0.0.0-20240916065514-05c515b55b67
 	github.com/bogdanfinn/tls-client v1.7.7
 	github.com/dlclark/regexp2 v1.7.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5

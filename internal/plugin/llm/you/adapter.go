@@ -109,8 +109,11 @@ func (API) Match(_ *gin.Context, model string) bool {
 	if strings.HasPrefix(model, "you/") {
 		switch model[4:] {
 		case you.GPT_4,
-			you.GPT_4o,
 			you.GPT_4_TURBO,
+			you.GPT_4o,
+			you.GPT_4o_MINI,
+			you.OPENAI_O1,
+			you.OPENAI_O1_MINI,
 			you.CLAUDE_2,
 			you.CLAUDE_3_HAIKU,
 			you.CLAUDE_3_SONNET,
@@ -140,7 +143,25 @@ func (API) Models() []plugin.Model {
 			By:      Model + "-adapter",
 		},
 		{
+			Id:      "you/" + you.GPT_4o_MINI,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
 			Id:      "you/" + you.GPT_4_TURBO,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.OPENAI_O1,
+			Object:  "model",
+			Created: 1686935002,
+			By:      Model + "-adapter",
+		},
+		{
+			Id:      "you/" + you.OPENAI_O1_MINI,
 			Object:  "model",
 			Created: 1686935002,
 			By:      Model + "-adapter",

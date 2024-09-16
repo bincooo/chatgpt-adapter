@@ -62,6 +62,7 @@ github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e h1:NEPtfaeaLrY5
 github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e/go.mod h1:YqrsM+ORzIuR/2guKHE89xHiJ1+tvHm+aPV7pVbvFO4=
 github.com/bincooo/you.com v0.0.0-20240819002641-ea605dd2c07c h1:gaQBt/jOQhKIWMSCcjzprivs2BBESYd/fdFbk1EA0AI=
 github.com/bincooo/you.com v0.0.0-20240819002641-ea605dd2c07c/go.mod h1:pCSXDSfILyPKttpOOM3yBlzl99mNEzmw5bfrGVzXCaA=
+github.com/bincooo/you.com v0.0.0-20240916065514-05c515b55b67/go.mod h1:pCSXDSfILyPKttpOOM3yBlzl99mNEzmw5bfrGVzXCaA=
 github.com/bogdanfinn/fhttp v0.5.28 h1:G6thT8s8v6z1IuvXMUsX9QKy3ZHseTQTzxuIhSiaaAw=
 github.com/bogdanfinn/fhttp v0.5.28/go.mod h1:oJiYPG3jQTKzk/VFmogH8jxjH5yiv2rrOH48Xso2lrE=
 github.com/bogdanfinn/tls-client v1.7.7 h1:c3mf6LX6bxEsunJhP2BJeJE7qN/7BniWUpIpBc9Igu8=
