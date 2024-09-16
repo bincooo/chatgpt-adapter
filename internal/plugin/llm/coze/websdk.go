@@ -218,12 +218,6 @@ func initTasks(opts ...*obj) (exec bool) {
 			continue
 		}
 
-		if cookies, ok := value.keyv["cookies"]; ok {
-			logger.Info("已有cookies:", cookies)
-			cookiesPollContainer.Add(value.keyv)
-			continue
-		}
-
 		timeout, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		payload := make(map[string]interface{})
 		copyMap(payload, value.keyv)
