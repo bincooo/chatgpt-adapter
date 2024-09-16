@@ -151,3 +151,7 @@ func (kv Keyv[V]) IsString(key string) bool {
 	}
 	return false
 }
+
+func (kv Keyv[V]) IsEmpty(key string) bool {
+	return kv.GetString(key) == ""
+}

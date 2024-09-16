@@ -18,7 +18,6 @@ const Config = {
         "FullColon": true,
         "xmlPlot": true,
         "SkipRestricted": false,
-        "padtxt": "1000,1000,15000",
     }
 }
 
@@ -212,8 +211,6 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
 
         /******************************** */
         const legacy = false, messagesAPI = !legacy && !/<\|completeAPI\|>/.test(prompt) || /<\|messagesAPI\|>/.test(prompt), fusion = true, wedge = '\r';
-        const stopSet = /<\|stopSet *(\[.*?\]) *\|>/.exec(prompt)?.[1], stopRevoke = /<\|stopRevoke *(\[.*?\]) *\|>/.exec(prompt)?.[1];
-        if (stop_sequences || stopSet || stopRevoke) stop_sequences = JSON.parse(stopSet || '[]').concat(stop_sequences).concat(['\n\nHuman:', '\n\nAssistant:']).filter(item => !JSON.parse(stopRevoke || '[]').includes(item) && item);
         prompt = Config.Settings.xmlPlot ? xmlPlot(prompt, legacy) : apiKey ? `\n\nHuman: ${genericFixes(prompt)}\n\nAssistant:` : genericFixes(prompt).trim();
         Config.Settings.FullColon && (prompt = !legacy ?
             prompt.replace(fusion ? /\n(?!\nAssistant:\s*$)(?=\n(Human|Assistant):)/gs : apiKey ? /(?<!\n\nHuman:.*)\n(?=\nAssistant:)|\n(?=\nHuman:)(?!.*\n\nAssistant:)/gs : /\n(?=\n(Human|Assistant):)/g, '\n' + wedge) :

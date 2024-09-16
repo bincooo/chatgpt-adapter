@@ -174,7 +174,7 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}
 
-	tor := func(r string) string {
+	toRole := func(r string) string {
 		switch r {
 		case "user":
 			return user
@@ -272,11 +272,11 @@ func (API) Completion(ctx *gin.Context) {
 	} else {
 		var newP []coze.Message
 		for _, message := range pMessages {
-			message.Role = tor(message.Role)
+			message.Role = toRole(message.Role)
 			newP = append(newP, message)
 		}
 		query = coze.MergeMessages(newP)
-		query = query[:len(query)-13] + "<|" + tor("assistant") + "|>"
+		query = query[:len(query)-13] + "<|" + toRole("assistant") + "|>"
 	}
 
 	chatResponse, err := chat.Reply(common.GetGinContext(ctx), coze.Text, query)

@@ -6,7 +6,7 @@ import (
 )
 
 func Test_download(t *testing.T) {
-	file, err := Download("http://127.0.0.1:7890", "https://krebzonide-sdxl-turbo-with-refiner.hf.space/file=/tmp/gradio/e8cec4458822c7cd2308e8d36949cd3c1c446196/image.png", "png")
+	file, err := Download(nil, "http://127.0.0.1:7890", "https://krebzonide-sdxl-turbo-with-refiner.hf.space/file=/tmp/gradio/e8cec4458822c7cd2308e8d36949cd3c1c446196/image.png", "png", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

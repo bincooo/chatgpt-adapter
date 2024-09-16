@@ -39,6 +39,9 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 
 	for {
 		if !scanner.Scan() {
+			if err = scanner.Err(); err != nil {
+				logger.Error(err)
+			}
 			break
 		}
 
@@ -55,7 +58,7 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 		var chat pkg.ChatResponse
 		err = json.Unmarshal([]byte(data), &chat)
 		if err != nil {
-			logger.Error(err.Error())
+			logger.Error(err)
 			continue
 		}
 
@@ -116,6 +119,9 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 
 	for {
 		if !scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				logger.Error(err)
+			}
 			break
 		}
 

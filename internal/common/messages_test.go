@@ -37,27 +37,33 @@ func TestMessageCombiner(t *testing.T) {
 			return ""
 		}
 	}
-	nMessages := TextMessageCombiner[map[string]string](messages, func(previous, next string, message map[string]string, buffer *bytes.Buffer) []map[string]string {
-		role := message["role"]
-		if condition(role) != condition(next) {
-			if buffer.Len() != 0 {
-				buffer.WriteByte('\n')
+	nMessages, _ := TextMessageCombiner[map[string]string](messages, func(opts struct {
+		Previous string
+		Next     string
+		Message  map[string]string
+		Buffer   *bytes.Buffer
+		Initial  func() pkg.Keyv[interface{}]
+	}) ([]map[string]string, error) {
+		role := opts.Message["role"]
+		if condition(role) != condition(opts.Next) {
+			if opts.Buffer.Len() != 0 {
+				opts.Buffer.WriteByte('\n')
 			}
-			buffer.WriteString(message["content"])
-			defer buffer.Reset()
+			opts.Buffer.WriteString(opts.Message["content"])
+			defer opts.Buffer.Reset()
 			return []map[string]string{
 				{
 					"role":    condition(role),
-					"content": buffer.String(),
+					"content": opts.Buffer.String(),
 				},
-			}
+			}, nil
 		}
 
-		if buffer.Len() != 0 {
-			buffer.WriteByte('\n')
+		if opts.Buffer.Len() != 0 {
+			opts.Buffer.WriteByte('\n')
 		}
-		buffer.WriteString(message["content"])
-		return nil
+		opts.Buffer.WriteString(opts.Message["content"])
+		return nil, nil
 	})
 
 	for _, msg := range nMessages {

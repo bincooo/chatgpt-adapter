@@ -46,6 +46,9 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 
 	for {
 		if !scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				logger.Error(err)
+			}
 			break
 		}
 
