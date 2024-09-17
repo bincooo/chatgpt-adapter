@@ -26,15 +26,15 @@ var (
 
 // 匹配器接口
 type Matcher interface {
-	match(content string) (state int, result string)
+	match(content string, over bool) (state int, result string)
 }
 
 // 字符块匹配器，只向后匹配
 type SymbolMatcher struct {
 	cache string // 缓存的字符
 	Find  string // 字符块匹配前置，'*'则匹配任意
-	// 具体的匹配实现
-	H func(index int, content string) (state int, result string)
+	// 具体的匹配实现, cache 仅在 MatMatched 状态有效
+	H func(index int, content string) (state int, cache, result string)
 }
 
 func init() {
@@ -91,29 +91,34 @@ func initMatchers(slice []interface{}) {
 				c := regexp.MustCompile(strings.TrimSpace(values[0]), regexp.Compiled)
 				join := strings.TrimSpace(values[1])
 
-				matchers = append(matchers, &SymbolMatcher{
+				var matcher *SymbolMatcher
+				matcher = &SymbolMatcher{
 					Find: find.(string),
-					H: func(index int, content string) (state int, result string) {
+					H: func(index int, content string) (state int, cache, result string) {
 						if end != "" {
 							if !strings.Contains(content, end.(string)) {
-								return vars.MatMatching, content
+								return vars.MatMatching, "", content
 							}
+							idx := strings.LastIndex(content, end.(string))
+							cache = content[idx+len(end.(string)):]
+							content = content[:idx+len(end.(string))]
 						} else {
 							r := []rune(content)
 							if index+findL > len(r)-1 {
-								return vars.MatMatching, content
+								return vars.MatMatching, "", content
 							}
 						}
 
+						logger.Infof("execute matcher[%s] content -> \n%s", matcher.Find, content)
 						result, err = c.Replace(content, join, -1, -1)
 						if err != nil {
 							logger.Warn("compile failed: "+values[0], err)
-							return vars.MatMatched, content
+							return vars.MatMatched, cache, content
 						}
-
-						return vars.MatMatched, result
+						return vars.MatMatched, cache, result
 					},
-				})
+				}
+				matchers = append(matchers, matcher)
 			}
 		}
 		return
@@ -148,43 +153,43 @@ func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 	matchers := make([]Matcher, 0)
 	matchers = append(matchers, &SymbolMatcher{
 		Find: "<|",
-		H: func(index int, content string) (state int, result string) {
+		H: func(index int, content string) (state int, _, result string) {
 			if ctx.GetBool(vars.GinClose) {
 				cancel <- context.Canceled
-				return vars.MatMatched, ""
+				return vars.MatMatched, "", ""
 			}
 
 			if len(content) < 13 {
-				return vars.MatMatching, content
+				return vars.MatMatching, "", content
 			}
 
 			for _, block := range blocks {
 				if strings.Contains(content, block) {
 					if block == "<|assistant|>" && count == 0 {
 						count++
-						return vars.MatMatched, strings.ReplaceAll(content, "<|assistant|>", "")
+						return vars.MatMatched, "", strings.ReplaceAll(content, "<|assistant|>", "")
 					}
 					cancel <- nil
 					logger.Infof("matched block will closed: %s", block)
-					return vars.MatMatched, ""
+					return vars.MatMatched, "", ""
 				}
 			}
-			return vars.MatMatched, content
+			return vars.MatMatched, "", content
 		},
 	})
 
 	if user != "" {
 		matchers = append(matchers, &SymbolMatcher{
 			Find: user,
-			H: func(index int, content string) (state int, result string) {
+			H: func(index int, content string) (state int, _, result string) {
 				if ctx.GetBool(vars.GinClose) {
 					cancel <- context.Canceled
-					return vars.MatMatched, ""
+					return vars.MatMatched, "", ""
 				}
 
 				cancel <- nil
 				logger.Infof("matched block will closed: %s", user)
-				return vars.MatMatched, ""
+				return vars.MatMatched, "", ""
 			},
 		})
 	}
@@ -192,15 +197,15 @@ func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 	if assistant != "" {
 		matchers = append(matchers, &SymbolMatcher{
 			Find: assistant,
-			H: func(index int, content string) (state int, result string) {
+			H: func(index int, content string) (state int, _, result string) {
 				if ctx.GetBool(vars.GinClose) {
 					cancel <- context.Canceled
-					return vars.MatMatched, ""
+					return vars.MatMatched, "", ""
 				}
 
 				cancel <- nil
 				logger.Infof("matched block will closed: %s", assistant)
-				return vars.MatMatched, ""
+				return vars.MatMatched, "", ""
 			},
 		})
 	}
@@ -208,15 +213,15 @@ func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 	for _, value := range completion.StopSequences {
 		matchers = append(matchers, &SymbolMatcher{
 			Find: value,
-			H: func(index int, content string) (state int, result string) {
+			H: func(index int, content string) (state int, _, result string) {
 				if ctx.GetBool(vars.GinClose) {
 					cancel <- context.Canceled
-					return vars.MatMatched, ""
+					return vars.MatMatched, "", ""
 				}
 
 				cancel <- nil
 				logger.Infof("matched block will closed: %s", value)
-				return vars.MatMatched, ""
+				return vars.MatMatched, "", ""
 			},
 		})
 	}
@@ -224,32 +229,29 @@ func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 	return cancel, matchers
 }
 
-func ExecMatchers(matchers []Matcher, raw string) string {
-	// MAT_DEFAULT	没有命中，继续执行下一个
-	// MAT_MATCHING 匹配中，缓存消息不执行下一个
-	// MAT_MATCHED 	命中，不再执行下一个
+// MAT_DEFAULT	没有命中，继续执行下一个
+//
+// MAT_MATCHING 匹配中，缓存消息不执行下一个
+//
+// MAT_MATCHED 	命中，不再执行下一个
+func ExecMatchers(matchers []Matcher, raw string, done bool) string {
+	s := vars.MatDefault
 	for _, mat := range matchers {
-		s, result := mat.match(raw)
+		s, raw = mat.match(raw, done)
 		if s == vars.MatDefault {
-			raw = result
 			continue
 		}
-		if s == vars.MatMatching {
-			raw = result
-			break
-		}
-		if s == vars.MatMatched {
-			raw = result
-			break
-		}
+		break
 	}
 	return raw
 }
 
-func (mat *SymbolMatcher) match(content string) (state int, result string) {
+func (mat *SymbolMatcher) match(content string, over bool) (state int, result string) {
 	content = mat.cache + content
 	state = vars.MatDefault
-
+	// MatDefault 没有命中
+	// MatMatching 匹配中
+	// MatMatched 命中了
 	var (
 		index = 0
 		find  = []rune(mat.Find)
@@ -267,12 +269,16 @@ func (mat *SymbolMatcher) match(content string) (state int, result string) {
 	for index = range rc {
 		var ch rune
 		if len(find) <= pos {
-			state = vars.MatMatched
+			// 到这里就代表命中了，检查一下
+			if strings.Contains(content, string(find)) {
+				state = vars.MatMatched
+			}
 			if mat.H != nil {
 				break
 			}
 			continue
 		}
+
 		ch = find[pos]
 		if ch != rc[index] {
 			pos = 0
@@ -280,6 +286,7 @@ func (mat *SymbolMatcher) match(content string) (state int, result string) {
 			state = vars.MatDefault
 			continue
 		}
+
 		if idx == -1 || idx == index-1 {
 			pos++
 			idx = index
@@ -289,32 +296,39 @@ func (mat *SymbolMatcher) match(content string) (state int, result string) {
 	}
 
 state:
+	// 没有命中，返回所有内容（包括cache）
 	if state == vars.MatDefault {
 		mat.cache = ""
 		result = content
 		return
 	}
 
+	// 还在匹配中，再次校验是否命中
 	if state == vars.MatMatching {
-		mat.cache = content
-		if strings.HasSuffix(content, mat.Find) {
-			state = vars.MatMatched
+		mat.cache = content // 缓存
+		if strings.Contains(content, mat.Find) {
+			state = vars.MatMatched // 命中
 		} else {
-			result = ""
+			result = "" // 等待下次输入
 			return
 		}
 	}
 
 	if mat.H != nil {
-		state, result = mat.H(index, content)
-		if state == vars.MatMatched {
-			mat.cache = ""
+		var leaveCache string
+		state, leaveCache, result = mat.H(index, content) // 执行下游自定义处理
+		if state == vars.MatMatched {                     // 处理完毕
+			mat.cache = leaveCache
 			return
 		}
-		if state == vars.MatMatching {
+		if state == vars.MatMatching { // 还在处理中
+			if over { // 已经没有后续输入了
+				return vars.MatDefault, content
+			}
 			mat.cache = result
 			return state, ""
 		}
+
 		return state, content
 	} else {
 		result = content

@@ -135,6 +135,11 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 
 		data = data[6:]
 		if data == "[DONE]" {
+			raw := common.ExecMatchers(matchers, "", true)
+			if raw != "" && sse {
+				response.Event(ctx, "", raw)
+			}
+			content += raw
 			if htc && !sse {
 				toolCall["args"] = content
 			}
@@ -190,7 +195,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, r *http.Response,
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
 
-		raw = common.ExecMatchers(matchers, raw)
+		raw = common.ExecMatchers(matchers, raw, false)
 		if len(raw) == 0 {
 			continue
 		}

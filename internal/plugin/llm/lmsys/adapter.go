@@ -316,18 +316,18 @@ func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []co
 	// 违反内容中断并返回错误1
 	matchers = append(matchers, &common.SymbolMatcher{
 		Find: "I did not actually provide",
-		H: func(index int, content string) (state int, result string) {
+		H: func(index int, content string) (state int, _, result string) {
 			cancel <- errors.New("SECURITY POLICY INTERCEPTION")
-			return vars.MatMatched, ""
+			return vars.MatMatched, "", ""
 		},
 	})
 
 	// 违反内容中断并返回错误2
 	matchers = append(matchers, &common.SymbolMatcher{
 		Find: "I apologize",
-		H: func(index int, content string) (state int, result string) {
+		H: func(index int, content string) (state int, _, result string) {
 			cancel <- errors.New("SECURITY POLICY INTERCEPTION")
-			return vars.MatMatched, ""
+			return vars.MatMatched, "", ""
 		},
 	})
 	return cancel, matchers

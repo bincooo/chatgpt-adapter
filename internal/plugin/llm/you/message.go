@@ -64,6 +64,11 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 		default:
 			message, ok := <-ch
 			if !ok {
+				raw := common.ExecMatchers(matchers, "", true)
+				if raw != "" && sse {
+					response.SSEResponse(ctx, Model, raw, created)
+				}
+				content += raw
 				goto label
 			}
 
@@ -82,7 +87,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 			var raw = message
 			logger.Debug("----- raw -----")
 			logger.Debug(raw)
-			raw = common.ExecMatchers(matchers, raw)
+			raw = common.ExecMatchers(matchers, raw, false)
 			if len(raw) == 0 {
 				continue
 			}
@@ -122,6 +127,17 @@ func waitMessageResponse(ctx *gin.Context, ch chan string, matchers []common.Mat
 		default:
 			message, ok := <-ch
 			if !ok {
+				raw := common.ExecMatchers(matchers, "", true)
+				if raw != "" {
+					response.Event(ctx, "content_block_delta", map[string]interface{}{
+						"index": 0,
+						"type":  "content_block_delta",
+						"delta": map[string]interface{}{
+							"type": "text_delta", "text": raw,
+						},
+					})
+				}
+				content += raw
 				goto label
 			}
 
@@ -139,7 +155,7 @@ func waitMessageResponse(ctx *gin.Context, ch chan string, matchers []common.Mat
 
 			logger.Debug("----- raw -----")
 			logger.Debug(message)
-			raw := common.ExecMatchers(matchers, message)
+			raw := common.ExecMatchers(matchers, message, false)
 			if len(raw) == 0 {
 				continue
 			}

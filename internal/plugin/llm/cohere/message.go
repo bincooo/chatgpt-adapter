@@ -53,6 +53,11 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	for {
 		raw, ok := <-chatResponse
 		if !ok {
+			raw = common.ExecMatchers(matchers, "", true)
+			if raw != "" && sse {
+				response.SSEResponse(ctx, Model, raw, created)
+			}
+			content += raw
 			break
 		}
 
@@ -88,7 +93,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
 
-		raw = common.ExecMatchers(matchers, raw)
+		raw = common.ExecMatchers(matchers, raw, false)
 		if len(raw) == 0 {
 			continue
 		}

@@ -155,14 +155,14 @@ func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []co
 	// 清理 [^1^ 标签
 	matchers = append(matchers, &common.SymbolMatcher{
 		Find: "[",
-		H: func(index int, content string) (state int, result string) {
+		H: func(index int, content string) (state int, _, result string) {
 			r := []rune(content)
 			eIndex := len(r) - 1
 			if index+4 > eIndex {
 				if index <= eIndex && r[index] != []rune("^")[0] {
-					return vars.MatMatched, content
+					return vars.MatMatched, "", content
 				}
-				return vars.MatMatching, content
+				return vars.MatMatching, "", content
 			}
 			regexCompile := regexp.MustCompile(`\[\d+]`)
 			content = regexCompile.ReplaceAllString(content, "")
@@ -175,22 +175,22 @@ func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []co
 			regexCompile = regexp.MustCompile(`\[\^\d+\^`)
 			content = regexCompile.ReplaceAllString(content, "")
 			if strings.HasSuffix(content, "[") || strings.HasSuffix(content, "[^") {
-				return vars.MatMatching, content
+				return vars.MatMatching, "", content
 			}
-			return vars.MatMatched, content
+			return vars.MatMatched, "", content
 		},
 	})
 	// (^1^) (^1^ (^1^^ 标签
 	matchers = append(matchers, &common.SymbolMatcher{
 		Find: "(",
-		H: func(index int, content string) (state int, result string) {
+		H: func(index int, content string) (state int, _, result string) {
 			r := []rune(content)
 			eIndex := len(r) - 1
 			if index+4 > eIndex {
 				if index <= eIndex && r[index] != []rune("^")[0] {
-					return vars.MatMatched, content
+					return vars.MatMatched, "", content
 				}
-				return vars.MatMatching, content
+				return vars.MatMatching, "", content
 			}
 			regexCompile := regexp.MustCompile(`\(\^\d+\^\):`)
 			content = regexCompile.ReplaceAllString(content, "")
@@ -201,9 +201,9 @@ func joinMatchers(ctx *gin.Context, matchers []common.Matcher) (chan error, []co
 			regexCompile = regexp.MustCompile(`\(\^\d+\^`)
 			content = regexCompile.ReplaceAllString(content, "")
 			if strings.HasSuffix(content, "(") || strings.HasSuffix(content, "(^") {
-				return vars.MatMatching, content
+				return vars.MatMatching, "", content
 			}
-			return vars.MatMatched, content
+			return vars.MatMatched, "", content
 		},
 	})
 

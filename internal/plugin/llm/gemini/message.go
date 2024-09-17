@@ -43,6 +43,11 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 		}
 
 		if err == io.EOF {
+			raw := common.ExecMatchers(matchers, "", true)
+			if raw != "" && sse {
+				response.SSEResponse(ctx, MODEL, raw, created)
+			}
+			content += raw
 			break
 		}
 
@@ -113,7 +118,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 		logger.Debug(raw)
 
 		original = nil
-		raw = common.ExecMatchers(matchers, raw.(string))
+		raw = common.ExecMatchers(matchers, raw.(string), false)
 		if len(raw.(string)) == 0 {
 			continue
 		}

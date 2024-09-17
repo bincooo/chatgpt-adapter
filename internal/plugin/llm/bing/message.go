@@ -62,6 +62,11 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 		default:
 			message, ok := <-chatResponse
 			if !ok {
+				raw := common.ExecMatchers(matchers, "", true)
+				if raw != "" && sse {
+					response.SSEResponse(ctx, Model, raw, created)
+				}
+				content += raw
 				goto label
 			}
 
@@ -81,7 +86,7 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, cancel chan error
 				logger.Debug(raw)
 			}
 			pos = contentL
-			raw = common.ExecMatchers(matchers, raw)
+			raw = common.ExecMatchers(matchers, raw, false)
 			if len(raw) == 0 {
 				continue
 			}

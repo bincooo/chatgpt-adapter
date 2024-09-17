@@ -618,26 +618,26 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) []Matcher {
 
 	matchers = append(matchers, &SymbolMatcher{
 		Find: find,
-		H: func(index int, content string) (state int, result string) {
+		H: func(index int, content string) (state int, _, result string) {
 			var err error
 			if end != "" {
 				if !strings.Contains(content, end) {
-					return vars.MatMatching, content
+					return vars.MatMatching, "", content
 				}
 			} else {
 				r := []rune(content)
 				if index+findL > len(r)-1 {
-					return vars.MatMatching, content
+					return vars.MatMatching, "", content
 				}
 			}
 
 			result, err = c.Replace(content, join, -1, -1)
 			if err != nil {
 				logger.Warn("compile failed: "+values[0], err)
-				return vars.MatMatched, content
+				return vars.MatMatched, "", content
 			}
 
-			return vars.MatMatched, result
+			return vars.MatMatched, "", result
 		},
 	})
 
