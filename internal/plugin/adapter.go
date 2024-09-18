@@ -30,36 +30,22 @@ type Model struct {
 func init() {
 	common.AddInitialized(func() {
 		var err error
-		whites := []string{
-			"127.0.0.1",
-		}
-
-		option := common.GetIdleConnectOption()
-		HTTPClient, err = emit.NewDefaultSession(vars.Proxies, option, whites...)
-		if err != nil {
-			logger.Error("Error initializing HTTPClient: ", err)
-		}
-
+		options := common.GetIdleConnectOptions()
 		connTimeout := pkg.Config.GetInt("server-conn.connTimeout")
 		if connTimeout == 0 {
 			connTimeout = 180
 		}
 
-		HTTPJa3Client, err := emit.NewJa3Session(emit.Echo{RandomTLSExtension: true, HelloID: profiles.Chrome_124}, vars.Proxies, connTimeout)
+		options = append(options, emit.Ja3Helper(emit.Echo{RandomTLSExtension: true, HelloID: profiles.Chrome_124}, connTimeout))
+		HTTPClient, err = emit.NewSession(vars.Proxies, emit.SimpleWithes("127.0.0.1"), options...)
 		if err != nil {
-			logger.Error("Error initializing HTTPJa3Client: ", err)
+			logger.Error("Error initializing HTTPClient: ", err)
 		}
 
-		SocketClient, err := emit.NewSocketSession(vars.Proxies, option, whites...)
-		if err != nil {
-			logger.Error("Error initializing HTTPJa3Client: ", err)
-		}
-
-		HTTPClient = emit.MergeSession(HTTPClient, HTTPJa3Client, SocketClient)
 		IO = socketio.NewServer(nil, nil)
 
 		if value := pkg.Config.GetString("clash.proxies"); value != "" {
-			ClashAPIClient, err = emit.NewDefaultSession(value, option, whites...)
+			ClashAPIClient, err = emit.NewSession(vars.Proxies, emit.SimpleWithes("127.0.0.1"), options...)
 			if err != nil {
 				logger.Error("Error initializing ClashAPIClient: ", err)
 			}

@@ -4,13 +4,13 @@ go 1.21.6
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
-	github.com/bincooo/claude-api v1.0.5-0.20240814184031-56ad31d90db8
-	github.com/bincooo/cohere-api v0.0.0-20240918064927-10e2ab540e41
-	github.com/bincooo/coze-api v1.0.2-0.20240917114117-0352dbf03f21
-	github.com/bincooo/edge-api v1.0.4-0.20240801160633-4131c13986a5
-	github.com/bincooo/emit.io v1.0.1-0.20240814182208-c5236f8f202c
-	github.com/bincooo/vecmul.com v0.0.0-20240806095224-6e571cbe7b7e
-	github.com/bincooo/you.com v0.0.0-20240916065816-07513a84d11e
+	github.com/bincooo/claude-api v1.0.5-0.20240918105519-bfef6b26ec32
+	github.com/bincooo/cohere-api v0.0.0-20240918105710-b88e2b55a4dd
+	github.com/bincooo/coze-api v1.0.2-0.20240918110129-770fad86481e
+	github.com/bincooo/edge-api v1.0.4-0.20240918111026-76a4223e60d0
+	github.com/bincooo/emit.io v1.0.1-0.20240918104917-7aa3711f2559
+	github.com/bincooo/vecmul.com v0.0.0-20240918113329-241a0f273998
+	github.com/bincooo/you.com v0.0.0-20240918111518-4ae3958b355f
 	github.com/bogdanfinn/tls-client v1.7.7
 	github.com/dlclark/regexp2 v1.11.4
 	github.com/dop251/goja v0.0.0-20240828124009-016eb7256539

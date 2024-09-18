@@ -44,14 +44,13 @@ func AddExited(apply func()) {
 	exitFunctions = append(exitFunctions, apply)
 }
 
-func GetIdleConnectOption() *emit.ConnectOption {
+func GetIdleConnectOptions() (options []emit.OptionHelper) {
 	opts := pkg.Config.GetStringMap("server-conn")
-	var option emit.ConnectOption
 	if value, ok := opts["idleconntimeout"]; ok {
-		connTimeout, o := value.(int)
+		timeout, o := value.(int)
 		if o {
-			if connTimeout > 0 {
-				option.IdleConnTimeout = time.Duration(connTimeout) * time.Second
+			if timeout > 0 {
+				options = append(options, emit.IdleConnTimeoutHelper(time.Duration(timeout)*time.Second))
 			}
 		} else {
 			logger.Warnf("read idleConnTimeout error: %v", value)
@@ -59,10 +58,10 @@ func GetIdleConnectOption() *emit.ConnectOption {
 	}
 
 	if value, ok := opts["responseheadertimeout"]; ok {
-		connTimeout, o := value.(int)
+		timeout, o := value.(int)
 		if o {
-			if connTimeout > 0 {
-				option.ResponseHeaderTimeout = time.Duration(connTimeout) * time.Second
+			if timeout > 0 {
+				options = append(options, emit.ResponseHeaderTimeoutHelper(time.Duration(timeout)*time.Second))
 			}
 		} else {
 			logger.Warnf("read responseHeaderTimeout error: %v", value)
@@ -70,21 +69,21 @@ func GetIdleConnectOption() *emit.ConnectOption {
 	}
 
 	if value, ok := opts["expectcontinuetimeout"]; ok {
-		connTimeout, o := value.(int)
+		timeout, o := value.(int)
 		if o {
-			if connTimeout > 0 {
-				option.ExpectContinueTimeout = time.Duration(connTimeout) * time.Second
+			if timeout > 0 {
+				options = append(options, emit.ExpectContinueTimeoutHelper(time.Duration(timeout)*time.Second))
 			}
 		} else {
 			logger.Warnf("read expectContinueTimeout error: %v", value)
 		}
 	}
 
-	option.TLSClientConfig = &tls.Config{
+	options = append(options, emit.TLSConfigHelper(&tls.Config{
 		InsecureSkipVerify: true,
-	}
+	}))
 
-	return &option
+	return
 }
 
 // 删除子元素

@@ -79,7 +79,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) e
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
 		JHeader().
-		Ja3("yes").
+		Ja3().
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
 		Header("Origin", baseUrl).
@@ -111,7 +111,7 @@ func partTwo(ctx context.Context, proxies, cookies, hash string, opts options) e
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
-		Ja3("yes").
+		Ja3().
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("User-Agent", ua).
@@ -154,7 +154,7 @@ func partThree(ctx context.Context, proxies, cookies, hash string, opts options)
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
 		JHeader().
-		Ja3("yes").
+		Ja3().
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
 		Header("Origin", baseUrl).
@@ -184,7 +184,7 @@ func partThree(ctx context.Context, proxies, cookies, hash string, opts options)
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
-		Ja3("yes").
+		Ja3().
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("User-Agent", ua).
@@ -303,7 +303,7 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 		Proxies(proxies).
 		POST(baseUrl+"/queue/join").
 		JHeader().
-		Ja3("yes").
+		Ja3().
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
 		Header("Origin", baseUrl).
@@ -335,7 +335,7 @@ func partOne(ctx context.Context, proxies, token string, opts *options, messages
 	response, err = emit.ClientBuilder(plugin.HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
-		Ja3("yes").
+		Ja3().
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
 		Header("User-Agent", ua).
@@ -415,7 +415,7 @@ label:
 		Context(ctx).
 		Proxies(proxies).
 		GET(baseUrl+"/info").
-		Ja3("yes").
+		Ja3().
 		Header("pragma", "no-cache").
 		Header("cache-control", "no-cache").
 		Header("Accept-Language", "en-US,en;q=0.9").
