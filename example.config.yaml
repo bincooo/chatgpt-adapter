@@ -64,6 +64,10 @@ google:
 #    - category: HARM_CATEGORY_HARASSMENT
 #      threshold: BLOCK_NONE
 
+# cohere 自定义安全设置，目前仅兼容 Command R 08-2024、Command R+ 08-2024 及更新机型
+cohere:
+  safety: CONTEXTUAL # NONE | CONTEXTUAL | STRICT
+
 bing:
   base-url: "https://edgeservices.bing.com/edgesvc"
 

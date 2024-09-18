@@ -165,6 +165,9 @@ func Echo(ctx *gin.Context, mode, content string, sse bool) {
 func SSEResponse(ctx *gin.Context, model, content string, created int64) {
 	ctx.Set(canResponse, "No!")
 	setSSEHeader(ctx)
+	if content == "" {
+		return
+	}
 
 	done := false
 	finishReason := ""

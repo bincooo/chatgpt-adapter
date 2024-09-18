@@ -36,40 +36,26 @@ func (API) Match(_ *gin.Context, model string) bool {
 	}
 }
 
-func (API) Models() []plugin.Model {
-	return []plugin.Model{
-		{
-			Id:      "command",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "cohere-adapter",
-		}, {
-			Id:      "command-r",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "cohere-adapter",
-		}, {
-			Id:      "command-light",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "cohere-adapter",
-		}, {
-			Id:      "command-light-nightly",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "cohere-adapter",
-		}, {
-			Id:      "command-nightly",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "cohere-adapter",
-		}, {
-			Id:      "command-r-plus",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "cohere-adapter",
-		},
+func (API) Models() (result []plugin.Model) {
+	slice := []string{
+		coh.COMMAND,
+		coh.COMMAND_R,
+		coh.COMMAND_LIGHT,
+		coh.COMMAND_LIGHT_NIGHTLY,
+		coh.COMMAND_NIGHTLY,
+		coh.COMMAND_R_PLUS,
+		coh.COMMAND_R_202408,
+		coh.COMMAND_R_PLUS_202408,
 	}
+	for _, model := range slice {
+		result = append(result, plugin.Model{
+			Id:      model,
+			Object:  "model",
+			Created: 1686935002,
+			By:      "cohere-adapter",
+		})
+	}
+	return
 }
 
 func (API) Completion(ctx *gin.Context) {
@@ -131,7 +117,14 @@ func (API) Completion(ctx *gin.Context) {
 		}
 
 		chat = coh.New(cookie, completion.Temperature, completion.Model, true)
-
+		chat.TopK(completion.TopK)
+		chat.MaxTokens(completion.MaxTokens)
+		chat.StopSequences(completion.StopSequences)
+		if completion.Model == coh.COMMAND_R_202408 || completion.Model == coh.COMMAND_R_PLUS_202408 {
+			if safety := pkg.Config.GetString("cohere.safety"); safety != "" {
+				chat.Safety(safety)
+			}
+		}
 	}
 
 	chat.Proxies(proxies)
