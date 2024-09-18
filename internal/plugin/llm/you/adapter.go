@@ -82,7 +82,7 @@ func timer() {
 
 			var se emit.Error
 			if !errors.As(err, &se) {
-				logger.Error("定时器 you.com 过盾检查失败：%v", err)
+				logger.Info("定时器执行 you.com 过盾检查，无需执行")
 				continue
 			}
 
@@ -90,7 +90,7 @@ func timer() {
 				// 需要重新过盾
 				clearance = ""
 			} else {
-				logger.Error("定时器 you.com 过盾检查失败：%v", err)
+				logger.Info("定时器执行 you.com 过盾检查，无需执行")
 				continue
 			}
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 		"<|end|>",
 	}
 
-	globalMatchers func() []Matcher
+	globalMatchers func(cb func(str string)) []Matcher
 )
 
 // 匹配器接口
@@ -55,7 +56,7 @@ func initMatchers(slice []interface{}) {
 		return
 	}
 
-	globalMatchers = func() (matchers []Matcher) {
+	globalMatchers = func(cb func(str string)) (matchers []Matcher) {
 		for _, it := range slice {
 			if m, o := it.(map[string]interface{}); o {
 				find, ok := m["find"]
@@ -71,6 +72,11 @@ func initMatchers(slice []interface{}) {
 				l, ok := m["len"]
 				if !ok {
 					l = "5"
+				}
+
+				desc, ok := m["desc"]
+				if !ok {
+					desc = ""
 				}
 
 				findL, err := strconv.Atoi(l.(string))
@@ -92,9 +98,15 @@ func initMatchers(slice []interface{}) {
 				join := strings.TrimSpace(values[1])
 
 				var matcher *SymbolMatcher
+				onceFunc := sync.OnceFunc(func() {
+					cb(desc.(string))
+				})
+
 				matcher = &SymbolMatcher{
 					Find: find.(string),
 					H: func(index int, content string) (state int, cache, result string) {
+						onceFunc()
+
 						if end != "" {
 							if !strings.Contains(content, end.(string)) {
 								return vars.MatMatching, "", content
@@ -125,10 +137,10 @@ func initMatchers(slice []interface{}) {
 	}
 }
 
-func NewMatchers() []Matcher {
+func NewMatchers(cb func(str string)) []Matcher {
 	slice := make([]Matcher, 0)
 	if globalMatchers != nil {
-		slice = append(slice, globalMatchers()...)
+		slice = append(slice, globalMatchers(cb)...)
 	}
 	return slice
 }
@@ -156,25 +168,33 @@ func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 		H: func(index int, content string) (state int, _, result string) {
 			if ctx.GetBool(vars.GinClose) {
 				cancel <- context.Canceled
-				return vars.MatMatched, "", ""
+				state = vars.MatMatched
+				return
 			}
 
 			if len(content) < 13 {
-				return vars.MatMatching, "", content
+				state = vars.MatMatching
+				result = content
+				return
 			}
 
 			for _, block := range blocks {
 				if strings.Contains(content, block) {
 					if block == "<|assistant|>" && count == 0 {
 						count++
-						return vars.MatMatched, "", strings.ReplaceAll(content, "<|assistant|>", "")
+						state = vars.MatMatched
+						result = strings.ReplaceAll(content, "<|assistant|>", "")
+						return
 					}
 					cancel <- nil
 					logger.Infof("matched block will closed: %s", block)
-					return vars.MatMatched, "", ""
+					state = vars.MatMatched
+					return
 				}
 			}
-			return vars.MatMatched, "", content
+			state = vars.MatDefault
+			result = content
+			return
 		},
 	})
 
@@ -184,12 +204,14 @@ func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 			H: func(index int, content string) (state int, _, result string) {
 				if ctx.GetBool(vars.GinClose) {
 					cancel <- context.Canceled
-					return vars.MatMatched, "", ""
+					state = vars.MatMatched
+					return
 				}
 
 				cancel <- nil
 				logger.Infof("matched block will closed: %s", user)
-				return vars.MatMatched, "", ""
+				state = vars.MatMatched
+				return
 			},
 		})
 	}
@@ -200,12 +222,14 @@ func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 			H: func(index int, content string) (state int, _, result string) {
 				if ctx.GetBool(vars.GinClose) {
 					cancel <- context.Canceled
-					return vars.MatMatched, "", ""
+					state = vars.MatMatched
+					return
 				}
 
 				cancel <- nil
 				logger.Infof("matched block will closed: %s", assistant)
-				return vars.MatMatched, "", ""
+				state = vars.MatMatched
+				return
 			},
 		})
 	}
@@ -216,12 +240,14 @@ func NewCancelMatcher(ctx *gin.Context) (chan error, []Matcher) {
 			H: func(index int, content string) (state int, _, result string) {
 				if ctx.GetBool(vars.GinClose) {
 					cancel <- context.Canceled
-					return vars.MatMatched, "", ""
+					state = vars.MatMatched
+					return
 				}
 
 				cancel <- nil
 				logger.Infof("matched block will closed: %s", value)
-				return vars.MatMatched, "", ""
+				state = vars.MatMatched
+				return
 			},
 		})
 	}
@@ -268,9 +294,9 @@ func (mat *SymbolMatcher) match(content string, over bool) (state int, result st
 
 	for index = range rc {
 		var ch rune
-		if len(find) <= pos {
+		if len(find) == pos {
 			// 到这里就代表命中了，检查一下
-			if strings.Contains(content, string(find)) {
+			if strings.HasSuffix(content, string(find)) {
 				state = vars.MatMatched
 			}
 			if mat.H != nil {

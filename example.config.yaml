@@ -138,7 +138,8 @@ toolCall:
 # 用于处理llm响应时的内容
 # find: 开头匹配
 # end: 结束匹配
-# content: 正则处理
+# content: 正则处理,用于正则替换。例如实现CoT内容屏蔽，达到类似openai_o1的效果
+# desc: 可以在find命中时给前端反馈一些简单文字
 #matcher:
 #  - find: <!-- Attack
 #    end: -->
@@ -146,3 +147,4 @@ toolCall:
 #  - find: <thinking>
 #    end: </thinking>
 #    content: "<thinking>[\\s\\S]+<\\/thinking>:thinking..."
+#    desc: desc Response

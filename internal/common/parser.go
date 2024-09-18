@@ -383,8 +383,8 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 	return recursive(value)
 }
 
-func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) ([]Matcher, error) {
-	matchers := NewMatchers()
+func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion, cb func(str string)) ([]Matcher, error) {
+	matchers := NewMatchers(cb)
 	flags := pkg.Config.GetBool("flags")
 	if !flags {
 		if err := handleClaudeMessages(ctx, *completion); err != nil {

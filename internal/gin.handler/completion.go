@@ -56,7 +56,7 @@ func messages(ctx *gin.Context) {
 	}
 
 	_ = ctx.Request.Body.Close()
-	matchers := common.NewMatchers()
+	matchers := common.NewMatchers(func(string) {})
 	ctx.Set(vars.GinCompletion, completion)
 	ctx.Set(vars.GinMatchers, matchers)
 
@@ -168,8 +168,12 @@ func beforeProcess(ctx *gin.Context, completion pkg.ChatCompletion) (err error) 
 		})
 	}
 
-	// init flogs
-	matchers, err := common.XmlFlags(ctx, &completion)
+	// init flags
+	matchers, err := common.XmlFlags(ctx, &completion, func(str string) {
+		if completion.Stream {
+			response.SSEResponse(ctx, "matcher", str, time.Now().Unix())
+		}
+	})
 	if err != nil {
 		return err
 	}
