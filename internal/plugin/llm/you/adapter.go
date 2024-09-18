@@ -82,7 +82,7 @@ func timer() {
 
 			var se emit.Error
 			if !errors.As(err, &se) {
-				logger.Info("定时器执行 you.com 过盾检查，无需执行")
+				logger.Errorf("定时器 you.com 过盾检查失败：%v", err)
 				continue
 			}
 
