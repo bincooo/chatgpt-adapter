@@ -184,6 +184,8 @@ lmsys:
 > fn_index、trigger_id 获取：进入[主页](https://chat.lmsys.org/)，选择Direct Chat 发送一次对话，F12抓取join里的对应参数
 >
 > 两种配置化，1. 请求头携带 `Authorization: [49, 109]`, 2. config.yaml中配置 `lmsys: [49, 109]`
+>
+> 新增字典写法：`{ "claude-3-5-sonnet-20240620": [ 70, 124 ] }`
 
 custom:
 > 实现chatgpt规范的上游AI接口，可用此定义来实现toolCall的功能
