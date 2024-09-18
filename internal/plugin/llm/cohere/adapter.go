@@ -29,7 +29,9 @@ func (API) Match(_ *gin.Context, model string) bool {
 		coh.COMMAND_LIGHT,
 		coh.COMMAND_LIGHT_NIGHTLY,
 		coh.COMMAND_NIGHTLY,
-		coh.COMMAND_R_PLUS:
+		coh.COMMAND_R_PLUS,
+		coh.COMMAND_R_202408,
+		coh.COMMAND_R_PLUS_202408:
 		return true
 	default:
 		return false
