@@ -23,8 +23,11 @@ llm:
   model: "bing"
   token: "xxx"
 
-# lmsys fn、 trigger
-lmsys: [49 , 109]
+# lmsys fn、 trigger，支持多模型参数映射，json格式
+lmsys: |
+  {
+    "claude-3-5-sonnet-20240620": [ 70, 124 ]
+  }
 
 # hf 绘图接口配置化
 # 若旧接口不可用，可以到huggingface上查找同类型的接口配置

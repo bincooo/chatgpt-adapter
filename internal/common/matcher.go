@@ -99,7 +99,9 @@ func initMatchers(slice []interface{}) {
 
 				var matcher *SymbolMatcher
 				onceFunc := sync.OnceFunc(func() {
-					cb(desc.(string))
+					if desc != "" {
+						cb(desc.(string))
+					}
 				})
 
 				matcher = &SymbolMatcher{
@@ -121,7 +123,7 @@ func initMatchers(slice []interface{}) {
 							}
 						}
 
-						logger.Infof("execute matcher[%s] content -> \n%s", matcher.Find, content)
+						logger.Infof("execute matcher[%s] content:\n%s", matcher.Find, content)
 						result, err = c.Replace(content, join, -1, -1)
 						if err != nil {
 							logger.Warn("compile failed: "+values[0], err)

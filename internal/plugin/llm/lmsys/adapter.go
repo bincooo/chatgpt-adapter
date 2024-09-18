@@ -24,239 +24,98 @@ func (API) Match(_ *gin.Context, model string) bool {
 	return strings.HasPrefix(model, "lmsys/")
 }
 
-func (API) Models() []plugin.Model {
+func (API) Models() (result []plugin.Model) {
 	/*
 		// lmsys 模型导出代码
 		const lis = $0.querySelectorAll('li')
 		let result = ''
 		for (let index = 0, len = lis.length; index < len; index ++) {
-		    result += `{
-						"id":       "lmsys/${lis[index].getAttribute('aria-label')}",
-						"object":   "model",
-						"created":  1686935002,
-						"owned_by": "lmsys-adapter",
-					}, `
+			result += `"${lis[index].getAttribute('aria-label')}",\n`
 		}
-		console.log(result)
+		console.log(`[${result}]`)
 	*/
-	return []plugin.Model{
-		{
-			Id:      "lmsys/claude-3-5-sonnet-20240620",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/claude-3-haiku-20240307",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/claude-3-sonnet-20240229",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/claude-3-opus-20240229",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/claude-2.1",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/gpt-4o-2024-05-13",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/gpt-4-turbo-2024-04-09",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/im-also-a-good-gpt2-chatbot",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/im-a-good-gpt2-chatbot",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/llama-3-70b-instruct",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/llama-3-8b-instruct",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/gemini-1.5-pro-api-preview",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/reka-core-20240501",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/qwen-max-0428",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/qwen1.5-110b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/snowflake-arctic-instruct",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/phi-3-mini-128k-instruct",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/mixtral-8x22b-instruct-v0.1",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/gpt-3.5-turbo-0125",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/reka-flash",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/reka-flash-online",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/command-r-plus",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/command-r",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/gemma-1.1-7b-it",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/gemma-1.1-2b-it",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/mixtral-8x7b-instruct-v0.1",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/mistral-large-2402",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/mistral-medium",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/qwen1.5-72b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/qwen1.5-32b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/qwen1.5-14b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/qwen1.5-7b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/qwen1.5-4b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/zephyr-orpo-141b-A35b-v0.1",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/dbrx-instruct",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/llama-2-70b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/llama-2-13b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/llama-2-7b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/olmo-7b-instruct",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/vicuna-13b",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/yi-34b-chat",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/codellama-70b-instruct",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		}, {
-			Id:      "lmsys/openhermes-2.5-mistral-7b",
-			Object:  "model",
-			Created: 1686935002,
-			By:      "lmsys-adapter",
-		},
+	slice := []string{
+		"chatgpt-4o-latest-20240903",
+		"gpt-4o-mini-2024-07-18",
+		"gpt-4o-2024-08-06",
+		"gpt-4o-2024-05-13",
+		"grok-2-2024-08-13",
+		"grok-2-mini-2024-08-13",
+		"gemini-1.5-pro-exp-0827",
+		"gemini-1.5-flash-exp-0827",
+		"gemini-1.5-flash-8b-exp-0827",
+		"gemini-1.5-pro-api-0514",
+		"gemini-1.5-flash-api-0514",
+		"claude-3-5-sonnet-20240620",
+		"llama-3.1-405b-instruct-bf16",
+		"llama-3.1-405b-instruct-fp8",
+		"llama-3.1-70b-instruct",
+		"llama-3.1-8b-instruct",
+		"mistral-large-2407",
+		"im-also-a-good-gpt2-chatbot",
+		"im-a-good-gpt2-chatbot",
+		"jamba-1.5-large",
+		"jamba-1.5-mini",
+		"gemma-2-27b-it",
+		"gemma-2-9b-it",
+		"gemma-2-2b-it",
+		"eureka-chatbot",
+		"claude-3-haiku-20240307",
+		"claude-3-sonnet-20240229",
+		"claude-3-opus-20240229",
+		"deepseek-v2.5",
+		"nemotron-4-340b",
+		"llama-3-70b-instruct",
+		"llama-3-8b-instruct",
+		"athene-70b-0725",
+		"qwen2.5-72b-instruct",
+		"qwen2-72b-instruct",
+		"qwen-max-0428",
+		"qwen-plus-0828",
+		"qwen-vl-max-0809",
+		"gpt-3.5-turbo-0125",
+		"yi-large-preview",
+		"yi-large",
+		"yi-vision",
+		"yi-1.5-34b-chat",
+		"phi-3-mini-4k-instruct-june-2024",
+		"reka-core-20240904",
+		"reka-core-20240722",
+		"reka-flash-20240904",
+		"reka-flash-20240722",
+		"command-r-plus",
+		"command-r-plus-08-2024",
+		"command-r",
+		"command-r-08-2024",
+		"codestral-2405",
+		"mixtral-8x22b-instruct-v0.1",
+		"mixtral-8x7b-instruct-v0.1",
+		"mistral-large-2402",
+		"mistral-medium",
+		"qwen1.5-110b-chat",
+		"qwen1.5-72b-chat",
+		"glm-4-0520",
+		"glm-4-0116",
+		"dbrx-instruct",
+		"internvl2-26b",
+		"internlm2_5-20b-chat",
+		"qwen2-vl-7b-instruct",
+		"phi-3.5-vision-instruct",
+		"llava-onevision-qwen2-72b-ov",
+		"pixtral-12b-2409",
+		"internvl2-4b",
 	}
+
+	for _, model := range slice {
+		result = append(result, plugin.Model{
+			Id:      "lmsys/" + model,
+			Object:  "model",
+			Created: 1686935002,
+			By:      "lmsys-adapter",
+		})
+	}
+
+	return
 }
 
 func (API) Completion(ctx *gin.Context) {
