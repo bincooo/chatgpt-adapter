@@ -63,6 +63,7 @@ hf:
 
 # gemini 自定义安全设置
 google:
+  tc: false # 是否使用提示词实现的toolCall
 #  safes:
 #    - category: HARM_CATEGORY_HARASSMENT
 #      threshold: BLOCK_NONE

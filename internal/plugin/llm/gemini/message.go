@@ -162,6 +162,80 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, partialResponse *
 	return
 }
 
+func waitMessage(partialResponse *http.Response, cancel func(str string) bool) (string, error) {
+	defer partialResponse.Body.Close()
+	reader := bufio.NewReader(partialResponse.Body)
+	var original []byte
+	var block = []byte("data: ")
+	content := ""
+
+	for {
+		line, hm, err := reader.ReadLine()
+		original = append(original, line...)
+		if hm {
+			continue
+		}
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return "", err
+		}
+
+		if len(original) == 0 {
+			continue
+		}
+
+		if bytes.Contains(original, []byte(`"error":`)) {
+			return "", fmt.Errorf("%s", original)
+		}
+
+		if !bytes.HasPrefix(original, block) {
+			continue
+		}
+
+		var c candidatesResponse
+		original = bytes.TrimPrefix(original, block)
+		if err = json.Unmarshal(original, &c); err != nil {
+			logger.Error(err)
+			continue
+		}
+
+		if len(c.Candidates) == 0 {
+			continue
+		}
+
+		cond := c.Candidates[0]
+		if cond.Content.Role != "model" {
+			original = nil
+			continue
+		}
+
+		if len(cond.Content.Parts) == 0 {
+			continue
+		}
+
+		raw, ok := cond.Content.Parts[0]["text"]
+		if !ok {
+			original = nil
+			continue
+		}
+
+		original = nil
+		if len(raw.(string)) == 0 {
+			continue
+		}
+
+		if cancel != nil && cancel(raw.(string)) {
+			return content + raw.(string), nil
+		}
+		content += raw.(string)
+	}
+	return content, nil
+}
+
 func mergeMessages(messages []pkg.Keyv[interface{}]) (newMessages []map[string]interface{}, tokens int, err error) {
 	// role类型转换
 	condition := func(expr string) string {

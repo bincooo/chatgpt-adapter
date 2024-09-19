@@ -380,10 +380,12 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 	}
 
 	regMap := map[*regexp.Regexp]string{
-		regexp.MustCompile(`<\|system\|>\n *\n<\|end\|>`):             "",
-		regexp.MustCompile(`<\|user\|>\n *\n<\|end\|>`):               "",
-		regexp.MustCompile(`<\|assistant\|>\n *\n<\|end\|>`):          "",
+		regexp.MustCompile(`<\|system\|>[\n|\s]+<\|end\|>`):           "",
+		regexp.MustCompile(`<\|user\|>[\n|\s]+<\|end\|>`):             "",
+		regexp.MustCompile(`<\|assistant\|>[\n|\s]+<\|end\|>`):        "",
 		regexp.MustCompile(`<\|<no value>\|>\n<no value>\n<\|end\|>`): "",
+		regexp.MustCompile(`\n{3}`):                                   "\n",
+		regexp.MustCompile(`\n{2,}<\|end\|>`):                         "\n<|end|>",
 	}
 	for reg, v := range regMap {
 		str = reg.ReplaceAllString(str, v)

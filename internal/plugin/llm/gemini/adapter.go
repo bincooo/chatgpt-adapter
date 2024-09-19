@@ -6,6 +6,7 @@ import (
 	"chatgpt-adapter/internal/plugin"
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"encoding/json"
 	"errors"
 	"net/url"
@@ -97,6 +98,17 @@ func (API) Completion(ctx *gin.Context) {
 		bytes, _ := json.MarshalIndent(newMessages, "", "  ")
 		response.Echo(ctx, completion.Model, string(bytes), completion.Stream)
 		return
+	}
+
+	tc := pkg.Config.GetBool("google.tc")
+	if tc && plugin.NeedToToolCall(ctx) {
+		if completeToolCalls(ctx, cookie, proxies, completion) {
+			return
+		}
+	}
+	if tc {
+		completion.Tools = nil
+		completion.ToolChoice = nil
 	}
 
 	ctx.Set(ginTokens, tokens)

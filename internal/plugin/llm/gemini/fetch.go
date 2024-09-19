@@ -59,21 +59,12 @@ var (
 	}
 
 	emp = map[string]interface{}{
-		"-": map[string]string{
-			"type": "string",
+		"em": map[string]string{
+			"type":        "string",
+			"description": "empty str",
 		},
 	}
 )
-
-type funcDecl struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Params      *struct {
-		Properties map[string]interface{} `json:"properties,omitempty"`
-		Required   []string               `json:"required,omitempty"`
-		Type       string                 `json:"type"`
-	} `json:"parameters,omitempty"`
-}
 
 func init() {
 	common.AddInitialized(initSafetySettings)
@@ -99,40 +90,21 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		completion.TopP = 0.95
 	}
 
-	toStrings := func(slice []interface{}) (values []string) {
-		values = make([]string, 0)
-		for _, v := range slice {
-			values = append(values, v.(string))
-		}
-		return
-	}
-
-	condition := func(str string) string {
-		switch str {
-		case "string", "boolean", "number":
-			return str
-		default:
-			if strings.HasPrefix(str, "array") {
-				return "array"
-			}
-			return "object"
-		}
-	}
-
-	// fix: type 枚举必须符合google定义，否则报错400
-	// https://ai.google.dev/api/rest/v1beta/Schema?hl=zh-cn#type
-	var fix func(keyv pkg.Keyv[interface{}]) (pkg.Keyv[interface{}], bool)
+	// beta功能，时常变动. 且十分不稳定，相同参数却反复出现 "500 Internal Server Error"
+	var fix func(pkg.Keyv[interface{}])
 	{
-		fix = func(properties pkg.Keyv[interface{}]) (pkg.Keyv[interface{}], bool) {
-			if properties == nil {
-				return nil, false
+		fix = func(parameters pkg.Keyv[interface{}]) {
+			if parameters == nil {
+				return
 			}
 
-			if properties.Has("type") {
-				properties.Set("type", condition(properties.GetString("type")))
+			// object 的 properties 不可以为空 key = {}
+			if !parameters.Is("type", "object") {
+				return
 			}
 
 			hasKeys := false
+			properties := parameters.GetKeyv("properties")
 			for range properties {
 				hasKeys = true
 				break
@@ -140,55 +112,31 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 
 			if !hasKeys {
 				// object 类型不允许空keyv
-				properties.Set("properties", emp)
-				return properties, false
+				parameters.Set("properties", emp)
+				return
 			}
 
 			for key := range properties {
 				keyv := properties.GetKeyv(key)
-				if keyv.Has("type") {
-					keyv.Set("type", condition(keyv.GetString("type")))
+				if !keyv.Is("type", "object") {
+					continue
 				}
-				value, _ := fix(keyv.GetKeyv("properties"))
-				if value == nil {
-					if keyv.Is("type", "object") {
-						keyv.Set("properties", emp)
-					}
-				} else {
-					keyv.Set("properties", value)
-				}
+				fix(keyv.GetKeyv("properties"))
 			}
 
-			return properties, hasKeys
+			return
 		}
 	}
 
 	// 参数基本与openai对齐
-	_funcDecls := make([]funcDecl, 0)
+	funcDecls := make([]pkg.Keyv[interface{}], 0)
 	if toolsL := len(completion.Tools); toolsL > 0 {
 		for _, v := range completion.Tools {
-			kv := v.GetKeyv("function").GetKeyv("parameters")
-			required := kv.GetSlice("required")
-			fd := funcDecl{
-				// 必须为 a-z、A-Z、0-9，或包含下划线和短划线，长度上限为 63 个字符
-				Name:        strings.Replace(v.GetKeyv("function").GetString("name"), "-", "_", -1),
-				Description: v.GetKeyv("function").GetString("description"),
+			kv := v.GetKeyv("function")
+			{
+				fix(kv.GetKeyv("parameters"))
+				funcDecls = append(funcDecls, kv)
 			}
-
-			props, hasKeys := fix(kv.GetKeyv("properties"))
-			if hasKeys {
-				fd.Params = &struct {
-					Properties map[string]interface{} `json:"properties,omitempty"`
-					Required   []string               `json:"required,omitempty"`
-					Type       string                 `json:"type"`
-				}{
-					Properties: props,
-					Required:   toStrings(required),
-					Type:       condition(kv.GetString("type")),
-				}
-			}
-
-			_funcDecls = append(_funcDecls, fd)
 		}
 	}
 
@@ -239,11 +187,11 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		}
 	}
 
-	if len(_funcDecls) > 0 && completion.Model != "gemini-1.5-pro-exp-0801" {
+	if len(funcDecls) > 0 && completion.Model != "gemini-1.5-pro-exp-0801" {
 		// 函数调用
 		payload["tools"] = []map[string]interface{}{
 			{
-				"functionDeclarations": _funcDecls,
+				"function_declarations": funcDecls,
 			},
 		}
 		// tool_choice
@@ -251,10 +199,10 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 			var toolChoice pkg.Keyv[interface{}] = tc
 			if toolChoice.Is("type", "function") {
 				f := toolChoice.GetKeyv("function")
-				payload["toolConfig"] = map[string]interface{}{
-					"functionCallingConfig": map[string]interface{}{
+				payload["tool_config"] = map[string]interface{}{
+					"function_calling_config": map[string]interface{}{
 						"mode": "ANY",
-						"allowedFunctionNames": []string{
+						"allowed_function_names": []string{
 							f.GetString("name"),
 						},
 					},
