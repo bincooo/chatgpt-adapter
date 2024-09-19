@@ -239,7 +239,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		}
 	}
 
-	if len(_funcDecls) > 0 {
+	if len(_funcDecls) > 0 && completion.Model != "gemini-1.5-pro-exp-0801" {
 		// 函数调用
 		payload["tools"] = []map[string]interface{}{
 			{

@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"encoding/json"
+	"maps"
 	"reflect"
 )
 
@@ -154,4 +155,9 @@ func (kv Keyv[V]) IsString(key string) bool {
 
 func (kv Keyv[V]) IsEmpty(key string) bool {
 	return kv.GetString(key) == ""
+}
+
+func (kv Keyv[V]) Clone() Keyv[V] {
+	var obj map[string]V = kv
+	return maps.Clone(obj)
 }

@@ -10,7 +10,9 @@ import (
 	"chatgpt-adapter/pkg"
 	"encoding/json"
 	"fmt"
+	"github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -305,6 +307,19 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 		}
 	}
 
+	slice := make([]pkg.Keyv[interface{}], messageL)
+	for i, obj := range pMessages {
+		c := obj.Clone()
+		str := c.GetString("content")
+		if str != "" {
+			reg := regexp2.MustCompile(`<thinking_format>[\s\S]+</thinking_format>`, regexp2.Compiled)
+			str, _ = reg.Replace(str, "", -1, -1)
+			c.Set("content", str)
+		}
+		slice[i] = c
+	}
+	pMessages = slice
+
 	if content == "continue" {
 		ctx.Set(excludeToolNames, extractToolNames(completion.Messages))
 	}
@@ -359,7 +374,22 @@ func buildTemplate(ctx *gin.Context, completion pkg.ChatCompletion, template str
 			}
 			return ""
 		}).Do()
-	return parser(template)
+	str, err := parser(template)
+	if err != nil {
+		return "", err
+	}
+
+	regMap := map[*regexp.Regexp]string{
+		regexp.MustCompile(`<\|system\|>\n *\n<\|end\|>`):             "",
+		regexp.MustCompile(`<\|user\|>\n *\n<\|end\|>`):               "",
+		regexp.MustCompile(`<\|assistant\|>\n *\n<\|end\|>`):          "",
+		regexp.MustCompile(`<\|<no value>\|>\n<no value>\n<\|end\|>`): "",
+	}
+	for reg, v := range regMap {
+		str = reg.ReplaceAllString(str, v)
+	}
+
+	return strings.TrimSpace(str), err
 }
 
 // 工具参数解析
