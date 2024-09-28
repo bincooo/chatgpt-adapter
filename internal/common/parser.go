@@ -11,7 +11,6 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/dop251/goja"
 	"github.com/gin-gonic/gin"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -400,88 +399,7 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion, cb func(str stri
 	token := ctx.GetString("token")
 	handles := xmlFlagsToContents(ctx, completion.Messages, IsClaude(ctx, token, completion.Model))
 
-	abs := func(n int) int {
-		if n < 0 {
-			return -n
-		}
-		return n
-	}
-
 	for _, h := range handles {
-		// 正则替换
-		if h['t'] == "regex" {
-			s := split(h['v'])
-			if len(s) < 2 {
-				continue
-			}
-
-			cmp := strings.TrimSpace(s[0])
-			value := strings.TrimSpace(s[1])
-			if cmp == "" {
-				continue
-			}
-
-			// 忽略尾部n条
-			pos, _ := strconv.Atoi(h['m'])
-			if pos > -1 {
-				pos = len(completion.Messages) - 1 - pos
-				if pos < 0 {
-					pos = 0
-				}
-			} else {
-				pos = len(completion.Messages)
-			}
-
-			c, err := regexp.Compile(cmp, regexp.Compiled)
-			if err != nil {
-				logger.Warn("compile failed: "+cmp, err)
-				continue
-			}
-			for idx, message := range completion.Messages {
-				if idx < pos && !message.Is("role", "system") {
-					replace, e := c.Replace(message.GetString("content"), value, -1, -1)
-					if e != nil {
-						logger.Warn("compile failed: "+cmp, e)
-						continue
-					}
-					message["content"] = replace
-				}
-			}
-		}
-
-		// 深度插入
-		if h['t'] == "insert" {
-			i, _ := strconv.Atoi(h['i'])
-			messageL := len(completion.Messages)
-			if h['m'] == "true" && messageL-1 < abs(i) {
-				continue
-			}
-
-			pos := 0
-			if i > -1 {
-				// 正插
-				pos = i
-				if pos >= messageL {
-					pos = messageL - 1
-				}
-			} else {
-				// 反插
-				pos = messageL + i
-				if pos < 0 {
-					pos = 0
-				}
-			}
-
-			completion.Messages = append(completion.Messages[:pos+1], append([]pkg.Keyv[interface{}]{
-				{"role": h['r'], "content": h['v']},
-			}, completion.Messages[pos+1:]...)...)
-		}
-
-		// matcher 流响应干预
-		if h['t'] == "matcher" {
-			matchers = handleMatcher(h, matchers)
-		}
-
 		// 历史记录
 		if h['t'] == "histories" {
 			content := strings.TrimSpace(h['v'])
@@ -647,10 +565,7 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) []Matcher {
 func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isc bool) (handles []map[uint8]string) {
 	var (
 		parser = NewParser([]string{
-			"regex",
-			`r:@-*\d+`,
 			"debug",
-			"matcher",
 			"pad",      // bing中使用的标记：填充引导对话，尝试避免道歉
 			"notebook", // notebook模式
 			"histories",
@@ -679,78 +594,6 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isc 
 			// 注释内容删除
 			if node.t == XML_TYPE_I {
 				//clean(content[node.index:node.end])
-				continue
-			}
-
-			// 自由深度插入
-			// inserts: 深度插入, i 是深度索引，v 是插入内容， o 是指令
-			if !isc && node.t == XML_TYPE_X && node.tag[0] == '@' {
-				c, _ := regexp.Compile(`@-*\d+`, regexp.Compiled)
-				if matched, _ := c.MatchString(node.tag); matched {
-					// 消息上下文次数少于插入深度时，是否忽略
-					// 如不忽略，将放置在头部或者尾部
-					miss := "true"
-					if it, ok := node.attr["miss"]; ok {
-						if v, o := it.(bool); !o || !v {
-							miss = "false"
-						}
-					}
-					// 插入元素
-					r := "user"
-					if it, ok := node.attr["role"]; ok {
-						switch str := it.(string); str {
-						case "user", "system", "assistant":
-							r = str
-						}
-					}
-					handles = append(handles, map[uint8]string{'i': node.tag[1:], 'r': r, 'v': node.content, 'm': miss, 't': "insert"})
-					clean(content[node.index:node.end])
-				}
-				continue
-			}
-
-			// 正则替换
-			// regex: v 是正则内容
-			if node.t == XML_TYPE_X && node.tag == "regex" {
-				order := "0" // 优先级
-				if o, ok := node.attr["order"]; ok {
-					order = fmt.Sprintf("%v", o)
-				}
-
-				miss := "-1"
-				if m, ok := node.attr["miss"]; ok {
-					miss = fmt.Sprintf("%v", m)
-				}
-
-				if !isc || miss != "-1" {
-					handles = append(handles, map[uint8]string{'m': miss, 'o': order, 'v': node.content, 't': "regex"})
-					clean(content[node.index:node.end])
-				}
-				continue
-			}
-
-			if node.t == XML_TYPE_X && node.tag == "matcher" {
-				find := ""
-				if f, ok := node.attr["find"]; ok {
-					find = f.(string)
-				}
-				if find == "" {
-					clean(content[node.index:node.end])
-					continue
-				}
-
-				findLen := "5"
-				if l, ok := node.attr["len"]; ok {
-					findLen = fmt.Sprintf("%v", l)
-				}
-
-				end := ""
-				if l, ok := node.attr["end"]; ok {
-					end = fmt.Sprintf("%v", l)
-				}
-
-				handles = append(handles, map[uint8]string{'f': find, 'l': findLen, 'v': node.content, 'e': end, 't': "matcher"})
-				clean(content[node.index:node.end])
 				continue
 			}
 
@@ -854,11 +697,11 @@ func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isc 
 		}
 	}
 
-	if len(handles) > 0 {
-		sort.Slice(handles, func(i, j int) bool {
-			return handles[i]['o'] > handles[j]['o']
-		})
-	}
+	//if len(handles) > 0 {
+	//	sort.Slice(handles, func(i, j int) bool {
+	//		return handles[i]['o'] > handles[j]['o']
+	//	})
+	//}
 	return
 }
 
