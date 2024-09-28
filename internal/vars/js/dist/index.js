@@ -25,8 +25,7 @@ var Config = {
     "PreserveChats": false,
     "FullColon": true,
     "xmlPlot": true,
-    "SkipRestricted": false,
-    "padtxt": "1000,1000,15000"
+    "SkipRestricted": false
   }
 };
 var Replacements = {
@@ -39,9 +38,9 @@ var Replacements = {
 var genericFixes = function genericFixes(text) {
   return text.replace(/(\r\n|\r|\\n)/gm, '\n');
 };
-var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
+var xmlPlot_merge = function xmlPlot_merge(content, mergeTag) {
     if (/(\n\n|^\s*)xmlPlot:\s*/.test(content)) {
-      content = (nonsys ? content : content.replace(/(\n\n|^\s*)(?<!\n\n(Human|Assistant):[\s\S]*?)xmlPlot:\s*/g, '$1')).replace(/(\n\n|^\s*)xmlPlot: */g, mergeTag.system && mergeTag.human && mergeTag.all ? '\n\nHuman: ' : '$1');
+      content = content.replace(/(\n\n|^\s*)(?<!\n\n(Human|Assistant):[\s\S]*?)xmlPlot:\s*/g, '$1').replace(/(\n\n|^\s*)xmlPlot: */g, mergeTag.system && mergeTag.human && mergeTag.all ? '\n\nHuman: ' : '$1');
     }
     mergeTag.all && mergeTag.human && (content = content.replace(/(?:\n\n|^\s*)Human:([\s\S]*?(?:\n\nAssistant:|$))/g, function (match, p1) {
       return '\n\nHuman:' + p1.replace(/\n\nHuman:\s*/g, '\n\n');
@@ -70,7 +69,6 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
     return content;
   },
   xmlPlot = function xmlPlot(content) {
-    var nonsys = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
     //一次正则
     content = xmlPlot_regex(content, 1);
     //一次role合并
@@ -80,7 +78,7 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
       human: !content.includes('<|Merge Human Disable|>'),
       assistant: !content.includes('<|Merge Assistant Disable|>')
     };
-    content = xmlPlot_merge(content, mergeTag, nonsys);
+    content = xmlPlot_merge(content, mergeTag);
     //自定义插入
     var splitContent = content.split(/\n\n(?=Assistant:|Human:)/g),
       match;
@@ -93,7 +91,7 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
     //二次正则
     content = xmlPlot_regex(content, 2);
     //二次role合并
-    content = xmlPlot_merge(content, mergeTag, nonsys);
+    content = xmlPlot_merge(content, mergeTag);
 
     //三次正则
     content = xmlPlot_regex(content, 3);
@@ -116,32 +114,8 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
     return content.replace(Config.Settings.padtxt ? /\s*<\|(?!padtxt).*?\|>\s*/g : /\s*<\|.*?\|>\s*/g, '\n\n').trim().replace(/^.+:/, '\n\n$&').replace(/(?<=\n)\n(?=\n)/g, '');
   };
 (function (messages) {
-  var apiKey = true,
-    stop_sequences;
   try {
-    var _exec, _exec2;
     /************************* */
-    var curPrompt = {
-      firstUser: messages.find(function (message) {
-        return 'user' === message.role;
-      }),
-      firstSystem: messages.find(function (message) {
-        return 'system' === message.role;
-      }),
-      firstAssistant: messages.find(function (message) {
-        return 'assistant' === message.role;
-      }),
-      lastUser: messages.findLast(function (message) {
-        return 'user' === message.role;
-      }),
-      lastSystem: messages.findLast(function (message) {
-        return 'system' === message.role && '[Start a new chat]' !== message.content;
-      }),
-      lastAssistant: messages.findLast(function (message) {
-        return 'assistant' === message.role;
-      })
-    };
-    var type = 'api';
     var _ref = function (messages) {
         var rgxScenario = /^\[Circumstances and context of the dialogue: ([\s\S]+?)\.?\]$/i,
           rgxPerson = /^\[([\s\S]+?)'s personality: ([\s\S]+?)\]$/i,
@@ -251,46 +225,36 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag, nonsys) {
           prompt: prompt.join(''),
           systems: systems
         };
-      }(messages, type),
+      }(messages),
       prompt = _ref.prompt;
 
     /******************************** */
-    var legacy = false,
-      messagesAPI = !legacy && !/<\|completeAPI\|>/.test(prompt) || /<\|messagesAPI\|>/.test(prompt),
-      fusion = true,
-      wedge = '\r';
-    var stopSet = (_exec = /<\|stopSet *(\[.*?\]) *\|>/.exec(prompt)) === null || _exec === void 0 ? void 0 : _exec[1],
-      stopRevoke = (_exec2 = /<\|stopRevoke *(\[.*?\]) *\|>/.exec(prompt)) === null || _exec2 === void 0 ? void 0 : _exec2[1];
-    if (stop_sequences || stopSet || stopRevoke) stop_sequences = JSON.parse(stopSet || '[]').concat(stop_sequences).concat(['\n\nHuman:', '\n\nAssistant:']).filter(function (item) {
-      return !JSON.parse(stopRevoke || '[]').includes(item) && item;
-    });
-    prompt = Config.Settings.xmlPlot ? xmlPlot(prompt, legacy) : apiKey ? "\n\nHuman: ".concat(genericFixes(prompt), "\n\nAssistant:") : genericFixes(prompt).trim();
-    Config.Settings.FullColon && (prompt = !legacy ? prompt.replace(fusion ? /\n(?!\nAssistant:\s*$)(?=\n(Human|Assistant):)/g : apiKey ? /(?<!\n\nHuman:[\s\S]*)\n(?=\nAssistant:)|\n(?=\nHuman:)(?![\s\S]*\n\nAssistant:)/g : /\n(?=\n(Human|Assistant):)/g, '\n' + wedge) : prompt.replace(fusion ? /(?<=\n\nAssistant):(?!\s*$)|(?<=\n\nHuman):/g : apiKey ? /(?<!\n\nHuman:[\s\S]*)(?<=\n\nAssistant):|(?<=\n\nHuman):(?![\s\S]*\n\nAssistant:)/g : /(?<=\n\n(Human|Assistant)):/g, '﹕'));
+    var wedge = '\r';
+    prompt = Config.Settings.xmlPlot ? xmlPlot(prompt) : "\n\nHuman: ".concat(genericFixes(prompt), "\n\nAssistant:");
+    Config.Settings.FullColon && (prompt = prompt.replace(/\n(?!\nAssistant:\s*$)(?=\n(Human|Assistant):)/g, '\n' + wedge));
 
     /******************************** */
     var system;
-    if (messagesAPI) {
-      var rounds = prompt.replace(/^(?![\s\S]*\n\nHuman:)/, '\n\nHuman:').split('\n\nHuman:');
-      messages = rounds.slice(1).flatMap(function (round) {
-        var turns = round.split('\n\nAssistant:');
+    var rounds = prompt.replace(/^(?![\s\S]*\n\nHuman:)/, '\n\nHuman:').split('\n\nHuman:');
+    messages = rounds.slice(1).flatMap(function (round) {
+      var turns = round.split('\n\nAssistant:');
+      return [{
+        role: 'user',
+        content: turns[0].trim()
+      }].concat(turns.slice(1).flatMap(function (turn) {
         return [{
-          role: 'user',
-          content: turns[0].trim()
-        }].concat(turns.slice(1).flatMap(function (turn) {
-          return [{
-            role: 'assistant',
-            content: turn.trim()
-          }];
-        }));
-      }).reduce(function (acc, current) {
-        if (Config.Settings.FullColon && acc.length > 0 && (acc[acc.length - 1].role === current.role || !acc[acc.length - 1].content)) {
-          acc[acc.length - 1].content += (current.role === 'user' ? 'Human' : 'Assistant').replace(/.*/, legacy ? '\n$&﹕ ' : '\n' + wedge + '\n$&: ') + current.content;
-        } else acc.push(current);
-        return acc;
-      }, []).filter(function (message) {
-        return message.content;
-      }), system = rounds[0].trim();
-    }
+          role: 'assistant',
+          content: turn.trim()
+        }];
+      }));
+    }).reduce(function (acc, current) {
+      if (Config.Settings.FullColon && acc.length > 0 && (acc[acc.length - 1].role === current.role || !acc[acc.length - 1].content)) {
+        acc[acc.length - 1].content += (current.role === 'user' ? 'Human' : 'Assistant').replace(/.*/, '\n' + wedge + '\n$&: ') + current.content;
+      } else acc.push(current);
+      return acc;
+    }, []).filter(function (message) {
+      return message.content;
+    }), system = rounds[0].trim();
     if (system) {
       return [{
         role: "system",

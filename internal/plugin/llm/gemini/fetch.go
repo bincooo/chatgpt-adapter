@@ -91,9 +91,21 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	}
 
 	// beta功能，时常变动. 且十分不稳定，相同参数却反复出现 "500 Internal Server Error"
-	var fix func(pkg.Keyv[interface{}])
+	// https://ai.google.dev/gemini-api/docs/function-calling/tutorial?hl=zh-cn&lang=python#map-data-types
+	var fix func(pkg.Keyv[interface{}]) bool
 	{
-		fix = func(parameters pkg.Keyv[interface{}]) {
+		toUpper := func(parameters pkg.Keyv[interface{}]) {
+			expr := parameters.GetString("type")
+			switch expr {
+			case "any":
+				parameters.Set("type", "OBJECT")
+			default:
+				parameters.Set("type", strings.ToUpper(expr))
+			}
+		}
+
+		fix = func(parameters pkg.Keyv[interface{}]) (ret bool) {
+			defer toUpper(parameters)
 			if parameters == nil {
 				return
 			}
@@ -112,16 +124,20 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 
 			if !hasKeys {
 				// object 类型不允许空keyv
-				parameters.Set("properties", emp)
-				return
+				//parameters.Set("properties", emp)
+				return true
 			}
 
 			for key := range properties {
 				keyv := properties.GetKeyv(key)
 				if !keyv.Is("type", "object") {
+					toUpper(keyv)
 					continue
 				}
-				fix(keyv.GetKeyv("properties"))
+				if fix(keyv.GetKeyv("properties")) {
+					delete(properties, key)
+				}
+				toUpper(keyv)
 			}
 
 			return
@@ -134,7 +150,9 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 		for _, v := range completion.Tools {
 			kv := v.GetKeyv("function")
 			{
-				fix(kv.GetKeyv("parameters"))
+				if fix(kv.GetKeyv("parameters")) {
+					delete(kv, "parameters")
+				}
 				funcDecls = append(funcDecls, kv)
 			}
 		}

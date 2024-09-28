@@ -31,9 +31,9 @@ const Replacements = {
 
 const genericFixes = text => text.replace(/(\r\n|\r|\\n)/gm, '\n');
 
-const xmlPlot_merge = (content, mergeTag, nonsys) => {
+const xmlPlot_merge = (content, mergeTag) => {
     if (/(\n\n|^\s*)xmlPlot:\s*/.test(content)) {
-        content = (nonsys ? content : content.replace(/(\n\n|^\s*)(?<!\n\n(Human|Assistant):.*?)xmlPlot:\s*/gs, '$1')).replace(/(\n\n|^\s*)xmlPlot: */g, mergeTag.system && mergeTag.human && mergeTag.all ? '\n\nHuman: ' : '$1' );
+        content = content.replace(/(\n\n|^\s*)(?<!\n\n(Human|Assistant):.*?)xmlPlot:\s*/gs, '$1').replace(/(\n\n|^\s*)xmlPlot: */g, mergeTag.system && mergeTag.human && mergeTag.all ? '\n\nHuman: ' : '$1' );
     }
     mergeTag.all && mergeTag.human && (content = content.replace(/(?:\n\n|^\s*)Human:(.*?(?:\n\nAssistant:|$))/gs, function(match, p1) {return '\n\nHuman:' + p1.replace(/\n\nHuman:\s*/g, '\n\n')}));
     mergeTag.all && mergeTag.assistant && (content = content.replace(/\n\nAssistant:(.*?(?:\n\nHuman:|$))/gs, function(match, p1) {return '\n\nAssistant:' + p1.replace(/\n\nAssistant:\s*/g, '\n\n')}));
@@ -54,7 +54,7 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
         }
     });
     return content;
-}, xmlPlot = (content, nonsys = false) => {
+}, xmlPlot = (content) => {
     //一次正则
     content = xmlPlot_regex(content, 1);
     //一次role合并
@@ -64,7 +64,7 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
         human: !content.includes('<|Merge Human Disable|>'),
         assistant: !content.includes('<|Merge Assistant Disable|>')
     };
-    content = xmlPlot_merge(content, mergeTag, nonsys);
+    content = xmlPlot_merge(content, mergeTag);
     //自定义插入
     let splitContent = content.split(/\n\n(?=Assistant:|Human:)/g), match;
     while ((match = /<@(\d+)>(.*?)<\/@\1>/gs.exec(content)) !== null) {
@@ -76,7 +76,7 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
     //二次正则
     content = xmlPlot_regex(content, 2);
     //二次role合并
-    content = xmlPlot_merge(content, mergeTag, nonsys);
+    content = xmlPlot_merge(content, mergeTag);
 
     //三次正则
     content = xmlPlot_regex(content, 3);
@@ -100,19 +100,8 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
 };
 
 ((messages) => {
-    let apiKey = true, stop_sequences ;
     try {
         /************************* */
-        let curPrompt = {
-            firstUser: messages.find((message) => 'user' === message.role),
-            firstSystem: messages.find((message => 'system' === message.role)),
-            firstAssistant: messages.find((message => 'assistant' === message.role)),
-            lastUser: messages.findLast((message => 'user' === message.role)),
-            lastSystem: messages.findLast((message => 'system' === message.role && '[Start a new chat]' !== message.content)),
-            lastAssistant: messages.findLast((message => 'assistant' === message.role))
-        };
-
-        const type = 'api';
         let { prompt } = ((messages) => {
             const rgxScenario = /^\[Circumstances and context of the dialogue: ([\s\S]+?)\.?\]$/i, rgxPerson = /^\[([\s\S]+?)'s personality: ([\s\S]+?)\]$/i, messagesClone = JSON.parse(JSON.stringify(messages)), realLogs = messagesClone.filter((message => [ 'user', 'assistant' ].includes(message.role))), sampleLogs = messagesClone.filter((message => message.name)), mergedLogs = [ ...sampleLogs, ...realLogs ];
             mergedLogs.forEach(((message, idx) => {
@@ -207,29 +196,25 @@ const xmlPlot_merge = (content, mergeTag, nonsys) => {
                 prompt: prompt.join(''),
                 systems
             };
-        })(messages, type);
+        })(messages);
 
         /******************************** */
-        const legacy = false, messagesAPI = !legacy && !/<\|completeAPI\|>/.test(prompt) || /<\|messagesAPI\|>/.test(prompt), fusion = true, wedge = '\r';
-        prompt = Config.Settings.xmlPlot ? xmlPlot(prompt, legacy) : apiKey ? `\n\nHuman: ${genericFixes(prompt)}\n\nAssistant:` : genericFixes(prompt).trim();
-        Config.Settings.FullColon && (prompt = !legacy ?
-            prompt.replace(fusion ? /\n(?!\nAssistant:\s*$)(?=\n(Human|Assistant):)/gs : apiKey ? /(?<!\n\nHuman:.*)\n(?=\nAssistant:)|\n(?=\nHuman:)(?!.*\n\nAssistant:)/gs : /\n(?=\n(Human|Assistant):)/g, '\n' + wedge) :
-            prompt.replace(fusion ? /(?<=\n\nAssistant):(?!\s*$)|(?<=\n\nHuman):/gs : apiKey ? /(?<!\n\nHuman:.*)(?<=\n\nAssistant):|(?<=\n\nHuman):(?!.*\n\nAssistant:)/gs : /(?<=\n\n(Human|Assistant)):/g, '﹕'));
+        const wedge = '\r';
+        prompt = Config.Settings.xmlPlot ? xmlPlot(prompt) : `\n\nHuman: ${genericFixes(prompt)}\n\nAssistant:`;
+        Config.Settings.FullColon && (prompt = prompt.replace(/\n(?!\nAssistant:\s*$)(?=\n(Human|Assistant):)/gs, '\n' + wedge));
 
         /******************************** */
         let system;
-        if (messagesAPI) {
-            const rounds = prompt.replace(/^(?!.*\n\nHuman:)/s, '\n\nHuman:').split('\n\nHuman:');
-            messages = rounds.slice(1).flatMap(round => {
-                const turns = round.split('\n\nAssistant:');
-                return [{role: 'user', content: turns[0].trim()}].concat(turns.slice(1).flatMap(turn => [{role: 'assistant', content: turn.trim()}]));
-            }).reduce((acc, current) => {
-                if (Config.Settings.FullColon && acc.length > 0 && (acc[acc.length - 1].role === current.role || !acc[acc.length - 1].content)) {
-                    acc[acc.length - 1].content += (current.role === 'user' ? 'Human' : 'Assistant').replace(/.*/, legacy ? '\n$&﹕ ' : '\n' + wedge + '\n$&: ') + current.content;
-                } else acc.push(current);
-                return acc;
-            }, []).filter(message => message.content), system = rounds[0].trim();
-        }
+        const rounds = prompt.replace(/^(?!.*\n\nHuman:)/s, '\n\nHuman:').split('\n\nHuman:');
+        messages = rounds.slice(1).flatMap(round => {
+            const turns = round.split('\n\nAssistant:');
+            return [{role: 'user', content: turns[0].trim()}].concat(turns.slice(1).flatMap(turn => [{role: 'assistant', content: turn.trim()}]));
+        }).reduce((acc, current) => {
+            if (Config.Settings.FullColon && acc.length > 0 && (acc[acc.length - 1].role === current.role || !acc[acc.length - 1].content)) {
+                acc[acc.length - 1].content += (current.role === 'user' ? 'Human' : 'Assistant').replace(/.*/, '\n' + wedge + '\n$&: ') + current.content;
+            } else acc.push(current);
+            return acc;
+        }, []).filter(message => message.content), system = rounds[0].trim();
 
         if (system) {
             return [ {role: "system", content: system}, ...messages ];
