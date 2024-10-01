@@ -18,7 +18,8 @@ import (
 
 func ConvertRole(ctx *gin.Context, role string) (newRole, end string) {
 	completion := GetGinCompletion(ctx)
-	if IsClaude(ctx, "", completion.Model) {
+	token := ctx.GetString("token")
+	if IsClaude(ctx, token, completion.Model) {
 		switch role {
 		case "user":
 			newRole = "\n\r\nHuman: "
@@ -29,7 +30,7 @@ func ConvertRole(ctx *gin.Context, role string) (newRole, end string) {
 	}
 
 	end = "<|end|>\n\n"
-	if IsGPT(completion.Model) {
+	if IsGPT(token, completion.Model) {
 		switch role {
 		case "user":
 			newRole = "<|start|>user\n"
@@ -45,8 +46,20 @@ func ConvertRole(ctx *gin.Context, role string) (newRole, end string) {
 	return
 }
 
-func IsGPT(model string) bool {
+func IsGPT(token, model string) bool {
 	model = strings.ToLower(model)
+
+	if model == "coze/websdk" {
+		model = pkg.Config.GetString("coze.websdk.model")
+	} else if strings.HasPrefix(model, "coze/") {
+		values := strings.Split(model[5:], "-")
+		if len(values) > 3 && "w" == values[3] && strings.Contains(token, "[gpt=true]") {
+			return true
+		}
+
+		return false
+	}
+
 	return strings.Contains(model, "openai") || strings.Contains(model, "gpt")
 }
 
