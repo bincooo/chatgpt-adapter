@@ -1,14 +1,12 @@
 package you
 
 import (
-	"bytes"
 	"chatgpt-adapter/internal/common"
 	"chatgpt-adapter/internal/gin.handler/response"
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"time"
@@ -193,114 +191,36 @@ label:
 
 func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (fileMessage string, text string, tokens int, err error) {
 	text = notice
-	{
-		values, ok := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
-		if ok {
-			var contents []string
-			for _, message := range values {
-				contents = append(contents, message.GetString("content"))
-			}
-
-			fileMessage = strings.Join(contents, "\n\n")
-			tokens += common.CalcTokens(fileMessage)
-			return
-		}
-	}
-
 	var (
-		messages = completion.Messages
-
-		user      = ""
-		assistant = ""
+		messages     = completion.Messages
+		toolMessages = common.FindToolMessages(&completion)
 	)
 
-	{
-		keyv, ok := common.GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
-		if ok {
-			user = keyv.GetString("user")
-			assistant = keyv.GetString("assistant")
-		}
-
-		if user == "" {
-			user = "Human: "
-		}
-		if assistant == "" {
-			assistant = "Assistant: "
-		}
-	}
-
-	cond := func(expr string) string {
-		switch expr {
-		case "assistant", "end":
-			return expr
-		default:
-			return "user"
-		}
-	}
-
-	// 合并历史对话
-	iterator := func(opts struct {
-		Previous string
-		Next     string
-		Message  map[string]string
-		Buffer   *bytes.Buffer
-		Initial  func() pkg.Keyv[interface{}]
-	}) (result []map[string]string, err error) {
-		role := opts.Message["role"]
-		if cond(role) == cond(opts.Next) {
-			// cache buffer
-			if role == "function" || role == "tool" {
-				opts.Buffer.WriteString(fmt.Sprintf("这是内置工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
-				return
-			}
-
-			prefix := ""
-			if role == "user" && len(opts.Message["content"]) > 0 {
-				if !strings.HasPrefix(opts.Message["content"], "Assistant:") {
-					prefix = user
-				}
-			}
-			opts.Buffer.WriteString(prefix + opts.Message["content"])
-			return
-		}
-
-		defer opts.Buffer.Reset()
-		prefix := ""
-		if role == "user" && len(opts.Message["content"]) > 0 {
-			if !strings.HasPrefix(opts.Message["content"], "Assistant:") {
-				prefix = user
-			}
-		}
-
-		opts.Buffer.WriteString(prefix + opts.Message["content"])
-		result = append(result, map[string]string{
-			"role":    cond(role),
-			"content": opts.Buffer.String(),
-		})
+	if messages, err = common.HandleMessages(completion, nil); err != nil {
 		return
 	}
+	messages = append(messages, toolMessages...)
 
-	newMessages, err := common.TextMessageCombiner(messages, iterator)
-	if err != nil {
-		err = logger.WarpError(err)
-		return
-	}
-
-	// 理论上合并后的上下文不存在相邻的相同消息
-	var contents []string
-	pos := 0
-	messageL := len(newMessages)
+	var (
+		pos      = 0
+		contents []string
+	)
+	messageL := len(messages)
 	for {
 		if pos > messageL-1 {
 			break
 		}
 
-		message := newMessages[pos]
-		contents = append(contents, message["content"])
+		message := messages[pos]
+		role, end := common.ConvertRole(ctx, message.GetString("role"))
+		contents = append(contents, role+message.GetString("content")+end)
 		pos++
 	}
 
-	fileMessage = strings.Join(contents, "\n\n")
+	fileMessage = strings.Join(contents, "")
+	if strings.HasSuffix(fileMessage, "<|end|>\n\n") {
+		fileMessage = fileMessage[:len(fileMessage)-9]
+	}
 	tokens += common.CalcTokens(fileMessage)
 	return
 }

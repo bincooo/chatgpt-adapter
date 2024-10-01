@@ -1,14 +1,12 @@
 package lmsys
 
 import (
-	"bytes"
 	"chatgpt-adapter/internal/common"
 	"chatgpt-adapter/internal/gin.handler/response"
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
 	"chatgpt-adapter/pkg"
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"time"
@@ -115,93 +113,36 @@ label:
 	return
 }
 
-func mergeMessages(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (newMessages string) {
-	{
-		values, ok := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
-		if ok {
-			var contents []string
-			for _, message := range values {
-				contents = append(contents, message.GetString("content"))
-			}
-			newMessages = strings.Join(contents, "\n\n")
-			return
-		}
-	}
-
-	condition := func(expr string) string {
-		switch expr {
-		case "system", "tool", "function", "assistant", "end":
-			return expr
-		default:
-			return "user"
-		}
-	}
-
+func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (newMessages string, err error) {
 	var (
-		user      = ""
-		assistant = ""
+		messages     []pkg.Keyv[interface{}]
+		toolMessages = common.FindToolMessages(&completion)
 	)
 
-	{
-		keyv, ok := common.GetGinValue[pkg.Keyv[string]](ctx, vars.GinCharSequences)
-		if ok {
-			user = keyv.GetString("user")
-			assistant = keyv.GetString("assistant")
-		}
-
-		if user == "" {
-			user = "<|user|>"
-		}
-		if assistant == "" {
-			assistant = "<|assistant|>"
-		}
-	}
-
-	tor := func(r string) string {
-		switch r {
-		case "user":
-			return user
-		case "assistant":
-			return assistant
-		default:
-			return "<|" + r + "|>"
-		}
-	}
-
-	iterator := func(opts struct {
-		Previous string
-		Next     string
-		Message  map[string]string
-		Buffer   *bytes.Buffer
-		Initial  func() pkg.Keyv[interface{}]
-	}) (messages []string, _ error) {
-		role := opts.Message["role"]
-		if condition(role) == condition(opts.Next) {
-			// cache buffer
-			if role == "function" || role == "tool" {
-				opts.Buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
-				return
-			}
-
-			opts.Buffer.WriteString(fmt.Sprintf("%s\n%s\n<|end|>", tor(role), opts.Message["content"]))
-			return
-		}
-
-		defer opts.Buffer.Reset()
-		var result []string
-		if opts.Previous == "system" {
-			result = append(result, fmt.Sprintf("<|system|>\n%s\n<|end|>", opts.Buffer.String()))
-			result = append(result, "<|assistant|>ok ~<|end|>\n")
-			opts.Buffer.Reset()
-		}
-
-		opts.Buffer.WriteString(fmt.Sprintf("%s\n%s\n<|end|>", tor(role), opts.Message["content"]))
-		messages = append(result, opts.Buffer.String())
+	if messages, err = common.HandleMessages(completion, nil); err != nil {
 		return
 	}
+	messages = append(messages, toolMessages...)
 
-	slices, _ := common.TextMessageCombiner(messages, iterator)
-	newMessages = strings.Join(slices, "\n\n")
-	newMessages += "\n" + tor("assistant")
+	var (
+		pos      = 0
+		contents []string
+	)
+	messageL := len(messages)
+	for {
+		if pos > messageL-1 {
+			break
+		}
+
+		message := messages[pos]
+		role, end := common.ConvertRole(ctx, message.GetString("role"))
+		contents = append(contents, role+message.GetString("content")+end)
+		pos++
+	}
+
+	newMessages = strings.Join(contents, "")
+	if strings.HasSuffix(newMessages, "<|end|>\n\n") {
+		newMessages = newMessages[:len(newMessages)-9]
+	}
 	return
 }

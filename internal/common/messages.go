@@ -8,12 +8,60 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bincooo/emit.io"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
 )
+
+func ConvertRole(ctx *gin.Context, role string) (newRole, end string) {
+	completion := GetGinCompletion(ctx)
+	if IsClaude(ctx, "", completion.Model) {
+		switch role {
+		case "user":
+			newRole = "\n\r\nHuman: "
+		case "assistant":
+			newRole = "\n\r\nAssistant: "
+		}
+		return
+	}
+
+	end = "<|end|>\n\n"
+	if IsGPT(completion.Model) {
+		switch role {
+		case "user":
+			newRole = "<|start|>user\n"
+		case "assistant":
+			newRole = "<|start|>assistant\n"
+		default:
+			newRole = "<|start|>system\n"
+		}
+		return
+	}
+
+	newRole = "<|" + role + "|>\n"
+	return
+}
+
+func IsGPT(model string) bool {
+	model = strings.ToLower(model)
+	return strings.Contains(model, "openai") || strings.Contains(model, "gpt")
+}
+
+func FindToolMessages(completion *pkg.ChatCompletion) (toolMessages []pkg.Keyv[interface{}]) {
+	for i := len(completion.Messages) - 1; i >= 0; i-- {
+		message := completion.Messages[i]
+		if message.Is("role", "tool") || (message.Is("role", "assistant") && message.Has("tool_calls")) {
+			toolMessages = append(toolMessages, message)
+		} else {
+			completion.Messages = completion.Messages[:i+1]
+			break
+		}
+	}
+	return
+}
 
 func TextMessageCombiner[T any](
 	messages []pkg.Keyv[interface{}],

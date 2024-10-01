@@ -131,7 +131,12 @@ label:
 		}
 	}
 
-	attachments, tokens := mergeMessages(ctx)
+	attachments, tokens, err := mergeMessages(ctx)
+	if err != nil {
+		response.Error(ctx, -1, err)
+		return
+	}
+
 	ctx.Set(ginTokens, tokens)
 	if echo {
 		response.Echo(ctx, completion.Model, attachments[0].Content, completion.Stream)

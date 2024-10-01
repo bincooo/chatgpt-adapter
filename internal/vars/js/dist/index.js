@@ -9,32 +9,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
 /**
  * 该代码为 https://github.com/teralomaniac/clewd 中的片段
  */
-var Config = {
-  "PromptExperimentFirst": "",
-  "PromptExperimentNext": "",
-  "PersonalityFormat": "{{char}}'s personality: {{personality}}",
-  "ScenarioFormat": "Dialogue scenario: {{scenario}}",
-  "Settings": {
-    "PromptExperiments": true,
-    "AllSamples": false,
-    "NoSamples": false,
-    "StripAssistant": false,
-    "StripHuman": false,
-    "PassParams": true,
-    "ClearFlags": true,
-    "PreserveChats": false,
-    "FullColon": true,
-    "xmlPlot": true,
-    "SkipRestricted": false
-  }
-};
-var Replacements = {
-  user: 'Human',
-  assistant: 'Assistant',
-  system: '',
-  example_user: 'H',
-  example_assistant: 'A'
-};
+
 var genericFixes = function genericFixes(text) {
   return text.replace(/(\r\n|\r|\\n)/gm, '\n');
 };
@@ -111,9 +86,9 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag) {
     }).replace(/\n(A|H): /g, function (match, p1) {
       return p1 === 'A' ? '\nH: ' : '\nA: ';
     }));
-    return content.replace(Config.Settings.padtxt ? /\s*<\|(?!padtxt).*?\|>\s*/g : /\s*<\|.*?\|>\s*/g, '\n\n').trim().replace(/^.+:/, '\n\n$&').replace(/(?<=\n)\n(?=\n)/g, '');
+    return content.replace(/\s*<\|.*?\|>\s*/g, '\n\n').trim().replace(/^.+:/, '\n\n$&').replace(/(?<=\n)\n(?=\n)/g, '');
   };
-(function (messages) {
+(function (messages, Config, Replacements) {
   try {
     /************************* */
     var _ref = function (messages) {
@@ -231,12 +206,11 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag) {
     /******************************** */
     var wedge = '\r';
     prompt = Config.Settings.xmlPlot ? xmlPlot(prompt) : "\n\nHuman: ".concat(genericFixes(prompt), "\n\nAssistant:");
-    Config.Settings.FullColon && (prompt = prompt.replace(/\n(?!\nAssistant:\s*$)(?=\n(Human|Assistant):)/g, '\n' + wedge));
-
+    // prompt = prompt.replace(/\n(?!\nAssistant:\s*$)(?=\n(Human|Assistant):)/gs, '\n' + wedge);
     /******************************** */
     var system;
     var rounds = prompt.replace(/^(?![\s\S]*\n\nHuman:)/, '\n\nHuman:').split('\n\nHuman:');
-    messages = rounds.slice(1).flatMap(function (round) {
+    messages = rounds.slice(1).flatMap(function (round, idx) {
       var turns = round.split('\n\nAssistant:');
       return [{
         role: 'user',
@@ -248,13 +222,25 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag) {
         }];
       }));
     }).reduce(function (acc, current) {
-      if (Config.Settings.FullColon && acc.length > 0 && (acc[acc.length - 1].role === current.role || !acc[acc.length - 1].content)) {
-        acc[acc.length - 1].content += (current.role === 'user' ? 'Human' : 'Assistant').replace(/.*/, '\n' + wedge + '\n$&: ') + current.content;
+      if (acc.length > 0 && (acc[acc.length - 1].role === current.role || !acc[acc.length - 1].content)) {
+        acc[acc.length - 1].content += (current.role === 'user' ? 'Human' : 'Assistant').replace(/.*/, '\n\n$&: ') + current.content;
       } else acc.push(current);
       return acc;
     }, []).filter(function (message) {
       return message.content;
-    }), system = rounds[0].trim();
+    }), system = (rounds = rounds[0].split('\n\nAssistant:'))[0].trim();
+    rounds.length > 1 && (messages = rounds.slice(1).flatMap(function (turn) {
+      return [{
+        role: 'assistant',
+        content: turn.trim()
+      }];
+    }).concat(messages));
+    if (!Config.Settings.StripAssistant) {
+      messages.push({
+        role: "assistant",
+        content: ""
+      });
+    }
     if (system) {
       return [{
         role: "system",
@@ -265,4 +251,4 @@ var xmlPlot_merge = function xmlPlot_merge(content, mergeTag) {
   } catch (err) {
     throw err;
   }
-})(messages);
+})(messages, config, replacements);

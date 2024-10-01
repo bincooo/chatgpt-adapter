@@ -134,7 +134,12 @@ func (API) Completion(ctx *gin.Context) {
 		}
 	}
 
-	newMessages := mergeMessages(ctx, completion.Messages)
+	newMessages, err := mergeMessages(ctx, completion)
+	if err != nil {
+		response.Error(ctx, -1, err)
+		return
+	}
+
 	ctx.Set(ginTokens, common.CalcTokens(newMessages))
 	if echo {
 		response.Echo(ctx, completion.Model, newMessages, completion.Stream)

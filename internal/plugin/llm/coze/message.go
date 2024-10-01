@@ -1,14 +1,11 @@
 package coze
 
 import (
-	"bytes"
 	"chatgpt-adapter/internal/common"
 	"chatgpt-adapter/internal/gin.handler/response"
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
-	"chatgpt-adapter/pkg"
 	"errors"
-	"fmt"
 	"github.com/bincooo/coze-api"
 	"github.com/gin-gonic/gin"
 	"strings"
@@ -125,90 +122,41 @@ label:
 
 func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, tokens int, err error) {
 	var (
-		proxies  = ctx.GetString("proxies")
-		messages = common.GetGinCompletion(ctx).Messages
+		completion   = common.GetGinCompletion(ctx)
+		messages     = completion.Messages
+		toolMessages = common.FindToolMessages(&completion)
 	)
 
-	{
-		values, ok := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
-		if ok {
-			var contents []string
-			for _, message := range values {
-				contents = append(contents, message.GetString("content"))
-			}
-
-			message := strings.Join(contents, "\n\n")
-			tokens += common.CalcTokens(message)
-			newMessages = append(newMessages, coze.Message{
-				Role:    "user",
-				Content: message,
-			})
-			return
-		}
-	}
-
-	condition := func(expr string) string {
-		switch expr {
-		case "system", "assistant", "function", "tool", "end":
-			return expr
-		default:
-			return "user"
-		}
-	}
-
-	iterator := func(opts struct {
-		Previous string
-		Next     string
-		Message  map[string]string
-		Buffer   *bytes.Buffer
-		Initial  func() pkg.Keyv[interface{}]
-	}) (messages []coze.Message, _ error) {
-		role := opts.Message["role"]
-		tokens += common.CalcTokens(opts.Message["content"])
-		// 复合消息
-		if _, ok := opts.Message["multi"]; ok && role == "user" {
-			message := opts.Initial()
-			content, e := common.MergeMultiMessage(ctx.Request.Context(), proxies, message)
-			if e != nil {
-				return nil, e
-			}
-			opts.Buffer.WriteString(content)
-			if condition(role) != condition(opts.Next) {
-				messages = []coze.Message{
-					{
-						Role:    role,
-						Content: opts.Buffer.String(),
-					},
-				}
-				opts.Buffer.Reset()
-			}
-			return
-		}
-
-		if condition(role) == condition(opts.Next) {
-			// cache buffer
-			if role == "function" || role == "tool" {
-				opts.Buffer.WriteString(fmt.Sprintf("这是系统内置tools工具的返回结果: (%s)\n\n##\n%s\n##", opts.Message["name"], opts.Message["content"]))
-				return
-			}
-			opts.Buffer.WriteString(opts.Message["content"])
-			return
-		}
-
-		defer opts.Buffer.Reset()
-		opts.Buffer.WriteString(fmt.Sprintf(opts.Message["content"]))
-		messages = []coze.Message{
-			{
-				Role:    role,
-				Content: opts.Buffer.String(),
-			},
-		}
+	if messages, err = common.HandleMessages(completion, nil); err != nil {
 		return
 	}
+	messages = append(messages, toolMessages...)
 
-	newMessages, err = common.TextMessageCombiner(messages, iterator)
-	if err != nil {
-		err = logger.WarpError(err)
+	var (
+		pos      = 0
+		contents []string
+	)
+	messageL := len(messages)
+	for {
+		if pos > messageL-1 {
+			break
+		}
+
+		message := messages[pos]
+		role, end := common.ConvertRole(ctx, message.GetString("role"))
+		contents = append(contents, role+message.GetString("content")+end)
+		pos++
 	}
+
+	message := strings.Join(contents, "")
+	if strings.HasSuffix(message, "<|end|>\n\n") {
+		message = message[:len(message)-9]
+	}
+
+	tokens += common.CalcTokens(message)
+	newMessages = append(newMessages, coze.Message{
+		Role:    "user",
+		Content: message,
+	})
 	return
 }

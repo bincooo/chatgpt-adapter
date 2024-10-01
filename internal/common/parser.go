@@ -6,7 +6,6 @@ import (
 	"chatgpt-adapter/pkg"
 	_ "embed"
 	"encoding/json"
-	"fmt"
 	"github.com/bincooo/coze-api"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/dop251/goja"
@@ -382,24 +381,16 @@ func (xml XmlParser) Parse(value string) []XmlNode {
 	return recursive(value)
 }
 
-func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion, cb func(str string)) ([]Matcher, error) {
-	matchers := NewMatchers(cb)
-	flags := pkg.Config.GetBool("flags")
-	if !flags {
-		if err := handleClaudeMessages(ctx, *completion); err != nil {
-			return nil, err
-		}
-		return matchers, nil
+func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion) (err error) {
+	if !pkg.Config.GetBool("flags") {
+		return
 	}
 
 	if len(completion.Messages) == 0 {
-		return matchers, nil
+		return
 	}
 
-	token := ctx.GetString("token")
-	handles := xmlFlagsToContents(ctx, completion.Messages, IsClaude(ctx, token, completion.Model))
-
-	for _, h := range handles {
+	for _, h := range xmlFlagsToContents(ctx, completion.Messages) {
 		// 历史记录
 		if h['t'] == "histories" {
 			content := strings.TrimSpace(h['v'])
@@ -407,8 +398,8 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion, cb func(str stri
 				continue
 			}
 			var baseMessages []pkg.Keyv[interface{}]
-			if err := json.Unmarshal([]byte(content), &baseMessages); err != nil {
-				logger.Error("histories flags handle failed: ", err)
+			if jsonErr := json.Unmarshal([]byte(content), &baseMessages); jsonErr != nil {
+				logger.Error("histories flags handle failed: ", jsonErr)
 				continue
 			}
 
@@ -425,15 +416,7 @@ func XmlFlags(ctx *gin.Context, completion *pkg.ChatCompletion, cb func(str stri
 		}
 	}
 
-	if err := handleClaudeMessages(ctx, *completion); err != nil {
-		return nil, err
-	}
-	values, ok := GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
-	if ok {
-		_ = xmlFlagsToContents(ctx, values, true)
-	}
-
-	return matchers, nil
+	return
 }
 
 func IsClaude(ctx *gin.Context, token, model string) bool {
@@ -466,44 +449,67 @@ func IsClaude(ctx *gin.Context, token, model string) bool {
 	return isc
 }
 
-func handleClaudeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (err error) {
-	// claude messages
-	token := ctx.GetString("token")
-	if IsClaude(ctx, token, completion.Model) {
-		vm := goja.New()
-		_ = vm.Set("messages", completion.Messages)
-		_ = vm.Set("console", map[string]interface{}{
-			"log": func(args ...interface{}) {
-				fmt.Println(args...)
-			},
-		})
-		_ = vm.Set("JSON", map[string]interface{}{
-			"stringify": func(obj interface{}) (string, error) {
-				value, e := json.Marshal(obj)
-				return string(value), e
-			},
-			"parse": func(value string) (obj interface{}, e error) {
-				e = json.Unmarshal([]byte(value), &obj)
-				return
-			},
-		})
-
-		v, e := vm.RunString(vars.Script)
-		if e != nil {
-			err = e
-			return
-		}
-
-		var msgs []pkg.Keyv[interface{}]
-		err = vm.ExportTo(v, &msgs)
-		if err != nil {
-			return
-		}
-
-		ctx.Set(vars.GinClaudeMessages, msgs)
+func HandleMessages(completion pkg.ChatCompletion, config *vars.Config) (messages []pkg.Keyv[interface{}], err error) {
+	if config == nil {
+		config = &vars.Config{}
 	}
 
-	return nil
+	if config.Settings == nil {
+		config.Settings = &vars.ConfigSettings{
+			//StripAssistant:    true,
+			PromptExperiments: true,
+			PassParams:        true,
+			ClearFlags:        true,
+			FullColon:         true,
+			XmlPlot:           true,
+		}
+	}
+
+	rep := vars.Replacements{
+		User:      "Human",
+		Assistant: "Assistant",
+	}
+
+	vm := goja.New()
+	_ = vm.Set("messages", completion.Messages)
+	_ = vm.Set("config", vars.ConvertConfig(*config))
+	_ = vm.Set("replacements", vars.ConvertReplacements(rep))
+	_ = vm.Set("console", map[string]interface{}{
+		"log": func(args ...interface{}) {
+			logger.Info(args...)
+		},
+		"debug": func(args ...interface{}) {
+			logger.Debug(args...)
+		},
+		"error": func(args ...interface{}) {
+			logger.Error(args...)
+		},
+	})
+	_ = vm.Set("JSON", map[string]interface{}{
+		"stringify": func(obj interface{}) (string, error) {
+			value, e := json.Marshal(obj)
+			return string(value), e
+		},
+		"parse": func(value string) (obj interface{}, e error) {
+			e = json.Unmarshal([]byte(value), &obj)
+			return
+		},
+	})
+
+	v, e := vm.RunString(vars.Script)
+	if e != nil {
+		err = e
+		return
+	}
+
+	err = vm.ExportTo(v, &messages)
+	if err != nil {
+		return
+	}
+
+	//ctx.Set(vars.GinClaudeMessages, messages)
+
+	return
 }
 
 // matcher 流响应干预
@@ -562,7 +568,7 @@ func handleMatcher(h map[uint8]string, matchers []Matcher) []Matcher {
 	return matchers
 }
 
-func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}], isc bool) (handles []map[uint8]string) {
+func xmlFlagsToContents(ctx *gin.Context, messages []pkg.Keyv[interface{}]) (handles []map[uint8]string) {
 	var (
 		parser = NewParser([]string{
 			"debug",

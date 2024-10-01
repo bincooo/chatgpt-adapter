@@ -86,7 +86,7 @@ func completions(ctx *gin.Context) {
 	}
 
 	if common.GinDebugger(ctx) {
-		bodyLogger(completion)
+		bodyLogger(ctx)
 	}
 
 	if !response.MessageValidator(ctx) {
@@ -140,7 +140,8 @@ func generations(ctx *gin.Context) {
 	GlobalExtension.Generation(ctx)
 }
 
-func bodyLogger(completion pkg.ChatCompletion) {
+func bodyLogger(ctx *gin.Context) {
+	completion := common.GetGinCompletion(ctx)
 	bytes, err := json.MarshalIndent(completion, "", "  ")
 	if err != nil {
 		logger.Error(err)
@@ -169,18 +170,17 @@ func beforeProcess(ctx *gin.Context, completion pkg.ChatCompletion) (err error) 
 	}
 
 	// init flags
-	matchers, err := common.XmlFlags(ctx, &completion, func(str string) {
-		if completion.Stream {
-			response.SSEResponse(ctx, "matcher", str, time.Now().Unix())
-		}
-	})
-	if err != nil {
+	if err = common.XmlFlags(ctx, &completion); err != nil {
 		return err
 	}
 	ctx.Set(vars.GinCompletion, completion)
 
 	// init matchers
-	ctx.Set(vars.GinMatchers, matchers)
+	ctx.Set(vars.GinMatchers, common.NewMatchers(func(str string) {
+		if completion.Stream {
+			response.SSEResponse(ctx, "matcher", str, time.Now().Unix())
+		}
+	}))
 	return
 }
 

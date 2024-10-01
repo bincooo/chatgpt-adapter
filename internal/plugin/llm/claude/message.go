@@ -5,7 +5,6 @@ import (
 	"chatgpt-adapter/internal/gin.handler/response"
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
-	"chatgpt-adapter/pkg"
 	claude3 "github.com/bincooo/claude-api"
 	"github.com/gin-gonic/gin"
 	"strings"
@@ -91,27 +90,52 @@ func waitResponse(ctx *gin.Context, matchers []common.Matcher, chatResponse chan
 	return
 }
 
-func mergeMessages(ctx *gin.Context) (attachment []claude3.Attachment, tokens int) {
-	messages, _ := common.GetGinValue[[]pkg.Keyv[interface{}]](ctx, vars.GinClaudeMessages)
-	var contents []string
-	for _, message := range messages {
-		contents = append(contents, message.GetString("content"))
+func mergeMessages(ctx *gin.Context) (attachment []claude3.Attachment, tokens int, err error) {
+	var (
+		completion   = common.GetGinCompletion(ctx)
+		messages     = completion.Messages
+		toolMessages = common.FindToolMessages(&completion)
+	)
+
+	if messages, err = common.HandleMessages(completion, nil); err != nil {
+		return
+	}
+	messages = append(messages, toolMessages...)
+
+	var (
+		pos      = 0
+		contents []string
+	)
+	messageL := len(messages)
+	for {
+		if pos > messageL-1 {
+			break
+		}
+
+		message := messages[pos]
+		role, end := common.ConvertRole(ctx, message.GetString("role"))
+		contents = append(contents, role+message.GetString("content")+end)
+		pos++
 	}
 
-	join := strings.Join(contents, "\n\n")
+	message := strings.Join(contents, "")
+	if strings.HasSuffix(message, "<|end|>\n\n") {
+		message = message[:len(message)-9]
+	}
+
 	if ctx.GetBool("pad") {
 		count := ctx.GetInt("claude.pad")
 		if count == 0 {
 			count = padMaxCount
 		}
-		join = common.PadJunkMessage(count-len(join), join)
+		message = common.PadJunkMessage(count-len(message), message)
 	}
 
-	tokens = common.CalcTokens(join)
+	tokens = common.CalcTokens(message)
 	attachment = append(attachment, claude3.Attachment{
-		Content:  join,
+		Content:  message,
 		FileName: "paste.txt",
-		FileSize: len(join),
+		FileSize: len(message),
 		FileType: "text/plain",
 	})
 

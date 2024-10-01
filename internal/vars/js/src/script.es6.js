@@ -1,33 +1,6 @@
 /**
  * 该代码为 https://github.com/teralomaniac/clewd 中的片段
  */
-const Config = {
-    "PromptExperimentFirst": "",
-    "PromptExperimentNext": "",
-    "PersonalityFormat": "{{char}}'s personality: {{personality}}",
-    "ScenarioFormat": "Dialogue scenario: {{scenario}}",
-    "Settings": {
-        "PromptExperiments": true,
-        "AllSamples": false,
-        "NoSamples": false,
-        "StripAssistant": false,
-        "StripHuman": false,
-        "PassParams": true,
-        "ClearFlags": true,
-        "PreserveChats": false,
-        "FullColon": true,
-        "xmlPlot": true,
-        "SkipRestricted": false,
-    }
-}
-
-const Replacements = {
-    user: 'Human',
-    assistant: 'Assistant',
-    system: '',
-    example_user: 'H',
-    example_assistant: 'A'
-}
 
 const genericFixes = text => text.replace(/(\r\n|\r|\\n)/gm, '\n');
 
@@ -96,10 +69,10 @@ const xmlPlot_merge = (content, mergeTag) => {
     //确保格式正确
     content = content.replace(/(\n\nHuman:(?!.*?\n\nAssistant:).*?|(?<!\n\nAssistant:.*?))$/s, '$&\n\nAssistant:').replace(/\s*<\|noAssistant\|>\s*(.*?)(?:\n\nAssistant:\s*)?$/s, '\n\n$1');
     content.includes('<|reverseHA|>') && (content = content.replace(/\s*<\|reverseHA\|>\s*/g, '\n\n').replace(/Assistant|Human/g, function(match) {return match === 'Human' ? 'Assistant' : 'Human'}).replace(/\n(A|H): /g, function(match, p1) {return p1 === 'A' ? '\nH: ' : '\nA: '}));
-    return content.replace(Config.Settings.padtxt ? /\s*<\|(?!padtxt).*?\|>\s*/g : /\s*<\|.*?\|>\s*/g, '\n\n').trim().replace(/^.+:/, '\n\n$&').replace(/(?<=\n)\n(?=\n)/g, '');
+    return content.replace(/\s*<\|.*?\|>\s*/g, '\n\n').trim().replace(/^.+:/, '\n\n$&').replace(/(?<=\n)\n(?=\n)/g, '');
 };
 
-((messages) => {
+((messages, Config, Replacements) => {
     try {
         /************************* */
         let { prompt } = ((messages) => {
@@ -201,20 +174,25 @@ const xmlPlot_merge = (content, mergeTag) => {
         /******************************** */
         const wedge = '\r';
         prompt = Config.Settings.xmlPlot ? xmlPlot(prompt) : `\n\nHuman: ${genericFixes(prompt)}\n\nAssistant:`;
-        Config.Settings.FullColon && (prompt = prompt.replace(/\n(?!\nAssistant:\s*$)(?=\n(Human|Assistant):)/gs, '\n' + wedge));
-
+        // prompt = prompt.replace(/\n(?!\nAssistant:\s*$)(?=\n(Human|Assistant):)/gs, '\n' + wedge);
         /******************************** */
         let system;
-        const rounds = prompt.replace(/^(?!.*\n\nHuman:)/s, '\n\nHuman:').split('\n\nHuman:');
-        messages = rounds.slice(1).flatMap(round => {
-            const turns = round.split('\n\nAssistant:');
+
+        let rounds = prompt.replace(/^(?!.*\n\nHuman:)/s, '\n\nHuman:').split('\n\nHuman:');
+        messages = rounds.slice(1).flatMap((round, idx) => {
+            let turns = round.split('\n\nAssistant:');
             return [{role: 'user', content: turns[0].trim()}].concat(turns.slice(1).flatMap(turn => [{role: 'assistant', content: turn.trim()}]));
         }).reduce((acc, current) => {
-            if (Config.Settings.FullColon && acc.length > 0 && (acc[acc.length - 1].role === current.role || !acc[acc.length - 1].content)) {
-                acc[acc.length - 1].content += (current.role === 'user' ? 'Human' : 'Assistant').replace(/.*/, '\n' + wedge + '\n$&: ') + current.content;
+            if (acc.length > 0 && (acc[acc.length - 1].role === current.role || !acc[acc.length - 1].content)) {
+                acc[acc.length - 1].content += (current.role === 'user' ? 'Human' : 'Assistant').replace(/.*/, '\n\n$&: ') + current.content;
             } else acc.push(current);
             return acc;
-        }, []).filter(message => message.content), system = rounds[0].trim();
+        }, []).filter(message => message.content), system = (rounds = rounds[0].split('\n\nAssistant:'))[0].trim();
+        rounds.length > 1 && (messages = rounds.slice(1).flatMap(turn => [{role: 'assistant', content: turn.trim()}]).concat(messages));
+
+        if (!Config.Settings.StripAssistant) {
+            messages.push({role: "assistant", content: ""})
+        }
 
         if (system) {
             return [ {role: "system", content: system}, ...messages ];
@@ -224,4 +202,4 @@ const xmlPlot_merge = (content, mergeTag) => {
     } catch (err) {
         throw err
     }
-})(messages)
+})(messages, config, replacements)
