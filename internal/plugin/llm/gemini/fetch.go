@@ -20,26 +20,6 @@ const GOOGLE_BASE_FORMAT = "https://generativelanguage.googleapis.com/v1beta/mod
 
 var (
 	safetySettings = []map[string]interface{}{
-		//{
-		//	"category":  "HARM_CATEGORY_DEROGATORY",
-		//	"threshold": "BLOCK_NONE",
-		//},
-		//{
-		//	"category":  "HARM_CATEGORY_TOXICITY",
-		//	"threshold": "BLOCK_NONE",
-		//},
-		//{
-		//	"category":  "HARM_CATEGORY_VIOLENCE",
-		//	"threshold": "BLOCK_NONE",
-		//},
-		//{
-		//	"category":  "HARM_CATEGORY_SEXUAL",
-		//	"threshold": "BLOCK_NONE",
-		//},
-		//{
-		//	"category":  "HARM_CATEGORY_DANGEROUS",
-		//	"threshold": "BLOCK_NONE",
-		//},
 		{
 			"category":  "HARM_CATEGORY_HARASSMENT",
 			"threshold": "BLOCK_NONE",
@@ -57,13 +37,6 @@ var (
 			"threshold": "BLOCK_NONE",
 		},
 	}
-
-	emp = map[string]interface{}{
-		"em": map[string]string{
-			"type":        "string",
-			"description": "empty str",
-		},
-	}
 )
 
 func init() {
@@ -75,7 +48,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	gURL := fmt.Sprintf(GOOGLE_BASE_FORMAT, completion.Model, token)
 
 	if completion.Temperature < 0.1 {
-		completion.Temperature = 1
+		completion.Temperature = 1.2
 	}
 
 	if completion.MaxTokens == 0 {
@@ -83,7 +56,7 @@ func build(ctx context.Context, proxies, token string, messages []map[string]int
 	}
 
 	if completion.TopK == 0 {
-		completion.TopK = 100
+		completion.TopK = 10
 	}
 
 	if completion.TopP == 0 {
