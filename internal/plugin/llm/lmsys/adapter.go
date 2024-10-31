@@ -6,6 +6,7 @@ import (
 	"chatgpt-adapter/internal/plugin"
 	"chatgpt-adapter/internal/vars"
 	"chatgpt-adapter/logger"
+	"chatgpt-adapter/pkg"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"strings"
@@ -115,6 +116,19 @@ func (API) Models() (result []plugin.Model) {
 		})
 	}
 
+	return
+}
+
+func (API) HandleMessages(ctx *gin.Context) (messages []pkg.Keyv[interface{}], err error) {
+	var (
+		completion   = common.GetGinCompletion(ctx)
+		toolMessages = common.FindToolMessages(&completion)
+	)
+
+	if messages, err = common.HandleMessages(completion, nil); err != nil {
+		return
+	}
+	messages = append(messages, toolMessages...)
 	return
 }
 

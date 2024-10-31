@@ -128,93 +128,51 @@ func (API) Match(_ *gin.Context, model string) bool {
 	return false
 }
 
-func (API) Models() []plugin.Model {
-	return []plugin.Model{
-		{
-			Id:      "you/" + you.GPT_4,
+func (API) Models() (slice []plugin.Model) {
+	for _, model := range []string{
+		you.GPT_4,
+		you.GPT_4_TURBO,
+		you.GPT_4o,
+		you.GPT_4o_MINI,
+		you.OPENAI_O1,
+		you.OPENAI_O1_MINI,
+		you.CLAUDE_2,
+		you.CLAUDE_3_HAIKU,
+		you.CLAUDE_3_SONNET,
+		you.CLAUDE_3_5_SONNET,
+		you.CLAUDE_3_OPUS,
+		you.GEMINI_1_0_PRO,
+		you.GEMINI_1_5_PRO,
+		you.GEMINI_1_5_FLASH,
+	} {
+		slice = append(slice, plugin.Model{
+			Id:      "you/" + model,
 			Object:  "model",
 			Created: 1686935002,
 			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.GPT_4o,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.GPT_4o_MINI,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.GPT_4_TURBO,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.OPENAI_O1,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.OPENAI_O1_MINI,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.CLAUDE_2,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.CLAUDE_3_HAIKU,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.CLAUDE_3_SONNET,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.CLAUDE_3_5_SONNET,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.CLAUDE_3_OPUS,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.GEMINI_1_0_PRO,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.GEMINI_1_5_PRO,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
-		{
-			Id:      "you/" + you.GEMINI_1_5_FLASH,
-			Object:  "model",
-			Created: 1686935002,
-			By:      Model + "-adapter",
-		},
+		})
 	}
+	return
+}
+
+func (API) HandleMessages(ctx *gin.Context) (messages []pkg.Keyv[interface{}], err error) {
+	var (
+		completion   = common.GetGinCompletion(ctx)
+		toolMessages = common.FindToolMessages(&completion)
+	)
+
+	if messages, err = common.HandleMessages(completion, &vars.Config{
+		Settings: &vars.ConfigSettings{
+			StripAssistant:    true,
+			PromptExperiments: true,
+			PassParams:        true,
+			XmlPlot:           true,
+		},
+	}); err != nil {
+		return
+	}
+	messages = append(messages, toolMessages...)
+	return
 }
 
 func (API) Completion(ctx *gin.Context) {
@@ -275,16 +233,25 @@ label:
 	chat.LimitWithE(true)
 	chat.Client(plugin.HTTPClient)
 
-	//if err = tryCloudFlare(); err != nil {
+	// if err = tryCloudFlare(); err != nil {
 	//	response.Error(ctx, -1, err)
 	//	return
-	//}
+	// }
 
 	chat.CloudFlare(clearance, userAgent, lang)
 
 	var cancel chan error
 	cancel, matchers = joinMatchers(ctx, matchers)
 	ctx.Set(ginTokens, tokens)
+
+	if pkg.Config.GetBool("you.custom") {
+		err = chat.Custom(common.GetGinContext(ctx), "custom-"+completion.Model, "", false)
+		if err != nil {
+			logger.Error(err)
+			response.Error(ctx, -1, err)
+			return
+		}
+	}
 
 	ch, err := chat.Reply(common.GetGinContext(ctx), nil, fileMessage, message)
 	if err != nil {
@@ -496,7 +463,7 @@ func Condition(cookie string) bool {
 		return false
 	}
 
-	//return true
+	// return true
 	chat := you.New(cookie, you.CLAUDE_2, vars.Proxies)
 	chat.Client(plugin.HTTPClient)
 	chat.CloudFlare(clearance, userAgent, lang)

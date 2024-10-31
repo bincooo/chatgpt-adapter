@@ -59,6 +59,7 @@ type Adapter interface {
 	Completion(ctx *gin.Context)
 	Generation(ctx *gin.Context)
 	Embedding(ctx *gin.Context)
+	HandleMessages(ctx *gin.Context) (messages []pkg.Keyv[interface{}], err error)
 }
 
 type BaseAdapter struct {
@@ -79,6 +80,15 @@ func (BaseAdapter) Generation(*gin.Context) {
 }
 
 func (BaseAdapter) Embedding(*gin.Context) {}
+
+func (BaseAdapter) HandleMessages(ctx *gin.Context) (messages []pkg.Keyv[interface{}], err error) {
+	var (
+		completion = common.GetGinCompletion(ctx)
+	)
+
+	messages = completion.Messages
+	return
+}
 
 func NewGlobalAdapter() *ExtensionAdapter {
 	return &ExtensionAdapter{
@@ -106,6 +116,15 @@ func (adapter *ExtensionAdapter) Completion(ctx *gin.Context) {
 	completion := common.GetGinCompletion(ctx)
 	for _, extension := range adapter.slice {
 		if extension.Match(ctx, completion.Model) {
+			messages, err := extension.HandleMessages(ctx)
+			if err != nil {
+				logger.Error("Error handling messages: ", err)
+				response.Error(ctx, 500, err)
+				return
+			}
+
+			completion.Messages = messages
+			ctx.Set(vars.GinCompletion, completion)
 			extension.Completion(ctx)
 			return
 		}

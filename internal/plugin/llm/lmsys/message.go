@@ -115,14 +115,8 @@ label:
 
 func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (newMessages string, err error) {
 	var (
-		messages     []pkg.Keyv[interface{}]
-		toolMessages = common.FindToolMessages(&completion)
+		messages = completion.Messages
 	)
-
-	if messages, err = common.HandleMessages(completion, nil); err != nil {
-		return
-	}
-	messages = append(messages, toolMessages...)
 
 	var (
 		pos      = 0

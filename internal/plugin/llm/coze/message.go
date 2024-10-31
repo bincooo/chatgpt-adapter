@@ -122,15 +122,9 @@ label:
 
 func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, tokens int, err error) {
 	var (
-		completion   = common.GetGinCompletion(ctx)
-		messages     = completion.Messages
-		toolMessages = common.FindToolMessages(&completion)
+		completion = common.GetGinCompletion(ctx)
+		messages   = completion.Messages
 	)
-
-	if messages, err = common.HandleMessages(completion, nil); err != nil {
-		return
-	}
-	messages = append(messages, toolMessages...)
 
 	var (
 		pos      = 0

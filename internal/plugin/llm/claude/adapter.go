@@ -82,6 +82,19 @@ func (API) Models() []plugin.Model {
 	}
 }
 
+func (API) HandleMessages(ctx *gin.Context) (messages []pkg.Keyv[interface{}], err error) {
+	var (
+		completion   = common.GetGinCompletion(ctx)
+		toolMessages = common.FindToolMessages(&completion)
+	)
+
+	if messages, err = common.HandleMessages(completion, nil); err != nil {
+		return
+	}
+	messages = append(messages, toolMessages...)
+	return
+}
+
 func (API) Completion(ctx *gin.Context) {
 	var (
 		completion = common.GetGinCompletion(ctx)

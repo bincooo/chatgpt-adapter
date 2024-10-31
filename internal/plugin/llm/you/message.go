@@ -192,14 +192,8 @@ label:
 func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (fileMessage string, text string, tokens int, err error) {
 	text = notice
 	var (
-		messages     = completion.Messages
-		toolMessages = common.FindToolMessages(&completion)
+		messages = completion.Messages
 	)
-
-	if messages, err = common.HandleMessages(completion, nil); err != nil {
-		return
-	}
-	messages = append(messages, toolMessages...)
 
 	var (
 		pos      = 0
