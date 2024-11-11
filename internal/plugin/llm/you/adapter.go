@@ -196,12 +196,7 @@ func (API) Completion(ctx *gin.Context) {
 	)
 
 	completion.Model = completion.Model[4:]
-	fileMessage, message, tokens, err := mergeMessages(ctx, completion)
-	if err != nil {
-		logger.Error(err)
-		response.Error(ctx, -1, err)
-		return
-	}
+	fileMessage, message, tokens := mergeMessages(ctx, completion)
 
 	if echo {
 		response.Echo(ctx, completion.Model, fmt.Sprintf("--------FILE MESSAGE--------:\n%s\n\n\n--------CURR QUESTION--------:\n%s", fileMessage, message), completion.Stream)

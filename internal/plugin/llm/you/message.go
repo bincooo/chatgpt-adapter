@@ -189,17 +189,26 @@ label:
 	return
 }
 
-func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (fileMessage string, text string, tokens int, err error) {
+func mergeMessages(ctx *gin.Context, completion pkg.ChatCompletion) (fileMessage string, text string, tokens int) {
 	text = notice
 	var (
 		messages = completion.Messages
 	)
 
+	messageL := len(messages)
+	if messageL == 1 {
+		message := messages[0]
+		role, end := common.ConvertRole(ctx, message.GetString("role"))
+		text = role + message.GetString("content") + end
+		tokens += common.CalcTokens(text)
+		return
+	}
+
 	var (
 		pos      = 0
 		contents []string
 	)
-	messageL := len(messages)
+
 	for {
 		if pos > messageL-1 {
 			break
