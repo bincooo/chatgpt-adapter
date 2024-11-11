@@ -83,6 +83,7 @@ claude:
 
 you:
   helper: 8082
+  custom: false
   notice: "Creative Writing Mode"
   cookies:
     - 'xxx1'
