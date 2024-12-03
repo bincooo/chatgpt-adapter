@@ -1,0 +1,10 @@
+{
+  "presets": [
+    "@babel/preset-env"
+  ],
+  "plugins": [
+    ["transform-strict-mode", {
+      "strict": true
+    }]
+  ]
+}
