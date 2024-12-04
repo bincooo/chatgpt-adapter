@@ -1,6 +1,7 @@
 package response
 
 import (
+	"chatgpt-adapter/core/common"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"sync"
@@ -133,14 +134,18 @@ func newCancel(ctx *gin.Context) (slice []inter.Matcher) {
 	convertRole1, _ := ConvertRole(ctx, "user")
 	convertRole2, _ := ConvertRole(ctx, "system")
 	convertRole3, _ := ConvertRole(ctx, "assistant")
+
+	completion := common.GetGinCompletion(ctx)
+	sequences := completion.StopSequences
+
 	once := true
-	for _, match := range []string{
+	for _, match := range append(sequences,
 		convertRole1,
 		convertRole2,
 		convertRole3,
 		"H:",
 		"A:",
-	} {
+	) {
 		match = strings.TrimSpace(match)
 		if match == "" {
 			continue

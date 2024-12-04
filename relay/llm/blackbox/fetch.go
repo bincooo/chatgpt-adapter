@@ -16,10 +16,8 @@ const (
 )
 
 type blackboxRequest struct {
-	model.Completion
+	Messages []model.Keyv[interface{}] `json:"messages"`
 
-	//PreviewToken      string                 `json:"previewToken"`
-	//UserId            string                 `json:"userId"`
 	AgentMode         map[string]interface{} `json:"agentMode"`
 	TrendingAgentMode map[string]interface{} `json:"trendingAgentMode"`
 
@@ -68,9 +66,6 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 	id := request.Messages[0].GetString("id")
 	if id == "" {
 		id = common.Hex(7)
-		for _, message := range request.Messages {
-			message.Set("id", id)
-		}
 	}
 
 	request.Id = id

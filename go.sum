@@ -50,8 +50,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/bincooo/coze-api v1.0.2-0.20240918110129-770fad86481e h1:j1iCjZtC2nUKd6pq33FPDY5bvMImErC9q3eKfgq59eo=
-github.com/bincooo/coze-api v1.0.2-0.20240918110129-770fad86481e/go.mod h1:qhaSqKdvR4T594sBMzp+TKZ+PcaeelAiBMvIE254b6g=
+github.com/bincooo/coze-api v1.0.2-0.20241204052445-8100a9ce45d0 h1:LHJy+OS1JyHNznFu3Rz1LtUsbOI0qxMVH2mtsvATllA=
+github.com/bincooo/coze-api v1.0.2-0.20241204052445-8100a9ce45d0/go.mod h1:qhaSqKdvR4T594sBMzp+TKZ+PcaeelAiBMvIE254b6g=
 github.com/bincooo/emit.io v1.0.1-0.20241204040549-a9d53d3b6cfe h1:gTf9Rs/DbqacE4naMkVxeAVSkGhLw971DChMoclp8RA=
 github.com/bincooo/emit.io v1.0.1-0.20241204040549-a9d53d3b6cfe/go.mod h1:OJbKJoZ6x6vSpCC+JNtfcaXo3ilpvQscWrcGEmtmrZI=
 github.com/bincooo/go-annotation v0.0.0-20241129022159-ea84d341fcda h1:bhkDbl8cz++1rXqroCNLYxs2Eu5ac/D3yDkxlUfHL1Y=
