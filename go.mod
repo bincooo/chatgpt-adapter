@@ -5,7 +5,7 @@ go 1.23.3
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/coze-api v1.0.2-0.20240918110129-770fad86481e
-	github.com/bincooo/emit.io v1.0.1-0.20241122183840-ea0ec743669a
+	github.com/bincooo/emit.io v1.0.1-0.20241204040549-a9d53d3b6cfe
 	github.com/bincooo/you.com v0.0.0-20241111060258-85f9deb66109
 	github.com/bogdanfinn/tls-client v1.7.7
 	github.com/dlclark/regexp2 v1.11.4
@@ -22,7 +22,7 @@ require (
 )
 
 //github.com/iocgo/sdk v0.0.0-20241129021727-ca323c08f298 => ../sdk
-replace github.com/samber/do/v2 v2.0.0-beta.7 => github.com/iocgo/do/v2 v2.0.0-patch.0.20241107072615-74ca0499b736
+replace github.com/samber/do/v2 v2.0.0-beta.7 => github.com/iocgo/do/v2 v2.0.0-patch.0.20241204032939-7bbcadbc5f38
 
 require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect

@@ -68,7 +68,6 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) (content
 			err := strings.TrimPrefix(raw, "error: ")
 			logger.Error(err)
 			if response.NotSSEHeader(ctx) {
-				logger.Error(err)
 				response.Error(ctx, -1, err)
 			}
 			return
@@ -116,7 +115,7 @@ func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, err error) {
 		completion  = common.GetGinCompletion(ctx)
 		messages    = completion.Messages
 		specialized = ctx.GetBool("specialized")
-		isC         = response.IsClaude(ctx, ctx.GetString("token"), completion.Model)
+		isC         = response.IsClaude(ctx, completion.Model)
 	)
 
 	tokens := 0

@@ -103,7 +103,7 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (newMessages s
 	var (
 		messages    = completion.Messages
 		specialized = ctx.GetBool("specialized")
-		isC         = response.IsClaude(ctx, "", completion.Model)
+		isC         = response.IsClaude(ctx, completion.Model)
 	)
 
 	messageL := len(messages)

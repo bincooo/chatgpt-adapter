@@ -128,7 +128,7 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (fileMessage, 
 	var (
 		messages    = completion.Messages
 		specialized = ctx.GetBool("specialized")
-		isC         = response.IsClaude(ctx, "", completion.Model)
+		isC         = response.IsClaude(ctx, completion.Model)
 	)
 	defer func() { ctx.Set(ginTokens, tokens) }()
 

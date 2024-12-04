@@ -10,15 +10,15 @@ type Model struct {
 type Completion struct {
 	System        string              `json:"system,omitempty"`
 	Messages      []Keyv[interface{}] `json:"messages"`
-	Tools         []Keyv[interface{}] `json:"tools"`
-	Model         string              `json:"model"`
+	Tools         []Keyv[interface{}] `json:"tools,omitempty"`
+	Model         string              `json:"model,omitempty"`
 	MaxTokens     int                 `json:"max_tokens"`
-	StopSequences []string            `json:"stop"`
+	StopSequences []string            `json:"stop,omitempty"`
 	Temperature   float32             `json:"temperature"`
 	TopK          int                 `json:"top_k,omitempty"`
 	TopP          float32             `json:"top_p,omitempty"`
 	Stream        bool                `json:"stream,omitempty"`
-	ToolChoice    interface{}         `json:"tool_choice"`
+	ToolChoice    interface{}         `json:"tool_choice,omitempty"`
 }
 
 type Generation struct {

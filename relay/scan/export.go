@@ -6,6 +6,7 @@ import (
 	"github.com/iocgo/sdk"
 
 	"chatgpt-adapter/relay/hf"
+	"chatgpt-adapter/relay/llm/blackbox"
 	"chatgpt-adapter/relay/llm/coze"
 	"chatgpt-adapter/relay/llm/lmsys"
 	"chatgpt-adapter/relay/llm/v1"
@@ -40,6 +41,11 @@ func Injects(container *sdk.Container) (err error) {
 	}
 
 	err = hf.Injects(container)
+	if err != nil {
+		return
+	}
+
+	err = blackbox.Injects(container)
 	if err != nil {
 		return
 	}

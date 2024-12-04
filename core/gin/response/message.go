@@ -62,7 +62,7 @@ func (holder ContentHolder) Handle(ctx *gin.Context, completion model.Completion
 	// stream.OfSlice(handlers).Range(func(handler regexHandler) { content = handler(content) })
 	specialized := ctx.GetBool("specialized") // 是否开启特化处理
 	if specialized {
-		if IsClaude(ctx, ctx.GetString("token"), completion.Model) {
+		if IsClaude(ctx, completion.Model) {
 			messages, err = goja.ParseMessages(splitToMessages(content, false), "txt")
 			return
 		}
@@ -156,7 +156,7 @@ func parseMessages[T any](ctx *gin.Context, parser *tokenizer.Parser, content st
 
 func ConvertRole(ctx *gin.Context, role string) (newRole, end string) {
 	completion := common.GetGinCompletion(ctx)
-	if IsClaude(ctx, "", completion.Model) {
+	if IsClaude(ctx, completion.Model) {
 		switch role {
 		case "user":
 			newRole = CLAUDE_ROLE_FMT("Human")
@@ -277,7 +277,7 @@ func IsGPT(model string) bool {
 	return strings.Contains(model, "openai") || strings.Contains(model, "gpt")
 }
 
-func IsClaude(ctx *gin.Context, token, model string) bool {
+func IsClaude(ctx *gin.Context, model string) bool {
 	key := "__is-claude__"
 	if ctx.GetBool(key) {
 		return true
@@ -296,7 +296,7 @@ func IsClaude(ctx *gin.Context, token, model string) bool {
 
 	if strings.HasPrefix(model, "coze/") {
 		values := strings.Split(model[5:], "-")
-		if len(values) > 3 && "w" == values[3] && strings.Contains(token, "[claude=true]") {
+		if len(values) > 3 && "w" == values[3] && strings.Contains(ctx.GetString("token"), "[claude=true]") {
 			ctx.Set(key, true)
 			return true
 		}
