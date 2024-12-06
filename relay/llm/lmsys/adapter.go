@@ -109,7 +109,7 @@ type api struct {
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	token := ctx.GetString("token")
-	if model[:6] != Model+"/" {
+	if len(model) <= 6 || model[:6] != Model+"/" {
 		return
 	}
 	for _, mod := range modelSlice {

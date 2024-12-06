@@ -25,7 +25,7 @@ type api struct {
 }
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
-	if Model+"/" != model[:7] {
+	if len(model) <= 7 || Model+"/" != model[:7] {
 		return
 	}
 	for _, mod := range []string{
