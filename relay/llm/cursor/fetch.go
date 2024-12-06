@@ -2,7 +2,7 @@ package cursor
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/binary"
 	"fmt"
 	"github.com/iocgo/sdk/stream"
 	"math/rand"
@@ -68,8 +68,8 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 		return
 	}
 
-	bufLen := fmt.Sprintf("%010x", len(protoBytes))
-	buffer, err = hex.DecodeString(bufLen + hex.EncodeToString(protoBytes))
+	header := int32ToBytes(0, uint32(len(protoBytes)))
+	buffer = append(header, protoBytes...)
 	return
 }
 
@@ -89,6 +89,12 @@ func getRandId(size int, dictType string) string {
 		buf = append(buf, customDict[rand.Intn(len(customDict))])
 	}
 	return string(buf)
+}
+
+func int32ToBytes(magic byte, num uint32) []byte {
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, num)
+	return append([]byte{magic}, bytes...)
 }
 
 func elseOf[T any](condition bool, a1, a2 T) T {
