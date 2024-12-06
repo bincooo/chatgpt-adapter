@@ -208,7 +208,7 @@ func echoMessages(ctx *gin.Context, completion model.Completion) {
 
 func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 	// 每个字节占8位
-	// 00000011 第一个字节是占位符，应该是用来代表消息类型的 假定 0: 消息体/proto, 1: 系统提示词/gzip, 3: 错误标记/gzip
+	// 00000011 第一个字节是占位符，应该是用来代表消息类型的 假定 0: 消息体/proto, 1: 系统提示词/gzip, 2、3: 错误标记/gzip
 	// 00000000 00000000 00000010 11011000 4个字节描述包体大小
 	scanner = bufio.NewScanner(body)
 	var (
@@ -248,9 +248,14 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 				return setup, []byte("event: error"), err
 			}
 
+			if magic == 2 { // 内部异常信息
+				return setup, []byte("event: error"), err
+			}
+
 			if magic == 1 { // 系统提示词标记？
 				return setup, []byte("event: system"), err
 			}
+
 			// magic == 0
 			return setup, []byte("event: message"), err
 		}

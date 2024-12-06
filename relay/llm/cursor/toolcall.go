@@ -25,7 +25,7 @@ func toolChoice(ctx *gin.Context, proxies, cookie string, completion model.Compl
 				"content": message,
 			},
 		}
-		messageBuffer, err := convertRequest(completion)
+		messageBuffer, err := convertRequest(ctx, completion)
 		if err != nil {
 			return "", err
 		}

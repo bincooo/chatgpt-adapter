@@ -123,7 +123,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		cookie = strings.Split(cookie, "%3A%3A")[1]
 	}
 
-	buffer, err := convertRequest(completion)
+	buffer, err := convertRequest(ctx, completion)
 	if err != nil {
 		return
 	}
