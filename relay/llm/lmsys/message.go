@@ -1,9 +1,9 @@
 package lmsys
 
 import (
+	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/common/toolcall"
 	"chatgpt-adapter/core/common/vars"
-	"chatgpt-adapter/core/gin/inter"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
@@ -29,6 +29,8 @@ func waitMessage(chatResponse chan string, cancel func(str string) bool) (conten
 		}
 
 		message = strings.TrimPrefix(message, "text: ")
+		logger.Debug("----- raw -----")
+		logger.Debug(message)
 		if len(message) > 0 {
 			content += message
 			if cancel != nil && cancel(content) {
@@ -40,10 +42,11 @@ func waitMessage(chatResponse chan string, cancel func(str string) bool) (conten
 	return content, nil
 }
 
-func waitResponse(ctx *gin.Context, matchers []inter.Matcher, chatResponse chan string, sse bool) (content string) {
+func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) (content string) {
 	created := time.Now().Unix()
 	logger.Info("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
+	matchers := common.GetGinMatchers(ctx)
 
 	for {
 		raw, ok := <-chatResponse

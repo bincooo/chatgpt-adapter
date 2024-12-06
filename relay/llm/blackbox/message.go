@@ -35,6 +35,8 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 		}
 
 		raw := string(char)
+		logger.Debug("----- raw -----")
+		logger.Debug(raw)
 		content += raw
 	}
 	return content, nil

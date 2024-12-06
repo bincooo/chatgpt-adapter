@@ -35,6 +35,8 @@ func waitMessage(ch chan string, cancel func(str string) bool) (content string, 
 			continue
 		}
 
+		logger.Debug("----- raw -----")
+		logger.Debug(message)
 		if len(message) > 0 {
 			content += message
 			if cancel != nil && cancel(content) {

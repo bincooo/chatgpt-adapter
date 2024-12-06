@@ -8,6 +8,7 @@ import (
 	"chatgpt-adapter/relay/hf"
 	"chatgpt-adapter/relay/llm/blackbox"
 	"chatgpt-adapter/relay/llm/coze"
+	"chatgpt-adapter/relay/llm/cursor"
 	"chatgpt-adapter/relay/llm/lmsys"
 	"chatgpt-adapter/relay/llm/v1"
 	"chatgpt-adapter/relay/llm/you"
@@ -21,6 +22,11 @@ func Injects(container *sdk.Container) (err error) {
 	}
 
 	err = coze.Injects(container)
+	if err != nil {
+		return
+	}
+
+	err = cursor.Injects(container)
 	if err != nil {
 		return
 	}

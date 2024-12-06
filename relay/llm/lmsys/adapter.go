@@ -174,7 +174,6 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 	var (
 		proxied    = api.env.GetString("server.proxied")
 		completion = common.GetGinCompletion(ctx)
-		matchers   = common.GetGinMatchers(ctx)
 		echo       = ctx.GetBool(vars.GinEcho)
 	)
 
@@ -202,7 +201,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
-	content := waitResponse(ctx, matchers, ch, completion.Stream)
+	content := waitResponse(ctx, ch, completion.Stream)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}

@@ -33,6 +33,8 @@ func waitMessage(chatResponse chan string, cancel func(str string) bool) (conten
 		}
 
 		message = strings.TrimPrefix(message, "text: ")
+		logger.Debug("----- raw -----")
+		logger.Debug(message)
 		if len(message) > 0 {
 			content += message
 			if cancel != nil && cancel(content) {

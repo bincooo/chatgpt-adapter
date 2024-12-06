@@ -5,7 +5,7 @@ go 1.23.3
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/coze-api v1.0.2-0.20241204052445-8100a9ce45d0
-	github.com/bincooo/emit.io v1.0.1-0.20241204040549-a9d53d3b6cfe
+	github.com/bincooo/emit.io v1.0.1-0.20241206102606-d234e60afcc9
 	github.com/bincooo/you.com v0.0.0-20241111060258-85f9deb66109
 	github.com/bogdanfinn/tls-client v1.7.7
 	github.com/dlclark/regexp2 v1.11.4
@@ -13,12 +13,14 @@ require (
 	github.com/eko/gocache/lib/v4 v4.1.6
 	github.com/eko/gocache/store/go_cache/v4 v4.2.2
 	github.com/gin-gonic/gin v1.10.0
+	github.com/golang/protobuf v1.5.3
 	github.com/google/uuid v1.6.0
 	github.com/iocgo/sdk v0.0.0-20241203133330-43dcedf3291e
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/samber/go-gpt-3-encoder v0.3.1
 	github.com/sirupsen/logrus v1.9.3
+	google.golang.org/protobuf v1.34.1
 )
 
 //github.com/iocgo/sdk v0.0.0-20241129021727-ca323c08f298 => ../sdk
@@ -47,7 +49,6 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -101,7 +102,6 @@ require (
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/tools v0.25.0 // indirect
-	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

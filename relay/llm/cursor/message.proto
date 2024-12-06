@@ -1,0 +1,53 @@
+syntax = "proto3";
+package  proto;
+option go_package = "./proto";
+
+message ChatMessage {
+  message FileContent {
+    message Position {
+      int32 line = 1;
+      int32 column = 2;
+    }
+    message Range {
+      Position start = 1;
+      Position end = 2;
+    }
+
+    string filename = 1;
+    string content = 2;
+    Position position = 3;
+    string language = 5;
+    Range range = 6;
+    int32 length = 8;
+    int32 type = 9;
+    int32 error_code = 11;
+  }
+
+  message UserMessage {
+    string content = 1;
+    int32 role = 2;
+    string message_id = 13;
+  }
+
+  message Instructions {
+    string instruction = 1;
+  }
+
+  message Model {
+    string name = 1;
+    string empty = 4;
+  }
+
+  // repeated FileContent files = 1;
+  repeated UserMessage messages = 2;
+  Instructions instructions = 4;
+  string projectPath = 5;
+  Model model = 7;
+  string requestId = 9;
+  string summary = 11; // 或许是空的，描述会话做了什么事情，但是不是标题 或许可以当作额外的设定来用
+  string conversationId = 15; // 又来一个uuid
+}
+
+message ResMessage {
+  string msg = 1;
+}

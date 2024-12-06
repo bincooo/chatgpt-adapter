@@ -3,6 +3,7 @@ package you
 import (
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/common/toolcall"
+	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
@@ -14,16 +15,14 @@ func toolChoice(ctx *gin.Context, cookie, proxies string, completion model.Compl
 	logger.Infof("completeTools ...")
 
 	var (
-	// cookies []string
-
-	// echo = ctx.GetBool(vars.GinEcho)
+		echo = ctx.GetBool(vars.GinEcho)
 	)
 
 	exec, err := toolcall.ToolChoice(ctx, completion, func(message string) (string, error) {
-		// if echo {
-		// 	logger.Infof("toolCall message: \n%s", message)
-		// 	return "", nil
-		// }
+		if echo {
+			logger.Infof("toolCall message: \n%s", message)
+			return "", nil
+		}
 
 		chat := you.New(cookie, completion.Model, proxies)
 		chat.LimitWithE(true)
