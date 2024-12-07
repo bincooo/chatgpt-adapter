@@ -211,8 +211,8 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 	scanner = bufio.NewScanner(body)
 	var (
 		magic    byte
-		chunkLen int64 = -1
-		setup          = 5
+		chunkLen = -1
+		setup    = 5
 	)
 
 	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
@@ -230,7 +230,7 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 
 		if chunkLen == -1 {
 			magic = data[0]
-			chunkLen = int64(bytesToInt32(data[1:setup]))
+			chunkLen = int(bytesToInt32(data[1:setup]))
 
 			// 这部分应该是分割标记？或者补位
 			if magic == 0 && chunkLen == 0 {
@@ -254,7 +254,7 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			return setup, []byte("event: message"), err
 		}
 
-		if int64(len(data)) < chunkLen {
+		if len(data) < chunkLen {
 			return
 		}
 
