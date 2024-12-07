@@ -230,7 +230,7 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 
 		if chunkLen == -1 {
 			magic = data[0]
-			chunkLen = int(bytesToInt32(data[1:setup]))
+			chunkLen = bytesToInt32(data[1:setup])
 
 			// 这部分应该是分割标记？或者补位
 			if magic == 0 && chunkLen == 0 {

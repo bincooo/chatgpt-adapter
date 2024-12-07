@@ -75,7 +75,7 @@ func convertRequest(ctx *gin.Context, completion model.Completion) (buffer []byt
 		return
 	}
 
-	header := int32ToBytes(0, uint32(len(protoBytes)))
+	header := int32ToBytes(0, len(protoBytes))
 	buffer = append(header, protoBytes...)
 	return
 }
@@ -98,14 +98,14 @@ func getRandId(size int, dictType string) string {
 	return string(buf)
 }
 
-func int32ToBytes(magic byte, num uint32) []byte {
+func int32ToBytes(magic byte, num int) []byte {
 	hex := make([]byte, 4)
-	binary.BigEndian.PutUint32(hex, num)
+	binary.BigEndian.PutUint32(hex, uint32(num))
 	return append([]byte{magic}, hex...)
 }
 
-func bytesToInt32(hex []byte) uint32 {
-	return binary.BigEndian.Uint32(hex)
+func bytesToInt32(hex []byte) int {
+	return int(binary.BigEndian.Uint32(hex))
 }
 
 func elseOf[T any](condition bool, a1, a2 T) T {
