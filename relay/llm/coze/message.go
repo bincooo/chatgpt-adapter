@@ -124,7 +124,7 @@ func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, err error) {
 	defer func() { ctx.Set(ginTokens, tokens) }()
 
 	messageL := len(messages)
-	if specialized && isC && messageL == 3 {
+	if specialized && isC && messageL == 1 {
 		message := messages[0].GetString("content")
 		newMessages = append(newMessages, coze.Message{
 			Role:    "user",

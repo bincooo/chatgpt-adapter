@@ -90,7 +90,6 @@ func (api *api) HandleMessages(ctx *gin.Context, completion model.Completion) (m
 func (api *api) ToolChoice(ctx *gin.Context) (ok bool, err error) {
 	var (
 		cookie     = ctx.GetString("token")
-		proxied    = api.env.GetString("server.proxied")
 		completion = common.GetGinCompletion(ctx)
 		echo       = ctx.GetBool(vars.GinEcho)
 	)
@@ -100,7 +99,7 @@ func (api *api) ToolChoice(ctx *gin.Context) (ok bool, err error) {
 		return
 	}
 
-	if toolChoice(ctx, proxied, cookie, completion) {
+	if toolChoice(ctx, api.env, cookie, completion) {
 		ok = true
 	}
 	return
@@ -109,7 +108,6 @@ func (api *api) ToolChoice(ctx *gin.Context) (ok bool, err error) {
 func (api *api) Completion(ctx *gin.Context) (err error) {
 	var (
 		cookie     = ctx.GetString("token")
-		proxied    = api.env.GetString("server.proxied")
 		completion = common.GetGinCompletion(ctx)
 		echo       = ctx.GetBool(vars.GinEcho)
 	)
@@ -128,7 +126,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
-	r, err := fetch(ctx.Request.Context(), proxied, cookie, buffer)
+	r, err := fetch(ctx, api.env, cookie, buffer)
 	if err != nil {
 		logger.Error(err)
 		return

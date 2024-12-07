@@ -2,10 +2,10 @@ package cursor
 
 import (
 	"chatgpt-adapter/core/gin/response"
-	"context"
 	"encoding/binary"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/iocgo/sdk/env"
 	"github.com/iocgo/sdk/stream"
 	"math/rand"
 	"net/http"
@@ -19,23 +19,23 @@ import (
 	. "chatgpt-adapter/relay/llm/cursor/proto"
 )
 
-func fetch(ctx context.Context, proxied string, cookie string, buffer []byte) (response *http.Response, err error) {
-	checksum := fmt.Sprintf("zo%s%s/%s", getRandId(6, "max"), getRandId(64, "max"), getRandId(64, "max"))
+var (
+	g_checksum = ""
+)
+
+func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte) (response *http.Response, err error) {
 	response, err = emit.ClientBuilder(common.HTTPClient).
-		Context(ctx).
-		Proxies(proxied).
+		Context(ctx.Request.Context()).
+		Proxies(env.GetString("server.proxied")).
 		POST("https://api2.cursor.sh/aiserver.v1.AiService/StreamChat").
 		Header("authorization", "Bearer "+cookie).
 		Header("content-type", "application/connect+proto").
 		Header("connect-accept-encoding", "gzip,br").
 		Header("connect-protocol-version", "1").
 		Header("user-agent", "connect-es/1.4.0").
-		Header("x-amzn-trace-id", "Root="+uuid.NewString()).
-		Header("x-cursor-checksum", checksum).
+		Header("x-cursor-checksum", genChecksum(ctx, env)).
 		Header("x-cursor-client-version", "0.42.3").
 		Header("x-cursor-timezone", "Asia/Shanghai").
-		Header("x-ghost-mode", "false").
-		Header("x-request-id", uuid.New().String()).
 		Header("host", "api2.cursor.sh").
 		Bytes(buffer).
 		DoC(emit.Status(http.StatusOK), emit.IsPROTO)
@@ -80,7 +80,21 @@ func convertRequest(ctx *gin.Context, completion model.Completion) (buffer []byt
 	return
 }
 
-func getRandId(size int, dictType string) string {
+func genChecksum(ctx *gin.Context, env *env.Environment) string {
+	checksum := ctx.GetHeader("x-cursor-checksum")
+	if checksum == "" {
+		checksum = env.GetString("cursor.checksum")
+	}
+	if checksum == "" {
+		if g_checksum == "" {
+			g_checksum = fmt.Sprintf("zo%s%s/%s", randId(6, "max"), randId(64, "max"), randId(64, "max"))
+		}
+		checksum = g_checksum
+	}
+	return checksum
+}
+
+func randId(size int, dictType string) string {
 	customDict := ""
 	switch dictType {
 	case "alphabet":

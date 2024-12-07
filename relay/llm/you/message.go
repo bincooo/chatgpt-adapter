@@ -136,11 +136,12 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (fileMessage, 
 
 	messageL := len(messages)
 
-	if specialized && isC && messageL == 3 {
+	if specialized && isC && messageL == 1 {
 		var notice = query
-		fileMessage = messages[0].GetString("content")
-		chat = messages[1].GetString("content")
-		query = messages[2].GetString("content")
+		message := messages[0]
+		fileMessage = message.GetString("content")
+		chat = message.GetString("chat")
+		query = message.GetString("query")
 		if notice != "" {
 			query += "\n\n" + notice
 		}

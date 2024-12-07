@@ -38,8 +38,11 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
 		content += raw
+		if cancel != nil && cancel(content) {
+			return content, nil
+		}
 	}
-	return content, nil
+	return
 }
 
 func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string) {

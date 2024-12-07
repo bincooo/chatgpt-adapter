@@ -110,7 +110,7 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (newMessages s
 	)
 
 	messageL := len(messages)
-	if specialized && isC && messageL == 3 {
+	if specialized && isC && messageL == 1 {
 		newMessages = messages[0].GetString("content")
 		return
 	}

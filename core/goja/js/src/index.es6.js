@@ -139,8 +139,11 @@ const ROLE_PREFIXS = {
     })))
 
     return [
-        { role: "messages", content: youPmtProcess(filePrompt, mode) },
-        { role: "chat", content: chat },
-        { role: "query", content: youPmtProcess(youQuery, mode) },
+        {
+            role: "user",
+            content: youPmtProcess(filePrompt, mode),
+            chat: chat,
+            query: youPmtProcess(youQuery, mode),
+        }
     ]
 })(messages, mode)
