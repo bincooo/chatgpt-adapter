@@ -99,9 +99,13 @@ func getRandId(size int, dictType string) string {
 }
 
 func int32ToBytes(magic byte, num uint32) []byte {
-	bytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(bytes, num)
-	return append([]byte{magic}, bytes...)
+	hex := make([]byte, 4)
+	binary.BigEndian.PutUint32(hex, num)
+	return append([]byte{magic}, hex...)
+}
+
+func bytesToInt32(hex []byte) uint32 {
+	return binary.BigEndian.Uint32(hex)
 }
 
 func elseOf[T any](condition bool, a1, a2 T) T {

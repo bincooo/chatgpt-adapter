@@ -9,7 +9,6 @@ import (
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/bincooo/emit.io"
@@ -17,7 +16,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
 	. "chatgpt-adapter/relay/llm/cursor/proto"
@@ -232,11 +230,7 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 
 		if chunkLen == -1 {
 			magic = data[0]
-			chunk := hex.EncodeToString(data[1:setup])
-			chunkLen, err = strconv.ParseInt(chunk, 16, 64)
-			if err != nil {
-				return
-			}
+			chunkLen = int64(bytesToInt32(data[1:setup]))
 
 			// 这部分应该是分割标记？或者补位
 			if magic == 0 && chunkLen == 0 {
