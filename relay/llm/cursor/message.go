@@ -235,7 +235,7 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			// 这部分应该是分割标记？或者补位
 			if magic == 0 && chunkLen == 0 {
 				chunkLen = -1
-				return 5, []byte(""), err
+				return setup, []byte(""), err
 			}
 
 			if magic == 3 { // 假定它是错误标记

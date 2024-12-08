@@ -1,6 +1,4 @@
-## ioc sdk 示例项目
-
-[iocgo/sdk](https://www.github.com/iocgo/sdk)
+具体配置请 [查阅文档](https://bincooo.github.io/chatgpt-adapter)
 
 ### 执行前置
 
@@ -44,9 +42,3 @@ make build
 
 ./server -h
 ```
-
-### 其它
-
-避免编译缓存污染其它项目，推荐使用 `go mod vendor` 命令来独立管理依赖
-
-
