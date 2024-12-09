@@ -16,6 +16,7 @@ import (
 func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 	logger.Info("completeTools ...")
 	echo := ctx.GetBool(vars.GinEcho)
+	cookie := ctx.GetString("token")
 
 	exec, err := toolcall.ToolChoice(ctx, completion, func(message string) (string, error) {
 		if echo {
@@ -25,12 +26,12 @@ func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 
 		timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
 		defer cancel()
-		conversationId, err := edge.CreateConversation(common.HTTPClient, timeout)
+		conversationId, err := edge.CreateConversation(common.HTTPClient, timeout, cookie)
 		if err != nil {
 			return "", err
 		}
 
-		buffer, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), conversationId, message)
+		buffer, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), cookie, conversationId, message)
 		if err != nil {
 			return "", err
 		}

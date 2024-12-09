@@ -29,14 +29,6 @@ type api struct {
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	ok = Model == model
-	if ok {
-		var token = ctx.GetString("token")
-		password := api.env.GetString("server.password")
-		if password != "" && password != token {
-			err = response.UnauthorizedError
-			return
-		}
-	}
 	return
 }
 
@@ -81,6 +73,7 @@ func (api *api) ToolChoice(ctx *gin.Context) (ok bool, err error) {
 
 func (api *api) Completion(ctx *gin.Context) (err error) {
 	var (
+		cookie     = ctx.GetString("token")
 		completion = common.GetGinCompletion(ctx)
 		echo       = ctx.GetBool(vars.GinEcho)
 	)
@@ -94,12 +87,12 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 
 	timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
 	defer cancel()
-	conversationId, err := edge.CreateConversation(common.HTTPClient, timeout)
+	conversationId, err := edge.CreateConversation(common.HTTPClient, timeout, cookie)
 	if err != nil {
 		return
 	}
 
-	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), conversationId, request)
+	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), cookie, conversationId, request)
 	if err != nil {
 		return
 	}
