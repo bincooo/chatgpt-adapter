@@ -1,4 +1,12 @@
-## ioc sdk 示例项目
+## server-less 自动化程序下载
+
+[下载地址](https://github.com/bincooo/chatgpt-adapter/tree/hel)
+
+将下载后的`bin.zip`解压放入项目同级目录即可
+
+
+
+ioc sdk 示例项目
 
 [iocgo/sdk](https://www.github.com/iocgo/sdk)
 
