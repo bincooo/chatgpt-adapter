@@ -10,6 +10,7 @@
   - [Cursor](cursor.md)
   - [Lmsys](lmsys.md)
   - [You](you.md)
+  - [Bing](bing.md)
   - [V1](v1.md)
 
 - image
