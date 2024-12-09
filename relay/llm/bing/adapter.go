@@ -92,6 +92,10 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
+	timeout, cancel = context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancel()
+	defer edge.DeleteConversation(common.HTTPClient, timeout, conversationId, cookie)
+
 	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), cookie, conversationId, request)
 	if err != nil {
 		return
