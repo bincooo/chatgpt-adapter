@@ -6,6 +6,7 @@ import (
 	"github.com/iocgo/sdk"
 
 	"chatgpt-adapter/relay/hf"
+	"chatgpt-adapter/relay/llm/bing"
 	"chatgpt-adapter/relay/llm/blackbox"
 	"chatgpt-adapter/relay/llm/coze"
 	"chatgpt-adapter/relay/llm/cursor"
@@ -17,6 +18,11 @@ import (
 
 func Injects(container *sdk.Container) (err error) {
 	err = v1.Injects(container)
+	if err != nil {
+		return
+	}
+
+	err = bing.Injects(container)
 	if err != nil {
 		return
 	}

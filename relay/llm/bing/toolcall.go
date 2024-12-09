@@ -1,16 +1,19 @@
-package cursor
+package bing
 
 import (
+	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/common/toolcall"
 	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
+	"context"
+	"github.com/bincooo/edge-api"
 	"github.com/gin-gonic/gin"
-	"github.com/iocgo/sdk/env"
+	"time"
 )
 
-func toolChoice(ctx *gin.Context, env *env.Environment, cookie string, completion model.Completion) bool {
+func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 	logger.Info("completeTools ...")
 	echo := ctx.GetBool(vars.GinEcho)
 
@@ -20,23 +23,19 @@ func toolChoice(ctx *gin.Context, env *env.Environment, cookie string, completio
 			return "", nil
 		}
 
-		completion.Messages = []model.Keyv[interface{}]{
-			{
-				"role":    "user",
-				"content": message,
-			},
-		}
-		messageBuffer, err := convertRequest(completion)
+		timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
+		defer cancel()
+		conversationId, err := edge.CreateConversation(common.HTTPClient, timeout)
 		if err != nil {
 			return "", err
 		}
 
-		r, err := fetch(ctx, env, cookie, messageBuffer)
+		buffer, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), conversationId, message)
 		if err != nil {
 			return "", err
 		}
 
-		return waitMessage(r, toolcall.Cancel)
+		return waitMessage(buffer, toolcall.Cancel)
 	})
 
 	if err != nil {

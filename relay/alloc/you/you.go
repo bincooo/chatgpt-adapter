@@ -206,43 +206,49 @@ func resetMarked(cookies string) {
 }
 
 func hookCloudflare(env *env.Environment) error {
-	if clearance == "" {
-		logger.Info("trying cloudflare ...")
-
-		mu.Lock()
-		defer mu.Unlock()
-		if clearance != "" {
-			return nil
-		}
-
-		baseUrl := env.GetString("browser-less.reversal")
-		if baseUrl == "" {
-			baseUrl = "http://127.0.0.1:" + env.GetString("browser-less.port")
-		}
-
-		r, err := emit.ClientBuilder(common.HTTPClient).
-			GET(baseUrl+"/clearance").
-			DoC(emit.Status(http.StatusOK), emit.IsJSON)
-		if err != nil {
-			logger.Error(err)
-			if emit.IsJSON(r) == nil {
-				logger.Error(emit.TextResponse(r))
-			}
-			return err
-		}
-
-		defer r.Body.Close()
-		obj, err := emit.ToMap(r)
-		if err != nil {
-			logger.Error(err)
-			return err
-		}
-
-		data := obj["data"].(map[string]interface{})
-		clearance = data["cookie"].(string)
-		userAgent = data["userAgent"].(string)
-		lang = data["lang"].(string)
+	if clearance != "" {
+		return nil
 	}
+
+	baseUrl := env.GetString("browser-less.reversal")
+	if !env.GetBool("browser-less.enabled") && baseUrl == "" {
+		return errors.New("trying cloudflare failed, please setting `browser-less.enabled` or `browser-less.reversal`")
+	}
+
+	logger.Info("trying cloudflare ...")
+
+	mu.Lock()
+	defer mu.Unlock()
+	if clearance != "" {
+		return nil
+	}
+
+	if baseUrl == "" {
+		baseUrl = "http://127.0.0.1:" + env.GetString("browser-less.port")
+	}
+
+	r, err := emit.ClientBuilder(common.HTTPClient).
+		GET(baseUrl+"/clearance").
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		logger.Error(err)
+		if emit.IsJSON(r) == nil {
+			logger.Error(emit.TextResponse(r))
+		}
+		return err
+	}
+
+	defer r.Body.Close()
+	obj, err := emit.ToMap(r)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	data := obj["data"].(map[string]interface{})
+	clearance = data["cookie"].(string)
+	userAgent = data["userAgent"].(string)
+	lang = data["lang"].(string)
 	return nil
 }
 

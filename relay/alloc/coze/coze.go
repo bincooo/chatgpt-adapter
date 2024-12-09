@@ -42,6 +42,11 @@ func init() {
 		if len(values) == 0 {
 			return
 		}
+
+		if !env.GetBool("browser-less.enabled") && env.GetString("browser-less.reversal") == "" {
+			panic("don't used browser-less, please setting `browser-less.enabled` or `browser-less.reversal`")
+		}
+
 		cookiesContainer = common.NewPollContainer("coze", make([]*account, 0), 60*time.Second) // 报错进入60秒冷却
 		cookiesContainer.Condition = condition(env.GetString("server.proxied"))
 		run(env, values...)
@@ -187,7 +192,6 @@ func draftBot(ctx *gin.Context, systemMessage string, chat coze.Chat, completion
 		PresencePenalty:  0,
 		ResponseFormat:   0,
 	}, systemMessage); err != nil {
-		// 全局配置修改失败，解锁
 		logger.Error(fmt.Errorf("全局配置修改失败[%s]：%v", botId, err))
 		return &emit.Error{Code: -1, Err: err}
 	}

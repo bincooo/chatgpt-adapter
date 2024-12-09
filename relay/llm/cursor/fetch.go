@@ -1,7 +1,6 @@
 package cursor
 
 import (
-	"chatgpt-adapter/core/gin/response"
 	"encoding/binary"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -42,12 +41,7 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 	return
 }
 
-func convertRequest(ctx *gin.Context, completion model.Completion) (buffer []byte, err error) {
-	specialized := ctx.GetBool("specialized")
-	if specialized && response.IsClaude(ctx, completion.Model) {
-		completion.Messages = completion.Messages[:1]
-		completion.Messages[0].Set("role", "user")
-	}
+func convertRequest(completion model.Completion) (buffer []byte, err error) {
 	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_UserMessage {
 		return &ChatMessage_UserMessage{
 			MessageId: uuid.NewString(),

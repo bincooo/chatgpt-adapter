@@ -28,9 +28,21 @@ var (
 	CLAUDE_ROLE_FMT = func(role string) string { return fmt.Sprintf("\n\r\n%s: ", role) }
 	GPT_ROLE_FMT    = func(role string) string { return fmt.Sprintf("<|start|>%s\n", role) }
 	ROLE_FMT        = func(role string) string { return fmt.Sprintf("<|%s|>\n", role) }
+	BING_ROLE_FMT   = func(role string) string { return bingFormater(role) }
 	END             = "<|end|>\n\n"
 	delimiter       = "\n\n"
 )
+
+func bingFormater(role string) string {
+	switch role {
+	case "user":
+		return "Hu: "
+	case "assistant":
+		return "Ai: "
+	default:
+		return "Sys: "
+	}
+}
 
 var (
 	regExp       = regexp.MustCompile(`^/(.+)/([a-z]*)$`, regexp.ECMAScript)
@@ -168,6 +180,11 @@ func ConvertRole(ctx *gin.Context, role string) (newRole, end string) {
 		return
 	}
 
+	if IsBing(completion.Model) {
+		newRole = BING_ROLE_FMT(role)
+		return
+	}
+
 	end = END
 	if IsGPT(completion.Model) {
 		switch role {
@@ -181,6 +198,10 @@ func ConvertRole(ctx *gin.Context, role string) (newRole, end string) {
 
 	newRole = ROLE_FMT(role)
 	return
+}
+
+func IsBing(mod string) bool {
+	return mod == "bing"
 }
 
 func splitToMessages(content string, merge bool) (messages []model.Keyv[interface{}]) {
