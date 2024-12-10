@@ -56,8 +56,8 @@ github.com/bincooo/edge-api v1.0.4-0.20241209140454-b708b5d57059 h1:3TcNsTaRspXS
 github.com/bincooo/edge-api v1.0.4-0.20241209140454-b708b5d57059/go.mod h1:JMD3hj34imIyW8GLD2cmhynEbG7jXuUQG2/WWtjgzTw=
 github.com/bincooo/emit.io v1.0.1-0.20241206102606-d234e60afcc9 h1:xAmw70FCu96WcJpL+m2bZHel+fBGyPFzUTn8tBex7oM=
 github.com/bincooo/emit.io v1.0.1-0.20241206102606-d234e60afcc9/go.mod h1:OJbKJoZ6x6vSpCC+JNtfcaXo3ilpvQscWrcGEmtmrZI=
-github.com/bincooo/go-annotation v0.0.0-20241129022159-ea84d341fcda h1:bhkDbl8cz++1rXqroCNLYxs2Eu5ac/D3yDkxlUfHL1Y=
-github.com/bincooo/go-annotation v0.0.0-20241129022159-ea84d341fcda/go.mod h1:3ZV3/eOQJ/28O5jINzNi98+K+8WY/pOvDYidT7WWaFs=
+github.com/bincooo/go-annotation v0.0.0-20241210101123-2fc3053d2f16 h1:/2MZmTiHa1a+hfUsmZxvOjQh1+lfZU/9gd7QRjD+xo8=
+github.com/bincooo/go-annotation v0.0.0-20241210101123-2fc3053d2f16/go.mod h1:3ZV3/eOQJ/28O5jINzNi98+K+8WY/pOvDYidT7WWaFs=
 github.com/bincooo/you.com v0.0.0-20241111060258-85f9deb66109 h1:/3BaO9f/cvon9N/CzNbI/hlWuLCc1epAiHTsnXEd2aI=
 github.com/bincooo/you.com v0.0.0-20241111060258-85f9deb66109/go.mod h1:Rs9F3k8IIMxDSd65XvLdhroB8AcHfvzogY3yv1fZGs0=
 github.com/bogdanfinn/fhttp v0.5.28 h1:G6thT8s8v6z1IuvXMUsX9QKy3ZHseTQTzxuIhSiaaAw=
@@ -172,8 +172,8 @@ github.com/golang/protobuf v1.4.2/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw
 github.com/golang/protobuf v1.4.3/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw735rRwI=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
 github.com/golang/protobuf v1.5.2/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
-github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg=
-github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
+github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
+github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
 github.com/google/btree v1.0.0/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=

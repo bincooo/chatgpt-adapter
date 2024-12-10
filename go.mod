@@ -14,7 +14,7 @@ require (
 	github.com/eko/gocache/lib/v4 v4.1.6
 	github.com/eko/gocache/store/go_cache/v4 v4.2.2
 	github.com/gin-gonic/gin v1.10.0
-	github.com/golang/protobuf v1.5.3
+	github.com/golang/protobuf v1.5.4
 	github.com/google/uuid v1.6.0
 	github.com/iocgo/sdk v0.0.0-20241203133330-43dcedf3291e
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
@@ -31,7 +31,7 @@ require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bincooo/go-annotation v0.0.0-20241129022159-ea84d341fcda // indirect
+	github.com/bincooo/go-annotation v0.0.0-20241210101123-2fc3053d2f16 // indirect
 	github.com/bogdanfinn/fhttp v0.5.28 // indirect
 	github.com/bogdanfinn/utls v1.6.1 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
