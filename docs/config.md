@@ -12,6 +12,8 @@ browser-less:
   enabled: true
   port: 8081
   #reversal: http://127.0.0.1:8081
+  disabled-gpu: true
+  headless: new
 
 specialized: false
 
@@ -44,6 +46,8 @@ matcher:
 
 `reversal` 浏览器自动化服务分离时的访问地址，与`enabled`二选一
 
+`disabled-gpu` 关闭gpu加速
+`headless` 无头模式：true / false / new
 
 
 ### specialized 上下文特化处理
