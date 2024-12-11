@@ -56,4 +56,12 @@ make
 ./bin/linux/server config.yaml
 ```
 
-*TIPS: 启动时末端若不指定 config.yaml，则会默认读取同级目录下的。可配置网络文件：``./bin/linux/server https://file.example.com/config.yaml``*
+*TIPS: 
+
+启动时末端若不指定 config.yaml，则会默认读取同级目录下的。
+
+可配置网络文件：``./bin/linux/server https://file.example.com/config.yaml``
+
+可配置全局变量 env：`CONFIG_PATH`
+
+*
