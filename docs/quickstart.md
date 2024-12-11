@@ -4,8 +4,6 @@
 
 将下载后的`bin.zip`解压放入项目同级目录即可
 
-
-
 ioc sdk 示例项目
 
 [iocgo/sdk](https://www.github.com/iocgo/sdk)
@@ -57,3 +55,5 @@ make
 # 3: 启动
 ./bin/linux/server config.yaml
 ```
+
+*TIPS: 启动时末端若不指定 config.yaml，则会默认读取同级目录下的。可配置网络文件：``./bin/linux/server https://file.example.com/config.yaml``*
