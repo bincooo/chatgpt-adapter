@@ -28,6 +28,8 @@ cursor:
 
 ## 请求示例
 
+*TIPS: authorization 为[网页](https://www.cursor.com)登陆后的 cookie WorkosCursorSessionToken*
+
 ```shell
 curl -i -X POST \
    -H "Content-Type: application/json" \
