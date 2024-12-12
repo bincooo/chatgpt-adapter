@@ -64,6 +64,7 @@ func (holder ContentHolder) Handle(ctx *gin.Context, completion model.Completion
 	}
 	content := strings.Join(stream.Map(stream.OfSlice(completion.Messages), join(false)).ToSlice(), delimiter)
 	context := errors.New(func(e error) bool { err = e; return true })
+	defer context.Throw()
 	{
 		content = errors.Try1(context, func() (str string, err error) {
 			str, _, err = parseMessages[any](ctx, tokenizer.New(schemas...), content, nil)

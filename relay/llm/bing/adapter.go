@@ -76,6 +76,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		cookie     = ctx.GetString("token")
 		completion = common.GetGinCompletion(ctx)
 		echo       = ctx.GetBool(vars.GinEcho)
+		proxied    = api.env.GetBool("bing.proxied")
 	)
 
 	if echo {
@@ -87,16 +88,16 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 
 	timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
 	defer cancel()
-	conversationId, err := edge.CreateConversation(common.HTTPClient, timeout, cookie)
+	conversationId, err := edge.CreateConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, cookie)
 	if err != nil {
 		return
 	}
 
 	timeout, cancel = context.WithTimeout(context.TODO(), 10*time.Second)
 	defer cancel()
-	defer edge.DeleteConversation(common.HTTPClient, timeout, conversationId, cookie)
+	defer edge.DeleteConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, conversationId, cookie)
 
-	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), cookie, conversationId, request)
+	message, err := edge.Chat(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx.Request.Context(), cookie, conversationId, request)
 	if err != nil {
 		return
 	}
@@ -118,4 +119,11 @@ func convertRequest(ctx *gin.Context, completion model.Completion) (content stri
 		content += "\n\n" + convertRole
 	}
 	return
+}
+
+func elseOf[T any](condition bool, t1, t2 T) T {
+	if condition {
+		return t1
+	}
+	return t2
 }

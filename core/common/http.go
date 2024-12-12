@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	HTTPClient *emit.Session
+	HTTPClient    *emit.Session
+	NopHTTPClient *emit.Session
 )
 
 func init() {
@@ -32,6 +33,11 @@ func init() {
 
 		options = append(options, emit.Ja3Helper(emit.Echo{RandomTLSExtension: true, HelloID: profiles.Chrome_124}, connTimeout))
 		HTTPClient, err = emit.NewSession(proxied, ips("127.0.0.1"), options...)
+		if err != nil {
+			logger.Fatal("Error initializing HTTPClient: ", err)
+		}
+
+		NopHTTPClient, err = emit.NewSession("", nil, options...)
 		if err != nil {
 			logger.Fatal("Error initializing HTTPClient: ", err)
 		}
@@ -191,5 +197,5 @@ label:
 		return "", err
 	}
 
-	return tempFile.Name(), nil
+	return tempFile.Name()[4:], nil
 }
