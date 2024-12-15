@@ -80,7 +80,7 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 	request.PlaygroundTopP = completion.TopP
 	request.PlaygroundTemperature = completion.Temperature
 	request.UserSelectedModel = completion.Model[9:]
-	request.Validated = env.GetString("blackbox")
+	request.Validated = env.GetString("blackbox.token")
 	request.AgentMode = struct{}{}
 	request.TrendingAgentMode = struct{}{}
 	return

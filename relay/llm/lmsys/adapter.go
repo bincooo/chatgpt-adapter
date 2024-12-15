@@ -112,7 +112,9 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	if len(model) <= 6 || model[:6] != Model+"/" {
 		return
 	}
-	for _, mod := range modelSlice {
+
+	slice := api.env.GetStringSlice("lmsys.model")
+	for _, mod := range append(slice, modelSlice...) {
 		if model[6:] != mod {
 			continue
 		}
@@ -129,7 +131,8 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 }
 
 func (api *api) Models() (result []model.Model) {
-	for _, mod := range modelSlice {
+	slice := api.env.GetStringSlice("lmsys.model")
+	for _, mod := range append(slice, modelSlice...) {
 		result = append(result, model.Model{
 			Id:      "lmsys/" + mod,
 			Object:  "model",

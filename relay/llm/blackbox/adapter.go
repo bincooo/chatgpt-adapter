@@ -28,11 +28,12 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 		return
 	}
 
-	for _, mod := range []string{
+	slice := api.env.GetStringSlice("blackbox.model")
+	for _, mod := range append(slice, []string{
 		"GPT-4o",
 		"Gemini-PRO",
 		"Claude-Sonnet-3.5",
-	} {
+	}...) {
 		if model[9:] == mod {
 			ok = true
 			return
@@ -41,12 +42,13 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	return
 }
 
-func (*api) Models() (slice []model.Model) {
-	for _, mod := range []string{
+func (api *api) Models() (slice []model.Model) {
+	s := api.env.GetStringSlice("blackbox.model")
+	for _, mod := range append(s, []string{
 		"GPT-4o",
 		"Gemini-PRO",
 		"Claude-Sonnet-3.5",
-	} {
+	}...) {
 		slice = append(slice, model.Model{
 			Id:      Model + "/" + mod,
 			Object:  "model",

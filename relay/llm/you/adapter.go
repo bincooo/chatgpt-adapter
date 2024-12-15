@@ -29,36 +29,12 @@ type api struct {
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	token := ctx.GetString("token")
-	if strings.HasPrefix(model, "you/") {
-		switch model[4:] {
-		case you.GPT_4,
-			you.GPT_4_TURBO,
-			you.GPT_4o,
-			you.GPT_4o_MINI,
-			you.OPENAI_O1,
-			you.OPENAI_O1_MINI,
-			you.CLAUDE_2,
-			you.CLAUDE_3_HAIKU,
-			you.CLAUDE_3_SONNET,
-			you.CLAUDE_3_5_SONNET,
-			you.CLAUDE_3_OPUS,
-			you.GEMINI_1_0_PRO,
-			you.GEMINI_1_5_PRO,
-			you.GEMINI_1_5_FLASH:
-			password := api.env.GetString("server.password")
-			if password != "" && password != token {
-				err = response.UnauthorizedError
-				return
-			}
-			ok = true
-			return
-		}
+	if !strings.HasPrefix(model, "you/") {
+		return
 	}
-	return
-}
 
-func (api *api) Models() (slice []model.Model) {
-	for _, mod := range []string{
+	slice := api.env.GetStringSlice("you.model")
+	for _, mod := range append(slice, []string{
 		you.GPT_4,
 		you.GPT_4_TURBO,
 		you.GPT_4o,
@@ -73,7 +49,38 @@ func (api *api) Models() (slice []model.Model) {
 		you.GEMINI_1_0_PRO,
 		you.GEMINI_1_5_PRO,
 		you.GEMINI_1_5_FLASH,
-	} {
+	}...) {
+		if model[4:] == mod {
+			password := api.env.GetString("server.password")
+			if password != "" && password != token {
+				err = response.UnauthorizedError
+				return
+			}
+			ok = true
+			return
+		}
+	}
+	return
+}
+
+func (api *api) Models() (slice []model.Model) {
+	s := api.env.GetStringSlice("you.model")
+	for _, mod := range append(s, []string{
+		you.GPT_4,
+		you.GPT_4_TURBO,
+		you.GPT_4o,
+		you.GPT_4o_MINI,
+		you.OPENAI_O1,
+		you.OPENAI_O1_MINI,
+		you.CLAUDE_2,
+		you.CLAUDE_3_HAIKU,
+		you.CLAUDE_3_SONNET,
+		you.CLAUDE_3_5_SONNET,
+		you.CLAUDE_3_OPUS,
+		you.GEMINI_1_0_PRO,
+		you.GEMINI_1_5_PRO,
+		you.GEMINI_1_5_FLASH,
+	}...) {
 		slice = append(slice, model.Model{
 			Id:      "you/" + mod,
 			Object:  "model",
