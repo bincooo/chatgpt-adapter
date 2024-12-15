@@ -374,7 +374,7 @@ func partOne(ctx context.Context, env *env.Environment, proxied string, opts *op
 }
 
 func extCookies(env *env.Environment, model string) (fn []int) {
-	token := env.GetString("lmsys")
+	token := env.GetString("lmsys.token")
 	fn = []int{-1, -1}
 
 	exec := func() (ret bool) {
