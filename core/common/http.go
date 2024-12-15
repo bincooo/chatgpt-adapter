@@ -1,11 +1,14 @@
 package common
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -95,6 +98,71 @@ func GetIdleConnectOptions(env *env.Environment) (options []emit.OptionHelper) {
 	}
 
 	options = append(options, emit.TLSConfigHelper(&tls.Config{InsecureSkipVerify: true}))
+	return
+}
+
+func NewPPLSession(env *env.Environment) (ok bool, session *emit.Session) {
+	u := env.GetString("ppl")
+	if u == "" {
+		return
+	}
+
+	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	response, err := emit.ClientBuilder(HTTPClient).
+		GET(u).
+		Context(timeout).
+		DoS(http.StatusOK)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+
+	defer response.Body.Close()
+	var proxied = ""
+
+	if ist(response, "application/json") {
+		ok = false
+		obj, err := emit.ToMap(response)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		if obj["ok"] != true || (isSlice(obj["data"]) && len(obj["data"].([]interface{})) == 0) {
+			return
+		}
+		data := obj["data"].([]interface{})[0].(map[string]interface{})
+		proxied = strings.ToLower(fmt.Sprintf("%s://%s:%v", data["t"], data["addr"], data["port"]))
+		logger.Info(data)
+		ok = true
+	} else {
+		proxied = emit.TextResponse(response)
+		c := regexp.MustCompile(`(http|https|socks5)://\d+\.\d+\.\d+\.\d+:\d+`)
+		ok = c.MatchString(proxied)
+		if !ok {
+			return
+		}
+	}
+
+	if proxied == "" {
+		ok = false
+		return
+	}
+
+	logger.Infof("ppl proxied: %s", proxied)
+	options := GetIdleConnectOptions(env)
+	connTimeout := env.GetInt("server-conn.connTimeout")
+	if connTimeout == 0 {
+		connTimeout = 180
+	}
+
+	options = append(options, emit.Ja3Helper(emit.Echo{RandomTLSExtension: true, HelloID: profiles.Chrome_124}, connTimeout))
+	session, err = emit.NewSession(proxied, ips("127.0.0.1"), options...)
+	if err != nil {
+		logger.Error(err)
+		ok = false
+	}
 	return
 }
 
@@ -198,4 +266,17 @@ label:
 	}
 
 	return tempFile.Name()[4:], nil
+}
+
+func ist(response *http.Response, ts ...string) (ok bool) {
+	if response == nil {
+		return
+	}
+	h := response.Header
+	for _, t := range ts {
+		if strings.Contains(h.Get("Content-Type"), t) {
+			return true
+		}
+	}
+	return
 }

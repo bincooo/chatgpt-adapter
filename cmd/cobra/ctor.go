@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type RootCommand struct {
@@ -69,12 +70,12 @@ func (rc *RootCommand) Run(cmd *cobra.Command, args []string) {
 	}
 
 	// init
-	Initialized(rc)
-	inited.Initialized(rc.env)
 	logger.InitLogger(
 		rc.LogPath,
 		LogLevel(rc.LogLevel),
 	)
+	Initialized(rc)
+	inited.Initialized(rc.env)
 
 	// gin
 	addr := ":" + strconv.Itoa(rc.Port)
@@ -100,6 +101,8 @@ func Initialized(rc *RootCommand) {
 			}
 		}
 	}
+
+	initFile(rc.env)
 }
 
 func LogLevel(lv string) logrus.Level {
@@ -114,5 +117,23 @@ func LogLevel(lv string) logrus.Level {
 		return logrus.ErrorLevel
 	default:
 		return logrus.InfoLevel
+	}
+}
+
+func initFile(env *env.Environment) {
+	_, err := os.Stat("config.yaml")
+	if !os.IsNotExist(err) {
+		return
+	}
+
+	content := "browser-less:\n  enabled: {enabled}\n  port: {port}\n  disabled-gpu: {gpu}\n  headless: {headless}\n  reversal: ${reversal}"
+	content = strings.Replace(content, "{enabled}", env.GetString("browser-less.enabled"), 1)
+	content = strings.Replace(content, "{port}", env.GetString("browser-less.port"), 1)
+	content = strings.Replace(content, "{gpu}", env.GetString("browser-less.disabled-gpu"), 1)
+	content = strings.Replace(content, "{headless}", env.GetString("browser-less.headless"), 1)
+	content = strings.Replace(content, "{reversal}", env.GetString("browser-less.reversal"), 1)
+	err = os.WriteFile("config.yaml", []byte(content), 0644)
+	if err != nil {
+		logger.Fatal(err)
 	}
 }

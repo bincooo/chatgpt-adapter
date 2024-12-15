@@ -40,6 +40,11 @@ func CalcHex(str string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+func isSlice(o interface{}) (ok bool) {
+	_, ok = o.([]interface{})
+	return
+}
+
 func unpackEFace(obj interface{}) *ref {
 	return (*ref)(unsafe.Pointer(&obj))
 }
