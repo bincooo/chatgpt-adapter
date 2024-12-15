@@ -1,7 +1,10 @@
 ## 配置说明
 
 ```config.yaml
-lmsys: '[ 95, 138 ]'
+lmsys:
+  token: '[ 95, 138 ]'
+  model:
+    - 'xxx'
 ```
 
 *TIPS: 这两个值为fn_index、trigger_id 获取：进入[主页](https://lmarena.ai)，选择Direct Chat 发送一次对话，F12抓取join里的对应参数*

@@ -1,7 +1,10 @@
 ## 配置说明
 
 ```config.yaml
-blackbox: '00f37b34-a166-4efb-bce5-1312d87f2f94'
+blackbox:
+  token: '00f37b34-a166-4efb-bce5-1312d87f2f94'
+  model:
+    - 'xxx'
 ```
 
 *TIPS: 该key目前固定*
