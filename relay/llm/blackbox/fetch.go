@@ -61,11 +61,10 @@ func fetch(ctx context.Context, proxied, cookie string, request blackboxRequest)
 
 func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Completion) (request blackboxRequest) {
 	request.Messages = completion.Messages
-	if response.IsClaude(ctx, completion.Model) {
+	specialized := ctx.GetBool("specialized")
+	if specialized && response.IsClaude(ctx, completion.Model) {
 		request.Messages = completion.Messages[:1]
 		request.Messages[0].Set("role", "user")
-		delete(request.Messages[0], "query")
-		delete(request.Messages[0], "chat")
 	}
 
 	id := request.Messages[0].GetString("id")

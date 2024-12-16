@@ -21,7 +21,6 @@ func ParseMessages(messages []model.Keyv[interface{}], mode string) (newMessages
 	context := errors.New(func(e error) bool { err = e; return true })
 	defer context.Throw()
 	{
-		// var objs []map[string]interface{} = messages
 		errors.Try(context, func() error { return vm.Set("messages", messages) })
 		errors.Try(context, func() error { return vm.Set("mode", mode) })
 		errors.Try(context, func() error { return vm.Set("console", consoleMap()) })
