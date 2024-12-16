@@ -78,7 +78,7 @@ func (holder ContentHolder) Handle(ctx *gin.Context, completion model.Completion
 		if IsClaude(ctx, completion.Model) {
 			messages, err = goja.ParseMessages(splitToMessages(content, false), "txt")
 			// you 模型特殊处理
-			if len(completion.Model) > 4 && completion.Model[:4] == "you/" && len(messages) > 0 {
+			if len(messages) > 0 && (len(completion.Model) < 4 || completion.Model[:4] != "you/") {
 				delete(messages[0], "chat")
 				delete(messages[0], "query")
 			}
