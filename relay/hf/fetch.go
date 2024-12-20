@@ -82,6 +82,11 @@ func Ox0(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		return
 	}
 
+	c.Event("*", func(j emit.JoinEvent) (_ interface{}) {
+		logger.Debugf("event: %s", j.InitialBytes)
+		return
+	})
+
 	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
 		d := j.Output.Data
 		if len(d) == 0 {
@@ -125,6 +130,11 @@ func Ox1(ctx *gin.Context, env *env.Environment, model, samples, message string)
 	if err != nil {
 		return
 	}
+
+	c.Event("*", func(j emit.JoinEvent) (_ interface{}) {
+		logger.Debugf("event: %s", j.InitialBytes)
+		return
+	})
 
 	c.Event("send_hash", func(j emit.JoinEvent) interface{} {
 		return map[string]interface{}{
@@ -234,6 +244,11 @@ func Ox2(ctx *gin.Context, env *env.Environment, model, message string) (value s
 		return
 	}
 
+	c.Event("*", func(j emit.JoinEvent) (_ interface{}) {
+		logger.Debugf("event: %s", j.InitialBytes)
+		return
+	})
+
 	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
 		d := j.Output.Data
 
@@ -341,6 +356,11 @@ func Ox3(ctx *gin.Context, env *env.Environment, message string) (value string, 
 		return "", err
 	}
 
+	c.Event("*", func(j emit.JoinEvent) (_ interface{}) {
+		logger.Debugf("event: %s", j.InitialBytes)
+		return
+	})
+
 	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
 		d := j.Output.Data
 
@@ -405,13 +425,6 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		r       = rand.New(rand.NewSource(time.Now().UnixNano()))
 	)
 
-	client := common.HTTPClient
-
-	if ok, c := common.NewPPLSession(env); ok {
-		client = c
-		defer client.IdleClose()
-	}
-
 	if domain == "" {
 		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
 	}
@@ -439,7 +452,7 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		true,
 	}
 	fn, data, err = bindAttr(env, "animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(1490935504)+9068457)
-	response, err := emit.ClientBuilder(client).
+	response, err := emit.ClientBuilder(common.HTTPClient).
 		Proxies(proxied).
 		Context(ctx.Request.Context()).
 		POST(baseUrl+"/queue/join").
@@ -460,7 +473,7 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 	logger.Info(emit.TextResponse(response))
 	_ = response.Body.Close()
 
-	response, err = emit.ClientBuilder(client).
+	response, err = emit.ClientBuilder(common.HTTPClient).
 		Proxies(proxied).
 		Context(ctx.Request.Context()).
 		GET(baseUrl+"/queue/data").
@@ -480,6 +493,11 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 	if err != nil {
 		return "", err
 	}
+
+	c.Event("*", func(j emit.JoinEvent) (_ interface{}) {
+		logger.Debugf("event: %s", j.InitialBytes)
+		return
+	})
 
 	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
 		d := j.Output.Data
@@ -513,7 +531,7 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = common.Download(client, proxied, info["url"].(string), "png", map[string]string{
+		value, err = common.Download(common.HTTPClient, proxied, info["url"].(string), "png", map[string]string{
 			// "User-Agent":      userAgent,
 			// "Accept-Language": "en-US,en;q=0.9",
 			"Origin":  "https://huggingface.co",
@@ -561,6 +579,11 @@ func google(ctx *gin.Context, env *env.Environment, model, message string) (valu
 	if err != nil {
 		return
 	}
+
+	c.Event("*", func(j emit.JoinEvent) (_ interface{}) {
+		logger.Debugf("event: %s", j.InitialBytes)
+		return
+	})
 
 	c.Event("send_hash", func(j emit.JoinEvent) interface{} {
 		return map[string]interface{}{

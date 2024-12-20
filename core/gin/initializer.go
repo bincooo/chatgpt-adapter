@@ -64,7 +64,8 @@ func cros(gtx *gin.Context) {
 
 	if gtx.Request.RequestURI == "/" ||
 		gtx.Request.RequestURI == "/favicon.ico" ||
-		strings.Contains(gtx.Request.URL.Path, "/v1/models") {
+		strings.Contains(gtx.Request.URL.Path, "/v1/models") ||
+		strings.HasPrefix(gtx.Request.URL.Path, "/file/") {
 		// 处理请求
 		gtx.Next()
 		return

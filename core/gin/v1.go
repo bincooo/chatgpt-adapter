@@ -44,6 +44,7 @@ func (h *Handler) completions(gtx *gin.Context) {
 	}
 
 	gtx.Set(vars.GinCompletion, completion)
+	logger.Infof("curr model: %s", completion.Model)
 	gtx.Set(vars.GinMatchers, response.NewMatchers(gtx, func(str string) {
 		if completion.Stream {
 			response.SSEResponse(gtx, "matcher", str, time.Now().Unix())
@@ -107,6 +108,7 @@ func (h *Handler) embeddings(gtx *gin.Context) {
 	}
 
 	gtx.Set(vars.GinEmbedding, embed)
+	logger.Infof("curr model: %s", embed.Model)
 	for _, extension := range h.extensions {
 		ok, err := extension.Match(gtx, embed.Model)
 		if err != nil {
