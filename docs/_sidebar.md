@@ -12,6 +12,7 @@
   - [You](you.md)
   - [Bing](bing.md)
   - [V1](v1.md)
+  - [Windsurf](windsurf.md)
 
 - image
   
