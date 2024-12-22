@@ -76,7 +76,7 @@ func partTwo(ctx context.Context, proxied, cookies, hash string, opts options) e
 		Context(ctx).
 		Proxies(proxied).
 		POST(baseUrl+"/queue/join").
-		JHeader().
+		JSONHeader().
 		Ja3().
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
@@ -151,7 +151,7 @@ func partThree(ctx context.Context, proxied, cookies, hash string, opts options)
 		Context(ctx).
 		Proxies(proxied).
 		POST(baseUrl+"/queue/join").
-		JHeader().
+		JSONHeader().
 		Ja3().
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).
@@ -300,7 +300,7 @@ func partOne(ctx context.Context, env *env.Environment, proxied string, opts *op
 		Context(ctx).
 		Proxies(proxied).
 		POST(baseUrl+"/queue/join").
-		JHeader().
+		JSONHeader().
 		Ja3().
 		Header("User-Agent", ua).
 		Header("Cookie", cookies).

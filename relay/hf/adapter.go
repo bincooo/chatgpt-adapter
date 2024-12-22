@@ -316,7 +316,7 @@ func fetch(ctx context.Context, proxied, baseUrl, cookie string, obj interface{}
 		Proxies(proxied).
 		POST(fmt.Sprintf("%s/v1/chat/completions", baseUrl)).
 		Header("Authorization", cookie).
-		JHeader().
+		JSONHeader().
 		Body(obj).
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
 }

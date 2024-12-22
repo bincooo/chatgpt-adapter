@@ -49,7 +49,7 @@ func Ox0(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		Proxies(proxies).
 		Context(ctx.Request.Context()).
 		POST(baseUrl+"/queue/join").
-		JHeader().
+		JSONHeader().
 		Header("User-Agent", userAgent).
 		Body(map[string]interface{}{
 			"data":         data,
@@ -214,7 +214,7 @@ func Ox2(ctx *gin.Context, env *env.Environment, model, message string) (value s
 		Proxies(proxied).
 		Context(ctx.Request.Context()).
 		POST(baseUrl+"/queue/join").
-		JHeader().
+		JSONHeader().
 		Body(map[string]interface{}{
 			"data":         data,
 			"fn_index":     fn[0],
@@ -321,7 +321,7 @@ func Ox3(ctx *gin.Context, env *env.Environment, message string) (value string, 
 		Header("Referer", baseUrl+"/?__theme=light").
 		Header("User-Agent", userAgent).
 		Header("Accept-Language", "en-US,en;q=0.9").
-		JHeader().
+		JSONHeader().
 		Body(map[string]interface{}{
 			"data":         data,
 			"fn_index":     fn[0],
@@ -460,7 +460,7 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		Header("Referer", baseUrl+"/?__theme=light").
 		Header("User-Agent", userAgent).
 		Header("Accept-Language", "en-US,en;q=0.9").
-		JHeader().
+		JSONHeader().
 		Body(map[string]interface{}{
 			"data":         data,
 			"fn_index":     fn[0],

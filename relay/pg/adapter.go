@@ -216,7 +216,7 @@ func fetch(ctx context.Context, proxies, cookie string, marshal []byte) (*http.R
 		Header("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36").
 		Header("x-forwarded-for", emit.RandIP()).
 		Header("cookie", cookie).
-		JHeader().
+		JSONHeader().
 		Bytes(marshal).
 		DoS(http.StatusOK)
 }

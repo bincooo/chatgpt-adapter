@@ -54,7 +54,7 @@ func fetch(ctx *gin.Context, proxies, token string, completion model.Completion)
 		Context(ctx).
 		POST(baseUrl+"/chat/completions").
 		Header("Authorization", "Bearer "+token).
-		JHeader().
+		JSONHeader().
 		Body(obj).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
 	return

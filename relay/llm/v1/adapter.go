@@ -121,7 +121,7 @@ func (api *api) Embedding(ctx *gin.Context) (err error) {
 		Context(ctx).
 		POST(baseUrl+"/embeddings").
 		Header("Authorization", "Bearer "+token).
-		JHeader().
+		JSONHeader().
 		Body(embedding).DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
 		logger.Error(err)

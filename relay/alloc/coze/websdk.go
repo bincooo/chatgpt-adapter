@@ -164,7 +164,7 @@ func loop(env *env.Environment) {
 				response, err := emit.ClientBuilder(common.HTTPClient).
 					Context(timeout).
 					POST(baseUrl + "/coze/del").
-					JHeader().
+					JSONHeader().
 					Body(item.value).
 					DoS(http.StatusOK)
 				cancel()
@@ -209,7 +209,7 @@ func runTasks(env *env.Environment, opts ...*obj) (exec bool) {
 		response, err := emit.ClientBuilder(common.HTTPClient).
 			Context(timeout).
 			POST(baseUrl + "/coze/login").
-			JHeader().
+			JSONHeader().
 			Body(payload).
 			DoS(http.StatusOK)
 		if err != nil {
