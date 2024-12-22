@@ -27,7 +27,7 @@ internal/plugin/llm/3rd/
 
 # Go workspace file
 go.work
-tests/cookies_test.go
+cookies_test.go
 internal/gin.handler/3rd.go
 cookies.txt
 config.yaml
