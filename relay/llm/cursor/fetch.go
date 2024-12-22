@@ -3,19 +3,17 @@ package cursor
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/iocgo/sdk/env"
-	"github.com/iocgo/sdk/stream"
 	"math/rand"
 	"net/http"
 
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
 	"github.com/bincooo/emit.io"
+	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
-
-	. "chatgpt-adapter/relay/llm/cursor/proto"
+	"github.com/iocgo/sdk/env"
+	"github.com/iocgo/sdk/stream"
 )
 
 var (

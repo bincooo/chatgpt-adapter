@@ -12,6 +12,7 @@ import (
 	"chatgpt-adapter/relay/llm/cursor"
 	"chatgpt-adapter/relay/llm/lmsys"
 	"chatgpt-adapter/relay/llm/v1"
+	"chatgpt-adapter/relay/llm/windsurf"
 	"chatgpt-adapter/relay/llm/you"
 	"chatgpt-adapter/relay/pg"
 )
@@ -33,6 +34,11 @@ func Injects(container *sdk.Container) (err error) {
 	}
 
 	err = cursor.Injects(container)
+	if err != nil {
+		return
+	}
+
+	err = windsurf.Injects(container)
 	if err != nil {
 		return
 	}

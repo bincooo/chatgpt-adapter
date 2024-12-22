@@ -1,0 +1,120 @@
+syntax = "proto3";
+package  windsurf;
+option go_package = "./windsurf";
+
+message ChatMessage {
+
+  message Schema {
+    string name = 1;
+    string version1 = 2;
+    string id = 3;
+    string lang = 4;
+    string os = 5;
+    string version2 = 7;
+    string equi = 8;
+    string title = 12;
+    string token = 21;
+  }
+
+  message UserMessage {
+
+    message Unknown_Field8 {
+      sint32 value = 1;
+    }
+
+    message File {
+
+      message Timestamp {
+        fixed64 value = 13;
+      }
+
+      string value = 1; // base64
+      Timestamp timestamp = 2; // ?? 不确定是否是日期，建议固定值
+    }
+
+    sint32 role = 2; // 上下文类型？？-1 user, 1 bot
+    string message = 3;
+    int32 token = 4; // 正数
+    sint32 unknown_field5 = 5;
+    Unknown_Field8 unknown_field8 = 8;
+    repeated File files = 10;
+  }
+
+  message Config {
+    sint32 unknown_field1 = 1;
+    int32 maxTokens = 2;
+    sint32 topK = 3;
+    double topP = 5; // 不确定
+    double temperature = 6; // 不确定
+    int32 unknown_field7 = 7;
+    double unknown_field8 = 8;
+    repeated string stop = 9;
+    double unknown_field11 = 11;
+  }
+
+  message Tool {
+    string name = 1;
+    string desc = 2;
+    string schema = 3;
+  }
+
+  message ToolChoice {
+    string value = 1;
+  }
+
+  message Unknown_Field13 {
+      sint32 value = 1;
+  }
+
+  Schema schema = 1;
+  string Instructions = 2; // 不允许为空？
+  repeated UserMessage messages = 3;
+  sint32 model = 6; // 模型 ？？ -55: gpt4o 83:claude3.5sonnet
+  sint32 unknown_field7 = 7;
+  Config config = 8;
+  repeated Tool tools = 10;
+  ToolChoice choice = 12;
+  Unknown_Field13 unknown_field13 = 13;
+}
+
+message ResMessage {
+
+  message Unknown_Field2 { // 应该是两个时间戳
+    int32 value1 = 1;
+    int32 value2 = 2;
+  }
+
+  message Tokens { // 觉得是token统计，但是数据对不上
+    int32 unknown_field1 = 1;
+    int32 unknown_field2 = 2;
+    int32 unknown_field3 = 3;
+    int32 unknown_field4 = 4;
+    int32 unknown_field5 = 5;
+  }
+
+  string id = 1;
+  Unknown_Field2 unknown_field2 = 2;
+  string message = 3;
+  int32 unknown_field4 = 4;
+  int32 unknown_field5 = 5;
+  Tokens tokens = 7;
+
+}
+
+message Jwt {
+
+  message Args {
+    string name = 1;
+    string version1 = 2;
+    string ident = 3;
+    string lang = 4;
+    string version2 = 7;
+    string title = 12;
+  }
+
+  Args args = 1;
+}
+
+message JwtToken {
+  string value = 1;
+}

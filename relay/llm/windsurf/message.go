@@ -1,4 +1,4 @@
-package cursor
+package windsurf
 
 import (
 	"bufio"
@@ -22,22 +22,43 @@ import (
 
 const ginTokens = "__tokens__"
 
+type ChunkErrorWrapper struct {
+	Cause struct {
+		Wrapper *ChunkErrorWrapper `json:"wrapper"`
+		Leaf    struct {
+			Message string `json:"message"`
+			Details struct {
+				OriginalTypeName string `json:"originalTypeName"`
+				ErrorTypeMark    struct {
+					FamilyName string `json:"familyName"`
+				} `json:"errorTypeMark"`
+			} `json:"details"`
+		} `json:"leaf"`
+	} `json:"cause"`
+	Message string `json:"message"`
+	Details struct {
+		OriginalTypeName string `json:"originalTypeName"`
+		ErrorTypeMark    struct {
+			FamilyName string `json:"familyName"`
+		} `json:"errorTypeMark"`
+		ReportablePayload []string `json:"reportablePayload"`
+		FullDetails       struct {
+			Type string `json:"@type"`
+			Msg  string `json:"msg"`
+		} `json:"fullDetails"`
+	} `json:"details"`
+}
+
 type chunkError struct {
 	E struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
 		Details []struct {
 			Type  string `json:"type"`
-			Debug struct {
-				Error   string `json:"error"`
-				Details struct {
-					Title       string `json:"title"`
-					Detail      string `json:"detail"`
-					IsRetryable bool   `json:"isRetryable"`
-				} `json:"details"`
-				IsExpected bool `json:"isExpected"`
-			} `json:"debug"`
 			Value string `json:"value"`
+			Debug struct {
+				Wrapper *ChunkErrorWrapper `json:"wrapper"`
+			} `json:"debug"`
 		} `json:"details"`
 	} `json:"error"`
 }
@@ -45,7 +66,19 @@ type chunkError struct {
 func (ce chunkError) Error() string {
 	message := ce.E.Message
 	if len(ce.E.Details) > 0 {
-		message = ce.E.Details[0].Debug.Details.Detail
+		wrapper := ce.E.Details[0].Debug.Wrapper
+		for {
+			if wrapper == nil {
+				break
+			}
+			if wrapper.Cause.Wrapper == nil {
+				break
+			}
+			wrapper = wrapper.Cause.Wrapper
+		}
+		if wrapper != nil {
+			message = wrapper.Cause.Leaf.Message
+		}
 	}
 	return fmt.Sprintf("[%s] %s", ce.E.Code, message)
 }
@@ -136,6 +169,9 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		}
 
 		if event[7:] == "error" {
+			if bytes.Equal(chunk, []byte("{}")) {
+				break
+			}
 			var chunkErr chunkError
 			err := json.Unmarshal(chunk, &chunkErr)
 			if err == nil {
@@ -149,7 +185,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			return
 		}
 
-		if event[7:] == "system" || bytes.Equal(chunk, []byte("{}")) {
+		if bytes.Equal(chunk, []byte("{}")) {
 			continue
 		}
 
@@ -205,7 +241,7 @@ func echoMessages(ctx *gin.Context, completion model.Completion) {
 
 func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 	// 每个字节占8位
-	// 00000011 第一个字节是占位符，应该是用来代表消息类型的 假定 0: 消息体/proto, 1: 系统提示词/gzip, 2、3: 错误标记/gzip
+	// 00000011 第一个字节是占位符，应该是用来代表消息类型的 假定 1: 消息体/proto+gzip, 3: 错误标记/gzip
 	// 00000000 00000000 00000010 11011000 4个字节描述包体大小
 	scanner = bufio.NewScanner(body)
 	var (
@@ -231,25 +267,11 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			magic = data[0]
 			chunkLen = bytesToInt32(data[1:setup])
 
-			// 这部分应该是分割标记？或者补位
-			if magic == 0 && chunkLen == 0 {
-				chunkLen = -1
-				return setup, []byte(""), err
-			}
-
-			if magic == 3 { // 假定它是错误标记
+			if magic == 3 { // 假定它是错误标记 ?? 有没搞错，error和done同用一个标记？
 				return setup, []byte("event: error"), err
 			}
 
-			if magic == 2 { // 内部异常信息
-				return setup, []byte("event: error"), err
-			}
-
-			if magic == 1 { // 系统提示词标记？
-				return setup, []byte("event: system"), err
-			}
-
-			// magic == 0
+			// magic == 1
 			return setup, []byte("event: message"), err
 		}
 
@@ -270,13 +292,14 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			}
 			chunk, err = io.ReadAll(reader)
 		}
-		if magic == 0 {
+
+		if magic != 3 {
 			var message ResMessage
 			err = proto.Unmarshal(chunk, &message)
 			if err != nil {
 				return
 			}
-			chunk = []byte(message.Msg)
+			chunk = []byte(message.Message)
 		}
 		return i, chunk, err
 	})
