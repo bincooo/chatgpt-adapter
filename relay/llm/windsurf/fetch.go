@@ -145,7 +145,7 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 			//	Schema: "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"CodeMarkdownLanguage\":{\"type\":\"string\",\"description\":\"Markdown language for the code block, e.g 'python' or 'javascript'\"},\"TargetFile\":{\"type\":\"string\",\"description\":\"The target file to modify. Always specify the target file as the very first argument.\"},\"CodeEdit\":{\"type\":\"string\",\"description\":\"Specify ONLY the precise lines of code that you wish to edit. **NEVER specify or write out unchanged code**. Instead, represent all unchanged code using this special placeholder: {{ ... }}\"},\"Instruction\":{\"type\":\"string\",\"description\":\"A description of the changes that you are making to the file.\"},\"Blocking\":{\"type\":\"boolean\",\"description\":\"If true, the tool will block until the entire file diff is generated. If false, the diff will be generated asynchronously, while you respond. Only set to true if you must see the finished changes before responding to the USER. Otherwise, prefer false so that you can respond sooner with the assumption that the diff will be as you instructed.\"}},\"additionalProperties\":false,\"type\":\"object\",\"required\":[\"CodeMarkdownLanguage\",\"TargetFile\",\"CodeEdit\",\"Instruction\",\"Blocking\"]}",
 			//},
 		},
-		Choice:         &ChatMessage_ToolChoice{Value: "auto"},
+		Choice:         elseOf(completion.Model[9:] == "gpt4o", &ChatMessage_ToolChoice{Value: "auto"}, nil),
 		UnknownField13: &ChatMessage_Unknown_Field13{Value: -1},
 	}
 
