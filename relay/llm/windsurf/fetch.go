@@ -52,6 +52,12 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 	if completion.Temperature == 0 {
 		completion.Temperature = 0.4
 	}
+
+	if len(completion.Messages) > 0 && completion.Messages[0].Is("role", "system") {
+		completion.System = completion.Messages[0].GetString("content")
+		completion.Messages = completion.Messages[1:]
+	}
+
 	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_UserMessage {
 		return &ChatMessage_UserMessage{
 			Role:          elseOf[int32](message.Is("role", "user"), -1, 1),
@@ -155,12 +161,13 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 	}
 
 	// 不用gzip编码了？
-	//protoBytes, err = gzipCompressWithLevel(protoBytes, gzip.BestCompression)
-	//if err != nil {
-	//	return
-	//}
+	protoBytes, err = gzipCompressWithLevel(protoBytes, gzip.BestCompression)
+	if err != nil {
+		return
+	}
 
-	header := int32ToBytes(0, len(protoBytes))
+	// magic 0不用gzip, 1需要gzip
+	header := int32ToBytes(1, len(protoBytes))
 	buffer = append(header, protoBytes...)
 	return
 }

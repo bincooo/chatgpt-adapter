@@ -82,6 +82,24 @@ func (holder ContentHolder) Handle(ctx *gin.Context, completion model.Completion
 				delete(messages[0], "chat")
 				delete(messages[0], "query")
 			}
+			// windsurf 模型特殊处理
+			if len(messages) > 0 && strings.HasPrefix(completion.Model, "windsurf/") {
+				value := messages[0].GetString("content")
+				index := strings.Index(value, "\nHuman: ")
+				ai := strings.Index(value, "\nAssistant: ")
+				if index > 0 && index > ai {
+					index = ai
+				}
+
+				if index > 0 {
+					messages[0].Set("role", "system")
+					messages[0].Set("content", value[:index-3])
+					messages = append(messages, model.Keyv[interface{}]{
+						"role":    "user",
+						"content": value[index-3:],
+					})
+				}
+			}
 			return
 		}
 	}
