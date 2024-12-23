@@ -21,9 +21,9 @@ import (
 	"github.com/iocgo/sdk/stream"
 )
 
-var (
-	g_token = ""
-)
+//var (
+//	g_token = ""
+//)
 
 func fetch(ctx *gin.Context, env *env.Environment, buffer []byte) (response *http.Response, err error) {
 	response, err = emit.ClientBuilder(common.HTTPClient).
@@ -179,10 +179,10 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 }
 
 func genToken(ctx context.Context, proxies, ident string) (token string, err error) {
-	if g_token != "" {
-		token = g_token
-		return
-	}
+	//if g_token != "" {
+	//	token = g_token
+	//	return
+	//}
 
 	jwt := &Jwt{
 		Args: &Jwt_Args{
@@ -226,7 +226,7 @@ func genToken(ctx context.Context, proxies, ident string) (token string, err err
 	}
 
 	token = jwtToken.Value
-	g_token = token
+	//g_token = token
 	return
 }
 
