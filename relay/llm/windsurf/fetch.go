@@ -61,15 +61,18 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 		completion.Messages = completion.Messages[1:]
 	}
 
+	messageL := len(completion.Messages)
+	pos := 1
 	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_UserMessage {
+		defer func() { pos++ }()
 		return &ChatMessage_UserMessage{
-			Role:          elseOf[int32](message.Is("role", "user"), -1, 1),
+			Role:          elseOf[int32](message.Is("role", "assistant"), 1, -1),
 			Message:       message.GetString("content"),
 			Token:         int32(response.CalcTokens(message.GetString("content"))),
-			UnknownField5: -1,
-			UnknownField8: &ChatMessage_UserMessage_Unknown_Field8{
+			UnknownField5: elseOf[int32](message.Is("role", "assistant"), 0, -1),
+			UnknownField8: elseOf(pos >= messageL, &ChatMessage_UserMessage_Unknown_Field8{
 				Value: -1,
-			},
+			}, nil),
 		}
 	}).ToSlice()
 	message := &ChatMessage{
