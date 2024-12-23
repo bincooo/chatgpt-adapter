@@ -2,11 +2,14 @@ package windsurf
 
 import (
 	"bytes"
+	"chatgpt-adapter/core/logger"
 	"compress/gzip"
 	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
@@ -35,7 +38,7 @@ func fetch(ctx *gin.Context, env *env.Environment, buffer []byte) (response *htt
 		Header("connect-content-encoding", "gzip").
 		Header("connect-accept-encoding", "gzip").
 		Bytes(buffer).
-		DoC(emit.Status(http.StatusOK), emit.IsPROTO)
+		DoC(statusCondition, emit.IsPROTO)
 	return
 }
 
@@ -202,7 +205,7 @@ func genToken(ctx context.Context, proxies, ident string) (token string, err err
 		Header("accept-encoding", "identity").
 		Header("host", "server.codeium.com").
 		Bytes(buffer).
-		DoC(emit.Status(http.StatusOK), emit.IsPROTO)
+		DoC(statusCondition, emit.IsPROTO)
 	if err != nil {
 		return
 	}
@@ -222,6 +225,34 @@ func genToken(ctx context.Context, proxies, ident string) (token string, err err
 	token = jwtToken.Value
 	g_token = token
 	return
+}
+
+func statusCondition(response *http.Response) error {
+	if response == nil {
+		return emit.Error{Code: -1, Bus: "Status", Err: errors.New("response is nil")}
+	}
+
+	isJ := func(header http.Header) bool {
+		if header == nil {
+			return false
+		}
+		return strings.Contains(header.Get("Content-Type"), "application/json")
+	}
+
+	if response.StatusCode != http.StatusOK {
+		msg := "internal error"
+		if isJ(response.Header) {
+			var err Error
+			if e := emit.ToObject(response, &err); e != nil {
+				logger.Error(e)
+			} else {
+				msg = err.Error()
+			}
+		}
+		_ = response.Body.Close()
+		return emit.Error{Code: response.StatusCode, Bus: "Status", Msg: msg, Err: errors.New(response.Status)}
+	}
+	return nil
 }
 
 func gzipCompressWithLevel(data []byte, level int) ([]byte, error) {

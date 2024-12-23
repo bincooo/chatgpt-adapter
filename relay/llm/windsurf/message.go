@@ -49,24 +49,30 @@ type ChunkErrorWrapper struct {
 	} `json:"details"`
 }
 
+type Error struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Details []struct {
+		Type  string `json:"type"`
+		Value string `json:"value"`
+		Debug struct {
+			Wrapper *ChunkErrorWrapper `json:"wrapper"`
+		} `json:"debug"`
+	} `json:"details"`
+}
+
 type chunkError struct {
-	E struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-		Details []struct {
-			Type  string `json:"type"`
-			Value string `json:"value"`
-			Debug struct {
-				Wrapper *ChunkErrorWrapper `json:"wrapper"`
-			} `json:"debug"`
-		} `json:"details"`
-	} `json:"error"`
+	E Error `json:"error"`
 }
 
 func (ce chunkError) Error() string {
-	message := ce.E.Message
-	if len(ce.E.Details) > 0 {
-		wrapper := ce.E.Details[0].Debug.Wrapper
+	return ce.E.Error()
+}
+
+func (e Error) Error() string {
+	message := e.Message
+	if len(e.Details) > 0 {
+		wrapper := e.Details[0].Debug.Wrapper
 		for {
 			if wrapper == nil {
 				break
@@ -80,7 +86,7 @@ func (ce chunkError) Error() string {
 			message = wrapper.Cause.Leaf.Message
 		}
 	}
-	return fmt.Sprintf("[%s] %s", ce.E.Code, message)
+	return fmt.Sprintf("[%s] %s", e.Code, message)
 }
 
 func waitMessage(r *http.Response, cancel func(str string) bool) (content string, err error) {
