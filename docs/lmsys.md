@@ -9,6 +9,24 @@ lmsys:
 
 *TIPS: 这两个值为fn_index、trigger_id 获取：进入[主页](https://lmarena.ai)，选择Direct Chat 发送一次对话，F12抓取join里的对应参数*
 
+
+
+如果出现空回复需要对指定的model配置fn_index、trigger_id （不同模型出现了不同的idx trig），如下：
+
+```config.yaml
+lmsys:
+  token: |
+    {
+      "gemini-2.0-flash-exp": [106, 156]
+    }
+  model:
+    - gemini-2.0-flash-exp
+```
+
+
+
+
+
 ## 模型列表
 
 ```json

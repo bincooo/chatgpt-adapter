@@ -8,11 +8,11 @@
   - [Blackbox](blackbox.md)
   - [Coze](coze.md)
   - [Cursor](cursor.md)
+  - [Windsurf](windsurf.md)
   - [Lmsys](lmsys.md)
   - [You](you.md)
   - [Bing](bing.md)
   - [V1](v1.md)
-  - [Windsurf](windsurf.md)
 
 - image
   
