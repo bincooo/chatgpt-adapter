@@ -187,8 +187,8 @@ func echoMessages(ctx *gin.Context, completion model.Completion) {
 		toolMessages = toolcall.ExtractToolMessages(&completion)
 	)
 
-	if len(toolMessages) == 1 {
-		content = completion.Messages[0].GetString("content")
+	if len(completion.Messages) == 2 && completion.Messages[0].Is("role", "system") {
+		content = completion.Messages[0].GetString("content") + "\n\n" + completion.Messages[1].GetString("content")
 	} else {
 		chunkBytes, _ := json.MarshalIndent(completion.Messages, "", "  ")
 		content = string(chunkBytes)
