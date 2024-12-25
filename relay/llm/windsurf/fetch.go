@@ -6,9 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -168,8 +166,8 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 		return
 	}
 
-	str := hex.EncodeToString(protoBytes)
-	fmt.Println(str)
+	//str := hex.EncodeToString(protoBytes)
+	//fmt.Println(str)
 
 	// 不用gzip编码了？
 	protoBytes, err = gzipCompressWithLevel(protoBytes, gzip.BestCompression)
