@@ -42,8 +42,8 @@ message ChatMessage {
 
   message Config {
     uint32 unknown_field1 = 1;
-    int32 maxTokens = 2;
-    int32 topK = 3;
+    uint32 maxTokens = 2;
+    uint32 topK = 3;
     double topP = 5; // 不确定
     double temperature = 6; // 不确定
     int32 unknown_field7 = 7;

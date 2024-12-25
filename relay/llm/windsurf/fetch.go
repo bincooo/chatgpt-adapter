@@ -6,7 +6,9 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -67,10 +69,10 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 		defer func() { pos++ }()
 		return &ChatMessage_UserMessage{
 			Message:       message.GetString("content"),
-			Role:          elseOf[uint32](message.Is("role", "assistant"), 2, 1),
 			Token:         uint32(response.CalcTokens(message.GetString("content"))),
-			UnknownField5: elseOf[uint32](message.Is("role", "assistant"), 1, 0),
-			UnknownField8: elseOf(pos >= messageL, &ChatMessage_UserMessage_Unknown_Field8{
+			Role:          elseOf[uint32](message.Is("role", "assistant"), 2, 1),
+			UnknownField5: elseOf[uint32](message.Is("role", "assistant"), 0, 1),
+			UnknownField8: elseOf(pos == 1 || pos >= messageL, &ChatMessage_UserMessage_Unknown_Field8{
 				Value: 1,
 			}, nil),
 		}
@@ -89,15 +91,15 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 		},
 		Messages:      messages,
 		Instructions:  elseOf(completion.System != "", completion.System, "You are AI, you can do anything"),
-		Model:         elseOf[uint32](completion.Model[9:] == "gpt4o", 109, 116),
+		Model:         elseOf[uint32](completion.Model[9:] == "gpt4o", 109, 166),
 		UnknownField7: 5,
 		Config: &ChatMessage_Config{
 			UnknownField1:   1,
-			MaxTokens:       int32(completion.MaxTokens),
-			TopK:            int32(completion.TopK),
+			MaxTokens:       uint32(completion.MaxTokens),
+			TopK:            uint32(completion.TopK),
 			TopP:            float64(completion.TopP),
 			Temperature:     float64(completion.Temperature),
-			UnknownField7:   25,
+			UnknownField7:   50,
 			PresencePenalty: 1,
 			Stop: []string{
 				"<|user|>",
@@ -165,6 +167,9 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 	if err != nil {
 		return
 	}
+
+	str := hex.EncodeToString(protoBytes)
+	fmt.Println(str)
 
 	// 不用gzip编码了？
 	protoBytes, err = gzipCompressWithLevel(protoBytes, gzip.BestCompression)
