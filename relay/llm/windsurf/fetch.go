@@ -2,6 +2,7 @@ package windsurf
 
 import (
 	"bytes"
+	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/logger"
 	"compress/gzip"
 	"context"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
@@ -20,10 +22,6 @@ import (
 	"github.com/iocgo/sdk/env"
 	"github.com/iocgo/sdk/stream"
 )
-
-//var (
-//	g_token = ""
-//)
 
 func fetch(ctx *gin.Context, env *env.Environment, buffer []byte) (response *http.Response, err error) {
 	response, err = emit.ClientBuilder(common.HTTPClient).
@@ -61,8 +59,8 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 		completion.Messages = completion.Messages[1:]
 	}
 
-	messageL := len(completion.Messages)
 	pos := 1
+	messageL := len(completion.Messages)
 	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_UserMessage {
 		defer func() { pos++ }()
 		return &ChatMessage_UserMessage{
@@ -92,13 +90,13 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 		Model:         elseOf[uint32](completion.Model[9:] == "gpt4o", 109, 166),
 		UnknownField7: 5,
 		Config: &ChatMessage_Config{
-			UnknownField1:   1,
+			UnknownField1:   1.0,
 			MaxTokens:       uint32(completion.MaxTokens),
 			TopK:            uint32(completion.TopK),
 			TopP:            float64(completion.TopP),
 			Temperature:     float64(completion.Temperature),
 			UnknownField7:   50,
-			PresencePenalty: 1,
+			PresencePenalty: 1.0,
 			Stop: []string{
 				"<|user|>",
 				"<|bot|>",
@@ -106,7 +104,7 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 				"<|endoftext|>",
 				"<|end_of_turn|>",
 			},
-			FrequencyPenalty: 1,
+			FrequencyPenalty: 1.0,
 		},
 		// TODO - 就这样吧，有空再做兼容
 		Tools: []*ChatMessage_Tool{
@@ -182,10 +180,11 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 }
 
 func genToken(ctx context.Context, proxies, ident string) (token string, err error) {
-	//if g_token != "" {
-	//	token = g_token
-	//	return
-	//}
+	cacheManager := cache.WindsurfCacheManager()
+	token, err = cacheManager.GetValue(ident)
+	if err != nil || token != "" {
+		return
+	}
 
 	jwt := &Jwt{
 		Args: &Jwt_Args{
@@ -229,7 +228,7 @@ func genToken(ctx context.Context, proxies, ident string) (token string, err err
 	}
 
 	token = jwtToken.Value
-	//g_token = token
+	err = cacheManager.SetWithExpiration(ident, token, time.Hour)
 	return
 }
 

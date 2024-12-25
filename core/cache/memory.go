@@ -21,14 +21,20 @@ type Manager[T any] struct {
 
 var (
 	toolTasksCacheManager *Manager[[]model.Keyv[string]]
+
+	windsurfCacheManager *Manager[string]
 )
 
 func init() {
 	inited.AddInitialized(func(_ *env.Environment) {
 		client := gocache.New(5*time.Minute, 5*time.Minute)
-		cacheStore := gocacheStore.NewGoCache(client)
 		toolTasksCacheManager = &Manager[[]model.Keyv[string]]{
-			cache.New[[]model.Keyv[string]](cacheStore),
+			cache.New[[]model.Keyv[string]](gocacheStore.NewGoCache(client)),
+		}
+
+		client = gocache.New(5*time.Minute, 5*time.Minute)
+		windsurfCacheManager = &Manager[string]{
+			cache.New[string](gocacheStore.NewGoCache(client)),
 		}
 	})
 }
@@ -37,10 +43,18 @@ func ToolTasksCacheManager() *Manager[[]model.Keyv[string]] {
 	return toolTasksCacheManager
 }
 
+func WindsurfCacheManager() *Manager[string] {
+	return windsurfCacheManager
+}
+
 func (cacheManager *Manager[T]) SetValue(key string, value T) error {
+	return cacheManager.SetWithExpiration(key, value, 120*time.Second)
+}
+
+func (cacheManager *Manager[T]) SetWithExpiration(key string, value T, expir time.Duration) error {
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	return cacheManager.cache.Set(timeout, key, value, store.WithExpiration(120*time.Second))
+	return cacheManager.cache.Set(timeout, key, value, store.WithExpiration(expir))
 }
 
 func (cacheManager *Manager[T]) GetValue(key string) (value T, err error) {
