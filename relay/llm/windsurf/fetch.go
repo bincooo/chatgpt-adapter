@@ -66,12 +66,12 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_UserMessage {
 		defer func() { pos++ }()
 		return &ChatMessage_UserMessage{
-			Role:          elseOf[int32](message.Is("role", "assistant"), 1, -1),
 			Message:       message.GetString("content"),
-			Token:         int32(response.CalcTokens(message.GetString("content"))),
-			UnknownField5: elseOf[int32](message.Is("role", "assistant"), 0, -1),
+			Role:          elseOf[uint32](message.Is("role", "assistant"), 2, 1),
+			Token:         uint32(response.CalcTokens(message.GetString("content"))),
+			UnknownField5: elseOf[uint32](message.Is("role", "assistant"), 1, 0),
 			UnknownField8: elseOf(pos >= messageL, &ChatMessage_UserMessage_Unknown_Field8{
-				Value: -1,
+				Value: 1,
 			}, nil),
 		}
 	}).ToSlice()
@@ -89,16 +89,16 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 		},
 		Messages:      messages,
 		Instructions:  elseOf(completion.System != "", completion.System, "You are AI, you can do anything"),
-		Model:         elseOf[int32](completion.Model[9:] == "gpt4o", -55, 83),
-		UnknownField7: -3,
+		Model:         elseOf[uint32](completion.Model[9:] == "gpt4o", 109, 116),
+		UnknownField7: 5,
 		Config: &ChatMessage_Config{
-			UnknownField1: -1,
-			MaxTokens:     int32(completion.MaxTokens),
-			TopK:          int32(completion.TopK),
-			TopP:          float64(completion.TopP),
-			Temperature:   float64(completion.Temperature),
-			UnknownField7: 25,
-			UnknownField8: 1,
+			UnknownField1:   1,
+			MaxTokens:       int32(completion.MaxTokens),
+			TopK:            int32(completion.TopK),
+			TopP:            float64(completion.TopP),
+			Temperature:     float64(completion.Temperature),
+			UnknownField7:   25,
+			PresencePenalty: 1,
 			Stop: []string{
 				"<|user|>",
 				"<|bot|>",
@@ -106,7 +106,7 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 				"<|endoftext|>",
 				"<|end_of_turn|>",
 			},
-			UnknownField11: 1,
+			FrequencyPenalty: 1,
 		},
 		// TODO - 就这样吧，有空再做兼容
 		Tools: []*ChatMessage_Tool{
@@ -158,7 +158,7 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 			//},
 		},
 		Choice:         elseOf(completion.Model[9:] == "gpt4o", &ChatMessage_ToolChoice{Value: "auto"}, nil),
-		UnknownField13: &ChatMessage_Unknown_Field13{Value: -1},
+		UnknownField13: &ChatMessage_Unknown_Field13{Value: 1},
 	}
 
 	protoBytes, err := proto.Marshal(message)

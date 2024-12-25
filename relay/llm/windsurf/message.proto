@@ -19,7 +19,7 @@ message ChatMessage {
   message UserMessage {
 
     message Unknown_Field8 {
-      sint32 value = 1;
+      uint32 value = 1;
     }
 
     message File {
@@ -32,24 +32,24 @@ message ChatMessage {
       Timestamp timestamp = 2; // ?? 不确定是否是日期，建议固定值
     }
 
-    sint32 role = 2; // 上下文类型？？-1 user, 1 bot
+    uint32 role = 2; // 上下文类型？？1 user, 2 bot
     string message = 3;
-    int32 token = 4; // 正数
-    sint32 unknown_field5 = 5;
+    uint32 token = 4;
+    uint32 unknown_field5 = 5;
     Unknown_Field8 unknown_field8 = 8;
     repeated File files = 10;
   }
 
   message Config {
-    sint32 unknown_field1 = 1;
+    uint32 unknown_field1 = 1;
     int32 maxTokens = 2;
-    sint32 topK = 3;
+    int32 topK = 3;
     double topP = 5; // 不确定
     double temperature = 6; // 不确定
     int32 unknown_field7 = 7;
-    double unknown_field8 = 8;
+    double presence_penalty = 8; // 不确定
     repeated string stop = 9;
-    double unknown_field11 = 11;
+    double frequency_penalty = 11; // 不确定
   }
 
   message Tool {
@@ -63,14 +63,14 @@ message ChatMessage {
   }
 
   message Unknown_Field13 {
-      sint32 value = 1;
+    uint32 value = 1;
   }
 
   Schema schema = 1;
   string Instructions = 2; // 不允许为空？
   repeated UserMessage messages = 3;
-  sint32 model = 6; // 模型 ？？ -55: gpt4o 83:claude3.5sonnet
-  sint32 unknown_field7 = 7;
+  uint32 model = 6; // 模型 ？？ 109: gpt4o 166:claude3.5sonnet
+  uint32 unknown_field7 = 7;
   Config config = 8;
   repeated Tool tools = 10;
   ToolChoice choice = 12;
