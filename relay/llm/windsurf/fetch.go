@@ -44,10 +44,10 @@ func fetch(ctx *gin.Context, env *env.Environment, buffer []byte) (response *htt
 
 func convertRequest(completion model.Completion, ident, token string) (buffer []byte, err error) {
 	if completion.MaxTokens == 0 {
-		completion.MaxTokens = 4086
+		completion.MaxTokens = 8192
 	}
 	if completion.TopK == 0 {
-		completion.TopK = 100
+		completion.TopK = 200
 	}
 	if completion.TopP == 0 {
 		completion.TopP = 0.4

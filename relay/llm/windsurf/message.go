@@ -112,16 +112,15 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 		}
 
 		if event[7:] == "error" {
+			if bytes.Equal(chunk, []byte("{}")) {
+				break
+			}
 			var chunkErr chunkError
 			err = json.Unmarshal(chunk, &chunkErr)
 			if err == nil {
 				err = &chunkErr
 			}
 			return
-		}
-
-		if event[7:] == "system" || bytes.Equal(chunk, []byte("{}")) {
-			continue
 		}
 
 		raw := string(chunk)
@@ -189,10 +188,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 				response.Error(ctx, -1, err)
 			}
 			return
-		}
-
-		if bytes.Equal(chunk, []byte("{}")) {
-			continue
 		}
 
 		raw := string(chunk)
