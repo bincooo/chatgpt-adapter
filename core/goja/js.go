@@ -31,6 +31,17 @@ func ParseMessages(messages []model.Keyv[interface{}], mode string) (newMessages
 	return
 }
 
+func EncodeURIComponentLength(content string) int {
+	vm := goja.New()
+	context := errors.New(func(err error) bool { logger.Error(err); return true })
+	defer context.Throw()
+	{
+		errors.Try(context, func() error { return vm.Set("content", content) })
+		value := errors.Try1(context, func() (goja.Value, error) { return vm.RunString(`encodeURIComponent(content).length`) })
+		return int(value.ToInteger())
+	}
+}
+
 func jsonMap() map[string]interface{} {
 	return map[string]interface{}{
 		"stringify": func(obj interface{}) (string, error) { value, err := json.Marshal(obj); return string(value), err },

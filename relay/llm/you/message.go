@@ -1,6 +1,7 @@
 package you
 
 import (
+	"chatgpt-adapter/core/goja"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -154,7 +155,8 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (fileMessage, 
 	if messageL == 1 {
 		message := messages[0]
 		content := message.GetString("content")
-		if len([]rune(content)) < 2500 {
+
+		if goja.EncodeURIComponentLength(content) <= 12499 {
 			query = content
 		} else {
 			fileMessage = content
@@ -186,6 +188,11 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (fileMessage, 
 	convertRole, _ := response.ConvertRole(ctx, "assistant")
 	fileMessage = strings.Join(contents, "") + convertRole
 	tokens += response.CalcTokens(fileMessage)
+	if goja.EncodeURIComponentLength(fileMessage) <= 12499 {
+		query = fileMessage
+		fileMessage = ""
+	}
+
 	return
 }
 
