@@ -2,7 +2,7 @@ FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 RUN apk add git make && git clone https://github.com/bincooo/chatgpt-adapter.git .
-RUN make build-linux
+RUN make install & make build-linux
 
 FROM ubuntu:latest
 
