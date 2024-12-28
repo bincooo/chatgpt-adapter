@@ -239,7 +239,8 @@ func splitToMessages(content string, merge bool) (messages []model.Keyv[interfac
 	}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer([]byte(content)))
-	scanner.Buffer(nil, len(content))
+	// fix for bufio/scan.go:200
+	scanner.Buffer(nil, max(len(content)+1, bufio.MaxScanTokenSize))
 	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
 			return
