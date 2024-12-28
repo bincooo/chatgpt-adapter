@@ -96,7 +96,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
-	token, err := genToken(ctx, api.env.GetString("server.proxied"), cookie)
+	token, err := genToken(ctx.Request.Context(), api.env.GetString("server.proxied"), cookie)
 	if err != nil {
 		return
 	}
@@ -106,7 +106,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
-	r, err := fetch(ctx, api.env, buffer)
+	r, err := fetch(ctx.Request.Context(), api.env, buffer)
 	if err != nil {
 		logger.Error(err)
 		return

@@ -2,8 +2,6 @@ package windsurf
 
 import (
 	"bytes"
-	"chatgpt-adapter/core/cache"
-	"chatgpt-adapter/core/logger"
 	"compress/gzip"
 	"context"
 	"encoding/binary"
@@ -13,19 +11,20 @@ import (
 	"strings"
 	"time"
 
+	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
+	"chatgpt-adapter/core/logger"
 	"github.com/bincooo/emit.io"
-	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/proto"
 	"github.com/iocgo/sdk/env"
 	"github.com/iocgo/sdk/stream"
 )
 
-func fetch(ctx *gin.Context, env *env.Environment, buffer []byte) (response *http.Response, err error) {
+func fetch(ctx context.Context, env *env.Environment, buffer []byte) (response *http.Response, err error) {
 	response, err = emit.ClientBuilder(common.HTTPClient).
-		Context(ctx.Request.Context()).
+		Context(ctx).
 		Proxies(env.GetString("server.proxied")).
 		POST("https://server.codeium.com/exa.api_server_pb.ApiServerService/GetChatMessage").
 		Header("user-agent", "connect-go/1.16.2 (go1.23.2 X:nocoverageredesign)").

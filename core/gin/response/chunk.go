@@ -114,23 +114,24 @@ func Echo(ctx *gin.Context, mode, content string, sse bool) {
 		Response(ctx, mode, content)
 	} else {
 		created := time.Now().Unix()
-		pos := 0
-		runStr := []rune(content)
-		step := 1000
+		//pos := 0
+		//runStr := []rune(content)
+		//step := 1000
+		//
+		//for {
+		//	// fix: 太长了有些流客户端无法接收
+		//	contentL := len(runStr[pos:])
+		//	if contentL > step {
+		//		SSEResponse(ctx, mode, string(runStr[pos:pos+step]), created)
+		//		pos += step
+		//		continue
+		//	}
+		//
+		//	SSEResponse(ctx, mode, string(runStr[pos:]), created)
+		//	break
+		//}
 
-		for {
-			// fix: 太长了有些流客户端无法接收
-			contentL := len(runStr[pos:])
-			if contentL > step {
-				SSEResponse(ctx, mode, string(runStr[pos:pos+step]), created)
-				pos += step
-				continue
-			}
-
-			SSEResponse(ctx, mode, string(runStr[pos:]), created)
-			break
-		}
-
+		SSEResponse(ctx, mode, content, created)
 		SSEResponse(ctx, mode, "[DONE]", created)
 	}
 }
@@ -152,32 +153,47 @@ func SSEResponse(ctx *gin.Context, mod, content string, created int64) {
 		finishReason = "stop"
 	}
 
-	response := model.Response{
-		Model:   mod,
-		Created: created,
-		Id:      fmt.Sprintf("chatcmpl-%d", created),
-		Object:  "chat.completion.chunk",
-		Choices: []model.Choice{
-			{
-				Index: 0,
-				Delta: &struct {
-					Role      string                    `json:"role,omitempty"`
-					Content   string                    `json:"content,omitempty"`
-					ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
-				}{"assistant", content, nil},
+	for _, char := range []rune(content) {
+		response := model.Response{
+			Model:   mod,
+			Created: created,
+			Id:      fmt.Sprintf("chatcmpl-%d", created),
+			Object:  "chat.completion.chunk",
+			Choices: []model.Choice{
+				{
+					Index: 0,
+					Delta: &struct {
+						Role      string                    `json:"role,omitempty"`
+						Content   string                    `json:"content,omitempty"`
+						ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
+					}{"assistant", string(char), nil},
+				},
 			},
-		},
-	}
+		}
 
-	if finishReason != "" {
-		response.Usage = usage
-		response.Choices[0].FinishReason = &finishReason
+		Event(ctx, "", response)
 	}
-
-	Event(ctx, "", response)
 
 	if done {
-		time.Sleep(100 * time.Millisecond)
+		response := model.Response{
+			Model:   mod,
+			Created: created,
+			Id:      fmt.Sprintf("chatcmpl-%d", created),
+			Object:  "chat.completion.chunk",
+			Choices: []model.Choice{
+				{
+					Index: 0,
+					Delta: &struct {
+						Role      string                    `json:"role,omitempty"`
+						Content   string                    `json:"content,omitempty"`
+						ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
+					}{"assistant", "", nil},
+				},
+			},
+		}
+		response.Usage = usage
+		response.Choices[0].FinishReason = &finishReason
+		Event(ctx, "", response)
 		Event(ctx, "", "[DONE]")
 	}
 }

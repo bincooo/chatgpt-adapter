@@ -53,7 +53,8 @@ func init() {
 
 		port := env.GetString("browser-less.port")
 		if port == "" {
-			logger.Fatal("please config browser-less.port to use")
+			// logger.Fatal("please config browser-less.port to use")
+			return
 		}
 
 		proxied := env.GetString("server.proxied")
