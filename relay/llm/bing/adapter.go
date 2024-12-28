@@ -84,6 +84,11 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
+	query := ""
+	if i := len(completion.Messages) - 1; completion.Messages[i].Is("role", "user") {
+		query = completion.Messages[i].GetString("content")
+		completion.Messages = completion.Messages[:i]
+	}
 	request := convertRequest(ctx, completion)
 
 	timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
@@ -95,10 +100,19 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 
 	timeout, cancel = context.WithTimeout(context.TODO(), 10*time.Second)
 	defer cancel()
-	defer edge.DeleteConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, conversationId, cookie)
+	defer edge.DeleteConversation(common.HTTPClient, timeout, conversationId, cookie)
 
-	message, err := edge.Chat(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx.Request.Context(), cookie, conversationId, request)
+	challenge := ""
+label:
+	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), cookie, conversationId, challenge, request, "从[\n\nAi:]处继续回复，\n\n当前问题是: "+query)
 	if err != nil {
+		if challenge == "" && err.Error() == "challenge" {
+			challenge, err = hookCloudflare()
+			if err != nil {
+				return
+			}
+			goto label
+		}
 		return
 	}
 

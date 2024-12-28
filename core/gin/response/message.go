@@ -36,11 +36,11 @@ var (
 func bingFormater(role string) string {
 	switch role {
 	case "user":
-		return "Hu: "
+		return "Human: "
 	case "assistant":
 		return "Ai: "
 	default:
-		return "Sys: "
+		return "Instructions: "
 	}
 }
 

@@ -4,7 +4,11 @@ import (
 	"chatgpt-adapter/core/common/toolcall"
 	"chatgpt-adapter/core/gin/model"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/bincooo/emit.io"
+	"github.com/iocgo/sdk/env"
+	"net/http"
 	"time"
 
 	"chatgpt-adapter/core/common"
@@ -18,7 +22,7 @@ const (
 	ginTokens = "__tokens__"
 )
 
-func waitMessage(message chan []byte, cancel func(str string) bool) (content string, err error) {
+func waitMessage(message chan []byte, cb func(string), cancel func(str string) bool) (content string, err error) {
 	for {
 		chunk, ok := <-message
 		if !ok {
@@ -28,6 +32,18 @@ func waitMessage(message chan []byte, cancel func(str string) bool) (content str
 		magic := chunk[0]
 		chunk = chunk[1:]
 		if magic == 1 {
+			//if string(chunk) == "challenge" {
+			//	if challenge != "" {
+			//		cb(challenge)
+			//		challenge = ""
+			//		continue
+			//	}
+			//
+			//	challenge, err = hookCloudflare()
+			//	if err != nil {
+			//		break
+			//	}
+			//}
 			err = fmt.Errorf("%s", chunk)
 			break
 		}
@@ -151,9 +167,50 @@ func asError(ctx *gin.Context, msg interface{}) {
 		return
 	}
 	logger.Error(msg)
-
 	if response.NotSSEHeader(ctx) {
 		response.Error(ctx, -1, msg)
 	}
+	return
+}
+
+func hookCloudflare() (challenge string, err error) {
+	baseUrl := env.Env.GetString("browser-less.reversal")
+	if !env.Env.GetBool("browser-less.enabled") && baseUrl == "" {
+		return "", errors.New("trying cloudflare failed, please setting `browser-less.enabled` or `browser-less.reversal`")
+	}
+
+	logger.Info("trying cloudflare ...")
+	if baseUrl == "" {
+		baseUrl = "http://127.0.0.1:" + env.Env.GetString("browser-less.port")
+	}
+
+	r, err := emit.ClientBuilder(common.HTTPClient).
+		GET(baseUrl+"/bing/clearance").
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		logger.Error(err)
+		if emit.IsJSON(r) == nil {
+			logger.Error(emit.TextResponse(r))
+		}
+		return
+	}
+
+	defer r.Body.Close()
+	obj, err := emit.ToMap(r)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+
+	if data, ok := obj["data"].(string); ok {
+		challenge = data
+		return
+	}
+
+	msg := "challenge failed"
+	if data, ok := obj["msg"].(string); ok {
+		msg = data
+	}
+	err = errors.New(msg)
 	return
 }

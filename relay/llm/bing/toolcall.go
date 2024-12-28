@@ -19,6 +19,7 @@ func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 	cookie := ctx.GetString("token")
 
 	exec, err := toolcall.ToolChoice(ctx, completion, func(message string) (string, error) {
+		message += "\n\nAi:"
 		if echo {
 			logger.Infof("toolCall message: \n%s", message)
 			return "", nil
@@ -31,12 +32,21 @@ func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 			return "", err
 		}
 
-		buffer, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), cookie, conversationId, message)
+		challenge := ""
+	label:
+		buffer, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), cookie, conversationId, challenge, message, "从[\n\nAi:]处继续回复")
 		if err != nil {
+			if challenge == "" && err.Error() == "challenge" {
+				challenge, err = hookCloudflare()
+				if err != nil {
+					return "", err
+				}
+				goto label
+			}
 			return "", err
 		}
 
-		return waitMessage(buffer, toolcall.Cancel)
+		return waitMessage(buffer, nil, toolcall.Cancel)
 	})
 
 	if err != nil {
