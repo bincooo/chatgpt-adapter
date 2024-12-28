@@ -51,6 +51,8 @@ var (
 		regexp.MustCompile(`<example>\n*</example>`, regexp.ECMAScript),
 		regexp.MustCompile(`\n{3,}`, regexp.ECMAScript),
 	}
+
+	ginTokens = "__tokens__"
 )
 
 type ContentHolder struct{ env *env.Environment }
@@ -63,6 +65,7 @@ func (holder ContentHolder) Handle(ctx *gin.Context, completion model.Completion
 		"specialized", // 用于开启/关闭特化处理
 	}
 	content := strings.Join(stream.Map(stream.OfSlice(completion.Messages), join(false)).ToSlice(), delimiter)
+	ctx.Set(ginTokens, CalcTokens(content))
 	context := errors.New(func(e error) bool { err = e; return true })
 	defer context.Throw()
 	{
