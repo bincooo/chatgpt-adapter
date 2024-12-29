@@ -22,7 +22,7 @@ const (
 	ginTokens = "__tokens__"
 )
 
-func waitMessage(message chan []byte, cb func(string), cancel func(str string) bool) (content string, err error) {
+func waitMessage(message chan []byte, cancel func(str string) bool) (content string, err error) {
 	for {
 		chunk, ok := <-message
 		if !ok {
@@ -32,18 +32,6 @@ func waitMessage(message chan []byte, cb func(string), cancel func(str string) b
 		magic := chunk[0]
 		chunk = chunk[1:]
 		if magic == 1 {
-			//if string(chunk) == "challenge" {
-			//	if challenge != "" {
-			//		cb(challenge)
-			//		challenge = ""
-			//		continue
-			//	}
-			//
-			//	challenge, err = hookCloudflare()
-			//	if err != nil {
-			//		break
-			//	}
-			//}
 			err = fmt.Errorf("%s", chunk)
 			break
 		}

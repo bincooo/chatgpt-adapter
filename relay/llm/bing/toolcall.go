@@ -8,7 +8,9 @@ import (
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
 	"context"
+	"errors"
 	"github.com/bincooo/edge-api"
+	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"time"
 )
@@ -25,16 +27,34 @@ func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 			return "", nil
 		}
 
+		newTok := false
+	refresh:
 		timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
 		defer cancel()
-		conversationId, err := edge.CreateConversation(common.HTTPClient, timeout, cookie)
+		accessToken, err := genToken(timeout, cookie, newTok)
 		if err != nil {
 			return "", err
 		}
 
+		timeout, cancel = context.WithTimeout(ctx.Request.Context(), 10*time.Second)
+		defer cancel()
+		conversationId, err := edge.CreateConversation(common.HTTPClient, timeout, accessToken)
+		if err != nil {
+			var hErr emit.Error
+			if errors.As(err, &hErr) && hErr.Code == 401 && !newTok {
+				newTok = true
+				goto refresh
+			}
+			return "", err
+		}
+
+		timeout, cancel = context.WithTimeout(context.TODO(), 10*time.Second)
+		defer cancel()
+		defer edge.DeleteConversation(common.HTTPClient, timeout, conversationId, accessToken)
+
 		challenge := ""
 	label:
-		buffer, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), cookie, conversationId, challenge, message, "从[\n\nAi:]处继续回复")
+		buffer, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), accessToken, conversationId, challenge, "", message)
 		if err != nil {
 			if challenge == "" && err.Error() == "challenge" {
 				challenge, err = hookCloudflare()
@@ -46,7 +66,7 @@ func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 			return "", err
 		}
 
-		return waitMessage(buffer, nil, toolcall.Cancel)
+		return waitMessage(buffer, toolcall.Cancel)
 	})
 
 	if err != nil {

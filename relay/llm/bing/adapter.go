@@ -9,7 +9,9 @@ import (
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"context"
+	"errors"
 	"github.com/bincooo/edge-api"
+	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk/env"
 	"github.com/iocgo/sdk/stream"
@@ -85,16 +87,12 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
-	query := ""
-	if i := len(completion.Messages) - 1; completion.Messages[i].Is("role", "user") {
-		query = completion.Messages[i].GetString("content")
-		completion.Messages = completion.Messages[:i]
-	}
-	request := convertRequest(ctx, completion)
-
+	content, query := convertRequest(ctx, completion)
+	newTok := false
+refresh:
 	timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
 	defer cancel()
-	accessToken, err := genToken(timeout, cookie)
+	accessToken, err := genToken(timeout, cookie, newTok)
 	if err != nil {
 		return
 	}
@@ -103,6 +101,11 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 	defer cancel()
 	conversationId, err := edge.CreateConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, accessToken)
 	if err != nil {
+		var hErr emit.Error
+		if errors.As(err, &hErr) && hErr.Code == 401 && !newTok {
+			newTok = true
+			goto refresh
+		}
 		return
 	}
 
@@ -112,7 +115,8 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 
 	challenge := ""
 label:
-	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), accessToken, conversationId, challenge, request, "从[\n\nAi:]处继续回复，\n\n当前问题是: "+query)
+	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), accessToken, conversationId, challenge, content,
+		elseOf(query == "", "读取内容并以[\n\nAi:]角色继续回复", query))
 	if err != nil {
 		if challenge == "" && err.Error() == "challenge" {
 			challenge, err = hookCloudflare()
@@ -124,38 +128,69 @@ label:
 		return
 	}
 
-	content := waitResponse(ctx, message, completion.Stream)
+	content = waitResponse(ctx, message, completion.Stream)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
 	}
 	return
 }
 
-func convertRequest(ctx *gin.Context, completion model.Completion) (content string) {
-	content = strings.Join(stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) string {
+func convertRequest(ctx *gin.Context, completion model.Completion) (content, query string) {
+	countMax := 10240
+	count := 0
+	pos := 0
+	for i := len(completion.Messages) - 1; i >= 0; i-- {
+		if completion.Messages[i].Has("content") {
+			count += len(completion.Messages[i].GetString("content"))
+			if count > countMax {
+				break
+			}
+		}
+		pos = i
+	}
+
+	content = strings.Join(stream.Map(stream.OfSlice(completion.Messages[:pos]), func(message model.Keyv[interface{}]) string {
 		convertRole, trun := response.ConvertRole(ctx, message.GetString("role"))
 		return convertRole + message.GetString("content") + trun
 	}).ToSlice(), "\n\n")
-	if content != "" {
+
+	query = strings.Join(stream.Map(stream.OfSlice(completion.Messages[pos:]), func(message model.Keyv[interface{}]) string {
+		convertRole, trun := response.ConvertRole(ctx, message.GetString("role"))
+		return convertRole + message.GetString("content") + trun
+	}).ToSlice(), "\n\n")
+
+	if query != "" {
 		convertRole, _ := response.ConvertRole(ctx, "assistant")
-		content += "\n\n" + convertRole
+		query += "\n\n" + convertRole
 	}
 	return
 }
 
-func genToken(ctx context.Context, ident string) (accessToken string, err error) {
+func genToken(ctx context.Context, ident string, new bool) (accessToken string, err error) {
 	cacheManager := cache.BingCacheManager()
 	accessToken, err = cacheManager.GetValue(ident)
-	if err != nil || accessToken != "" {
+	if !new && (err != nil || accessToken != "") {
+		if accessToken != "" {
+			accessToken = strings.Split(accessToken, "|")[1]
+		}
 		return
 	}
 
-	accessToken, err = edge.RefreshToken(common.HTTPClient, ctx, ident)
+	var nIdent = ident
+	if accessToken != "" {
+		split := strings.Split(ident, "|")
+		if len(split) >= 3 {
+			nIdent = strings.Join([]string{split[0], split[1], strings.Split(accessToken, "|")[0]}, "|")
+		}
+	}
+
+	accessToken, err = edge.RefreshToken(common.HTTPClient, ctx, nIdent)
 	if err != nil {
 		return
 	}
 
-	err = cacheManager.SetWithExpiration(ident, accessToken, 12*time.Hour)
+	err = cacheManager.SetWithExpiration(ident, accessToken, 48*time.Hour)
+	accessToken = strings.Split(accessToken, "|")[1]
 	return
 }
 
