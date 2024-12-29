@@ -21,8 +21,8 @@ type Manager[T any] struct {
 
 var (
 	toolTasksCacheManager *Manager[[]model.Keyv[string]]
-
-	windsurfCacheManager *Manager[string]
+	windsurfCacheManager  *Manager[string]
+	bingCacheManager      *Manager[string]
 )
 
 func init() {
@@ -36,6 +36,11 @@ func init() {
 		windsurfCacheManager = &Manager[string]{
 			cache.New[string](gocacheStore.NewGoCache(client)),
 		}
+
+		client = gocache.New(5*time.Minute, 5*time.Minute)
+		bingCacheManager = &Manager[string]{
+			cache.New[string](gocacheStore.NewGoCache(client)),
+		}
 	})
 }
 
@@ -45,6 +50,10 @@ func ToolTasksCacheManager() *Manager[[]model.Keyv[string]] {
 
 func WindsurfCacheManager() *Manager[string] {
 	return windsurfCacheManager
+}
+
+func BingCacheManager() *Manager[string] {
+	return bingCacheManager
 }
 
 func (cacheManager *Manager[T]) SetValue(key string, value T) error {

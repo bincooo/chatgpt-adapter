@@ -1,6 +1,7 @@
 package bing
 
 import (
+	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/common/toolcall"
 	"chatgpt-adapter/core/common/vars"
@@ -93,18 +94,25 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 
 	timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
 	defer cancel()
-	conversationId, err := edge.CreateConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, cookie)
+	accessToken, err := genToken(timeout, cookie)
+	if err != nil {
+		return
+	}
+
+	timeout, cancel = context.WithTimeout(ctx.Request.Context(), 10*time.Second)
+	defer cancel()
+	conversationId, err := edge.CreateConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, accessToken)
 	if err != nil {
 		return
 	}
 
 	timeout, cancel = context.WithTimeout(context.TODO(), 10*time.Second)
 	defer cancel()
-	defer edge.DeleteConversation(common.HTTPClient, timeout, conversationId, cookie)
+	defer edge.DeleteConversation(common.HTTPClient, timeout, conversationId, accessToken)
 
 	challenge := ""
 label:
-	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), cookie, conversationId, challenge, request, "从[\n\nAi:]处继续回复，\n\n当前问题是: "+query)
+	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), accessToken, conversationId, challenge, request, "从[\n\nAi:]处继续回复，\n\n当前问题是: "+query)
 	if err != nil {
 		if challenge == "" && err.Error() == "challenge" {
 			challenge, err = hookCloudflare()
@@ -132,6 +140,22 @@ func convertRequest(ctx *gin.Context, completion model.Completion) (content stri
 		convertRole, _ := response.ConvertRole(ctx, "assistant")
 		content += "\n\n" + convertRole
 	}
+	return
+}
+
+func genToken(ctx context.Context, ident string) (accessToken string, err error) {
+	cacheManager := cache.BingCacheManager()
+	accessToken, err = cacheManager.GetValue(ident)
+	if err != nil || accessToken != "" {
+		return
+	}
+
+	accessToken, err = edge.RefreshToken(common.HTTPClient, ctx, ident)
+	if err != nil {
+		return
+	}
+
+	err = cacheManager.SetWithExpiration(ident, accessToken, 12*time.Hour)
 	return
 }
 

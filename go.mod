@@ -5,7 +5,7 @@ go 1.23.3
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/coze-api v1.0.2-0.20241222100337-a88cc26a1a5a
-	github.com/bincooo/edge-api v1.0.4-0.20241228201804-a3b98723b370
+	github.com/bincooo/edge-api v1.0.4-0.20241229054502-4e2a9a08765e
 	github.com/bincooo/emit.io v1.0.1-0.20241222074906-3b397f33e381
 	github.com/bincooo/you.com v0.0.0-20241226004948-53c5f0da9b86
 	github.com/bogdanfinn/tls-client v1.7.7
@@ -25,10 +25,8 @@ require (
 )
 
 //github.com/iocgo/sdk v0.0.0-20241129021727-ca323c08f298 => ../sdk
-replace (
-	github.com/bincooo/edge-api v1.0.4-0.20241209140454-b708b5d57059 => ../edge-api
-	github.com/samber/do/v2 v2.0.0-beta.7 => github.com/iocgo/do/v2 v2.0.0-patch.0.20241204032939-7bbcadbc5f38
-)
+//github.com/bincooo/edge-api v1.0.4-0.20241228201804-a3b98723b370 => ../edge-api
+replace github.com/samber/do/v2 v2.0.0-beta.7 => github.com/iocgo/do/v2 v2.0.0-patch.0.20241204032939-7bbcadbc5f38
 
 require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
