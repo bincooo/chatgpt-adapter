@@ -8,6 +8,7 @@ import (
 	"chatgpt-adapter/core/gin/inter"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
+	"chatgpt-adapter/core/logger"
 	"context"
 	"errors"
 	"github.com/bincooo/edge-api"
@@ -15,13 +16,45 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk/env"
 	"github.com/iocgo/sdk/stream"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 )
 
 var (
 	Model = "bing"
+
+	mu           sync.Mutex
+	scheduleKeys []string
 )
+
+func init() { go timer() }
+
+// 保活
+func timer() {
+	t := time.NewTimer(time.Hour)
+	cacheManager := cache.BingCacheManager()
+	for {
+		select {
+		case <-t.C:
+			for _, k := range scheduleKeys[:] {
+				ident, err := cacheManager.GetValue(k)
+				if err != nil {
+					logger.Error(err)
+					continue
+				}
+
+				timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				_, err = genToken(timeout, ident, true)
+				if err != nil {
+					logger.Error(err)
+				}
+				cancel()
+			}
+		}
+	}
+}
 
 type api struct {
 	inter.BaseAdapter
@@ -191,7 +224,16 @@ func genToken(ctx context.Context, ident string, new bool) (accessToken string, 
 
 	err = cacheManager.SetWithExpiration(ident, accessToken, 48*time.Hour)
 	accessToken = strings.Split(accessToken, "|")[1]
+	setTokenTimer(ident)
 	return
+}
+
+func setTokenTimer(ident string) {
+	mu.Lock()
+	defer mu.Unlock()
+	if !slices.Contains(scheduleKeys, ident) {
+		scheduleKeys = append(scheduleKeys, ident)
+	}
 }
 
 func elseOf[T any](condition bool, t1, t2 T) T {
