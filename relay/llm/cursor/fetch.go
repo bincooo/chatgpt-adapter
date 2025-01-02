@@ -3,8 +3,8 @@ package cursor
 import (
 	"encoding/binary"
 	"fmt"
-	"math/rand"
 	"net/http"
+	"strings"
 
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
@@ -73,35 +73,17 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 }
 
 func genChecksum(ctx *gin.Context, env *env.Environment) string {
+	token := ctx.GetString("token")
 	checksum := ctx.GetHeader("x-cursor-checksum")
 	if checksum == "" {
 		checksum = env.GetString("cursor.checksum")
 	}
 	if checksum == "" {
-		if g_checksum == "" {
-			g_checksum = fmt.Sprintf("zo%s%s/%s", randId(6, "max"), randId(64, "max"), randId(64, "max"))
-		}
-		checksum = g_checksum
+		// 不采用全局设备码方式，而是用cookie产生。更换时仅需要重新抓取新的WorkosCursorSessionToken即可
+		keys := strings.Split(token, ".")
+		checksum = fmt.Sprintf("zo%s%s/%s%s", common.CalcHex(keys[0]), common.CalcHex(keys[1])[:30], common.CalcHex(keys[1]), common.CalcHex(token)[:24])
 	}
 	return checksum
-}
-
-func randId(size int, dictType string) string {
-	customDict := ""
-	switch dictType {
-	case "alphabet":
-		customDict = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	case "max":
-		customDict = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"
-	default:
-		customDict = "0123456789"
-	}
-
-	buf := make([]byte, 0)
-	for range size {
-		buf = append(buf, customDict[rand.Intn(len(customDict))])
-	}
-	return string(buf)
 }
 
 func int32ToBytes(magic byte, num int) []byte {
