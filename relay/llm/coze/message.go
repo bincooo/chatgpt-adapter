@@ -1,15 +1,12 @@
 package coze
 
 import (
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
 	"chatgpt-adapter/core/common"
-	"chatgpt-adapter/core/common/toolcall"
 	"chatgpt-adapter/core/common/vars"
-	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
 	"github.com/bincooo/coze-api"
@@ -165,31 +162,4 @@ func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, err error) {
 		Content: message,
 	})
 	return
-}
-
-func echoMessages(ctx *gin.Context, completion model.Completion) {
-	content := ""
-	var (
-		toolMessages = toolcall.ExtractToolMessages(&completion)
-	)
-
-	messages, err := mergeMessages(ctx)
-	if err != nil {
-		logger.Error(err)
-		response.Error(ctx, -1, err)
-		return
-	}
-
-	for _, message := range messages {
-		convertRole, trun := response.ConvertRole(ctx, message.Role)
-		content += convertRole + message.Content + trun
-	}
-
-	if len(toolMessages) > 0 {
-		content += "\n----------toolCallMessages----------\n"
-		chunkBytes, _ := json.MarshalIndent(toolMessages, "", "  ")
-		content += string(chunkBytes)
-	}
-
-	response.Echo(ctx, completion.Model, content, completion.Stream)
 }

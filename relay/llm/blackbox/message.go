@@ -2,9 +2,6 @@ package blackbox
 
 import (
 	"bufio"
-	"chatgpt-adapter/core/common/toolcall"
-	"chatgpt-adapter/core/gin/model"
-	"encoding/json"
 	"io"
 	"net/http"
 	"time"
@@ -100,28 +97,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		response.SSEResponse(ctx, Model, "[DONE]", created)
 	}
 	return
-}
-
-func echoMessages(ctx *gin.Context, completion model.Completion) {
-	content := ""
-	var (
-		toolMessages = toolcall.ExtractToolMessages(&completion)
-	)
-
-	if response.IsClaude(ctx, completion.Model) {
-		content = completion.Messages[0].GetString("content")
-	} else {
-		chunkBytes, _ := json.MarshalIndent(completion.Messages, "", "  ")
-		content += string(chunkBytes)
-	}
-
-	if len(toolMessages) > 0 {
-		content += "\n----------toolCallMessages----------\n"
-		chunkBytes, _ := json.MarshalIndent(toolMessages, "", "  ")
-		content += string(chunkBytes)
-	}
-
-	response.Echo(ctx, completion.Model, content, completion.Stream)
 }
 
 func asError(ctx *gin.Context, err error) (ok bool) {

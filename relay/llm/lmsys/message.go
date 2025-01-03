@@ -2,12 +2,10 @@ package lmsys
 
 import (
 	"chatgpt-adapter/core/common"
-	"chatgpt-adapter/core/common/toolcall"
 	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
-	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"strings"
@@ -136,27 +134,4 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (newMessages s
 		newMessages = newMessages[:len(newMessages)-9]
 	}
 	return
-}
-
-func echoMessages(ctx *gin.Context, completion model.Completion) {
-	content := ""
-	var (
-		toolMessages = toolcall.ExtractToolMessages(&completion)
-	)
-
-	messages, err := mergeMessages(ctx, completion)
-	if err != nil {
-		logger.Error(err)
-		response.Error(ctx, -1, err)
-		return
-	}
-
-	content = messages
-	if len(toolMessages) > 0 {
-		content += "\n----------toolCallMessages----------\n"
-		chunkBytes, _ := json.MarshalIndent(toolMessages, "", "  ")
-		content += string(chunkBytes)
-	}
-
-	response.Echo(ctx, completion.Model, content, completion.Stream)
 }

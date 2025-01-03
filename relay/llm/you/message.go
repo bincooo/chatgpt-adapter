@@ -1,15 +1,12 @@
 package you
 
 import (
-	"chatgpt-adapter/core/goja"
-	"encoding/json"
 	"errors"
-	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"chatgpt-adapter/core/common"
-	"chatgpt-adapter/core/common/toolcall"
 	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
@@ -129,15 +126,13 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (fileMessage, 
 	query = env.Env.GetString("you.notice")
 	tokens := 0
 	var (
-		messages    = completion.Messages
-		specialized = ctx.GetBool("specialized")
-		isC         = response.IsClaude(ctx, completion.Model)
+		messages = completion.Messages
+		isC      = response.IsClaude(ctx, completion.Model)
 	)
 	defer func() { ctx.Set(ginTokens, tokens) }()
 
 	messageL := len(messages)
-
-	if specialized && isC && messageL == 1 {
+	if messageL == 1 {
 		var notice = query
 		message := messages[0]
 		fileMessage = message.GetString("content")
@@ -146,22 +141,18 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (fileMessage, 
 		if notice != "" {
 			query += "\n\n" + notice
 		}
+
+		join := fileMessage
+		if query != "" {
+			join += "\n\n" + query
+		}
+		if encodingLen(join) <= 12499 {
+			query = join
+			fileMessage = ""
+		}
+
 		tokens += response.CalcTokens(fileMessage)
 		tokens += response.CalcTokens(chat)
-		tokens += response.CalcTokens(query)
-		return
-	}
-
-	if messageL == 1 {
-		message := messages[0]
-		content := message.GetString("content")
-
-		if goja.EncodeURIComponentLength(content) <= 12499 {
-			query = content
-		} else {
-			fileMessage = content
-		}
-		tokens += response.CalcTokens(fileMessage)
 		tokens += response.CalcTokens(query)
 		return
 	}
@@ -188,7 +179,7 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (fileMessage, 
 	convertRole, _ := response.ConvertRole(ctx, "assistant")
 	fileMessage = strings.Join(contents, "") + convertRole
 	tokens += response.CalcTokens(fileMessage)
-	if goja.EncodeURIComponentLength(fileMessage) <= 12499 {
+	if encodingLen(fileMessage) <= 12499 {
 		query = fileMessage
 		fileMessage = ""
 	}
@@ -196,23 +187,14 @@ func mergeMessages(ctx *gin.Context, completion model.Completion) (fileMessage, 
 	return
 }
 
-func echoMessages(ctx *gin.Context, fileMessage, chat, message string) {
-	var (
-		completion   = common.GetGinCompletion(ctx)
-		toolMessages = toolcall.ExtractToolMessages(&completion)
-	)
-
-	content := ""
-	if len(toolMessages) > 0 {
-		content += "\n----------toolCallMessages----------\n"
-		chunkBytes, _ := json.MarshalIndent(toolMessages, "", "  ")
-		content += string(chunkBytes)
+func encodingLen(str string) (count int) {
+	escape := url.QueryEscape(str)
+	chars := []rune(escape)
+	for _, ch := range chars {
+		count++
+		if ch == '+' {
+			count += 2
+		}
 	}
-
-	response.Echo(ctx, completion.Model, fmt.Sprintf(
-		"--------FILE MESSAGE--------:\n%s\n\n--------CHAT MESSAGE--------:\n%s\n\n--------CURR QUESTION--------:\n%s",
-		fileMessage,
-		chat,
-		message,
-	)+content, completion.Stream)
+	return
 }

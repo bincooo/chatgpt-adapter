@@ -7,7 +7,6 @@ import (
 
 	"chatgpt-adapter/cmd/cobra"
 	"chatgpt-adapter/core/gin"
-	"chatgpt-adapter/core/gin/response"
 )
 
 func Injects(container *sdk.Container) (err error) {
@@ -17,11 +16,6 @@ func Injects(container *sdk.Container) (err error) {
 	}
 
 	err = gin.Injects(container)
-	if err != nil {
-		return
-	}
-
-	err = response.Injects(container)
 	if err != nil {
 		return
 	}

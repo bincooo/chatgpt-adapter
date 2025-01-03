@@ -2,8 +2,6 @@ package cursor
 
 import (
 	"chatgpt-adapter/core/common"
-	"chatgpt-adapter/core/common/toolcall"
-	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/inter"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
@@ -20,8 +18,7 @@ var (
 type api struct {
 	inter.BaseAdapter
 
-	env    *env.Environment
-	holder *response.ContentHolder
+	env *env.Environment
 }
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
@@ -75,29 +72,11 @@ func (*api) Models() (slice []model.Model) {
 	return
 }
 
-func (api *api) HandleMessages(ctx *gin.Context, completion model.Completion) (messages []model.Keyv[interface{}], err error) {
-	var (
-		toolMessages = toolcall.ExtractToolMessages(&completion)
-	)
-
-	if messages, err = api.holder.Handle(ctx, completion); err != nil {
-		return
-	}
-	messages = append(messages, toolMessages...)
-	return
-}
-
 func (api *api) ToolChoice(ctx *gin.Context) (ok bool, err error) {
 	var (
 		cookie     = ctx.GetString("token")
 		completion = common.GetGinCompletion(ctx)
-		echo       = ctx.GetBool(vars.GinEcho)
 	)
-
-	if echo {
-		echoMessages(ctx, completion)
-		return
-	}
 
 	if toolChoice(ctx, api.env, cookie, completion) {
 		ok = true
@@ -109,13 +88,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 	var (
 		cookie     = ctx.GetString("token")
 		completion = common.GetGinCompletion(ctx)
-		echo       = ctx.GetBool(vars.GinEcho)
 	)
-
-	if echo {
-		echoMessages(ctx, completion)
-		return
-	}
 
 	if strings.Contains(cookie, "%3A%3A") {
 		cookie = strings.Split(cookie, "%3A%3A")[1]

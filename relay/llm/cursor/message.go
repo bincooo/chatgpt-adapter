@@ -10,9 +10,7 @@ import (
 	"time"
 
 	"chatgpt-adapter/core/common"
-	"chatgpt-adapter/core/common/toolcall"
 	"chatgpt-adapter/core/common/vars"
-	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
 	"github.com/bincooo/emit.io"
@@ -179,28 +177,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		response.SSEResponse(ctx, Model, "[DONE]", created)
 	}
 	return
-}
-
-func echoMessages(ctx *gin.Context, completion model.Completion) {
-	content := ""
-	var (
-		toolMessages = toolcall.ExtractToolMessages(&completion)
-	)
-
-	if len(completion.Messages) == 2 && completion.Messages[0].Is("role", "system") {
-		content = completion.Messages[0].GetString("content") + "\n\n" + completion.Messages[1].GetString("content")
-	} else {
-		chunkBytes, _ := json.MarshalIndent(completion.Messages, "", "  ")
-		content = string(chunkBytes)
-	}
-
-	if len(toolMessages) > 0 {
-		content += "\n----------toolCallMessages----------\n"
-		chunkBytes, _ := json.MarshalIndent(toolMessages, "", "  ")
-		content += string(chunkBytes)
-	}
-
-	response.Echo(ctx, completion.Model, content, completion.Stream)
 }
 
 func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {

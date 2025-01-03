@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"chatgpt-adapter/core/common"
-	"chatgpt-adapter/core/common/toolcall"
-	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/inter"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
@@ -27,8 +25,7 @@ var (
 type api struct {
 	inter.BaseAdapter
 
-	env    *env.Environment
-	holder *response.ContentHolder
+	env *env.Environment
 }
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
@@ -86,30 +83,12 @@ func (*api) Models() []model.Model {
 	}
 }
 
-func (api *api) HandleMessages(ctx *gin.Context, completion model.Completion) (messages []model.Keyv[interface{}], err error) {
-	var (
-		toolMessages = toolcall.ExtractToolMessages(&completion)
-	)
-
-	if messages, err = api.holder.Handle(ctx, completion); err != nil {
-		return
-	}
-	messages = append(messages, toolMessages...)
-	return
-}
-
 func (api *api) ToolChoice(ctx *gin.Context) (ok bool, err error) {
 	var (
 		cookie     = ctx.GetString("token")
 		proxied    = api.env.GetString("server.proxied")
 		completion = common.GetGinCompletion(ctx)
-		echo       = ctx.GetBool(vars.GinEcho)
 	)
-
-	if echo {
-		echoMessages(ctx, completion)
-		return
-	}
 
 	if toolChoice(ctx, cookie, proxied, completion) {
 		ok = true
@@ -122,7 +101,6 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		cookie     = ctx.GetString("token")
 		proxied    = api.env.GetString("server.proxied")
 		completion = common.GetGinCompletion(ctx)
-		echo       = ctx.GetBool(vars.GinEcho)
 	)
 
 	newMessages, err := mergeMessages(ctx)
@@ -130,11 +108,6 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		logger.Error(err)
 		response.Error(ctx, -1, err)
 		err = nil
-		return
-	}
-
-	if echo {
-		echoMessages(ctx, completion)
 		return
 	}
 
