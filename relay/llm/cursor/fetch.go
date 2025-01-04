@@ -1,19 +1,26 @@
 package cursor
 
 import (
-	"encoding/binary"
-	"fmt"
-	"net/http"
-	"strings"
-
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
+	"chatgpt-adapter/core/logger"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/iocgo/sdk/env"
 	"github.com/iocgo/sdk/stream"
+	"math"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
 )
 
 var (
@@ -80,8 +87,40 @@ func genChecksum(ctx *gin.Context, env *env.Environment) string {
 	}
 	if checksum == "" {
 		// 不采用全局设备码方式，而是用cookie产生。更换时仅需要重新抓取新的WorkosCursorSessionToken即可
-		keys := strings.Split(token, ".")
-		checksum = fmt.Sprintf("zo%s%s/%s%s", common.CalcHex(keys[0]), common.CalcHex(keys[1])[:30], common.CalcHex(keys[1]), common.CalcHex(token)[:24])
+		salt := strings.Split(token, ".")
+		calc := func(data []byte) {
+			var t byte = 165
+			for i := range data {
+				data[i] = (data[i] ^ t) + byte(i)
+				t = data[i]
+			}
+		}
+		data, err := base64.StdEncoding.DecodeString(salt[1])
+		if err != nil {
+			logger.Error(err)
+			return ""
+		}
+		var obj map[string]interface{}
+		if err = json.Unmarshal(data, &obj); err != nil {
+			logger.Error(err)
+			return ""
+		}
+
+		unix, _ := strconv.ParseInt(obj["time"].(string), 10, 64)
+		t := time.Unix(unix, 0)
+		timestamp := int64(math.Floor(float64(t.UnixMilli()) / 1e6))
+		data = []byte{
+			byte((timestamp >> 8) & 0xff),
+			byte(timestamp & 0xff),
+			byte((timestamp >> 24) & 0xff),
+			byte((timestamp >> 16) & 0xff),
+			byte((timestamp >> 8) & 0xff),
+			byte(timestamp & 0xff),
+		}
+		calc(data)
+		hex1 := sha256.Sum256([]byte(salt[1]))
+		hex2 := sha256.Sum256([]byte(token))
+		checksum = fmt.Sprintf("%s%s/%s", hex.EncodeToString(data), hex.EncodeToString(hex1[:]), hex.EncodeToString(hex2[:]))
 	}
 	return checksum
 }
