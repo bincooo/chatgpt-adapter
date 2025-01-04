@@ -227,7 +227,7 @@ func completeTagsGenerator(ctx *gin.Context, env *env.Environment, content strin
 		proxied = env.GetString("server.proxied")
 		mod     = env.GetString("llm.model")
 		cookie  = env.GetString("llm.token")
-		baseUrl = env.GetString("llm.base-url")
+		baseUrl = env.GetString("llm.reversal")
 	)
 
 	parser := tokenizer.New("tag", "rmbg")
@@ -345,7 +345,7 @@ func fetch(ctx context.Context, proxied, baseUrl, cookie string, obj interface{}
 	return emit.ClientBuilder(common.HTTPClient).
 		Context(ctx).
 		Proxies(proxied).
-		POST(fmt.Sprintf("%s/v1/chat/completions", baseUrl)).
+		POST(fmt.Sprintf("%s/chat/completions", baseUrl)).
 		Header("Authorization", cookie).
 		JSONHeader().
 		Body(obj).
