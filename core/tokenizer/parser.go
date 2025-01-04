@@ -93,7 +93,7 @@ func (parser *Parser) parseElem() (elem Elem, ok bool) {
 		// println("elem open    [ " + ident + " ]: " + content)
 		el := &nodeElem{
 			count:   -1,
-			name:    ident,
+			expr:    ident,
 			strElem: strElem{kind: Ident},
 		}
 

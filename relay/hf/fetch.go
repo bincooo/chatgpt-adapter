@@ -1,10 +1,15 @@
 package hf
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +17,7 @@ import (
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/logger"
 	"github.com/bincooo/emit.io"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk/env"
 )
@@ -26,12 +32,7 @@ func Ox0(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		hash    = emit.GioHash()
 		proxies = env.GetString("server.proxied")
 		baseUrl = "https://prodia-fast-stable-diffusion.hf.space"
-		domain  = env.GetString("domain")
 	)
-
-	if domain == "" {
-		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
-	}
 
 	fn := []int{0, 15}
 	data := []interface{}{
@@ -110,12 +111,7 @@ func Ox1(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		hash    = emit.GioHash()
 		proxied = env.GetString("server.proxied")
 		baseUrl = "wss://prodia-sdxl-stable-diffusion-xl.hf.space"
-		domain  = env.GetString("domain")
 	)
-
-	if domain == "" {
-		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
-	}
 
 	conn, response, err := emit.SocketBuilder(common.HTTPClient).
 		Proxies(proxied).
@@ -162,7 +158,6 @@ func Ox1(ctx *gin.Context, env *env.Environment, model, samples, message string)
 	})
 
 	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
-		var file string
 		d := j.Output.Data
 
 		if len(d) == 0 {
@@ -170,12 +165,10 @@ func Ox1(ctx *gin.Context, env *env.Environment, model, samples, message string)
 			return
 		}
 
-		if file, err = common.SaveBase64(d[0].(string), "png"); err != nil {
+		if value, err = common.SaveBase64(d[0].(string), "png"); err != nil {
 			c.Failed(fmt.Errorf("image save failed: %s", j.InitialBytes))
 			return
 		}
-
-		value = fmt.Sprintf("%s/file/%s", domain, file)
 		return
 	})
 
@@ -193,7 +186,7 @@ func Ox2(ctx *gin.Context, env *env.Environment, model, message string) (value s
 		baseUrl = "https://mukaist-dalle-4k.hf.space"
 	)
 
-	if u := env.GetString("hf.dalle-4k.base-url"); u != "" {
+	if u := env.GetString("hf.dalle-4k.reversal"); u != "" {
 		baseUrl = u
 	}
 
@@ -203,7 +196,6 @@ func Ox2(ctx *gin.Context, env *env.Environment, model, message string) (value s
 		negative,
 		true,
 		model,
-		30,
 		1024,
 		1024,
 		6,
@@ -288,16 +280,11 @@ func Ox3(ctx *gin.Context, env *env.Environment, message string) (value string, 
 	var (
 		hash    = emit.GioHash()
 		proxied = env.GetString("server.proxied")
-		domain  = env.GetString("domain")
 		baseUrl = "https://ehristoforu-dalle-3-xl-lora-v2.hf.space"
 		r       = rand.New(rand.NewSource(time.Now().UnixNano()))
 	)
 
-	if domain == "" {
-		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
-	}
-
-	if u := env.GetString("hf.dalle-3-xl.base-url"); u != "" {
+	if u := env.GetString("hf.dalle-3-xl.reversal"); u != "" {
 		baseUrl = u
 	}
 
@@ -393,7 +380,7 @@ func Ox3(ctx *gin.Context, env *env.Environment, message string) (value string, 
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = common.Download(common.HTTPClient, proxied, info["url"].(string), "png", map[string]string{
+		value, err = common.DownloadFile(common.HTTPClient, proxied, info["url"].(string), "png", map[string]string{
 			// "User-Agent":      userAgent,
 			// "Accept-Language": "en-US,en;q=0.9",
 			"Origin":  "https://huggingface.co",
@@ -403,8 +390,6 @@ func Ox3(ctx *gin.Context, env *env.Environment, message string) (value string, 
 			c.Failed(fmt.Errorf("image download failed: %v", err))
 			return
 		}
-
-		value = fmt.Sprintf("%s/file/%s", domain, value)
 		return
 	})
 
@@ -419,17 +404,12 @@ func Ox3(ctx *gin.Context, env *env.Environment, message string) (value string, 
 func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string) (value string, err error) {
 	var (
 		hash    = emit.GioHash()
-		proxied = ctx.GetString("server.proxied")
-		domain  = env.GetString("domain")
+		proxied = env.GetString("server.proxied")
 		baseUrl = "https://cagliostrolab-animagine-xl-3-1.hf.space"
 		r       = rand.New(rand.NewSource(time.Now().UnixNano()))
 	)
 
-	if domain == "" {
-		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
-	}
-
-	if u := env.GetString("hf.animagine-xl-3.1.base-url"); u != "" {
+	if u := env.GetString("hf.animagine-xl-3.1.reversal"); u != "" {
 		baseUrl = u
 	}
 
@@ -531,7 +511,7 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		}
 
 		// 锁环境了，只能先下载下来
-		value, err = common.Download(common.HTTPClient, proxied, info["url"].(string), "png", map[string]string{
+		value, err = common.DownloadFile(common.HTTPClient, proxied, info["url"].(string), "png", map[string]string{
 			// "User-Agent":      userAgent,
 			// "Accept-Language": "en-US,en;q=0.9",
 			"Origin":  "https://huggingface.co",
@@ -542,7 +522,153 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 			return
 		}
 
-		value = fmt.Sprintf("%s/file/%s", domain, value)
+		return
+	})
+
+	err = c.Do()
+	if err == nil && value == "" {
+		err = fmt.Errorf("image generate failed")
+	}
+	return
+}
+
+func rmbg(ctx *gin.Context, env *env.Environment, path string) (value string, err error) {
+	var (
+		hash    = emit.GioHash()
+		proxied = env.GetString("server.proxied")
+		baseUrl = "https://briaai-bria-rmbg-2-0.hf.space"
+	)
+
+	if u := env.GetString("hf.rmbg"); u != "" {
+		baseUrl = u
+	}
+
+	var buf []byte
+	if strings.HasPrefix(path, "http") {
+		buf, err = common.DownloadBuffer(common.HTTPClient, proxied, path, map[string]string{
+			// "User-Agent":      userAgent,
+			// "Accept-Language": "en-US,en;q=0.9",
+			"Origin":  "https://huggingface.co",
+			"Referer": baseUrl + "/?__theme=light",
+		})
+	} else {
+		buf, err = os.ReadFile(path)
+	}
+	if err != nil {
+		return
+	}
+
+	var buffer bytes.Buffer
+	w := multipart.NewWriter(&buffer)
+	fw, _ := w.CreateFormFile("files", filepath.Base(path))
+	_, err = io.Copy(fw, bytes.NewBuffer(buf))
+	if err != nil {
+		return "", err
+	}
+	_ = w.Close()
+
+	response, err := emit.ClientBuilder(common.HTTPClient).
+		Proxies(proxied).
+		Context(ctx.Request.Context()).
+		POST(baseUrl+"/upload").
+		Query("upload_id", hash).
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Content-Type", w.FormDataContentType()).
+		Bytes(buffer.Bytes()).
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return
+	}
+
+	var slice []string
+	err = emit.ToObject(response, &slice)
+	_ = response.Body.Close()
+	if err != nil {
+		return
+	}
+
+	fn := []int{0, 13}
+	data := []interface{}{
+		map[string]interface{}{
+			"path":      slice[0],
+			"url":       baseUrl + slice[0],
+			"orig_name": filepath.Base(slice[0]),
+			"size":      len(buf),
+			"mime_type": mimetype.Detect(buf).String(), //"image/png",
+			"meta": map[string]string{
+				"_type": "gradio.FileData",
+			},
+		},
+	}
+	response, err = emit.ClientBuilder(common.HTTPClient).
+		Proxies(proxied).
+		Context(ctx.Request.Context()).
+		POST(baseUrl+"/queue/join").
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept-Language", "en-US,en;q=0.9").
+		JSONHeader().
+		Body(map[string]interface{}{
+			"data":         data,
+			"fn_index":     fn[0],
+			"trigger_id":   fn[1],
+			"session_hash": hash,
+		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return "", err
+	}
+	logger.Info(emit.TextResponse(response))
+	_ = response.Body.Close()
+
+	response, err = emit.ClientBuilder(common.HTTPClient).
+		Proxies(proxied).
+		Context(ctx.Request.Context()).
+		GET(baseUrl+"/queue/data").
+		Query("session_hash", hash).
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept", "text/event-stream").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	if err != nil {
+		return "", err
+	}
+
+	defer response.Body.Close()
+	c, err := emit.NewGio(ctx.Request.Context(), response)
+	if err != nil {
+		return "", err
+	}
+
+	c.Event("*", func(j emit.JoinEvent) (_ interface{}) {
+		logger.Debugf("event: %s", j.InitialBytes)
+		return
+	})
+
+	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
+		d := j.Output.Data
+
+		if len(d) == 0 {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		v, ok := d[len(d)-1].(map[string]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		value, ok = v["url"].(string)
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
 		return
 	})
 
@@ -556,14 +682,9 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 func google(ctx *gin.Context, env *env.Environment, model, message string) (value string, err error) {
 	var (
 		hash    = emit.GioHash()
-		proxied = ctx.GetString("server.proxied")
+		proxied = env.GetString("server.proxied")
 		baseUrl = "wss://google-sdxl.hf.space"
-		domain  = env.GetString("domain")
 	)
-
-	if domain == "" {
-		domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
-	}
 
 	conn, response, err := emit.SocketBuilder(common.HTTPClient).
 		Proxies(proxied).
@@ -606,7 +727,6 @@ func google(ctx *gin.Context, env *env.Environment, model, message string) (valu
 	})
 
 	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
-		var file string
 		d := j.Output.Data
 
 		if len(d) == 0 {
@@ -621,12 +741,10 @@ func google(ctx *gin.Context, env *env.Environment, model, message string) (valu
 		}
 
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		if file, err = common.SaveBase64(values[r.Intn(len(values))].(string), "jpg"); err != nil {
+		if value, err = common.SaveBase64(values[r.Intn(len(values))].(string), "jpg"); err != nil {
 			c.Failed(fmt.Errorf("image save failed: %s", j.InitialBytes))
 			return
 		}
-
-		value = fmt.Sprintf("%s/file/%s", domain, file)
 		return
 	})
 

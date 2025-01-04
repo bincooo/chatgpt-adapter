@@ -14,7 +14,7 @@ type Kind uint8
 
 type Elem interface {
 	Kind() Kind
-	Label() string
+	Expr() string
 	Content() string
 
 	Str(key string) (string, bool)
@@ -34,7 +34,7 @@ type nodeElem struct {
 
 	count int
 
-	name       string
+	expr       string
 	attributes map[string]string
 }
 
@@ -46,12 +46,12 @@ var (
 func (s strElem) Kind() Kind                  { return s.kind }
 func (s strElem) Content() string             { return s.content }
 func (s strElem) String() string              { return s.content }
-func (s strElem) Label() string               { panic("implement me") }
+func (s strElem) Expr() string                { panic("implement me") }
 func (s strElem) Str(string) (string, bool)   { panic("implement me") }
 func (s strElem) Int(string) (int64, bool)    { panic("implement me") }
 func (s strElem) Boolean(string) (bool, bool) { panic("implement me") }
 
-func (s nodeElem) Label() string { return s.name }
+func (s nodeElem) Expr() string { return s.expr }
 func (s nodeElem) String() string {
 	attr := ""
 	for k, v := range s.attributes {
@@ -61,9 +61,9 @@ func (s nodeElem) String() string {
 		attr += k + "=" + v
 	}
 	if s.content == "" {
-		return fmt.Sprintf("<%s%s />", s.name, attr)
+		return fmt.Sprintf("<%s%s />", s.expr, attr)
 	}
-	return fmt.Sprintf("<%s%s>%s</%s>", s.name, attr, s.content, s.name)
+	return fmt.Sprintf("<%s%s>%s</%s>", s.expr, attr, s.content, s.expr)
 }
 
 func (s nodeElem) Str(key string) (string, bool) {

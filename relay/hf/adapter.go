@@ -1,6 +1,7 @@
 package hf
 
 import (
+	"chatgpt-adapter/core/tokenizer"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,7 +9,6 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -25,6 +25,7 @@ import (
 
 var (
 	ginSpace = "__prodia_space__"
+	ginRmbg  = "__rmbg__"
 )
 
 type api struct {
@@ -39,17 +40,19 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	}
 
 	token := ctx.GetString("token")
-	if token == "sk-prodia-sd" {
-		ctx.Set(ginSpace, "prodia-sd")
-		ok = true
-		return
-	}
 
-	if token == "sk-prodia-xl" {
-		ctx.Set(ginSpace, "prodia-xl")
-		ok = true
-		return
-	}
+	// prodia 服务关闭了
+	//if token == "sk-prodia-sd" {
+	//	ctx.Set(ginSpace, "prodia-sd")
+	//	ok = true
+	//	return
+	//}
+
+	//if token == "sk-prodia-xl" {
+	//	ctx.Set(ginSpace, "prodia-xl")
+	//	ok = true
+	//	return
+	//}
 
 	if token == "sk-google-xl" {
 		ctx.Set(ginSpace, "google")
@@ -127,6 +130,23 @@ func (api *api) Generation(ctx *gin.Context) (err error) {
 	if err != nil {
 		logger.Error(err)
 		return
+	}
+
+	if ctx.GetBool(ginRmbg) {
+		v, e := rmbg(ctx, api.env, value)
+		if e != nil {
+			logger.Error(e)
+		} else {
+			value = v
+		}
+	}
+
+	if !strings.HasPrefix(value, "http") {
+		domain := api.env.GetString("domain")
+		if domain == "" {
+			domain = fmt.Sprintf("http://127.0.0.1:%d", ctx.GetInt("port"))
+		}
+		value = fmt.Sprintf("%s/file/%s", domain, value[4:])
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -210,23 +230,38 @@ func completeTagsGenerator(ctx *gin.Context, env *env.Environment, content strin
 		baseUrl = env.GetString("llm.base-url")
 	)
 
-	c := regexp.MustCompile("<tag content=\"([^>]+)\"\\s?/>")
-	matched := c.FindAllStringSubmatch(content, -1)
+	parser := tokenizer.New("tag", "rmbg")
+	var elems []tokenizer.Elem
 	var contents []string
-	if len(matched) > 0 {
-		for _, slice := range matched {
-			content = strings.Replace(content, slice[0], "", -1)
-			contents = append(contents, slice[1])
+	llm := false
+
+	for _, elem := range parser.Parse(content) {
+		if elem.Kind() == tokenizer.Ident {
+			switch elem.Expr() {
+			case "tag":
+				if str, ok := elem.Str("content"); ok {
+					contents = append(contents, str)
+				}
+				if t, ok := elem.Boolean("llm"); ok {
+					llm = t
+				}
+				continue
+			case "rmbg":
+				ctx.Set(ginRmbg, true)
+				continue
+			}
 		}
+		elems = append(elems, elem)
 	}
 
+	content = tokenizer.JoinString(elems)
 	content = strings.TrimSpace(content)
 	if len(content) == 0 {
 		return strings.Join(contents, ", "), nil
 	}
 
-	if strings.Contains(content, "<tag llm=false />") {
-		contents = append(contents, strings.Replace(content, "<tag llm=false />", "", -1))
+	if !llm {
+		contents = append(contents, content)
 		return strings.Join(contents, ", "), nil
 	}
 
@@ -244,7 +279,7 @@ func completeTagsGenerator(ctx *gin.Context, env *env.Environment, content strin
 				"content": strings.Replace(w, "{{content}}", content, -1),
 			},
 		},
-		"temperature": .8,
+		"temperature": 0.8,
 		"max_tokens":  4096,
 	}
 
@@ -307,10 +342,6 @@ func completeTagsGenerator(ctx *gin.Context, env *env.Environment, content strin
 }
 
 func fetch(ctx context.Context, proxied, baseUrl, cookie string, obj interface{}) (*http.Response, error) {
-	if strings.Contains(baseUrl, "127.0.0.1") || strings.Contains(baseUrl, "localhost") {
-		proxied = ""
-	}
-
 	return emit.ClientBuilder(common.HTTPClient).
 		Context(ctx).
 		Proxies(proxied).

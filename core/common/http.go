@@ -201,7 +201,36 @@ func SaveBase64(base64Encoding, suffix string) (file string, err error) {
 	return tempFile.Name(), nil
 }
 
-func Download(session *emit.Session, proxies, url, suffix string, header map[string]string) (file string, err error) {
+func DownloadFile(session *emit.Session, proxies, url, suffix string, header map[string]string) (file string, err error) {
+	buffer, err := DownloadBuffer(session, proxies, url, header)
+	if err != nil {
+		return
+	}
+
+	timePath := time.Now().Format("2006/01/02")
+	_, err = os.Stat("tmp/" + timePath)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll("tmp/"+timePath, 0766)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	tempFile, err := os.CreateTemp("tmp/"+timePath, "*."+suffix)
+	if err != nil {
+		return "", err
+	}
+	defer tempFile.Close()
+
+	_, err = tempFile.Write(buffer)
+	if err != nil {
+		return "", err
+	}
+
+	return tempFile.Name(), nil
+}
+
+func DownloadBuffer(session *emit.Session, proxies, url string, header map[string]string) (buffer []byte, err error) {
 	builder := emit.ClientBuilder(session).
 		// Ja3(ja3).
 		Proxies(proxies).
@@ -233,40 +262,20 @@ label:
 			time.Sleep(time.Second)
 			goto label
 		}
-		return "", err
+		return
 	}
 
 	responses = append(responses, response)
-	dec, err := io.ReadAll(response.Body)
+	buffer, err = io.ReadAll(response.Body)
 	if err != nil {
 		if retry > 0 {
 			time.Sleep(time.Second)
 			goto label
 		}
-		return "", err
+		return
 	}
 
-	timePath := time.Now().Format("2006/01/02")
-	_, err = os.Stat("tmp/" + timePath)
-	if os.IsNotExist(err) {
-		err = os.MkdirAll("tmp/"+timePath, 0766)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	tempFile, err := os.CreateTemp("tmp/"+timePath, "*."+suffix)
-	if err != nil {
-		return "", err
-	}
-	defer tempFile.Close()
-
-	_, err = tempFile.Write(dec)
-	if err != nil {
-		return "", err
-	}
-
-	return tempFile.Name()[4:], nil
+	return
 }
 
 func ist(response *http.Response, ts ...string) (ok bool) {
