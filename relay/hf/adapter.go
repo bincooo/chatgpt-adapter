@@ -245,9 +245,9 @@ func completeTagsGenerator(ctx *gin.Context, env *env.Environment, content strin
 				if t, ok := elem.Boolean("llm"); ok {
 					llm = t
 				}
-				continue
-			case "rmbg":
-				ctx.Set(ginRmbg, true)
+				if r, ok := elem.Boolean("rmbg"); ok {
+					ctx.Set(ginRmbg, r)
+				}
 				continue
 			}
 		}
