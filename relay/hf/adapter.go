@@ -230,7 +230,7 @@ func completeTagsGenerator(ctx *gin.Context, env *env.Environment, content strin
 		baseUrl = env.GetString("llm.reversal")
 	)
 
-	parser := tokenizer.New("tag", "rmbg")
+	parser := tokenizer.New("tag")
 	var elems []tokenizer.Elem
 	var contents []string
 	llm := false

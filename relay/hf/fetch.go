@@ -567,6 +567,10 @@ func rmbg(ctx *gin.Context, env *env.Environment, path string) (value string, er
 	}
 	_ = w.Close()
 
+	retry := 3
+label:
+	retry--
+
 	response, err := emit.ClientBuilder(common.HTTPClient).
 		Proxies(proxied).
 		Context(ctx.Request.Context()).
@@ -580,6 +584,9 @@ func rmbg(ctx *gin.Context, env *env.Environment, path string) (value string, er
 		Bytes(buffer.Bytes()).
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
+		if retry > 0 {
+			goto label
+		}
 		return
 	}
 
