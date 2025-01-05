@@ -1,3 +1,6 @@
+
+![image](https://github.com/user-attachments/assets/93be2041-8ebc-466a-9fd4-939f4f9082f2)
+
 具体配置请 [查阅文档](https://bincooo.github.io/chatgpt-adapter)
 
 ### 执行前置
@@ -11,6 +14,7 @@ go install ./cmd/iocgo
 make install
 ```
 ### 使用
+
 
 正常指令附加
 ```shell
