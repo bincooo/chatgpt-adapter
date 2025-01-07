@@ -2,6 +2,7 @@ package bing
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
@@ -73,7 +74,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		proxied    = api.env.GetBool("bing.proxied")
 	)
 
-	content, query := convertRequest(ctx, completion)
+	content, query, attr := convertRequest(ctx, completion)
 	newTok := false
 refresh:
 	timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
@@ -99,10 +100,21 @@ refresh:
 	defer cancel()
 	defer edge.DeleteConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, conversationId, accessToken)
 
+	if attr != "" {
+		attr, err = extAttr(ctx, proxied, attr, accessToken)
+		if err != nil {
+			return
+		}
+	}
+
 	challenge := ""
 label:
-	message, err := edge.Chat(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx.Request.Context(), accessToken, conversationId, challenge, content,
-		elseOf(query == "", "读取内容并以[\n\nAi:]角色继续回复", query))
+	message, err := edge.Chat(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx.Request.Context(),
+		accessToken,
+		conversationId,
+		challenge,
+		content,
+		elseOf(query == "", "读取内容并以[\n\nAi:]角色继续回复", query), attr)
 	if err != nil {
 		if challenge == "" && err.Error() == "challenge" {
 			challenge, err = hookCloudflare()
@@ -121,7 +133,28 @@ label:
 	return
 }
 
-func convertRequest(ctx *gin.Context, completion model.Completion) (content, query string) {
+func extAttr(ctx *gin.Context, proxied bool, attr, accessToken string) (ret string, err error) {
+	var buffer []byte
+	if strings.HasPrefix(attr, "http") {
+		buffer, err = common.DownloadBuffer(common.HTTPClient, "", attr, nil)
+	} else if strings.HasPrefix(attr, "data:image/") {
+		if pos := strings.Index(attr, ";"); pos > 0 {
+			attr = attr[pos+1:]
+		}
+		if strings.HasPrefix(attr, "base64,") {
+			attr = attr[7:]
+		}
+		buffer, err = base64.StdEncoding.DecodeString(attr)
+	}
+	if err != nil {
+		return
+	}
+
+	ret, err = edge.Attachments(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx.Request.Context(), buffer, accessToken)
+	return
+}
+
+func convertRequest(ctx *gin.Context, completion model.Completion) (content, query, attr string) {
 	countMax := 10240
 	count := 0
 	pos := 0
@@ -135,13 +168,39 @@ func convertRequest(ctx *gin.Context, completion model.Completion) (content, que
 		pos = i
 	}
 
+	multiMessage := func(convertRole string, message model.Keyv[interface{}]) string {
+		values := message.GetSlice("content")
+		text := ""
+		for _, value := range values {
+			var ok bool
+			message, ok = value.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if message.Is("type", "text") {
+				text = convertRole + message.GetString("text")
+			}
+			if message.Is("type", "image_url") {
+				o := message.GetKeyv("image_url")
+				attr = o.GetString("url")
+			}
+		}
+		return text
+	}
+
 	content = strings.Join(stream.Map(stream.OfSlice(completion.Messages[:pos]), func(message model.Keyv[interface{}]) string {
 		convertRole, trun := response.ConvertRole(ctx, message.GetString("role"))
+		if !message.IsString("content") {
+			return convertRole + multiMessage(convertRole, message) + trun
+		}
 		return convertRole + message.GetString("content") + trun
 	}).ToSlice(), "\n\n")
 
 	query = strings.Join(stream.Map(stream.OfSlice(completion.Messages[pos:]), func(message model.Keyv[interface{}]) string {
 		convertRole, trun := response.ConvertRole(ctx, message.GetString("role"))
+		if !message.IsString("content") {
+			return convertRole + multiMessage(convertRole, message) + trun
+		}
 		return convertRole + message.GetString("content") + trun
 	}).ToSlice(), "\n\n")
 

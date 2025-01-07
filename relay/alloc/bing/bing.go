@@ -52,7 +52,7 @@ func InvocationHandler(ctx *proxy.Context) {
 		return
 	}
 
-	logger.Infof("execute static proxy [relay/llm/you.api]: func %s(...)", ctx.Method)
+	logger.Infof("execute static proxy [relay/llm/bing.api]: func %s(...)", ctx.Method)
 
 	if cookiesContainer.Len() == 0 {
 		response.Error(gtx, -1, "empty cookies")

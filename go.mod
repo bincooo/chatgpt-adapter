@@ -5,7 +5,7 @@ go 1.23.3
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/coze-api v1.0.2-0.20241222100337-a88cc26a1a5a
-	github.com/bincooo/edge-api v1.0.4-0.20250107041957-b1628ac9f9de
+	github.com/bincooo/edge-api v1.0.4-0.20250107061327-657cb89a05af
 	github.com/bincooo/emit.io v1.0.1-0.20250107024658-671bcfad17e9
 	github.com/bincooo/you.com v0.0.0-20250103115644-08e4e4a7aaae
 	github.com/bogdanfinn/tls-client v1.7.7
