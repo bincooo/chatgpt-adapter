@@ -1,58 +1,30 @@
 package bing
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"github.com/golang-jwt/jwt/v5"
+	"strings"
+	"sync"
+	"time"
+
 	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/inter"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
-	"chatgpt-adapter/core/logger"
-	"context"
-	"errors"
 	"github.com/bincooo/edge-api"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk/env"
 	"github.com/iocgo/sdk/stream"
-	"slices"
-	"strings"
-	"sync"
-	"time"
 )
 
 var (
 	Model = "bing"
-
-	mu           sync.Mutex
-	scheduleKeys []string
+	mu    sync.Mutex
 )
-
-func init() { go timer() }
-
-// 保活
-func timer() {
-	t := time.NewTimer(time.Hour)
-	cacheManager := cache.BingCacheManager()
-	for {
-		select {
-		case <-t.C:
-			for _, k := range scheduleKeys[:] {
-				ident, err := cacheManager.GetValue(k)
-				if err != nil {
-					logger.Error(err)
-					continue
-				}
-
-				timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				_, err = genToken(timeout, ident, true)
-				if err != nil {
-					logger.Error(err)
-				}
-				cancel()
-			}
-		}
-	}
-}
 
 type api struct {
 	inter.BaseAdapter
@@ -61,7 +33,15 @@ type api struct {
 }
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
+	var token = ctx.GetString("token")
 	ok = Model == model
+	if ok {
+		password := api.env.GetString("server.password")
+		if password != "" && password != token {
+			err = response.UnauthorizedError
+			return
+		}
+	}
 	return
 }
 
@@ -88,7 +68,7 @@ func (api *api) ToolChoice(ctx *gin.Context) (ok bool, err error) {
 
 func (api *api) Completion(ctx *gin.Context) (err error) {
 	var (
-		cookie     = ctx.GetString("token")
+		cookie, _  = common.GetGinValue[map[string]string](ctx, "token")
 		completion = common.GetGinCompletion(ctx)
 		proxied    = api.env.GetBool("bing.proxied")
 	)
@@ -172,41 +152,44 @@ func convertRequest(ctx *gin.Context, completion model.Completion) (content, que
 	return
 }
 
-func genToken(ctx context.Context, ident string, new bool) (accessToken string, err error) {
+func genToken(ctx context.Context, ident map[string]string, nTok bool) (accessToken string, err error) {
+	cookie := ident["cookie"]
+	scopeId := ident["scopeId"]
 	cacheManager := cache.BingCacheManager()
-	accessToken, err = cacheManager.GetValue(ident)
-	if !new && (err != nil || accessToken != "") {
-		if accessToken != "" {
-			accessToken = strings.Split(accessToken, "|")[1]
-		}
+	accessToken, _ = cacheManager.GetValue(cookie)
+	if !nTok && accessToken != "" {
+		accessToken = strings.Split(accessToken, "|")[1]
 		return
 	}
 
-	var nIdent = ident
-	if accessToken != "" {
-		split := strings.Split(ident, "|")
-		if len(split) >= 3 {
-			nIdent = strings.Join([]string{split[0], split[1], strings.Split(accessToken, "|")[0]}, "|")
-		}
+	mu.Lock()
+	defer mu.Unlock()
+
+	idToken, ok := ident["idToken"]
+	if !ok {
+		err = fmt.Errorf("invalid jwt")
+		return
 	}
 
-	accessToken, err = edge.RefreshToken(common.HTTPClient, ctx, nIdent)
+	token, _ := jwt.Parse(idToken, func(token *jwt.Token) (zero interface{}, err error) { return })
+	if token == nil {
+		err = fmt.Errorf("invalid jwt")
+		return
+	}
+	claims := token.Claims.(jwt.MapClaims)
+
+	if nTok || accessToken == "" {
+		accessToken, err = edge.Authorize(common.HTTPClient, ctx, scopeId, idToken, cookie)
+	} else {
+		accessToken, err = edge.RefreshToken(common.HTTPClient, ctx, claims["aud"].(string), scopeId, strings.Split(accessToken, "|")[0])
+	}
 	if err != nil {
 		return
 	}
 
-	err = cacheManager.SetWithExpiration(ident, accessToken, 48*time.Hour)
+	err = cacheManager.SetWithExpiration(cookie, accessToken, time.Hour)
 	accessToken = strings.Split(accessToken, "|")[1]
-	setTokenTimer(ident)
 	return
-}
-
-func setTokenTimer(ident string) {
-	mu.Lock()
-	defer mu.Unlock()
-	if !slices.Contains(scheduleKeys, ident) {
-		scheduleKeys = append(scheduleKeys, ident)
-	}
 }
 
 func elseOf[T any](condition bool, t1, t2 T) T {

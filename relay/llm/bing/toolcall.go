@@ -18,7 +18,7 @@ import (
 func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 	logger.Info("completeTools ...")
 	echo := ctx.GetBool(vars.GinEcho)
-	cookie := ctx.GetString("token")
+	cookie, _ := common.GetGinValue[map[string]string](ctx, "token")
 
 	exec, err := toolcall.ToolChoice(ctx, completion, func(message string) (string, error) {
 		message += "\n\nAi:"

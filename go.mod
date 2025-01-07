@@ -5,15 +5,16 @@ go 1.23.3
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/bincooo/coze-api v1.0.2-0.20241222100337-a88cc26a1a5a
-	github.com/bincooo/edge-api v1.0.4-0.20241229152313-75901c4f8730
-	github.com/bincooo/emit.io v1.0.1-0.20241222074906-3b397f33e381
+	github.com/bincooo/edge-api v1.0.4-0.20250107041957-b1628ac9f9de
+	github.com/bincooo/emit.io v1.0.1-0.20250107024658-671bcfad17e9
 	github.com/bincooo/you.com v0.0.0-20250103115644-08e4e4a7aaae
 	github.com/bogdanfinn/tls-client v1.7.7
 	github.com/dlclark/regexp2 v1.11.4
-	github.com/dop251/goja v0.0.0-20241024094426-79f3a7efcdbd
 	github.com/eko/gocache/lib/v4 v4.1.6
 	github.com/eko/gocache/store/go_cache/v4 v4.2.2
+	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/gin-gonic/gin v1.10.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/golang/protobuf v1.5.4
 	github.com/google/uuid v1.6.0
 	github.com/iocgo/sdk v0.0.0-20241203133330-43dcedf3291e
@@ -25,11 +26,8 @@ require (
 )
 
 //github.com/iocgo/sdk v0.0.0-20241129021727-ca323c08f298 => ../sdk
-
-replace (
-	github.com/bincooo/edge-api v1.0.4-0.20241229054502-4e2a9a08765e => ../edge-api
-	github.com/samber/do/v2 v2.0.0-beta.7 => github.com/iocgo/do/v2 v2.0.0-patch.0.20241204032939-7bbcadbc5f38
-)
+//github.com/bincooo/edge-api v1.0.4-0.20250107025218-74fbeaa104b8 => ../edge-api
+replace github.com/samber/do/v2 v2.0.0-beta.7 => github.com/iocgo/do/v2 v2.0.0-patch.0.20241204032939-7bbcadbc5f38
 
 require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
@@ -45,13 +43,11 @@ require (
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gingfrederik/docx v0.0.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
-	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect

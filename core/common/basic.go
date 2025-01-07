@@ -9,7 +9,6 @@ import (
 	"unsafe"
 
 	"chatgpt-adapter/core/logger"
-	"github.com/bincooo/emit.io"
 )
 
 type ref struct {
@@ -49,6 +48,6 @@ func unpackEFace(obj interface{}) *ref {
 	return (*ref)(unsafe.Pointer(&obj))
 }
 
-func ips(ips ...string) emit.Wip {
+func ips(ips ...string) func() []string {
 	return func() []string { return ips }
 }

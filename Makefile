@@ -1,4 +1,5 @@
 TARGET_EXEC := server
+ENV := CGO_ENABLED=0
 
 .PHONY: all changelog clean install build
 
@@ -14,13 +15,13 @@ install: clean
 	go install -ldflags="-s -w" -trimpath ./cmd/iocgo
 
 build-linux:
-	GOARCH=amd64 GOOS=linux go build -toolexec iocgo -ldflags="-s -w" -o bin/linux/${TARGET_EXEC} -trimpath main.go
+	${ENV} GOARCH=amd64 GOOS=linux go build -toolexec iocgo -ldflags="-s -w" -o bin/linux/${TARGET_EXEC} -trimpath main.go
 
 build-linux-arm64:
-	GOARCH=arm64 GOOS=linux go build  -toolexec iocgo -ldflags="-s -w" -o bin/linux/${TARGET_EXEC}-arm64 -trimpath main.go
+	${ENV} GOARCH=arm64 GOOS=linux go build  -toolexec iocgo -ldflags="-s -w" -o bin/linux/${TARGET_EXEC}-arm64 -trimpath main.go
 
 build-osx:
-	GOARCH=amd64 GOOS=darwin go build  -toolexec iocgo -ldflags="-s -w" -o bin/osx/${TARGET_EXEC} -trimpath main.go
+	${ENV} GOARCH=amd64 GOOS=darwin go build  -toolexec iocgo -ldflags="-s -w" -o bin/osx/${TARGET_EXEC} -trimpath main.go
 
 build-win:
-	GOARCH=amd64 GOOS=windows go build  -toolexec iocgo -ldflags="-s -w" -o bin/windows/${TARGET_EXEC}.exe -trimpath main.go
+	${ENV} GOARCH=amd64 GOOS=windows go build  -toolexec iocgo -ldflags="-s -w" -o bin/windows/${TARGET_EXEC}.exe -trimpath main.go

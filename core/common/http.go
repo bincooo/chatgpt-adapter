@@ -35,12 +35,12 @@ func init() {
 		}
 
 		options = append(options, emit.Ja3Helper(emit.Echo{RandomTLSExtension: true, HelloID: profiles.Chrome_124}, connTimeout))
-		HTTPClient, err = emit.NewSession(proxied, ips("127.0.0.1"), options...)
+		HTTPClient, err = emit.NewSession(proxied, false, ips("127.0.0.1"), options...)
 		if err != nil {
 			logger.Fatal("Error initializing HTTPClient: ", err)
 		}
 
-		NopHTTPClient, err = emit.NewSession("", nil, options...)
+		NopHTTPClient, err = emit.NewSession("", false, nil, options...)
 		if err != nil {
 			logger.Fatal("Error initializing HTTPClient: ", err)
 		}
@@ -159,7 +159,7 @@ func NewPPLSession(env *env.Environment) (ok bool, session *emit.Session) {
 	}
 
 	options = append(options, emit.Ja3Helper(emit.Echo{RandomTLSExtension: true, HelloID: profiles.Chrome_124}, connTimeout))
-	session, err = emit.NewSession(proxied, ips("127.0.0.1"), options...)
+	session, err = emit.NewSession(proxied, false, ips("127.0.0.1"), options...)
 	if err != nil {
 		logger.Error(err)
 		ok = false
