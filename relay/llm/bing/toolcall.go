@@ -12,6 +12,7 @@ import (
 	"github.com/bincooo/edge-api"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
+	"github.com/iocgo/sdk/env"
 	"time"
 )
 
@@ -19,6 +20,7 @@ func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 	logger.Info("completeTools ...")
 	echo := ctx.GetBool(vars.GinEcho)
 	cookie, _ := common.GetGinValue[map[string]string](ctx, "token")
+	proxied := env.Env.GetBool("bing.proxied")
 
 	exec, err := toolcall.ToolChoice(ctx, completion, func(message string) (string, error) {
 		message += "\n\nAi:"
@@ -31,14 +33,14 @@ func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 	refresh:
 		timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
 		defer cancel()
-		accessToken, err := genToken(timeout, cookie, newTok)
+		accessToken, err := genToken(timeout, cookie, proxied, newTok)
 		if err != nil {
 			return "", err
 		}
 
 		timeout, cancel = context.WithTimeout(ctx.Request.Context(), 10*time.Second)
 		defer cancel()
-		conversationId, err := edge.CreateConversation(common.HTTPClient, timeout, accessToken)
+		conversationId, err := edge.CreateConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, accessToken)
 		if err != nil {
 			var hErr emit.Error
 			if errors.As(err, &hErr) && hErr.Code == 401 && !newTok {
@@ -50,11 +52,11 @@ func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 
 		timeout, cancel = context.WithTimeout(context.TODO(), 10*time.Second)
 		defer cancel()
-		defer edge.DeleteConversation(common.HTTPClient, timeout, conversationId, accessToken)
+		defer edge.DeleteConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, conversationId, accessToken)
 
 		challenge := ""
 	label:
-		buffer, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), accessToken, conversationId, challenge, "", message)
+		buffer, err := edge.Chat(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx.Request.Context(), accessToken, conversationId, challenge, "", message)
 		if err != nil {
 			if challenge == "" && err.Error() == "challenge" {
 				challenge, err = hookCloudflare()

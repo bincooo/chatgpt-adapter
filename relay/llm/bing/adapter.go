@@ -78,7 +78,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 refresh:
 	timeout, cancel := context.WithTimeout(ctx.Request.Context(), 10*time.Second)
 	defer cancel()
-	accessToken, err := genToken(timeout, cookie, newTok)
+	accessToken, err := genToken(timeout, cookie, proxied, newTok)
 	if err != nil {
 		return
 	}
@@ -97,11 +97,11 @@ refresh:
 
 	timeout, cancel = context.WithTimeout(context.TODO(), 10*time.Second)
 	defer cancel()
-	defer edge.DeleteConversation(common.HTTPClient, timeout, conversationId, accessToken)
+	defer edge.DeleteConversation(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), timeout, conversationId, accessToken)
 
 	challenge := ""
 label:
-	message, err := edge.Chat(common.HTTPClient, ctx.Request.Context(), accessToken, conversationId, challenge, content,
+	message, err := edge.Chat(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx.Request.Context(), accessToken, conversationId, challenge, content,
 		elseOf(query == "", "读取内容并以[\n\nAi:]角色继续回复", query))
 	if err != nil {
 		if challenge == "" && err.Error() == "challenge" {
@@ -152,7 +152,7 @@ func convertRequest(ctx *gin.Context, completion model.Completion) (content, que
 	return
 }
 
-func genToken(ctx context.Context, ident map[string]string, nTok bool) (accessToken string, err error) {
+func genToken(ctx context.Context, ident map[string]string, proxied, nTok bool) (accessToken string, err error) {
 	cookie := ident["cookie"]
 	scopeId := ident["scopeId"]
 	cacheManager := cache.BingCacheManager()
@@ -179,9 +179,9 @@ func genToken(ctx context.Context, ident map[string]string, nTok bool) (accessTo
 	claims := token.Claims.(jwt.MapClaims)
 
 	if nTok || accessToken == "" {
-		accessToken, err = edge.Authorize(common.HTTPClient, ctx, scopeId, idToken, cookie)
+		accessToken, err = edge.Authorize(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx, scopeId, idToken, cookie)
 	} else {
-		accessToken, err = edge.RefreshToken(common.HTTPClient, ctx, claims["aud"].(string), scopeId, strings.Split(accessToken, "|")[0])
+		accessToken, err = edge.RefreshToken(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx, claims["aud"].(string), scopeId, strings.Split(accessToken, "|")[0])
 	}
 	if err != nil {
 		return
