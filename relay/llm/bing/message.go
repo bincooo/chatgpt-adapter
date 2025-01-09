@@ -92,11 +92,17 @@ func waitResponse(ctx *gin.Context, message chan []byte, sse bool) (content stri
 			continue
 		}
 
-		if !msg.Is("event", "appendText") {
+		raw := ""
+		if msg.Is("event", "appendText") {
+			raw = msg.GetString("text")
+		}
+		if msg.Is("event", "imageGenerated") {
+			raw = fmt.Sprintf("![image](%s)", msg.GetString("url"))
+		}
+		if len(raw) == 0 {
 			continue
 		}
 
-		raw := msg.GetString("text")
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
 
