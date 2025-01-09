@@ -150,7 +150,9 @@ func hookCloudflare() (challenge string, err error) {
 	}
 
 	r, err := emit.ClientBuilder(common.HTTPClient).
-		GET(baseUrl+"/bing/clearance").
+		GET(baseUrl+"/v0/turnstile").
+		Query("sitekey", "0x4AAAAAAAg146IpY3lPNWte").
+		Query("website", "https://copilot.microsoft.com").
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
 		logger.Error(err)
