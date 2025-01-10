@@ -8,6 +8,7 @@ import (
 	"chatgpt-adapter/core/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk/env"
+	"net/url"
 	"strings"
 )
 
@@ -90,8 +91,13 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		completion = common.GetGinCompletion(ctx)
 	)
 
-	if strings.Contains(cookie, "%3A%3A") {
-		cookie = strings.Split(cookie, "%3A%3A")[1]
+	cookie, err = url.QueryUnescape(cookie)
+	if err != nil {
+		return
+	}
+
+	if strings.Contains(cookie, "::") {
+		cookie = strings.Split(cookie, "::")[1]
 	}
 
 	buffer, err := convertRequest(completion)
