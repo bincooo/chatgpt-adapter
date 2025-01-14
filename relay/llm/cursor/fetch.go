@@ -95,7 +95,7 @@ func genChecksum(ctx *gin.Context, env *env.Environment) string {
 				t = data[i]
 			}
 		}
-		data, err := base64.StdEncoding.DecodeString(salt[1])
+		data, err := base64.RawStdEncoding.DecodeString(salt[1])
 		if err != nil {
 			logger.Error(err)
 			return ""

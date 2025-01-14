@@ -134,6 +134,9 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		}
 
 		if event[7:] == "error" {
+			if bytes.Equal(chunk, []byte("{}")) {
+				continue
+			}
 			var chunkErr chunkError
 			err := json.Unmarshal(chunk, &chunkErr)
 			if err == nil {
