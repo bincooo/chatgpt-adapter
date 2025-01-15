@@ -120,7 +120,8 @@ func genChecksum(ctx *gin.Context, env *env.Environment) string {
 		calc(data)
 		hex1 := sha256.Sum256([]byte(salt[1]))
 		hex2 := sha256.Sum256([]byte(token))
-		checksum = fmt.Sprintf("%s%s/%s", hex.EncodeToString(data), hex.EncodeToString(hex1[:]), hex.EncodeToString(hex2[:]))
+		// 前面的字符生成存在问题，先硬编码
+		checksum = fmt.Sprintf("JYmLlBi6%s%s/%s", hex.EncodeToString(data)[8:], hex.EncodeToString(hex1[:]), hex.EncodeToString(hex2[:]))
 	}
 	return checksum
 }
