@@ -1,6 +1,7 @@
 package cursor
 
 import (
+	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/logger"
@@ -82,9 +83,34 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 func genChecksum(ctx *gin.Context, env *env.Environment) string {
 	token := ctx.GetString("token")
 	checksum := ctx.GetHeader("x-cursor-checksum")
+
 	if checksum == "" {
 		checksum = env.GetString("cursor.checksum")
+		if strings.HasPrefix(checksum, "http") {
+			cacheManager := cache.CursorCacheManager()
+			value, err := cacheManager.GetValue(common.CalcHex(token))
+			if err != nil {
+				logger.Error(err)
+				return ""
+			}
+			if value != "" {
+				return value
+			}
+
+			response, err := emit.ClientBuilder(common.HTTPClient).GET("https://cc.wisdgod.com/get-checksum").
+				DoC(emit.Status(http.StatusOK), emit.IsTEXT)
+			if err != nil {
+				logger.Error(err)
+				return ""
+			}
+			checksum = emit.TextResponse(response)
+			response.Body.Close()
+
+			_ = cacheManager.SetWithExpiration(common.CalcHex(token), checksum, 30*time.Minute) // 缓存30分钟
+			return checksum
+		}
 	}
+
 	if checksum == "" {
 		// 不采用全局设备码方式，而是用cookie产生。更换时仅需要重新抓取新的WorkosCursorSessionToken即可
 		salt := strings.Split(token, ".")

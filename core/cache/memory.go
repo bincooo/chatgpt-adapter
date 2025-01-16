@@ -23,6 +23,7 @@ var (
 	toolTasksCacheManager *Manager[[]model.Keyv[string]]
 	windsurfCacheManager  *Manager[string]
 	bingCacheManager      *Manager[string]
+	cursorCacheManager    *Manager[string]
 )
 
 func init() {
@@ -41,6 +42,11 @@ func init() {
 		bingCacheManager = &Manager[string]{
 			cache.New[string](gocacheStore.NewGoCache(client)),
 		}
+
+		client = gocache.New(5*time.Minute, 5*time.Minute)
+		cursorCacheManager = &Manager[string]{
+			cache.New[string](gocacheStore.NewGoCache(client)),
+		}
 	})
 }
 
@@ -54,6 +60,10 @@ func WindsurfCacheManager() *Manager[string] {
 
 func BingCacheManager() *Manager[string] {
 	return bingCacheManager
+}
+
+func CursorCacheManager() *Manager[string] {
+	return cursorCacheManager
 }
 
 func (cacheManager *Manager[T]) SetValue(key string, value T) error {
