@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
@@ -19,7 +18,6 @@ import (
 	"github.com/iocgo/sdk/stream"
 	"math"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -97,7 +95,7 @@ func genChecksum(ctx *gin.Context, env *env.Environment) string {
 				return value
 			}
 
-			response, err := emit.ClientBuilder(common.HTTPClient).GET("https://cc.wisdgod.com/get-checksum").
+			response, err := emit.ClientBuilder(common.HTTPClient).GET(checksum).
 				DoC(emit.Status(http.StatusOK), emit.IsTEXT)
 			if err != nil {
 				logger.Error(err)
@@ -121,21 +119,12 @@ func genChecksum(ctx *gin.Context, env *env.Environment) string {
 				t = data[i]
 			}
 		}
-		data, err := base64.RawStdEncoding.DecodeString(salt[1])
-		if err != nil {
-			logger.Error(err)
-			return ""
-		}
-		var obj map[string]interface{}
-		if err = json.Unmarshal(data, &obj); err != nil {
-			logger.Error(err)
-			return ""
-		}
 
-		unix, _ := strconv.ParseInt(obj["time"].(string), 10, 64)
-		t := time.Unix(unix, 0)
+		// 对时间检验了
+		t := time.Now()
+		t = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 30*(t.Minute()/30), 0, 0, t.Location()) // 每个半小时轮换一次
 		timestamp := int64(math.Floor(float64(t.UnixMilli()) / 1e6))
-		data = []byte{
+		data := []byte{
 			byte((timestamp >> 8) & 0xff),
 			byte(timestamp & 0xff),
 			byte((timestamp >> 24) & 0xff),
@@ -147,7 +136,8 @@ func genChecksum(ctx *gin.Context, env *env.Environment) string {
 		hex1 := sha256.Sum256([]byte(salt[1]))
 		hex2 := sha256.Sum256([]byte(token))
 		// 前面的字符生成存在问题，先硬编码
-		checksum = fmt.Sprintf("JYmLlBi6%s%s/%s", hex.EncodeToString(data)[8:], hex.EncodeToString(hex1[:]), hex.EncodeToString(hex2[:]))
+		// woc , 粗心大意呀
+		checksum = fmt.Sprintf("%s%s/%s", base64.RawStdEncoding.EncodeToString(data), hex.EncodeToString(hex1[:]), hex.EncodeToString(hex2[:]))
 	}
 	return checksum
 }
