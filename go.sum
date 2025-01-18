@@ -48,8 +48,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/bincooo/coze-api v1.0.2-0.20241222100337-a88cc26a1a5a h1:oBGzNQ6EjtBhNR9s629bx4NpYqoiAo4DXXnrIok2HeU=
-github.com/bincooo/coze-api v1.0.2-0.20241222100337-a88cc26a1a5a/go.mod h1:ZCiekJWTzAnwJyn7qdClip40nK9Ix54cHZHXhtKK8iQ=
+github.com/bincooo/coze-api v1.0.2-0.20250118010946-7c4f3c5e25ea h1:yNk4bxooejMYMkUyiRCO0ffHL6kZNMh/XarETVcLXAw=
+github.com/bincooo/coze-api v1.0.2-0.20250118010946-7c4f3c5e25ea/go.mod h1:L39ul6Q6lDT/0jOakWKCg4KjJh1pK5Fa2B8Ud8qbcGQ=
 github.com/bincooo/edge-api v1.0.4-0.20250107061327-657cb89a05af h1:9oFDFg5lmeLLWtgFExWOo93IrPlUhq/wcbSNr8LA7gY=
 github.com/bincooo/edge-api v1.0.4-0.20250107061327-657cb89a05af/go.mod h1:O6hvVd4ekQtiHx5YBbwsmJ4RyF0jV3O5jHHpp4Srfw8=
 github.com/bincooo/emit.io v1.0.1-0.20250107024658-671bcfad17e9 h1:m8AFZPJYm8CsjGaPsYGjm9Zwg33CVdC4Pda/IIA6cx8=
@@ -193,8 +193,8 @@ github.com/google/pprof v0.0.0-20200212024743-f11f1df84d12/go.mod h1:ZgVRPoUq/hf
 github.com/google/pprof v0.0.0-20200229191704-1ebb73c60ed3/go.mod h1:ZgVRPoUq/hfqzAqh7sHMqb3I9Rq5C59dIz2SbBwJ4eM=
 github.com/google/pprof v0.0.0-20200430221834-fc25d7d30c6d/go.mod h1:ZgVRPoUq/hfqzAqh7sHMqb3I9Rq5C59dIz2SbBwJ4eM=
 github.com/google/pprof v0.0.0-20200708004538-1a94d8640e99/go.mod h1:ZgVRPoUq/hfqzAqh7sHMqb3I9Rq5C59dIz2SbBwJ4eM=
-github.com/google/pprof v0.0.0-20230207041349-798e818bf904 h1:4/hN5RUoecvl+RmJRE2YxKWtnnQls6rQjjW5oV7qg2U=
-github.com/google/pprof v0.0.0-20230207041349-798e818bf904/go.mod h1:uglQLonpP8qtYCYyzA+8c/9qtqgA3qsXGYqCPKARAFg=
+github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8 h1:FKHo8hFI3A+7w0aUQuYXQ+6EN5stWmeY/AZqtM8xk9k=
+github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8/go.mod h1:K1liHPHnj73Fdn/EKuT8nrFqBihUSKXoLYU0BuatOYo=
 github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm40UhjYkI=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=

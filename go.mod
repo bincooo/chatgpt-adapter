@@ -4,7 +4,7 @@ go 1.23.3
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
-	github.com/bincooo/coze-api v1.0.2-0.20241222100337-a88cc26a1a5a
+	github.com/bincooo/coze-api v1.0.2-0.20250118010946-7c4f3c5e25ea
 	github.com/bincooo/edge-api v1.0.4-0.20250107061327-657cb89a05af
 	github.com/bincooo/emit.io v1.0.1-0.20250107024658-671bcfad17e9
 	github.com/bincooo/you.com v0.0.0-20250103115644-08e4e4a7aaae
@@ -50,7 +50,6 @@ require (
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
