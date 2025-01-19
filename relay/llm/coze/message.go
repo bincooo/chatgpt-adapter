@@ -111,17 +111,16 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) (content
 
 func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, err error) {
 	var (
-		completion  = common.GetGinCompletion(ctx)
-		messages    = completion.Messages
-		specialized = ctx.GetBool("specialized")
-		isC         = response.IsClaude(ctx, completion.Model)
+		completion = common.GetGinCompletion(ctx)
+		messages   = completion.Messages
+		isC        = response.IsClaude(ctx, completion.Model)
 	)
 
 	tokens := 0
 	defer func() { ctx.Set(ginTokens, tokens) }()
 
 	messageL := len(messages)
-	if specialized && isC && messageL == 1 {
+	if isC && messageL == 1 {
 		message := messages[0].GetString("content")
 		newMessages = append(newMessages, coze.Message{
 			Role:    "user",
@@ -141,14 +140,14 @@ func mergeMessages(ctx *gin.Context) (newMessages []coze.Message, err error) {
 		}
 
 		message := messages[pos]
-		if pos == 0 && message.Is("role", "system") {
-			newMessages = append(newMessages, coze.Message{
-				Role:    "system",
-				Content: message.GetString("content"),
-			})
-			pos++
-			continue
-		}
+		//if pos == 0 && message.Is("role", "system") {
+		//	newMessages = append(newMessages, coze.Message{
+		//		Role:    "system",
+		//		Content: message.GetString("content"),
+		//	})
+		//	pos++
+		//	continue
+		//}
 
 		convertRole, trun := response.ConvertRole(ctx, message.GetString("role"))
 		contents = append(contents, convertRole+message.GetString("content")+trun)

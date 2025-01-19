@@ -197,6 +197,16 @@ func runTasks(env *env.Environment, opts ...*obj) (exec bool) {
 		baseUrl = "http://127.0.0.1:" + env.GetString("browser-less.port")
 	}
 
+	system := env.GetString("coze.websdk.system")
+	bot := env.GetString("coze.websdk.bot")
+	if bot == "" {
+		bot = "custom-128k"
+	}
+	model := env.GetString("coze.websdk.model")
+	if model == "" {
+		model = coze.ModelGpt4o_128k
+	}
+
 	for _, item := range opts {
 		if item.count <= 0 {
 			continue
@@ -205,7 +215,7 @@ func runTasks(env *env.Environment, opts ...*obj) (exec bool) {
 		timeout, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		payload := make(map[string]interface{})
 		mapCopy(payload, item.value)
-		payload["bot"] = "custom-128k"
+		payload["bot"] = bot
 		response, err := emit.ClientBuilder(common.HTTPClient).
 			Context(timeout).
 			POST(baseUrl + "/coze/login").
@@ -257,14 +267,14 @@ func runTasks(env *env.Environment, opts ...*obj) (exec bool) {
 		botId := ""
 		for _, v := range bots {
 			info := v.(map[string]interface{})
-			if info["name"] == "custom-128k" {
+			if info["name"] == bot {
 				botId = info["id"].(string)
 				break
 			}
 		}
 
 		if botId == "" {
-			logger.Error("custom-128k bot not found")
+			logger.Error(bot + " bot not found")
 			continue
 		}
 
@@ -272,14 +282,10 @@ func runTasks(env *env.Environment, opts ...*obj) (exec bool) {
 		space, err := chat.GetSpace(timeout)
 		cancel()
 		if err != nil {
-			logger.Errorf("custom-128k space err: %v", err)
+			logger.Errorf("%s space err: %v", bot, err)
 			continue
 		}
 
-		model := env.GetString("coze.websdk.model")
-		if model == "" {
-			model = coze.ModelGpt4o_128k
-		}
 		logger.Infof("publish model: %s ...", model)
 
 		maxTokens := 8192
@@ -294,10 +300,10 @@ func runTasks(env *env.Environment, opts ...*obj) (exec bool) {
 			Temperature: 0.75,
 			TopP:        1,
 			MaxTokens:   maxTokens,
-		}, "")
+		}, system)
 		cancel()
 		if err != nil {
-			logger.Errorf("custom-128k drafbot err: %v", err)
+			logger.Errorf("%s drafbot err: %v", bot, err)
 			continue
 		}
 
@@ -305,7 +311,7 @@ func runTasks(env *env.Environment, opts ...*obj) (exec bool) {
 		timeout, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 		err = chat.Publish(timeout, botId, map[string]interface{}{
 			"999": map[string]interface{}{
-				"sdk_version": "0.1.0-beta.5",
+				"sdk_version": "1.1.0-beta.0",
 			},
 		})
 		cancel()

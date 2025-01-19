@@ -16,8 +16,16 @@ const (
 )
 
 func defaultRole(role string) string { return fmt.Sprintf("<|%s|>\n", role) }
-func claudeRole(role string) string  { return fmt.Sprintf("\n\r\n%s: ", role) }
 func gptRole(role string) string     { return fmt.Sprintf("<|start|>%s\n", role) }
+
+func claudeRole(role string) string {
+	sep := env.Env.GetString("separator.claude")
+	if sep == "" {
+		sep = "\n"
+	}
+	return fmt.Sprintf("\n%s\n%s: ", sep, role)
+}
+
 func bingRole(role string) string {
 	switch role {
 	case "user":
@@ -91,11 +99,11 @@ func IsClaude(ctx *gin.Context, model string) bool {
 
 	if strings.HasPrefix(model, "coze/") {
 		values := strings.Split(model[5:], "-")
-		if len(values) > 3 && "w" == values[3] && strings.Contains(ctx.GetString("token"), "[claude=true]") {
+		if len(values) > 3 && "w" == values[3] &&
+			(strings.Contains(ctx.GetString("token"), "[claude=true]") || values[1] == "claude") {
 			ctx.Set(key, true)
 			return true
 		}
-
 		return false
 	}
 
