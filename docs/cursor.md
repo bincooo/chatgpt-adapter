@@ -30,8 +30,6 @@ cursor:
 
 *TIPS: authorization 为[网页](https://www.cursor.com)登陆后的 cookie WorkosCursorSessionToken*
 
-*TIPS: 目前cursor对设备码进行校验。诸位嫖友可以先从 [get-checksum](https://cc.wisdgod.com/get-checksum) 处获取设备码，在config.yaml中设置 *
-
 ```shell
 curl -i -X POST \
    -H "Content-Type: application/json" \
