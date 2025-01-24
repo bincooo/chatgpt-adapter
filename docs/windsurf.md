@@ -15,7 +15,9 @@
 
 ## 请求示例
 
-*TIPS: authorization 为[网页](https://codeium.com/profile)登陆后的 https://web-backend.codeium.com/exa.user_analytics_pb.UserAnalyticsService/GetAnalytics 请求头x-api-key*
+*TIPS: authorization 为[网页](https://codeium.com/profile)登陆后
+访问 https://codeium.com/profile?referrer=extension F12 查看网络面版
+的 https://web-backend.codeium.com/exa.user_analytics_pb.UserAnalyticsService/GetAnalytics 请求头x-api-key*
 
 ```shell
 curl -i -X POST \
