@@ -1,0 +1,308 @@
+package deepseek
+
+import (
+	"bytes"
+	"chatgpt-adapter/core/common"
+	"chatgpt-adapter/core/common/wasm"
+	"chatgpt-adapter/core/gin/model"
+	"chatgpt-adapter/core/gin/response"
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"github.com/bincooo/emit.io"
+	"github.com/gin-gonic/gin"
+	"github.com/iocgo/sdk/env"
+	"net/http"
+	"time"
+)
+
+const (
+	userAgent  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1.1 Safari/605.1.15"
+	calcServer = "https://wik5ez2o-helper.hf.space"
+)
+
+var (
+	wasmInstance wasm.Instance
+)
+
+func init() {
+	inst, err := wasm.New("./relay/llm/deepseek/sha3_wasm_bg.wasm")
+	if err != nil {
+		panic(err)
+	}
+	wasmInstance = inst
+}
+
+type deepseekRequest struct {
+	ChatSessionId   string `json:"chat_session_id"`
+	ParentMessageId *int   `json:"parent_message_id"`
+	Message         string `json:"prompt"`
+	RefFileIds      []int  `json:"ref_file_ids"`
+	ThinkingEnabled bool   `json:"thinking_enabled"`
+	SearchEnabled   bool   `json:"search_enabled"`
+}
+
+func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest) (response *http.Response, err error) {
+	response, err = emit.ClientBuilder(common.HTTPClient).
+		Context(ctx).
+		Proxies(proxied).
+		POST("https://chat.deepseek.com/api/v0/chat/create_pow_challenge").
+		JSONHeader().
+		Header("authorization", "Bearer "+cookie).
+		Header("referer", "https://chat.deepseek.com/a/chat/").
+		Header("user-agent", userAgent).
+		Header("x-app-version", "20241129.1").
+		Header("x-client-locale", "zh_CN").
+		Header("x-client-platform", "web").
+		Header("x-client-version", "1.0.0-always").
+		Body(map[string]interface{}{
+			"target_path": "/api/v0/chat/completion",
+		}).
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return
+	}
+
+	obj, err := emit.ToMap(response)
+	if err != nil {
+		_ = response.Body.Close()
+		return
+	}
+
+	_ = response.Body.Close()
+	if code, ok := obj["code"]; !ok || code.(float64) != 0 {
+		err = fmt.Errorf("create challenge failed")
+		msg := obj["msg"]
+		if msg != "" {
+			err = fmt.Errorf(msg.(string))
+		}
+		return
+	}
+
+	value, ok := obj["data"].(map[string]interface{})["biz_data"]
+	if !ok {
+		err = fmt.Errorf("create challenge failed")
+		return
+	}
+
+	data := value.(map[string]interface{})
+	data = data["challenge"].(map[string]interface{})
+	num, err := calcAnswer(data)
+	if err != nil {
+		return
+	}
+
+	buf, err := json.Marshal(map[string]interface{}{
+		"algorithm":   "DeepSeekHashV1",
+		"challenge":   data["challenge"],
+		"salt":        data["salt"],
+		"answer":      num,
+		"signature":   data["signature"],
+		"target_path": "/api/v0/chat/completion",
+	})
+	if err != nil {
+		return
+	}
+
+	response, err = emit.ClientBuilder(common.HTTPClient).
+		Context(ctx).
+		Proxies(proxied).
+		POST("https://chat.deepseek.com/api/v0/chat/completion").
+		JSONHeader().
+		Header("authorization", "Bearer "+cookie).
+		Header("origin", "https://chat.deepseek.com").
+		Header("referer", "https://chat.deepseek.com/").
+		Header("user-agent", userAgent).
+		Header("x-app-version", "20241129.1").
+		Header("x-client-locale", "zh_CN").
+		Header("x-client-platform", "web").
+		Header("x-client-version", "1.0.0-always").
+		Header("x-ds-pow-response", base64.RawStdEncoding.EncodeToString(buf)).
+		Body(request).
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	return
+}
+
+func calcAnswer(data map[string]interface{}) (num int, err error) {
+	timeout, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	challenge := data["challenge"].(string)
+	salt := fmt.Sprintf("%s_%d_", data["salt"], int(data["expire_at"].(float64)))
+	diff := int(data["difficulty"].(float64))
+	r, err := emit.ClientBuilder(common.HTTPClient).
+		Context(timeout).
+		POST(calcServer+"/ds").
+		JSONHeader().
+		Body(map[string]interface{}{
+			"challenge": challenge,
+			"salt":      salt,
+			"diff":      diff,
+		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return
+	}
+
+	obj, err := emit.ToMap(r)
+	if err != nil {
+		return
+	}
+
+	if v, ok := obj["ok"]; !ok || v != true {
+		err = fmt.Errorf("calc answer failed")
+		return
+	}
+	num = int(obj["data"].(float64))
+	return
+}
+
+//func calcAnswer(data map[string]interface{}) (num int, err error) {
+//	__wbindgen_add_to_stack_pointer, err := wasmInstance.Exports.GetFunction("__wbindgen_add_to_stack_pointer")
+//	if err != nil {
+//		return
+//	}
+//	c, err := __wbindgen_add_to_stack_pointer(-16)
+//	if err != nil {
+//		return
+//	}
+//
+//	memory, err := wasmInstance.Exports.GetMemory("memory")
+//	if err != nil {
+//		return
+//	}
+//	buffer := memory.Data()
+//
+//	u := func(e string, t, n wasm.NativeFunction) (i int, num int32, err error) {
+//		//
+//		r := len(e)
+//		value, err := t(r, 1)
+//		if err != nil {
+//			return
+//		}
+//
+//		num = value.(int32)
+//		f := 0
+//		for range r {
+//			ch := e[f]
+//			if ch > 127 {
+//				break
+//			}
+//			buffer[int(ch)+f] = ch
+//			f++
+//		}
+//		i = r
+//		return
+//	}
+//
+//	__wbindgen_export_1, err := wasmInstance.Exports.GetFunction("__wbindgen_export_1")
+//	if err != nil {
+//		return
+//	}
+//
+//	// h := data["challenge"].(string)
+//	h := "3530c39e5ee8a2c728fb0542fc80979e18dda94861499981d32b6d68f0d9eac7"
+//	f, s, err := u(h, __wbindgen_export_0, __wbindgen_export_1)
+//	if err != nil {
+//		return
+//	}
+//
+//	//t := fmt.Sprintf("%s_%d_", data["salt"], int(data["expire_at"].(float64)))
+//	t := "cecc9bf94c68b3cfa920_1737771632818_"
+//	p, d, err := u(t, __wbindgen_export_0, __wbindgen_export_1)
+//	if err != nil {
+//		return
+//	}
+//
+//	wasm_solve, err := wasmInstance.Exports.GetFunction("wasm_solve")
+//	if err != nil {
+//		return
+//	}
+//
+//	i := c.(int32)
+//
+//	//n1 := data["difficulty"].(float64)
+//	var n1 float64 = 144000
+//	_, err = wasm_solve(i, s, f, d, p, n1)
+//	if err != nil {
+//		return
+//	}
+//
+//	defer __wbindgen_add_to_stack_pointer(16)
+//	buf := buffer[i : i+4]
+//	reader := bytes.NewReader(buf)
+//	var n int32
+//	err = binary.Read(reader, binary.LittleEndian, &n)
+//	if err != nil {
+//		return
+//	}
+//	buf = buffer[i+8 : i+16]
+//	r := binary.BigEndian.Uint64(buf)
+//	if n == 0 {
+//		num = 0
+//		return
+//	}
+//	num = int(r)
+//	return
+//}
+
+func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Completion) (request deepseekRequest, err error) {
+	r, err := emit.ClientBuilder(common.HTTPClient).
+		Context(ctx.Request.Context()).
+		Proxies(env.GetString("server.proxied")).
+		POST("https://chat.deepseek.com/api/v0/chat_session/create").
+		JSONHeader().
+		Header("authorization", "Bearer "+ctx.GetString("token")).
+		Header("referer", "https://chat.deepseek.com/").
+		Header("user-agent", userAgent).
+		Header("x-app-version", "20241129.1").
+		Header("x-client-locale", "zh_CN").
+		Header("x-client-platform", "web").
+		Header("x-client-version", "1.0.0-always").
+		Body(map[string]interface{}{
+			"character_id": nil,
+		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return
+	}
+
+	defer r.Body.Close()
+	obj, err := emit.ToMap(r)
+	if err != nil {
+		return
+	}
+
+	if code, ok := obj["code"]; !ok || code.(float64) != 0 {
+		err = fmt.Errorf("create chat session failed")
+		msg := obj["msg"]
+		if msg != "" {
+			err = fmt.Errorf(msg.(string))
+		}
+		return
+	}
+
+	value, ok := obj["data"].(map[string]interface{})["biz_data"]
+	if !ok {
+		err = fmt.Errorf("create chat session failed")
+		return
+	}
+
+	contentBuffer := new(bytes.Buffer)
+	for _, message := range completion.Messages {
+		role, end := response.ConvertRole(ctx, message.GetString("role"))
+		contentBuffer.WriteString(role)
+		contentBuffer.WriteString(message.GetString("content"))
+		contentBuffer.WriteString(end)
+	}
+
+	data := value.(map[string]interface{})
+	request = deepseekRequest{
+		ChatSessionId:   data["id"].(string),
+		RefFileIds:      make([]int, 0),
+		ThinkingEnabled: completion.Model[9:] == "r1",
+		SearchEnabled:   false,
+
+		Message: contentBuffer.String(),
+	}
+	return
+}

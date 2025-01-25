@@ -10,6 +10,7 @@ import (
 	"chatgpt-adapter/relay/llm/blackbox"
 	"chatgpt-adapter/relay/llm/coze"
 	"chatgpt-adapter/relay/llm/cursor"
+	"chatgpt-adapter/relay/llm/deepseek"
 	"chatgpt-adapter/relay/llm/lmsys"
 	"chatgpt-adapter/relay/llm/v1"
 	"chatgpt-adapter/relay/llm/windsurf"
@@ -44,6 +45,11 @@ func Injects(container *sdk.Container) (err error) {
 	}
 
 	err = you.Injects(container)
+	if err != nil {
+		return
+	}
+
+	err = deepseek.Injects(container)
 	if err != nil {
 		return
 	}
