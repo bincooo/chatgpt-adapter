@@ -5,6 +5,7 @@ import (
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
+	"chatgpt-adapter/core/logger"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -121,6 +122,28 @@ func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest)
 		Body(request).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
 	return
+}
+
+func deleteSession(ctx *gin.Context, env *env.Environment, sessionId string) {
+	_, err := emit.ClientBuilder(common.HTTPClient).
+		Context(ctx.Request.Context()).
+		Proxies(env.GetString("server.proxied")).
+		POST("https://chat.deepseek.com/api/v0/chat_session/delete").
+		JSONHeader().
+		Header("authorization", "Bearer "+ctx.GetString("token")).
+		Header("referer", "https://chat.deepseek.com/").
+		Header("user-agent", userAgent).
+		Header("x-app-version", "20241129.1").
+		Header("x-client-locale", "zh_CN").
+		Header("x-client-platform", "web").
+		Header("x-client-version", "1.0.0-always").
+		Body(map[string]interface{}{
+			"chat_session_id": sessionId,
+		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
 }
 
 func calcAnswer(data map[string]interface{}) (num int, err error) {

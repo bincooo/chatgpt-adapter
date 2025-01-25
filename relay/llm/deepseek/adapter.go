@@ -77,6 +77,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
+	defer deleteSession(ctx, api.env, request.ChatSessionId)
 	content := waitResponse(ctx, r, completion.Stream)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")

@@ -36,6 +36,7 @@ func toolChoice(ctx *gin.Context, env *env.Environment, proxies, cookie string, 
 			return "", err
 		}
 
+		defer deleteSession(ctx, env, request.ChatSessionId)
 		return waitMessage(r, toolcall.Cancel)
 	})
 
