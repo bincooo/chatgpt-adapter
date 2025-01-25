@@ -3,7 +3,6 @@ package deepseek
 import (
 	"bytes"
 	"chatgpt-adapter/core/common"
-	"chatgpt-adapter/core/common/wasm"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"context"
@@ -22,17 +21,17 @@ const (
 	calcServer = "https://wik5ez2o-helper.hf.space"
 )
 
-var (
-	wasmInstance wasm.Instance
-)
-
-func init() {
-	inst, err := wasm.New("./relay/llm/deepseek/sha3_wasm_bg.wasm")
-	if err != nil {
-		panic(err)
-	}
-	wasmInstance = inst
-}
+//var (
+//	wasmInstance wasm.Instance
+//)
+//
+//func init() {
+//	inst, err := wasm.New("./relay/llm/deepseek/sha3_wasm_bg.wasm")
+//	if err != nil {
+//		panic(err)
+//	}
+//	wasmInstance = inst
+//}
 
 type deepseekRequest struct {
 	ChatSessionId   string `json:"chat_session_id"`
