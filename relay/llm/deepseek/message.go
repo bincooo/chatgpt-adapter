@@ -57,6 +57,10 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 		}
 
 		delta := res.Choices[0].Delta
+		if delta.Type == "thinking" {
+			continue
+		}
+
 		raw := delta.Content
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
@@ -117,6 +121,10 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		}
 
 		delta := res.Choices[0].Delta
+		if delta.Type == "thinking" {
+			continue
+		}
+
 		raw := delta.Content
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)

@@ -60,6 +60,7 @@ type Choice struct {
 		ToolCalls []Keyv[interface{}] `json:"tool_calls,omitempty"`
 	} `json:"message,omitempty"`
 	Delta *struct {
+		Type    string `json:"type,omitempty"`
 		Role    string `json:"role,omitempty"`
 		Content string `json:"content,omitempty"`
 

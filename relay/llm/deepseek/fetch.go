@@ -287,6 +287,11 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 	}
 
 	contentBuffer := new(bytes.Buffer)
+	if len(completion.Messages) == 1 {
+		contentBuffer.WriteString(completion.Messages[0].GetString("content"))
+		goto label
+	}
+
 	for _, message := range completion.Messages {
 		role, end := response.ConvertRole(ctx, message.GetString("role"))
 		contentBuffer.WriteString(role)
@@ -294,6 +299,7 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 		contentBuffer.WriteString(end)
 	}
 
+label:
 	data := value.(map[string]interface{})
 	request = deepseekRequest{
 		ChatSessionId:   data["id"].(string),

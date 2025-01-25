@@ -15,8 +15,10 @@ const (
 	END = "<|end|>\n\n"
 )
 
-func defaultRole(role string) string { return fmt.Sprintf("<|%s|>\n", role) }
-func gptRole(role string) string     { return fmt.Sprintf("<|start|>%s\n", role) }
+func defaultRole(role string) string  { return fmt.Sprintf("<|%s|>\n", role) }
+func gptRole(role string) string      { return fmt.Sprintf("<|start|>%s\n", role) }
+func deepseekRole(role string) string { return fmt.Sprintf("<%s>\n", role) }
+func deepseekEnd(role string) string  { return fmt.Sprintf("\n</%s>\n\n", role) }
 
 func claudeRole(role string) string {
 	sep := env.Env.GetString("separator.claude")
@@ -67,6 +69,12 @@ func ConvertRole(ctx *gin.Context, role string) (newRole, end string) {
 		return
 	}
 
+	if IsDeepseek(completion.Model) {
+		newRole = deepseekRole(role)
+		end = deepseekEnd(role)
+		return
+	}
+
 	newRole = defaultRole(role)
 	return
 }
@@ -78,6 +86,10 @@ func IsBing(mod string) bool {
 func IsGPT(model string) bool {
 	model = strings.ToLower(model)
 	return strings.Contains(model, "openai") || strings.Contains(model, "gpt")
+}
+
+func IsDeepseek(model string) bool {
+	return strings.Contains(model, "deepseek")
 }
 
 func IsClaude(ctx *gin.Context, model string) bool {

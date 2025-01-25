@@ -3,6 +3,7 @@ package response
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/iocgo/sdk/env"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -23,6 +24,12 @@ var (
 	EOF = "<CHAR_trun>"
 
 	UnauthorizedError = fmt.Errorf("unauthorized error")
+
+	DefaultUsage = map[string]interface{}{
+		"completion_tokens": 0,
+		"prompt_tokens":     0,
+		"total_tokens":      0,
+	}
 )
 
 func MessageValidator(ctx *gin.Context) bool {
@@ -89,6 +96,10 @@ func Response(ctx *gin.Context, mod, content string) {
 	ctx.Set(canResponse, "No!")
 	created := time.Now().Unix()
 	usage := common.GetGinCompletionUsage(ctx)
+	if env.Env.GetBool("server.no-usage") {
+		usage = DefaultUsage
+	}
+
 	ctx.JSON(http.StatusOK, model.Response{
 		Model:   mod,
 		Created: created,
@@ -146,6 +157,9 @@ func SSEResponse(ctx *gin.Context, mod, content string, created int64) {
 	done := false
 	finishReason := ""
 	usage := common.GetGinCompletionUsage(ctx)
+	if env.Env.GetBool("server.no-usage") {
+		usage = DefaultUsage
+	}
 
 	if content == "[DONE]" {
 		done = true
@@ -163,10 +177,11 @@ func SSEResponse(ctx *gin.Context, mod, content string, created int64) {
 				{
 					Index: 0,
 					Delta: &struct {
+						Type      string                    `json:"type,omitempty"`
 						Role      string                    `json:"role,omitempty"`
 						Content   string                    `json:"content,omitempty"`
 						ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
-					}{"assistant", string(char), nil},
+					}{"text", "assistant", string(char), nil},
 				},
 			},
 		}
@@ -184,10 +199,11 @@ func SSEResponse(ctx *gin.Context, mod, content string, created int64) {
 				{
 					Index: 0,
 					Delta: &struct {
+						Type      string                    `json:"type,omitempty"`
 						Role      string                    `json:"role,omitempty"`
 						Content   string                    `json:"content,omitempty"`
 						ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
-					}{"assistant", "", nil},
+					}{"text", "assistant", "", nil},
 				},
 			},
 		}
@@ -256,6 +272,7 @@ func SSEToolCallResponse(ctx *gin.Context, mod, name, args string, created int64
 	toolCall["id"] = "call_" + hex(5)
 	toolCall["function"] = map[string]string{"name": name, "arguments": ""}
 	response.Choices[0].Delta = &struct {
+		Type      string                    `json:"type,omitempty"`
 		Role      string                    `json:"role,omitempty"`
 		Content   string                    `json:"content,omitempty"`
 		ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
