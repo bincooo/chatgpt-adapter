@@ -24,10 +24,7 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	if len(model) <= 9 || Model+"/" != model[:9] {
 		return
 	}
-	for _, mod := range []string{
-		"claude-3-5-sonnet",
-		"gpt4o",
-	} {
+	for mod := range mapModel {
 		if model[9:] == mod {
 			ok = true
 			return
