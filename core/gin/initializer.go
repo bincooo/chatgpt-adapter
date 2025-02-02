@@ -12,11 +12,16 @@ import (
 	"strings"
 )
 
+var (
+	debug bool
+)
+
 // @Inject(lazy="false", name="ginInitializer")
 func Initialized(env *env.Environment) sdk.Initializer {
+	debug = env.GetBool("server.debug")
 	return sdk.InitializedWrapper(0, func(container *sdk.Container) (err error) {
 		sdk.ProvideTransient(container, sdk.NameOf[*gin.Engine](), func() (engine *gin.Engine, err error) {
-			if !env.GetBool("server.debug") {
+			if !debug {
 				gin.SetMode(gin.ReleaseMode)
 			}
 
@@ -55,7 +60,7 @@ func cros(gtx *gin.Context) {
 	gtx.Header("Access-Control-Expose-Headers", "*")
 	gtx.Header("Access-Control-Max-Age", "172800")
 	gtx.Header("Access-Control-Allow-Credentials", "false")
-	gtx.Set("content-type", "application/json")
+	//gtx.Set("content-type", "application/json")
 
 	if method == "OPTIONS" {
 		gtx.Status(http.StatusOK)
@@ -73,7 +78,7 @@ func cros(gtx *gin.Context) {
 
 	uid := uuid.NewString()
 	// 请求打印
-	data, _ := httputil.DumpRequest(gtx.Request, false)
+	data, _ := httputil.DumpRequest(gtx.Request, debug)
 	logger.Infof("------ START REQUEST %s ---------", uid)
 	println(string(data))
 

@@ -82,6 +82,16 @@ func (kv Keyv[V]) IsString(key string) bool {
 	return false
 }
 
+func (kv Keyv[V]) IsSlice(key string) bool {
+	if value, ok := kv[key]; ok {
+		var v interface{} = value
+		if _, ok = v.([]interface{}); ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (kv Keyv[V]) IsE(key string) bool {
 	value, ok := kv.Get(key)
 	if ok {

@@ -69,8 +69,19 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 	messageL := len(completion.Messages)
 	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_UserMessage {
 		defer func() { pos++ }()
+		content := ""
+		if message.IsSlice("content") {
+			slice := stream.
+				Map(stream.OfSlice(message.GetSlice("content")), convertToText).
+				Filter(func(k string) bool { return k != "" }).
+				ToSlice()
+			content = strings.Join(slice, "\n\n")
+		} else {
+			content = message.GetString("content")
+		}
+
 		return &ChatMessage_UserMessage{
-			Message:       message.GetString("content"),
+			Message:       content,
 			Token:         uint32(response.CalcTokens(message.GetString("content"))),
 			Role:          elseOf[uint32](message.Is("role", "assistant"), 2, 1),
 			UnknownField5: elseOf[uint32](message.Is("role", "assistant"), 0, 1),
@@ -183,6 +194,15 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 	header := int32ToBytes(1, len(protoBytes))
 	buffer = append(header, protoBytes...)
 	return
+}
+
+func convertToText(it interface{}) (s string) {
+	var kv model.Keyv[interface{}]
+	kv, ok := it.(map[string]interface{})
+	if !ok || !kv.Is("type", "text") {
+		return
+	}
+	return kv.GetString("text")
 }
 
 func genToken(ctx context.Context, proxies, ident string) (token string, err error) {
