@@ -56,8 +56,8 @@ github.com/bincooo/emit.io v1.0.1-0.20250107024658-671bcfad17e9 h1:m8AFZPJYm8Csj
 github.com/bincooo/emit.io v1.0.1-0.20250107024658-671bcfad17e9/go.mod h1:cPNK/qXkuZp+YXYnkRatPMlGUlCD0rqJ8CeAqLAe+LA=
 github.com/bincooo/go-annotation v0.0.0-20241210101123-2fc3053d2f16 h1:/2MZmTiHa1a+hfUsmZxvOjQh1+lfZU/9gd7QRjD+xo8=
 github.com/bincooo/go-annotation v0.0.0-20241210101123-2fc3053d2f16/go.mod h1:3ZV3/eOQJ/28O5jINzNi98+K+8WY/pOvDYidT7WWaFs=
-github.com/bincooo/you.com v0.0.0-20250103115644-08e4e4a7aaae h1:QWCx5rahswQUl2S4CKomDX7LTSOGBLtaynDNpu54Vxk=
-github.com/bincooo/you.com v0.0.0-20250103115644-08e4e4a7aaae/go.mod h1:M7kpyfEvvZ6hzhUtizkSSvnzzhA+RT1HcYDucPQQLLY=
+github.com/bincooo/you.com v0.0.0-20250205070606-666b6847729b h1:rAGbe2sYsJQEiKr69VI4f/yZH/L/CLwOjeoIylqH1BM=
+github.com/bincooo/you.com v0.0.0-20250205070606-666b6847729b/go.mod h1:M7kpyfEvvZ6hzhUtizkSSvnzzhA+RT1HcYDucPQQLLY=
 github.com/bogdanfinn/fhttp v0.5.28 h1:G6thT8s8v6z1IuvXMUsX9QKy3ZHseTQTzxuIhSiaaAw=
 github.com/bogdanfinn/fhttp v0.5.28/go.mod h1:oJiYPG3jQTKzk/VFmogH8jxjH5yiv2rrOH48Xso2lrE=
 github.com/bogdanfinn/tls-client v1.7.7 h1:c3mf6LX6bxEsunJhP2BJeJE7qN/7BniWUpIpBc9Igu8=

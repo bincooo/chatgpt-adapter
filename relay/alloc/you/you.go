@@ -1,7 +1,6 @@
 package you
 
 import (
-	"chatgpt-adapter/core/common/vars"
 	"context"
 	"errors"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/common/inited"
+	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
 	"github.com/bincooo/emit.io"
