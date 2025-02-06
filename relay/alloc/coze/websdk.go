@@ -24,6 +24,8 @@ var (
 
 	w_init  = true
 	w_retry = 3
+
+	bot string
 )
 
 func appendTask(value *account) {
@@ -198,10 +200,13 @@ func runTasks(env *env.Environment, opts ...*obj) (exec bool) {
 	}
 
 	system := env.GetString("coze.websdk.system")
-	bot := env.GetString("coze.websdk.bot")
 	if bot == "" {
-		bot = "custom-128k"
+		bot = env.GetString("coze.websdk.bot")
+		if bot == "" {
+			bot = "custom-128k"
+		}
 	}
+
 	model := env.GetString("coze.websdk.model")
 	if model == "" {
 		model = coze.ModelGpt4o_128k

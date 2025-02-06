@@ -158,16 +158,21 @@ func sdkModel(ctx *gin.Context, proxies string, cookie string) (model string, er
 	}
 
 	botId := ""
+	botn := bot
+	if botn == "" {
+		botn = "custom-128k"
+	}
+
 	for _, value := range bots {
 		info := value.(map[string]interface{})
-		if info["name"] == "custom-128k" {
+		if info["name"] == botn {
 			botId = info["id"].(string)
 			break
 		}
 	}
 
 	if botId == "" {
-		return "", errors.New("custom-128k bot not found")
+		return "", errors.New(botn + " bot not found")
 	}
 
 	space, _ := chat.GetSpace(ctx)
