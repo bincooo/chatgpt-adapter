@@ -37,14 +37,14 @@ go run -toolexec iocgo ./main.go
 其它`go`指令同理
 
 
-### 运行本项目三部曲 (linux / macos)
+### 运行本项目三部曲 (linux / macos / window)
 
 ```shell
 make install
 
 make build
 
-./server -h
+./bin/[os]/server[.exe] -h
 ```
 
 ### systemctl 自启动配置
