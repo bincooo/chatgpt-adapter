@@ -46,3 +46,19 @@ make build
 
 ./server -h
 ```
+
+### systemctl 自启动配置
+```adapter.service
+[Unit]
+Description=ChatGPT adapter
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/your_work_dir
+ExecStart=/your_app --port 7860
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```

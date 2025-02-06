@@ -130,7 +130,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		} else {
 			if think == 1 {
 				think = 2
-				delta.Content = delta.Content + "\n</think>\n"
+				delta.Content = "\n</think>\n" + delta.Content
 			}
 		}
 
