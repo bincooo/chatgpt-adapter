@@ -83,6 +83,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 	defer r.Body.Close()
 	reader := bufio.NewReader(r.Body)
+	think := 0
 	for {
 		dataBytes, _, err := reader.ReadLine()
 		if err == io.EOF {
@@ -122,7 +123,15 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 		delta := res.Choices[0].Delta
 		if delta.Type == "thinking" {
-			continue
+			if think == 0 {
+				think = 1
+				delta.Content = "<think>\n" + delta.Content
+			}
+		} else {
+			if think == 1 {
+				think = 2
+				delta.Content = delta.Content + "\n</think>\n"
+			}
 		}
 
 		raw := delta.Content
