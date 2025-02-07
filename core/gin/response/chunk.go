@@ -93,6 +93,10 @@ func Error(ctx *gin.Context, code int, err interface{}) {
 }
 
 func Response(ctx *gin.Context, mod, content string) {
+	ReasonResponse(ctx, mod, content, "")
+}
+
+func ReasonResponse(ctx *gin.Context, mod, content, reasoningContent string) {
 	ctx.Set(canResponse, "No!")
 	created := time.Now().Unix()
 	usage := common.GetGinCompletionUsage(ctx)
@@ -109,10 +113,12 @@ func Response(ctx *gin.Context, mod, content string) {
 			{
 				Index: 0,
 				Message: &struct {
-					Role      string                    `json:"role,omitempty"`
-					Content   string                    `json:"content,omitempty"`
+					Role             string `json:"role,omitempty"`
+					Content          string `json:"content,omitempty"`
+					ReasoningContent string `json:"reasoning_content,omitempty"`
+
 					ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
-				}{"assistant", content, nil},
+				}{"assistant", content, reasoningContent, nil},
 				FinishReason: &stop,
 			},
 		},
@@ -148,11 +154,12 @@ func Echo(ctx *gin.Context, mode, content string, sse bool) {
 }
 
 func SSEResponse(ctx *gin.Context, mod, content string, created int64) {
+	ReasonSSEResponse(ctx, mod, content, "", created)
+}
+
+func ReasonSSEResponse(ctx *gin.Context, mod, content, reasoningContent string, created int64) {
 	ctx.Set(canResponse, "No!")
 	setSSEHeader(ctx)
-	if content == "" {
-		return
-	}
 
 	done := false
 	finishReason := ""
@@ -167,6 +174,31 @@ func SSEResponse(ctx *gin.Context, mod, content string, created int64) {
 		finishReason = "stop"
 	}
 
+	if reasoningContent != "" {
+		response := model.Response{
+			Model:   mod,
+			Created: created,
+			Id:      fmt.Sprintf("chatcmpl-%d", created),
+			Object:  "chat.completion.chunk",
+			Choices: []model.Choice{
+				{
+					Index: 0,
+					Delta: &struct {
+						Type             string `json:"type,omitempty"`
+						Role             string `json:"role,omitempty"`
+						Content          string `json:"content,omitempty"`
+						ReasoningContent string `json:"reasoning_content,omitempty"`
+
+						ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
+					}{"text", "assistant", "", reasoningContent, nil},
+				},
+			},
+		}
+
+		Event(ctx, "", response)
+		goto label
+	}
+
 	for _, char := range []rune(content) {
 		response := model.Response{
 			Model:   mod,
@@ -177,11 +209,13 @@ func SSEResponse(ctx *gin.Context, mod, content string, created int64) {
 				{
 					Index: 0,
 					Delta: &struct {
-						Type      string                    `json:"type,omitempty"`
-						Role      string                    `json:"role,omitempty"`
-						Content   string                    `json:"content,omitempty"`
+						Type             string `json:"type,omitempty"`
+						Role             string `json:"role,omitempty"`
+						Content          string `json:"content,omitempty"`
+						ReasoningContent string `json:"reasoning_content,omitempty"`
+
 						ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
-					}{"text", "assistant", string(char), nil},
+					}{"text", "assistant", string(char), "", nil},
 				},
 			},
 		}
@@ -189,6 +223,7 @@ func SSEResponse(ctx *gin.Context, mod, content string, created int64) {
 		Event(ctx, "", response)
 	}
 
+label:
 	if done {
 		response := model.Response{
 			Model:   mod,
@@ -199,11 +234,13 @@ func SSEResponse(ctx *gin.Context, mod, content string, created int64) {
 				{
 					Index: 0,
 					Delta: &struct {
-						Type      string                    `json:"type,omitempty"`
-						Role      string                    `json:"role,omitempty"`
-						Content   string                    `json:"content,omitempty"`
+						Type             string `json:"type,omitempty"`
+						Role             string `json:"role,omitempty"`
+						Content          string `json:"content,omitempty"`
+						ReasoningContent string `json:"reasoning_content,omitempty"`
+
 						ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
-					}{"text", "assistant", "", nil},
+					}{"text", "assistant", "", "", nil},
 				},
 			},
 		}
@@ -228,8 +265,10 @@ func ToolCallResponse(ctx *gin.Context, mod, name, args string) {
 			{
 				Index: 0,
 				Message: &struct {
-					Role      string                    `json:"role,omitempty"`
-					Content   string                    `json:"content,omitempty"`
+					Role             string `json:"role,omitempty"`
+					Content          string `json:"content,omitempty"`
+					ReasoningContent string `json:"reasoning_content,omitempty"`
+
 					ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
 				}{
 					Role: "assistant",
@@ -272,9 +311,11 @@ func SSEToolCallResponse(ctx *gin.Context, mod, name, args string, created int64
 	toolCall["id"] = "call_" + hex(5)
 	toolCall["function"] = map[string]string{"name": name, "arguments": ""}
 	response.Choices[0].Delta = &struct {
-		Type      string                    `json:"type,omitempty"`
-		Role      string                    `json:"role,omitempty"`
-		Content   string                    `json:"content,omitempty"`
+		Type             string `json:"type,omitempty"`
+		Role             string `json:"role,omitempty"`
+		Content          string `json:"content,omitempty"`
+		ReasoningContent string `json:"reasoning_content,omitempty"`
+
 		ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
 	}{
 		Role:      "assistant",

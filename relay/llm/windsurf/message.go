@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/iocgo/sdk/env"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"chatgpt-adapter/core/common"
@@ -139,8 +141,13 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	defer r.Body.Close()
 	created := time.Now().Unix()
 	logger.Info("waitResponse ...")
+	completion := common.GetGinCompletion(ctx)
 	matchers := common.GetGinMatchers(ctx)
 	tokens := ctx.GetInt(ginTokens)
+	thinkReason := env.Env.GetBool("server.think_reason")
+	thinkReason = thinkReason && completion.Model[9:] == "deepseek-reasoner"
+	reasoningContent := ""
+	think := 0
 
 	scanner := newScanner(r.Body)
 	for {
@@ -189,6 +196,29 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		}
 
 		raw := string(chunk)
+		reasonContent := ""
+		if thinkReason && think == 0 {
+			if strings.HasPrefix(raw, "<think>") {
+				reasonContent = raw[7:]
+				raw = ""
+				think = 1
+			}
+		}
+
+		if thinkReason && think == 1 {
+			reasonContent = raw
+			if strings.HasPrefix(raw, "</think>") {
+				reasonContent = ""
+				think = 2
+			}
+
+			raw = ""
+			logger.Debug("----- think raw -----")
+			logger.Debug(reasonContent)
+			reasoningContent += reasonContent
+			goto label
+		}
+
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
 
@@ -197,8 +227,9 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			continue
 		}
 
-		if sse && len(raw) > 0 {
-			response.SSEResponse(ctx, Model, raw, created)
+	label:
+		if sse {
+			response.ReasonSSEResponse(ctx, Model, raw, reasonContent, created)
 		}
 		content += raw
 	}
@@ -209,7 +240,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 	ctx.Set(vars.GinCompletionUsage, response.CalcUsageTokens(content, tokens))
 	if !sse {
-		response.Response(ctx, Model, content)
+		response.ReasonResponse(ctx, Model, content, reasoningContent)
 	} else {
 		response.SSEResponse(ctx, Model, "[DONE]", created)
 	}

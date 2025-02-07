@@ -21,23 +21,23 @@ type api struct {
 }
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
-	if len(model) <= 9 || Model+"/" != model[:9] {
+	if len(model) <= 9 || Model+"-" != model[:9] {
 		return
 	}
 
-	ok = model[9:] == "r1" || model[9:] == "v3"
+	ok = model[9:] == "chat" || model[9:] == "reasoner"
 	return
 }
 
 func (api *api) Models() (slice []model.Model) {
 	slice = append(slice, model.Model{
-		Id:      Model + "/v3",
+		Id:      Model + "-chat",
 		Object:  "model",
 		Created: 1686935002,
 		By:      Model + "-adapter",
 	})
 	slice = append(slice, model.Model{
-		Id:      Model + "/r1",
+		Id:      Model + "-reasoner",
 		Object:  "model",
 		Created: 1686935002,
 		By:      Model + "-adapter",

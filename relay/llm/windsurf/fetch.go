@@ -25,8 +25,10 @@ import (
 var mapModel = map[string]uint32{
 	"gpt4o":             109,
 	"claude-3-5-sonnet": 166,
-	"deepseek-v3":       205,
-	"deepseek-r1":       206,
+	"deepseek-chat":     205,
+	"deepseek-reasoner": 206,
+	"gpt4-o3-mini":      207,
+	"gemini-2.0-flash":  184,
 }
 
 func fetch(ctx context.Context, env *env.Environment, buffer []byte) (response *http.Response, err error) {

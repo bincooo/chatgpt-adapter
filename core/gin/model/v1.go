@@ -54,15 +54,17 @@ type Response struct {
 type Choice struct {
 	Index   int `json:"index"`
 	Message *struct {
-		Role    string `json:"role,omitempty"`
-		Content string `json:"content,omitempty"`
+		Role             string `json:"role,omitempty"`
+		Content          string `json:"content,omitempty"`
+		ReasoningContent string `json:"reasoning_content,omitempty"`
 
 		ToolCalls []Keyv[interface{}] `json:"tool_calls,omitempty"`
 	} `json:"message,omitempty"`
 	Delta *struct {
-		Type    string `json:"type,omitempty"`
-		Role    string `json:"role,omitempty"`
-		Content string `json:"content,omitempty"`
+		Type             string `json:"type,omitempty"`
+		Role             string `json:"role,omitempty"`
+		Content          string `json:"content,omitempty"`
+		ReasoningContent string `json:"reasoning_content,omitempty"`
 
 		ToolCalls []Keyv[interface{}] `json:"tool_calls,omitempty"`
 	} `json:"delta,omitempty"`

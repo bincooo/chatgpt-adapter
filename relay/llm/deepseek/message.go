@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"chatgpt-adapter/core/gin/model"
 	"encoding/json"
+	"github.com/iocgo/sdk/env"
 	"io"
 	"net/http"
 	"time"
@@ -76,6 +77,8 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
+	thinkReason := env.Env.GetBool("server.think_reason")
+	reasoningContent := ""
 
 	var (
 		matchers = common.GetGinMatchers(ctx)
@@ -123,18 +126,31 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 		delta := res.Choices[0].Delta
 		if delta.Type == "thinking" {
-			if think == 0 {
+			if thinkReason {
+				delta.ReasoningContent = delta.Content
+				reasoningContent += delta.Content
+				delta.Content = ""
+				think = 1
+			} else if think == 0 {
 				think = 1
 				delta.Content = "<think>\n" + delta.Content
 			}
 		} else {
-			if think == 1 {
+			if thinkReason {
+				think = 2
+			} else if think == 1 {
 				think = 2
 				delta.Content = "\n</think>\n" + delta.Content
 			}
 		}
 
 		raw := delta.Content
+		if thinkReason && think == 1 {
+			logger.Debug("----- think raw -----")
+			logger.Debug(delta.ReasoningContent)
+			goto label
+		}
+
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
 
@@ -143,12 +159,13 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			continue
 		}
 
+	label:
 		if raw == response.EOF {
 			break
 		}
 
 		if sse {
-			response.SSEResponse(ctx, Model, raw, created)
+			response.ReasonSSEResponse(ctx, Model, raw, delta.ReasoningContent, created)
 		}
 		content += raw
 	}
@@ -156,9 +173,9 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	if content == "" && response.NotSSEHeader(ctx) {
 		return
 	}
-	ctx.Set(vars.GinCompletionUsage, response.CalcUsageTokens(content, tokens))
+	ctx.Set(vars.GinCompletionUsage, response.CalcUsageTokens(reasoningContent+content, tokens))
 	if !sse {
-		response.Response(ctx, Model, content)
+		response.ReasonResponse(ctx, Model, content, reasoningContent)
 	} else {
 		response.SSEResponse(ctx, Model, "[DONE]", created)
 	}

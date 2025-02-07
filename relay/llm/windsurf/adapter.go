@@ -34,10 +34,7 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 }
 
 func (*api) Models() (slice []model.Model) {
-	for _, mod := range []string{
-		"claude-3-5-sonnet",
-		"gpt4o",
-	} {
+	for mod := range mapModel {
 		slice = append(slice, model.Model{
 			Id:      Model + "/" + mod,
 			Object:  "model",

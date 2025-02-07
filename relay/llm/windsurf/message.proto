@@ -92,11 +92,12 @@ message ResMessage {
     int32 unknown_field5 = 5;
   }
 
+  // 找不到think标记的字段？？
   string id = 1;
   Unknown_Field2 unknown_field2 = 2;
   string message = 3;
-  int32 unknown_field4 = 4;
-  int32 unknown_field5 = 5;
+  uint32 count_token = 4;
+  uint32 unknown_field5 = 5;
   Tokens tokens = 7;
 
 }
