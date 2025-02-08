@@ -5,6 +5,7 @@ server:
   port: 8080
   proxied: http://127.0.0.1:7890
   password: 'xxx'
+  think_reason: true
   debug: false
 
 browser-less:
@@ -13,8 +14,6 @@ browser-less:
   #reversal: http://127.0.0.1:8081
   disabled-gpu: true
   headless: new
-
-specialized: false
 
 matcher:
   - match: I do not engage
@@ -37,6 +36,8 @@ matcher:
 
 `password` 访问密码，也可通过全局变量`PASSWORD`配置。对 `coze`、`you` 等这些cookie配置化的ai有效，对需要传 `authorization` 的ai无效
 
+`think_reason` deepseek模型响应兼容reasoning_content字段
+
 ### browser-less 浏览器自动化配置
 
 `enabled` 是否开启
@@ -48,10 +49,6 @@ matcher:
 `disabled-gpu` 关闭gpu加速
 
 `headless` 无头模式：true / false / new
-
-### specialized 上下文特化处理
-
-略....
 
 ### matcher 响应token过滤器
 
