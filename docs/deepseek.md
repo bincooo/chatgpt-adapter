@@ -12,13 +12,9 @@ deepseek:
 
 `cookie`: 浏览器cookie ，主要包含cf_clearance参数
 
-
-
 中国地区不需要配置以上信息。
 
 海外地区出现403可尝试配置，要求你在浏览器中捉取`userAgent`、`cookie`时与你搭建本服务的IP始终一致！否则过盾失败！！！
-
-
 
 ## 模型列表
 
@@ -32,6 +28,21 @@ deepseek:
 ## 请求示例
 
 `authorization`: 在浏览器中请求体携带的头部`Authorization`
+
+脚本获取：
+
+```js
+var token = localStorage.getItem('userToken');
+if (token) {
+    var obj = JSON.parse(token);
+    var value = obj.value;
+    console.log(value);
+} else {
+    console.log('没有找到userToken')
+}
+```
+
+对话示例：
 
 ```shell
 curl -i -X POST \
