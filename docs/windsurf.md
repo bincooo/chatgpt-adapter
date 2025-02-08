@@ -9,7 +9,11 @@
 ```json
 [
     "windsurf/claude-3-5-sonnet",
-    "windsurf/gpt4o"
+    "windsurf/gpt4o",
+    "windsurf/deepseek-chat",
+    "windsurf/deepseek-reasoner",
+    "windsurf/gpt4-o3-mini",
+    "windsurf/gemini-2.0-flash",
 ]
 ```
 
