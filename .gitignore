@@ -32,6 +32,7 @@ internal/gin.handler/3rd.go
 cookies.txt
 config.yaml
 package-lock.json
+CHANGELOG.md
 
 # osx system
 .DS_Store

@@ -3,6 +3,7 @@ package deepseek
 import (
 	"bytes"
 	"chatgpt-adapter/core/common"
+	"chatgpt-adapter/core/common/inited"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
@@ -14,10 +15,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk/env"
 	"net/http"
+	"strings"
 	"time"
 )
 
-const (
+var (
 	userAgent  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1.1 Safari/605.1.15"
 	calcServer = "https://wik5ez2o-helper.hf.space"
 )
@@ -34,6 +36,34 @@ const (
 //	wasmInstance = inst
 //}
 
+var (
+	// 尝试过盾
+	cookies = ""
+)
+
+func init() {
+	inited.AddInitialized(func(env *env.Environment) {
+		_userAgent := env.GetString("deepseek.userAgent")
+		if _userAgent != "" {
+			userAgent = _userAgent
+		}
+
+		cookies = env.GetString("deepseek.cookie")
+		if cookies != "" {
+			split := strings.Split(cookies, "; ")
+			result := make([]string, 0)
+			for _, cookie := range split {
+				if strings.HasPrefix(cookie, "cf_clearance=") ||
+					strings.HasPrefix(cookie, "__cf_bm=") ||
+					strings.HasPrefix(cookie, "_cfuvid=") {
+					result = append(result, cookie)
+				}
+			}
+			cookies = strings.Join(result, "; ")
+		}
+	})
+}
+
 type deepseekRequest struct {
 	ChatSessionId   string `json:"chat_session_id"`
 	ParentMessageId *int   `json:"parent_message_id"`
@@ -49,6 +79,7 @@ func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest)
 		Proxies(proxied).
 		POST("https://chat.deepseek.com/api/v0/chat/create_pow_challenge").
 		JSONHeader().
+		Ja3().
 		Header("authorization", "Bearer "+cookie).
 		Header("referer", "https://chat.deepseek.com/a/chat/").
 		Header("user-agent", userAgent).
@@ -56,6 +87,7 @@ func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest)
 		Header("x-client-locale", "zh_CN").
 		Header("x-client-platform", "web").
 		Header("x-client-version", "1.0.0-always").
+		Header(elseOf(cookies != "", "cookie"), cookies).
 		Body(map[string]interface{}{
 			"target_path": "/api/v0/chat/completion",
 		}).
@@ -110,6 +142,7 @@ func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest)
 		Proxies(proxied).
 		POST("https://chat.deepseek.com/api/v0/chat/completion").
 		JSONHeader().
+		Ja3().
 		Header("authorization", "Bearer "+cookie).
 		Header("origin", "https://chat.deepseek.com").
 		Header("referer", "https://chat.deepseek.com/").
@@ -119,6 +152,7 @@ func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest)
 		Header("x-client-platform", "web").
 		Header("x-client-version", "1.0.0-always").
 		Header("x-ds-pow-response", base64.RawStdEncoding.EncodeToString(buf)).
+		Header(elseOf(cookies != "", "cookie"), cookies).
 		Body(request).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
 	return
@@ -130,6 +164,7 @@ func deleteSession(ctx *gin.Context, env *env.Environment, sessionId string) {
 		Proxies(env.GetString("server.proxied")).
 		POST("https://chat.deepseek.com/api/v0/chat_session/delete").
 		JSONHeader().
+		Ja3().
 		Header("authorization", "Bearer "+ctx.GetString("token")).
 		Header("referer", "https://chat.deepseek.com/").
 		Header("user-agent", userAgent).
@@ -137,6 +172,7 @@ func deleteSession(ctx *gin.Context, env *env.Environment, sessionId string) {
 		Header("x-client-locale", "zh_CN").
 		Header("x-client-platform", "web").
 		Header("x-client-version", "1.0.0-always").
+		Header(elseOf(cookies != "", "cookie"), cookies).
 		Body(map[string]interface{}{
 			"chat_session_id": sessionId,
 		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
@@ -153,7 +189,7 @@ func calcAnswer(data map[string]interface{}) (num int, err error) {
 	challenge := data["challenge"].(string)
 	salt := fmt.Sprintf("%s_%d_", data["salt"], int(data["expire_at"].(float64)))
 	diff := int(data["difficulty"].(float64))
-	r, err := emit.ClientBuilder(common.HTTPClient).
+	r, err := emit.ClientBuilder(common.NopHTTPClient).
 		Context(timeout).
 		POST(calcServer+"/ds").
 		JSONHeader().
@@ -274,6 +310,7 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 		Proxies(env.GetString("server.proxied")).
 		POST("https://chat.deepseek.com/api/v0/chat_session/create").
 		JSONHeader().
+		Ja3().
 		Header("authorization", "Bearer "+ctx.GetString("token")).
 		Header("referer", "https://chat.deepseek.com/").
 		Header("user-agent", userAgent).
@@ -281,6 +318,7 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 		Header("x-client-locale", "zh_CN").
 		Header("x-client-platform", "web").
 		Header("x-client-version", "1.0.0-always").
+		Header(elseOf(cookies != "", "cookie"), cookies).
 		Body(map[string]interface{}{
 			"character_id": nil,
 		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
@@ -333,4 +371,11 @@ label:
 		Message: contentBuffer.String(),
 	}
 	return
+}
+
+func elseOf[T any](condition bool, t T) (zero T) {
+	if condition {
+		return t
+	}
+	return zero
 }
