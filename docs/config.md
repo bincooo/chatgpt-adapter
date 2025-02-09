@@ -24,8 +24,9 @@ matcher:
   - match: <thinking>
     over: </thinking>
     notice:
+    think_reason: true
     regex: |
-      "(?s)<thinking>.+</thinking>":""
+      "(?s)<thinking>(.+)</thinking>":"$1"
 ```
 
 ### server 服务配置
@@ -57,5 +58,7 @@ matcher:
 `over` 字符块结束匹配
 
 `notice` 字符块起始匹配成功会响应制定字符串给前端，为空则忽略
+
+`think_reason` 开启思考格式
 
 `regex` 匹配成功后的内容正则处理： "regex": "$1"
