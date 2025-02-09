@@ -26,20 +26,33 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	if len(model) <= 7 || Model+"/" != model[:7] {
 		return
 	}
-	for _, mod := range []string{
-		"claude-3-5-sonnet-20241022",
-		"claude-3-opus",
-		"claude-3.5-haiku",
+	slice := api.env.GetStringSlice("cursor.model")
+	for _, mod := range append(slice, []string{
 		"claude-3.5-sonnet",
+		"gpt-4",
+		"gpt-4o",
+		"claude-3-opus",
+		"cursor-fast",
 		"cursor-small",
 		"gpt-3.5-turbo",
-		"gpt-4",
 		"gpt-4-turbo-2024-04-09",
-		"gpt-4o",
+		"gpt-4o-128k",
+		"gemini-1.5-flash-500k",
+		"claude-3-haiku-200k",
+		"claude-3-5-sonnet-200k",
+		"claude-3-5-sonnet-20241022",
 		"gpt-4o-mini",
 		"o1-mini",
-		"o1-prevew",
-	} {
+		"o1-preview",
+		"o1",
+		"claude-3.5-haiku",
+		"gemini-exp-1206",
+		"gemini-2.0-flash-thinking-exp",
+		"gemini-2.0-flash-exp",
+		"deepseek-v3",
+		"deepseek-r1",
+		"o3-mini",
+	}...) {
 		if model[7:] == mod {
 			ok = true
 			return
@@ -48,21 +61,33 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	return
 }
 
-func (*api) Models() (slice []model.Model) {
-	for _, mod := range []string{
-		"claude-3-5-sonnet-20241022",
-		"claude-3-opus",
-		"claude-3.5-haiku",
+func (api *api) Models() (slice []model.Model) {
+	for _, mod := range append(api.env.GetStringSlice("cursor.model"), []string{
 		"claude-3.5-sonnet",
+		"gpt-4",
+		"gpt-4o",
+		"claude-3-opus",
+		"cursor-fast",
 		"cursor-small",
 		"gpt-3.5-turbo",
-		"gpt-4",
 		"gpt-4-turbo-2024-04-09",
-		"gpt-4o",
+		"gpt-4o-128k",
+		"gemini-1.5-flash-500k",
+		"claude-3-haiku-200k",
+		"claude-3-5-sonnet-200k",
+		"claude-3-5-sonnet-20241022",
 		"gpt-4o-mini",
 		"o1-mini",
-		"o1-prevew",
-	} {
+		"o1-preview",
+		"o1",
+		"claude-3.5-haiku",
+		"gemini-exp-1206",
+		"gemini-2.0-flash-thinking-exp",
+		"gemini-2.0-flash-exp",
+		"deepseek-v3",
+		"deepseek-r1",
+		"o3-mini",
+	}...) {
 		slice = append(slice, model.Model{
 			Id:      Model + "/" + mod,
 			Object:  "model",
