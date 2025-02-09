@@ -4,4 +4,23 @@
 
 > 集成了openai-api、coze、claude、cursor、windsurf、blackbox、you、bing  绘画 多款AI的聊天逆向接口适配到 OpenAI API 标准接口服务端。
 
-[github](https://github.com/bincooo/chatgpt-adapter)
+[github ChatGPT-Adapter](https://github.com/bincooo/chatgpt-adapter/#/quickstart)
+
+
+
+具体配置请 [查阅文档](https://bincooo.github.io/chatgpt-adapter/#/quickstart)  
+
+
+
+支持高速流式输出、支持多轮对话，与ChatGPT接口完全兼容。  
+
+使用本项目，可享用以下内容转v1接口：  
+
+- [字节coze国际版](https://www.coze.com)  
+- [new bing copilot](https://copilot.microsoft.com)  
+- [cursor editor](https://www.cursor.com)  
+- [windsurf editor](https://codeium.com)  
+- [deepseek](https://www.deepseek.com)  
+- [Chatbot Arena LMSYS](https://lmarena.ai)  
+- [you](https://you.com)  
+- [huggingface 绘图](https://huggingface.io)
