@@ -14,4 +14,5 @@ var (
 	GinCozeWebsdk      = "__coze_websdk__"
 	GinCancelFunc      = "__cancelFunc__"
 	GinClaudeMessages  = "__claude_messages__"
+	GinThinkReason     = "__think_reason__"
 )

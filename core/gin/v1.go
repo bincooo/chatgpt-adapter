@@ -45,9 +45,12 @@ func (h *Handler) completions(gtx *gin.Context) {
 
 	gtx.Set(vars.GinCompletion, completion)
 	logger.Infof("curr model: %s", completion.Model)
-	gtx.Set(vars.GinMatchers, response.NewMatchers(gtx, func(str string) {
-		if completion.Stream {
+	gtx.Set(vars.GinMatchers, response.NewMatchers(gtx, func(t byte, str string) {
+		if completion.Stream && t == 0 {
 			response.SSEResponse(gtx, "matcher", str, time.Now().Unix())
+		}
+		if completion.Stream && t == 1 {
+			response.ReasonSSEResponse(gtx, "matcher", "", str, time.Now().Unix())
 		}
 	}))
 

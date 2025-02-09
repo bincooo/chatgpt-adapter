@@ -2,6 +2,7 @@ package response
 
 import (
 	"chatgpt-adapter/core/common"
+	"chatgpt-adapter/core/common/vars"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"sync"
@@ -21,15 +22,16 @@ const (
 )
 
 var (
-	globalMatchers func(cb func(str string)) []inter.Matcher
+	globalMatchers func(gtx *gin.Context, cb func(t byte, str string)) []inter.Matcher
 )
 
 type obj struct {
-	Match  string `mapstructure:"match"`
-	Over   string `mapstructure:"over"`
-	Notice string `mapstructure:"notice"`
-	Regex  string `mapstructure:"regex"`
-	Max    int    `mapstructure:"max"`
+	Match       string `mapstructure:"match"`
+	Over        string `mapstructure:"over"`
+	Notice      string `mapstructure:"notice"`
+	Regex       string `mapstructure:"regex"`
+	ThinkReason bool   `mapstructure:"think_reason"`
+	Max         int    `mapstructure:"max"`
 }
 
 // 字符块匹配器，只向后匹配
@@ -58,7 +60,7 @@ func initMatchers(objs []obj) {
 		return
 	}
 
-	globalMatchers = func(cb func(str string)) (matchers []inter.Matcher) {
+	globalMatchers = func(gtx *gin.Context, cb func(t byte, str string)) (matchers []inter.Matcher) {
 		for i, o := range objs {
 			match, over := o.Match, o.Over
 			maxLen := o.Max
@@ -83,7 +85,7 @@ func initMatchers(objs []obj) {
 			var matcher *symbolMatcher
 			onceExec := sync.OnceFunc(func() {
 				if o.Notice != "" {
-					cb(o.Notice)
+					cb(0, o.Notice)
 				}
 			})
 
@@ -108,6 +110,12 @@ func initMatchers(objs []obj) {
 
 					logger.Infof("execute matcher[%s] content:\n%s", matcher.Find, content)
 					result, err = c.Replace(content, replacement, 0, 1)
+					if o.ThinkReason && content != "" {
+						gtx.Set(vars.GinThinkReason, result)
+						cb(1, result)
+						return MatMatched, cache, ""
+					}
+
 					if err != nil {
 						logger.Warn("compile failed: "+regex, err)
 						return MatMatched, cache, content
@@ -121,10 +129,10 @@ func initMatchers(objs []obj) {
 	}
 }
 
-func NewMatchers(ctx *gin.Context, cb func(str string)) (slice []inter.Matcher) {
+func NewMatchers(ctx *gin.Context, cb func(t byte, str string)) (slice []inter.Matcher) {
 	slice = make([]inter.Matcher, 0)
 	if globalMatchers != nil {
-		slice = append(slice, globalMatchers(cb)...)
+		slice = append(slice, globalMatchers(ctx, cb)...)
 	}
 	slice = append(slice, newCancel(ctx)...)
 	return
@@ -137,14 +145,15 @@ func newCancel(ctx *gin.Context) (slice []inter.Matcher) {
 
 	completion := common.GetGinCompletion(ctx)
 	sequences := completion.StopSequences
+	if IsDeepseek(completion.Model) {
+		sequences = append(sequences, strings.TrimSpace(deepseekEnd("assistant")))
+	}
 
 	once := true
 	for _, match := range append(sequences,
 		convertRole1,
 		convertRole2,
 		convertRole3,
-		"H:",
-		"A:",
 	) {
 		match = strings.TrimSpace(match)
 		if match == "" {
@@ -154,7 +163,7 @@ func newCancel(ctx *gin.Context) (slice []inter.Matcher) {
 		slice = append(slice, &symbolMatcher{
 			Find: match,
 			H: func(index int, content string) (state int, cache, result string) {
-				if once && match == convertRole1 {
+				if once && (match == strings.TrimSpace(convertRole3)) {
 					once = false
 					state = MatMatched
 					result = strings.Replace(content, match, "", -1)

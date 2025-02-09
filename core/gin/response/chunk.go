@@ -97,6 +97,10 @@ func Response(ctx *gin.Context, mod, content string) {
 }
 
 func ReasonResponse(ctx *gin.Context, mod, content, reasoningContent string) {
+	if reasoningContent == "" {
+		reasoningContent = ctx.GetString(vars.GinThinkReason)
+	}
+
 	ctx.Set(canResponse, "No!")
 	created := time.Now().Unix()
 	usage := common.GetGinCompletionUsage(ctx)
@@ -175,52 +179,57 @@ func ReasonSSEResponse(ctx *gin.Context, mod, content, reasoningContent string, 
 	}
 
 	if reasoningContent != "" {
-		response := model.Response{
-			Model:   mod,
-			Created: created,
-			Id:      fmt.Sprintf("chatcmpl-%d", created),
-			Object:  "chat.completion.chunk",
-			Choices: []model.Choice{
-				{
-					Index: 0,
-					Delta: &struct {
-						Type             string `json:"type,omitempty"`
-						Role             string `json:"role,omitempty"`
-						Content          string `json:"content,omitempty"`
-						ReasoningContent string `json:"reasoning_content,omitempty"`
+		splitEach(reasoningContent, func(value string) {
+			response := model.Response{
+				Model:   mod,
+				Created: created,
+				Id:      fmt.Sprintf("chatcmpl-%d", created),
+				Object:  "chat.completion.chunk",
+				Choices: []model.Choice{
+					{
+						Index: 0,
+						Delta: &struct {
+							Type             string `json:"type,omitempty"`
+							Role             string `json:"role,omitempty"`
+							Content          string `json:"content,omitempty"`
+							ReasoningContent string `json:"reasoning_content,omitempty"`
 
-						ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
-					}{"text", "assistant", "", reasoningContent, nil},
+							ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
+						}{"text", "assistant", "", value, nil},
+					},
 				},
-			},
-		}
+			}
 
-		Event(ctx, "", response)
+			Event(ctx, "", response)
+		})
+
 		goto label
 	}
 
-	for _, char := range []rune(content) {
-		response := model.Response{
-			Model:   mod,
-			Created: created,
-			Id:      fmt.Sprintf("chatcmpl-%d", created),
-			Object:  "chat.completion.chunk",
-			Choices: []model.Choice{
-				{
-					Index: 0,
-					Delta: &struct {
-						Type             string `json:"type,omitempty"`
-						Role             string `json:"role,omitempty"`
-						Content          string `json:"content,omitempty"`
-						ReasoningContent string `json:"reasoning_content,omitempty"`
+	if content != "" {
+		splitEach(content, func(value string) {
+			response := model.Response{
+				Model:   mod,
+				Created: created,
+				Id:      fmt.Sprintf("chatcmpl-%d", created),
+				Object:  "chat.completion.chunk",
+				Choices: []model.Choice{
+					{
+						Index: 0,
+						Delta: &struct {
+							Type             string `json:"type,omitempty"`
+							Role             string `json:"role,omitempty"`
+							Content          string `json:"content,omitempty"`
+							ReasoningContent string `json:"reasoning_content,omitempty"`
 
-						ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
-					}{"text", "assistant", string(char), "", nil},
+							ToolCalls []model.Keyv[interface{}] `json:"tool_calls,omitempty"`
+						}{"text", "assistant", value, "", nil},
+					},
 				},
-			},
-		}
+			}
 
-		Event(ctx, "", response)
+			Event(ctx, "", response)
+		})
 	}
 
 label:
@@ -415,6 +424,23 @@ func Event(ctx *gin.Context, event string, data interface{}) {
 		return
 	}
 	w.Flush()
+}
+
+func splitEach(content string, cb func(value string)) {
+	pos := 0
+	runeStr := []rune(content)
+	step := 1000
+
+	for {
+		contentL := len(runeStr[pos:])
+		if contentL > step {
+			cb(string(runeStr[pos : pos+step]))
+			pos += step
+			continue
+		}
+		cb(string(runeStr[pos:]))
+		break
+	}
 }
 
 func hex(n int) string {
