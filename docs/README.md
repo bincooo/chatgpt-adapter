@@ -6,11 +6,7 @@
 
 [github ChatGPT-Adapter](https://github.com/bincooo/chatgpt-adapter/#/quickstart)
 
-
-
 具体配置请 [查阅文档](https://bincooo.github.io/chatgpt-adapter/#/quickstart)  
-
-
 
 支持高速流式输出、支持多轮对话，与ChatGPT接口完全兼容。  
 
