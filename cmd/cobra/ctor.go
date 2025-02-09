@@ -10,7 +10,6 @@ import (
 	"github.com/iocgo/sdk/env"
 	"github.com/sirupsen/logrus"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -78,7 +77,7 @@ func (rc *RootCommand) Run(cmd *cobra.Command, args []string) {
 	inited.Initialized(rc.env)
 
 	// gin
-	addr := ":" + strconv.Itoa(rc.Port)
+	addr := ":" + rc.env.GetString("server.port")
 	println("Listening and serving HTTP on 0.0.0.0" + addr)
 	if err := rc.engine.Run(addr); err != nil {
 		panic(err)
@@ -86,7 +85,7 @@ func (rc *RootCommand) Run(cmd *cobra.Command, args []string) {
 }
 
 func Initialized(rc *RootCommand) {
-	if rc.Port != 0 {
+	if rc.Port != 8080 {
 		rc.env.Set("server.port", rc.Port)
 	}
 	if rc.Proxied != "" {
