@@ -1,5 +1,7 @@
 <h2 align="center">ChatGPT Adapter</h2>
-
+<div>
+该服务集成了openai-api、coze、deepseek、cursor、windsurf、blackbox、you、bing 绘画 多款AI的聊天逆向接口适配到 OpenAI API 标准接口服务端。
+</div>
 
 ![image](https://github.com/user-attachments/assets/93be2041-8ebc-466a-9fd4-939f4f9082f2)
 
