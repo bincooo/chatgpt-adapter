@@ -62,8 +62,24 @@ message ChatMessage {
     string value = 1;
   }
 
+  message Unknown_Field9 {
+    message Data {
+        uint32 unknown_field1 = 1; //
+        string value3 = 3;
+        string value5 = 5;
+      uint32 unknown_field6 = 6;   // 1
+        uint32 unknown_field7 = 7; // 2
+    }
+    Data value = 6;
+  }
+
   message Unknown_Field13 {
     uint32 value = 1;
+  }
+
+  message Unknown_Field15 {
+    string uuid = 1;
+    uint32 value = 2;
   }
 
   Schema schema = 1;
@@ -72,9 +88,12 @@ message ChatMessage {
   uint32 model = 6; // 模型 ？？ 109: gpt4o 166:claude3.5sonnet
   uint32 unknown_field7 = 7;
   Config config = 8;
+  repeated Unknown_Field9 unknown_field9 = 9; // deepseek需要
   repeated Tool tools = 10;
   ToolChoice choice = 12;
   Unknown_Field13 unknown_field13 = 13;
+  Unknown_Field15 unknown_field15 = 15;
+  string uuid = 16;
 }
 
 message ResMessage {
