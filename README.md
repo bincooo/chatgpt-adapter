@@ -83,7 +83,7 @@ WantedBy=multi-user.target
 ### 其它 ...
 看到有不少朋友似乎对逆向爬虫十分感兴趣，那我这里就浅谈一下个人的一点小经验吧
 
-- 爬虫逆向之 [new bing copilot篇](#105)
+- 爬虫逆向之 [new bing copilot篇](https://github.com/bincooo/chatgpt-adapter/discussions/105)
 - 爬虫逆向之 [coze.com 国际版]()
 - 爬虫逆向之 [cursor & windsurf]()
 
