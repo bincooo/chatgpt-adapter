@@ -99,7 +99,7 @@ func checkUsage(ctx *gin.Context, env *env.Environment, max int) (count int, err
 
 	user := ""
 	if strings.Contains(cookie, "::") {
-		cookie = strings.Split(cookie, "::")[0]
+		user = strings.Split(cookie, "::")[0]
 	}
 	response, err := emit.ClientBuilder(common.HTTPClient).
 		Context(ctx.Request.Context()).
@@ -129,8 +129,10 @@ func checkUsage(ctx *gin.Context, env *env.Environment, max int) (count int, err
 		}
 
 		i := value["numRequests"].(float64)
-		count -= int(i)
+		count += int(i)
 	}
+
+	count = max - count
 	return
 }
 
