@@ -1,7 +1,9 @@
+<h2 align="center">ChatGPT Adapter</h2>
+------------------------------------
 
 ![image](https://github.com/user-attachments/assets/93be2041-8ebc-466a-9fd4-939f4f9082f2)
 
-具体配置请 [查阅文档](https://bincooo.github.io/chatgpt-adapter)
+具体配置请 » [查阅文档](https://bincooo.github.io/chatgpt-adapter) »
 
 支持高速流式输出、支持多轮对话，与ChatGPT接口完全兼容。
 
@@ -15,6 +17,8 @@
  - [Chatbot Arena LMSYS](https://lmarena.ai)
  - [you](https://you.com)
  - [huggingface 绘图](https://huggingface.io)
+
+![image](https://github.com/user-attachments/assets/1edf6efe-028c-4ec8-a7c4-a3c4fc2753d8)
 
 ### 执行前置
 
@@ -75,6 +79,13 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 ```
+
+### 其它 ...
+看到有不少朋友似乎对逆向爬虫十分感兴趣，那我这里就浅谈一下个人的一点小经验吧
+
+- 爬虫逆向之 [new bing copilot篇](#105)
+- 爬虫逆向之 [coze.com 国际版]()
+- 爬虫逆向之 [cursor & windsurf]()
 
 ## 特别声明
 > 本仓库发布的程序代码及其中涉及的任何解锁和解密分析脚本，仅用于测试和学习研究，禁止用于商业用途，不能保证其合法性，准确性，完整性和有效性，请根据情况自行判断。
