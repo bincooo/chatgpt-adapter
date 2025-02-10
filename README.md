@@ -1,5 +1,5 @@
 <h2 align="center">ChatGPT Adapter</h2>
----
+
 
 ![image](https://github.com/user-attachments/assets/93be2041-8ebc-466a-9fd4-939f4f9082f2)
 
