@@ -56,7 +56,12 @@ func toolChoice(ctx *gin.Context, completion model.Completion) bool {
 
 		challenge := ""
 	label:
-		buffer, err := edge.Chat(elseOf(proxied, common.HTTPClient, common.NopHTTPClient), ctx.Request.Context(), accessToken, conversationId, challenge, "", message, "")
+		buffer, err := edge.Chat(elseOf(proxied, common.HTTPClient, common.NopHTTPClient),
+			ctx.Request.Context(),
+			accessToken,
+			conversationId,
+			challenge, "", message, "",
+			elseOf[byte](completion.Model == Model, 0, 1))
 		if err != nil {
 			if challenge == "" && err.Error() == "challenge" {
 				challenge, err = hookCloudflare()

@@ -87,7 +87,7 @@ WantedBy=multi-user.target
 
 - 爬虫逆向之 [ja3 指纹篇](https://github.com/bincooo/chatgpt-adapter/discussions/106)
 - 爬虫逆向之 [new bing copilot篇](https://github.com/bincooo/chatgpt-adapter/discussions/105)
-- 爬虫逆向之 [cursor & windsurf (proto+gzip)篇](https://github.com/bincooo/chatgpt-adapter/discussions/107)
+- 爬虫逆向之 [cursor & windsurf (protobuf+gzip)篇](https://github.com/bincooo/chatgpt-adapter/discussions/107)
 
 ## 特别声明
 > 本仓库发布的程序代码及其中涉及的任何解锁和解密分析脚本，仅用于测试和学习研究，禁止用于商业用途，不能保证其合法性，准确性，完整性和有效性，请根据情况自行判断。

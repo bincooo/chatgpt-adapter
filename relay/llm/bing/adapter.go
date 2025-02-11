@@ -35,7 +35,7 @@ type api struct {
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	var token = ctx.GetString("token")
-	ok = Model == model
+	ok = Model == model || model == Model+"-reason"
 	if ok {
 		password := api.env.GetString("server.password")
 		if password != "" && password != token {
@@ -49,6 +49,12 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 func (*api) Models() (slice []model.Model) {
 	slice = append(slice, model.Model{
 		Id:      Model,
+		Object:  "model",
+		Created: 1686935002,
+		By:      Model + "-adapter",
+	})
+	slice = append(slice, model.Model{
+		Id:      Model + "-reason",
 		Object:  "model",
 		Created: 1686935002,
 		By:      Model + "-adapter",
@@ -114,7 +120,7 @@ label:
 		conversationId,
 		challenge,
 		content,
-		elseOf(query == "", "读取内容并以[\n\nAi:]角色继续回复", query), attr)
+		elseOf(query == "", "读取内容并以[\n\nAi:]角色继续回复", query), attr, elseOf[byte](completion.Model == Model, 0, 1))
 	if err != nil {
 		if challenge == "" && err.Error() == "challenge" {
 			challenge, err = hookCloudflare()
