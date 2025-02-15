@@ -14,6 +14,8 @@ import (
 	"github.com/iocgo/sdk"
 )
 
+const ginTokens = "__tokens__"
+
 // @Router()
 type Handler struct{ extensions []inter.Adapter }
 
@@ -75,6 +77,10 @@ func (h *Handler) completions(gtx *gin.Context) {
 			return
 		}
 
+		if gtx.GetInt(ginTokens) == 0 {
+			calcTokens(gtx, messages)
+		}
+
 		completion.Messages = messages
 		gtx.Set(vars.GinCompletion, completion)
 
@@ -94,6 +100,18 @@ func (h *Handler) completions(gtx *gin.Context) {
 		return
 	}
 	response.Error(gtx, -1, fmt.Sprintf("model '%s' is not not yet supported", completion.Model))
+}
+
+func calcTokens(gtx *gin.Context, messages []model.Keyv[interface{}]) {
+	tokens := 0
+	for _, message := range messages {
+		if !message.IsString("content") {
+			continue
+		}
+		value := message.GetString("content")
+		tokens += response.CalcTokens(value)
+	}
+	gtx.Set(ginTokens, tokens)
 }
 
 // @POST(path = "
