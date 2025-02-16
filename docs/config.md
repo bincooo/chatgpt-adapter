@@ -15,6 +15,14 @@ browser-less:
   disabled-gpu: true
   headless: new
 
+custom-llm:
+  - prefix: custom
+    proxied: true
+    reversal: https://models.inference.ai.azure.com
+  - prefix: grok
+    proxied: true
+    reversal: https://api.x.ai/v1
+
 matcher:
   - match: I do not engage
     over: ":\n"
@@ -50,6 +58,10 @@ matcher:
 `disabled-gpu` 关闭gpu加速
 
 `headless` 无头模式：true / false / new
+
+### custom-llm 自定义v1桥接
+`prefix` 模型前缀 - `${prefix}/gpt4o`
+`reversal` llm目标地址
 
 ### matcher 响应token过滤器
 
