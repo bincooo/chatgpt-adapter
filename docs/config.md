@@ -60,7 +60,9 @@ matcher:
 `headless` 无头模式：true / false / new
 
 ### custom-llm 自定义v1桥接
+
 `prefix` 模型前缀 - `${prefix}/gpt4o`
+
 `reversal` llm目标地址
 
 ### matcher 响应token过滤器
