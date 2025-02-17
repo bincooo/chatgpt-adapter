@@ -81,6 +81,10 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) (content
 			continue
 		}
 
+		if raw == response.EOF {
+			break
+		}
+
 		if sse && len(raw) > 0 {
 			response.SSEResponse(ctx, Model, raw, created)
 		}

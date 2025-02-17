@@ -23,10 +23,6 @@ import (
 	"time"
 )
 
-var (
-	g_checksum = ""
-)
-
 func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte) (response *http.Response, err error) {
 	count, err := checkUsage(ctx, env, 150)
 	if err != nil {

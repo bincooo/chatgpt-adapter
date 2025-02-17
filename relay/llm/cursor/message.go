@@ -193,6 +193,10 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			continue
 		}
 
+		if raw == response.EOF {
+			break
+		}
+
 	label:
 		if sse {
 			response.ReasonSSEResponse(ctx, Model, raw, reasonContent, created)

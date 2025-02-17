@@ -172,6 +172,10 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			continue
 		}
 
+		if raw == response.EOF {
+			break
+		}
+
 		if !htc && toolId != "-1" {
 			toolCall = map[string]interface{}{
 				"name": toolId,
