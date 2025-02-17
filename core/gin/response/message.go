@@ -1,6 +1,7 @@
 package response
 
 import (
+	"chatgpt-adapter/core/gin/model"
 	"fmt"
 	"strings"
 
@@ -120,4 +121,13 @@ func IsClaude(ctx *gin.Context, model string) bool {
 	}
 
 	return isc
+}
+
+func ConvertToText(keyv interface{}) (s string) {
+	var kv model.Keyv[interface{}]
+	kv, ok := keyv.(map[string]interface{})
+	if !ok || !kv.Is("type", "text") {
+		return
+	}
+	return kv.GetString("text")
 }

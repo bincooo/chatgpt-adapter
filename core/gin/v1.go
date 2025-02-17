@@ -2,16 +2,15 @@ package gin
 
 import (
 	"chatgpt-adapter/core/common/toolcall"
-	"fmt"
-	"time"
-
 	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/inter"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk"
+	"time"
 )
 
 const ginTokens = "__tokens__"
@@ -47,15 +46,6 @@ func (h *Handler) completions(gtx *gin.Context) {
 
 	gtx.Set(vars.GinCompletion, completion)
 	logger.Infof("curr model: %s", completion.Model)
-	gtx.Set(vars.GinMatchers, response.NewMatchers(gtx, func(t byte, str string) {
-		if completion.Stream && t == 0 {
-			response.SSEResponse(gtx, "matcher", str, time.Now().Unix())
-		}
-		if completion.Stream && t == 1 {
-			response.ReasonSSEResponse(gtx, "matcher", "", str, time.Now().Unix())
-		}
-	}))
-
 	if !response.MessageValidator(gtx) {
 		return
 	}
@@ -69,6 +59,15 @@ func (h *Handler) completions(gtx *gin.Context) {
 		if !ok {
 			continue
 		}
+
+		gtx.Set(vars.GinMatchers, response.NewMatchers(gtx, func(t byte, str string) {
+			if completion.Stream && t == 0 {
+				response.SSEResponse(gtx, "matcher", str, time.Now().Unix())
+			}
+			if completion.Stream && t == 1 {
+				response.ReasonSSEResponse(gtx, "matcher", "", str, time.Now().Unix())
+			}
+		}))
 
 		messages, err := extension.HandleMessages(gtx, completion)
 		if err != nil {

@@ -2,12 +2,14 @@ package windsurf
 
 import (
 	"chatgpt-adapter/core/common"
+	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/inter"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk/env"
+	"strings"
 )
 
 var (
@@ -26,6 +28,11 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	}
 	for mod := range mapModel {
 		if model[9:] == mod {
+			if strings.HasPrefix(mod, "deepseek") {
+				completion := common.GetGinCompletion(ctx)
+				completion.StopSequences = append(completion.StopSequences, "<codebase_search>", "<write_to_file>")
+				ctx.Set(vars.GinCompletion, completion)
+			}
 			ok = true
 			return
 		}

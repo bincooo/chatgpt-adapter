@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
@@ -137,6 +138,10 @@ func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest)
 		return
 	}
 
+	retry := 3
+label:
+	retry--
+
 	response, err = emit.ClientBuilder(common.HTTPClient).
 		Context(ctx).
 		Proxies(proxied).
@@ -155,6 +160,13 @@ func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest)
 		Header(elseOf(cookies != "", "cookie"), cookies).
 		Body(request).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	if err != nil {
+		var busErr emit.Error
+		if errors.As(err, &busErr) && strings.Contains(busErr.Msg, "code\":40300,\"msg\":\"Missing Header") {
+			logger.Error(err)
+			goto label
+		}
+	}
 	return
 }
 

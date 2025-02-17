@@ -76,7 +76,7 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 		content := ""
 		if message.IsSlice("content") {
 			slice := stream.
-				Map(stream.OfSlice(message.GetSlice("content")), convertToText).
+				Map(stream.OfSlice(message.GetSlice("content")), response.ConvertToText).
 				Filter(func(k string) bool { return k != "" }).
 				ToSlice()
 			content = strings.Join(slice, "\n\n")
@@ -352,15 +352,6 @@ func newMessage() (chat ChatMessage, err error) {
 
 	err = proto.Unmarshal(chunk, &chat)
 	return
-}
-
-func convertToText(it interface{}) (s string) {
-	var kv model.Keyv[interface{}]
-	kv, ok := it.(map[string]interface{})
-	if !ok || !kv.Is("type", "text") {
-		return
-	}
-	return kv.GetString("text")
 }
 
 func genToken(ctx context.Context, proxies, ident string) (token string, err error) {

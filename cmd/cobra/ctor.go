@@ -85,7 +85,7 @@ func (rc *RootCommand) Run(cmd *cobra.Command, args []string) {
 }
 
 func Initialized(rc *RootCommand) {
-	if rc.Port != 8080 {
+	if rc.env.GetInt("server.port") == 0 {
 		rc.env.Set("server.port", rc.Port)
 	}
 	if rc.Proxied != "" {
