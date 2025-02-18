@@ -24,21 +24,26 @@ import (
 	"github.com/iocgo/sdk/stream"
 )
 
-var mapModel = map[string]uint32{
-	"gpt4o":             109,
-	"claude-3-5-sonnet": 166,
-	"deepseek-chat":     205,
-	"deepseek-reasoner": 206,
-	"gpt4-o3-mini":      207,
-	"gemini-2.0-flash":  184,
-}
+var (
+	mapModel = map[string]uint32{
+		"gpt4o":             109,
+		"claude-3-5-sonnet": 166,
+		"deepseek-chat":     205,
+		"deepseek-reasoner": 206,
+		"gpt4-o3-mini":      207,
+		"gemini-2.0-flash":  184,
+	}
+
+	ver1 = "1.36.1"
+	ver2 = "1.3.4"
+)
 
 func fetch(ctx context.Context, env *env.Environment, buffer []byte) (response *http.Response, err error) {
 	response, err = emit.ClientBuilder(common.HTTPClient).
 		Context(ctx).
 		Proxies(env.GetString("server.proxied")).
 		POST("https://server.codeium.com/exa.api_server_pb.ApiServerService/GetChatMessage").
-		Header("user-agent", "connect-go/1.16.2 (go1.23.2 X:nocoverageredesign)").
+		Header("user-agent", "connect-go/1.17.0 (go1.23.4 X:nocoverageredesign)").
 		Header("content-type", "application/connect+proto").
 		Header("connect-protocol-version", "1").
 		Header("accept-encoding", "identity").
@@ -51,10 +56,10 @@ func fetch(ctx context.Context, env *env.Environment, buffer []byte) (response *
 }
 
 func convertRequest(completion model.Completion, ident, token string) (buffer []byte, err error) {
-	if completion.MaxTokens == 0 {
+	if completion.MaxTokens == 0 || completion.MaxTokens > 8192 {
 		completion.MaxTokens = 8192
 	}
-	if completion.TopK == 0 {
+	if completion.TopK == 0 || completion.TopK > 200 {
 		completion.TopK = 200
 	}
 	if completion.TopP == 0 {
@@ -100,8 +105,8 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 			Name:     "windsurf",
 			Lang:     "en",
 			Os:       "{\"Os\":\"darwin\",\"Arch\":\"amd64\",\"Release\":\"24.3.0\",\"Version\":\"Darwin Kernel Version 24.3.0: Thu Jan 2 20:22:00 PST 2025; root:xnu-11215.81.4~3/RELEASE_X86_64\",\"Machine\":\"x86_64\",\"Nodename\":\"bincooos-iMac.local\",\"Sysname\":\"Darwin\",\"ProductVersion\":\"15.3\"}",
-			Version1: "11.36.1",
-			Version2: "1.2.6",
+			Version1: ver1,
+			Version2: ver2,
 			Equi:     "{\"NumSockets\":1,\"NumCores\":6,\"NumThreads\":12,\"VendorID\":\"GenuineIntel\",\"Family\":\"6\",\"Model\":\"158\",\"ModelName\":\"Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz\",\"Memory\":34359738368}",
 			Title:    "windsurf",
 			Token:    token,
@@ -364,8 +369,8 @@ func genToken(ctx context.Context, proxies, ident string) (token string, err err
 	jwt := &Jwt{
 		Args: &Jwt_Args{
 			Name:     "windsurf",
-			Version1: "1.30.6",
-			Version2: "11.0.0",
+			Version1: ver1,
+			Version2: ver2,
 			Ident:    ident,
 			Lang:     "en",
 		},
@@ -379,7 +384,7 @@ func genToken(ctx context.Context, proxies, ident string) (token string, err err
 		Context(ctx).
 		Proxies(proxies).
 		POST("https://server.codeium.com/exa.auth_pb.AuthService/GetUserJwt").
-		Header("user-agent", "connect-go/1.16.2 (go1.23.2 X:nocoverageredesign)").
+		Header("user-agent", "connect-go/1.17.0 (go1.23.4 X:nocoverageredesign)").
 		Header("content-type", "application/proto").
 		Header("connect-protocol-version", "1").
 		Header("accept-encoding", "identity").

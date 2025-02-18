@@ -81,11 +81,11 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 				continue
 			}
 
-			if marker.s == 0 { // 就绪状态
+			if marker.s == 0 || marker.s == 1 { // 0 就绪状态, 1 使用中
 				continue
 			}
 
-			// 1 使用中 2 异常冷却中
+			// 2 异常冷却中
 			if time.Now().Add(-resetTime).After(marker.t) {
 				marker.s = 0
 				logger.Infof("[%s] PollContainer 冷却完毕: %v", container.name, obj)

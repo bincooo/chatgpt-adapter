@@ -75,6 +75,9 @@ type deepseekRequest struct {
 }
 
 func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest) (response *http.Response, err error) {
+	retry := 3
+label:
+	retry--
 	response, err = emit.ClientBuilder(common.HTTPClient).
 		Context(ctx).
 		Proxies(proxied).
@@ -138,10 +141,6 @@ func fetch(ctx context.Context, proxied, cookie string, request deepseekRequest)
 		return
 	}
 
-	retry := 3
-label:
-	retry--
-
 	response, err = emit.ClientBuilder(common.HTTPClient).
 		Context(ctx).
 		Proxies(proxied).
@@ -163,8 +162,10 @@ label:
 	if err != nil {
 		var busErr emit.Error
 		if errors.As(err, &busErr) && strings.Contains(busErr.Msg, "code\":40300,\"msg\":\"Missing Header") {
-			logger.Error(err)
-			goto label
+			if retry > 0 {
+				logger.Error(err)
+				goto label
+			}
 		}
 	}
 	return
