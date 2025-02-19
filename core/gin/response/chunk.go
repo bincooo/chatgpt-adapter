@@ -2,7 +2,9 @@ package response
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/bincooo/emit.io"
 	"github.com/iocgo/sdk/env"
 	"math/rand"
 	"net/http"
@@ -29,6 +31,13 @@ var (
 		"completion_tokens": 0,
 		"prompt_tokens":     0,
 		"total_tokens":      0,
+	}
+
+	errorBlocksWith401 = []string{
+		"invalid api",
+		"invalid_api",
+		"invalid usage",
+		"permission_denied",
 	}
 )
 
@@ -61,11 +70,23 @@ func MessageValidator(ctx *gin.Context) bool {
 	return true
 }
 
+// one-api 重试机制
+//
+//	read to https://github.com/songquanpeng/one-api/blob/main/controller/relay.go#L105
+//	func shouldRetry(...)
+//	code 429 http.StatusTooManyRequests
+//	code 5xx
+//
+// one-api 自动关闭管道
+//
+//	https://github.com/songquanpeng/one-api/blob/main/controller/relay.go#L124
+//	func processChannelRelayError(...)
+//	code 401 http.StatusUnauthorized
+//	err.Type ...
+
 func Error(ctx *gin.Context, code int, err interface{}) {
 	ctx.Set(canResponse, "No!")
-	if code == -1 {
-		code = http.StatusInternalServerError
-	}
+	code = errorToCode(code, err)
 
 	if str, ok := err.(string); ok {
 		ctx.JSON(code, gin.H{
@@ -90,6 +111,40 @@ func Error(ctx *gin.Context, code int, err interface{}) {
 			"message": fmt.Sprintf("%v", err),
 		},
 	})
+}
+
+func errorToCode(code int, err interface{}) int {
+	var (
+		busErr emit.Error
+		msg    = ""
+	)
+
+	if code == -1 {
+		if e, ok := err.(error); ok {
+			if errors.As(e, &busErr) {
+				if busErr.Code == http.StatusUnauthorized {
+					code = http.StatusUnauthorized
+					goto label
+				}
+				msg = busErr.Msg
+			}
+
+			if msg == "" {
+				msg = e.Error()
+			}
+
+			for _, block := range errorBlocksWith401 {
+				if strings.Contains(msg, block) {
+					code = http.StatusUnauthorized
+					goto label
+				}
+			}
+		}
+
+		code = http.StatusInternalServerError
+	}
+label:
+	return code
 }
 
 func Response(ctx *gin.Context, mod, content string) {

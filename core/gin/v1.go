@@ -85,7 +85,7 @@ func (h *Handler) completions(gtx *gin.Context) {
 
 		if toolcall.NeedExec(gtx) {
 			if ok, err = extension.ToolChoice(gtx); err != nil {
-				response.Error(gtx, 500, err)
+				response.Error(gtx, -1, err)
 				return
 			}
 			if ok {
@@ -94,7 +94,7 @@ func (h *Handler) completions(gtx *gin.Context) {
 		}
 
 		if err = extension.Completion(gtx); err != nil {
-			response.Error(gtx, 500, err)
+			response.Error(gtx, -1, err)
 		}
 		return
 	}
@@ -137,7 +137,7 @@ func (h *Handler) embeddings(gtx *gin.Context) {
 		}
 		if ok {
 			if err = extension.Embedding(gtx); err != nil {
-				response.Error(gtx, 500, err)
+				response.Error(gtx, -1, err)
 			}
 			return
 		}
@@ -155,7 +155,7 @@ func (h *Handler) embeddings(gtx *gin.Context) {
 func (h *Handler) generations(gtx *gin.Context) {
 	var generation model.Generation
 	if err := gtx.BindJSON(&generation); err != nil {
-		response.Error(gtx, -1, err)
+		response.Error(gtx, 500, err)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *Handler) generations(gtx *gin.Context) {
 		}
 		if ok {
 			if err = extension.Generation(gtx); err != nil {
-				response.Error(gtx, 500, err)
+				response.Error(gtx, -1, err)
 			}
 			return
 		}

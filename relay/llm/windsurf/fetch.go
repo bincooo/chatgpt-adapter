@@ -133,7 +133,7 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 			FrequencyPenalty: 1.0,
 		},
 		// deepseek
-		UnknownField9: elseOf(strings.Contains(completion.Model[9:], "deepseek"), []*ChatMessage_Unknown_Field9{
+		UnknownField9: []*ChatMessage_Unknown_Field9{
 			//{
 			//	Value: &ChatMessage_Unknown_Field9_Data{
 			//		Value5:        "CONTEXT_DOCUMENT_OUTLINE",
@@ -256,7 +256,7 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 			//		UnknownField7: 2,
 			//	},
 			//},
-		}, nil),
+		},
 		// TODO - 就这样吧，有空再做兼容
 		Tools: []*ChatMessage_Tool{
 			//{
@@ -308,8 +308,8 @@ func convertRequest(completion model.Completion, ident, token string) (buffer []
 		},
 		Choice:         elseOf(strings.Contains(completion.Model[9:], "gpt"), &ChatMessage_ToolChoice{Value: "auto"}, nil),
 		UnknownField13: &ChatMessage_Unknown_Field13{Value: 1},
-		UnknownField15: elseOf(strings.Contains(completion.Model[9:], "deepseek"), &ChatMessage_Unknown_Field15{Uuid: uuid.NewString(), Value: 2}, nil),
-		Uuid:           elseOf(strings.Contains(completion.Model[9:], "deepseek"), uuid.NewString(), ""),
+		UnknownField15: &ChatMessage_Unknown_Field15{Uuid: uuid.NewString(), Value: 2},
+		Uuid:           uuid.NewString(),
 	}
 
 	//sourceMessage, err := newMessage()

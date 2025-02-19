@@ -88,7 +88,7 @@ message ChatMessage {
   uint32 model = 6; // 模型 ？？ 109: gpt4o 166:claude3.5sonnet
   uint32 unknown_field7 = 7;
   Config config = 8;
-  repeated Unknown_Field9 unknown_field9 = 9; // deepseek需要
+  repeated Unknown_Field9 unknown_field9 = 9;
   repeated Tool tools = 10;
   ToolChoice choice = 12;
   Unknown_Field13 unknown_field13 = 13;
