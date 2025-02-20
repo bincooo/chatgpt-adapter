@@ -67,6 +67,14 @@ make build
 ./bin/[os]/server[.exe] -h
 ```
 
+### Docker 启动
+1. docker 命令：
+```shell
+docker run -p 8080:8080 -v ./config.yaml:/app/config.yaml ghcr.io/bincooo/chatgpt-adapter:latest
+```
+
+2. huggingface: [Duplicate this Space](https://huggingface.co/spaces/wIK5Ez2o/DEMO/tree/main?duplicate=true)
+
 ### systemctl 自启动配置
 ```adapter.service
 [Unit]
