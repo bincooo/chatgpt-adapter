@@ -19,4 +19,6 @@
 - [deepseek](https://www.deepseek.com)  
 - [Chatbot Arena LMSYS](https://lmarena.ai)  
 - [you](https://you.com)  
+- [grok](grok.md)
 - [huggingface 绘图](https://huggingface.io)
+
