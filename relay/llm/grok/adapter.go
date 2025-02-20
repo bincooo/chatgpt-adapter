@@ -1,4 +1,4 @@
-package deepseek
+package grok
 
 import (
 	"chatgpt-adapter/core/common"
@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	Model = "deepseek"
+	Model = "grok"
 )
 
 type api struct {
@@ -21,23 +21,23 @@ type api struct {
 }
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
-	if len(model) <= 9 || Model+"-" != model[:9] {
+	if len(model) <= 4 {
 		return
 	}
 
-	ok = model[9:] == "chat" || model[9:] == "reasoner"
+	ok = Model+"-2" == model || Model+"-3" == model
 	return
 }
 
 func (api *api) Models() (slice []model.Model) {
 	slice = append(slice,
 		model.Model{
-			Id:      Model + "-chat",
+			Id:      Model + "-2",
 			Object:  "model",
 			Created: 1686935002,
 			By:      Model + "-adapter",
 		}, model.Model{
-			Id:      Model + "-reasoner",
+			Id:      Model + "-3",
 			Object:  "model",
 			Created: 1686935002,
 			By:      Model + "-adapter",
@@ -77,7 +77,6 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
-	defer deleteSession(ctx, api.env, request.ChatSessionId)
 	content := waitResponse(ctx, r, completion.Stream)
 	if content == "" && response.NotResponse(ctx) {
 		response.Error(ctx, -1, "EMPTY RESPONSE")
