@@ -8,7 +8,9 @@ import (
 	"chatgpt-adapter/core/logger"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -45,6 +47,11 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) (content
 	logger.Info("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
 	matchers := common.GetGinMatchers(ctx)
+	onceExec := sync.OnceFunc(func() {
+		if !sse {
+			ctx.Writer.WriteHeader(http.StatusOK)
+		}
+	})
 
 	for {
 		raw, ok := <-chatResponse
@@ -75,6 +82,7 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) (content
 
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
+		onceExec()
 
 		raw = response.ExecMatchers(matchers, raw, false)
 		if len(raw) == 0 {

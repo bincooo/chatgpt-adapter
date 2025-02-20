@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"net/http"
+	"sync"
 	"time"
 
 	"chatgpt-adapter/core/common"
@@ -88,6 +89,12 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	var toolCall map[string]interface{}
 	htc := false
 
+	onceExec := sync.OnceFunc(func() {
+		if !sse {
+			ctx.Writer.WriteHeader(http.StatusOK)
+		}
+	})
+
 	scanner := bufio.NewScanner(r.Body)
 	for {
 		if !scanner.Scan() {
@@ -166,6 +173,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		raw := choice.Delta.Content
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
+		onceExec()
 
 		raw = response.ExecMatchers(matchers, raw, false)
 		if len(raw) == 0 {

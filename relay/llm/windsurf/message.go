@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"chatgpt-adapter/core/common"
@@ -149,6 +150,12 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	reasoningContent := ""
 	think := 0
 
+	onceExec := sync.OnceFunc(func() {
+		if !sse {
+			ctx.Writer.WriteHeader(http.StatusOK)
+		}
+	})
+
 	scanner := newScanner(r.Body)
 	for {
 		if !scanner.Scan() {
@@ -221,6 +228,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
+		onceExec()
 
 		raw = response.ExecMatchers(matchers, raw, false)
 		if len(raw) == 0 {

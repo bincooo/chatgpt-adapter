@@ -2,7 +2,9 @@ package coze
 
 import (
 	"errors"
+	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"chatgpt-adapter/core/common"
@@ -47,6 +49,11 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) (content
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
+	onceExec := sync.OnceFunc(func() {
+		if !sse {
+			ctx.Writer.WriteHeader(http.StatusOK)
+		}
+	})
 
 	var (
 		matchers = common.GetGinMatchers(ctx)
@@ -80,6 +87,7 @@ func waitResponse(ctx *gin.Context, chatResponse chan string, sse bool) (content
 
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
+		onceExec()
 
 		raw = response.ExecMatchers(matchers, raw, false)
 		if len(raw) == 0 {

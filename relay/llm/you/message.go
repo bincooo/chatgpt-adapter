@@ -2,8 +2,10 @@ package you
 
 import (
 	"errors"
+	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"chatgpt-adapter/core/common"
@@ -53,6 +55,12 @@ func waitResponse(ctx *gin.Context, cancel chan error, ch chan string, sse bool)
 		matchers = common.GetGinMatchers(ctx)
 	)
 
+	onceExec := sync.OnceFunc(func() {
+		if !sse {
+			ctx.Writer.WriteHeader(http.StatusOK)
+		}
+	})
+
 	logger.Info("waitResponse ...")
 	for {
 		select {
@@ -91,6 +99,8 @@ func waitResponse(ctx *gin.Context, cancel chan error, ch chan string, sse bool)
 			var raw = message
 			logger.Debug("----- raw -----")
 			logger.Debug(raw)
+			onceExec()
+
 			raw = response.ExecMatchers(matchers, raw, false)
 			if len(raw) == 0 {
 				continue

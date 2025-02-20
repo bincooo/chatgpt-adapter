@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"chatgpt-adapter/core/common"
@@ -46,6 +47,11 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
+	onceExec := sync.OnceFunc(func() {
+		if !sse {
+			ctx.Writer.WriteHeader(http.StatusOK)
+		}
+	})
 
 	var (
 		matchers = common.GetGinMatchers(ctx)
@@ -71,6 +77,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		raw := string(char)
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
+		onceExec()
 
 		raw = response.ExecMatchers(matchers, raw, false)
 		if len(raw) == 0 {

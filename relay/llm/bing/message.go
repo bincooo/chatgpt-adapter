@@ -8,6 +8,7 @@ import (
 	"github.com/bincooo/emit.io"
 	"github.com/iocgo/sdk/env"
 	"net/http"
+	"sync"
 	"time"
 
 	"chatgpt-adapter/core/common"
@@ -61,6 +62,11 @@ func waitResponse(ctx *gin.Context, message chan []byte, sse bool) (content stri
 	created := time.Now().Unix()
 	logger.Infof("waitResponse ...")
 	tokens := ctx.GetInt(ginTokens)
+	onceExec := sync.OnceFunc(func() {
+		if !sse {
+			ctx.Writer.WriteHeader(http.StatusOK)
+		}
+	})
 
 	var (
 		matchers = common.GetGinMatchers(ctx)
@@ -105,6 +111,7 @@ func waitResponse(ctx *gin.Context, message chan []byte, sse bool) (content stri
 
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
+		onceExec()
 
 		raw = response.ExecMatchers(matchers, raw, false)
 		if len(raw) == 0 {

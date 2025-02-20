@@ -8,6 +8,7 @@ import (
 	"github.com/iocgo/sdk/env"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"chatgpt-adapter/core/common"
@@ -79,6 +80,12 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	tokens := ctx.GetInt(ginTokens)
 	thinkReason := env.Env.GetBool("server.think_reason")
 	reasoningContent := ""
+
+	onceExec := sync.OnceFunc(func() {
+		if !sse {
+			ctx.Writer.WriteHeader(http.StatusOK)
+		}
+	})
 
 	var (
 		matchers = common.GetGinMatchers(ctx)
@@ -153,6 +160,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
+		onceExec()
 
 		raw = response.ExecMatchers(matchers, raw, false)
 		if len(raw) == 0 {
