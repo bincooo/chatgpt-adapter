@@ -29,10 +29,6 @@ message ChatMessage {
     string message_id = 13;
   }
 
-  message Instructions {
-    string instruction = 1;
-  }
-
   message Model {
     string name = 1;
     string empty = 4;
@@ -40,12 +36,16 @@ message ChatMessage {
 
   // repeated FileContent files = 1;
   repeated UserMessage messages = 2;
-  Instructions instructions = 4;
-  string projectPath = 5;
+  string unknown_field4 = 4;
+//  string projectPath = 5;
   Model model = 7;
-  string requestId = 9;
-  string summary = 11; // 或许是空的，描述会话做了什么事情，但是不是标题 或许可以当作额外的设定来用
+//  string requestId = 9;
+//  string summary = 11; // 或许是空的，描述会话做了什么事情，但是不是标题 或许可以当作额外的设定来用
+  uint32 unknown_field13 = 13;
   string conversationId = 15; // 又来一个uuid
+  uint32 unknown_field16 = 16;
+  uint32 unknown_field29 = 29;
+  uint32 unknown_field30 = 30;
 }
 
 message ResMessage {

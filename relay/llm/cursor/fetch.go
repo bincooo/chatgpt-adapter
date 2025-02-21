@@ -39,13 +39,22 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 		POST("https://api2.cursor.sh/aiserver.v1.AiService/StreamChat").
 		Header("authorization", "Bearer "+cookie).
 		Header("content-type", "application/connect+proto").
-		Header("connect-accept-encoding", "gzip,br").
+		Header("connect-accept-encoding", "gzip").
+		Header("connect-content-encoding", "gzip").
 		Header("connect-protocol-version", "1").
-		Header("user-agent", "connect-es/1.4.0").
+		Header("traceparent", "00-"+strings.ReplaceAll(uuid.NewString(), "-", "")+"-"+common.Hex(16)+"-00").
+		Header("user-agent", "connect-es/1.6.1").
+		Header("x-amzn-trace-id", "Root="+uuid.NewString()).
+		Header("x-client-key", genClientKey(ctx.GetString("token"))).
 		Header("x-cursor-checksum", genChecksum(ctx, env)).
-		Header("x-cursor-client-version", "0.42.3").
+		Header("x-cursor-client-version", "0.45.11").
 		Header("x-cursor-timezone", "Asia/Shanghai").
+		Header("x-ghost-mode", "false").
+		Header("x-request-id", uuid.NewString()).
+		Header("x-session-id", uuid.NewString()).
 		Header("host", "api2.cursor.sh").
+		Header("Connection", "close").
+		Header("Transfer-Encoding", "chunked").
 		Bytes(buffer).
 		DoC(emit.Status(http.StatusOK), emit.IsPROTO)
 	return
@@ -60,18 +69,17 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 		}
 	}).ToSlice()
 	message := &ChatMessage{
-		Messages: messages,
-		Instructions: &ChatMessage_Instructions{
-			Instruction: "",
-		},
-		ProjectPath: "/path/to/project",
+		Messages:      messages,
+		UnknownField4: "",
 		Model: &ChatMessage_Model{
 			Name:  completion.Model[7:],
 			Empty: "",
 		},
-		Summary:        "",
-		RequestId:      uuid.NewString(),
+		UnknownField13: 1,
 		ConversationId: uuid.NewString(),
+		UnknownField16: 1,
+		UnknownField29: 1,
+		UnknownField30: 0,
 	}
 
 	protoBytes, err := proto.Marshal(message)
@@ -130,6 +138,11 @@ func checkUsage(ctx *gin.Context, env *env.Environment, max int) (count int, err
 
 	count = max - count
 	return
+}
+
+func genClientKey(token string) string {
+	hex1 := sha256.Sum256([]byte(token + "--client-key"))
+	return hex.EncodeToString(hex1[:])
 }
 
 func genChecksum(ctx *gin.Context, env *env.Environment) string {
