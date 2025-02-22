@@ -39,9 +39,14 @@ var (
 )
 
 func fetch(ctx context.Context, env *env.Environment, buffer []byte) (response *http.Response, err error) {
+	proxied := env.GetString("server.proxied")
+	if !env.GetBool("windsurf.proxied") {
+		proxied = ""
+	}
+
 	response, err = emit.ClientBuilder(common.HTTPClient).
 		Context(ctx).
-		Proxies(env.GetString("server.proxied")).
+		Proxies(proxied).
 		POST("https://server.codeium.com/exa.api_server_pb.ApiServerService/GetChatMessage").
 		Header("user-agent", "connect-go/1.17.0 (go1.23.4 X:nocoverageredesign)").
 		Header("content-type", "application/connect+proto").
@@ -378,6 +383,10 @@ func genToken(ctx context.Context, proxies, ident string) (token string, err err
 	buffer, err := proto.Marshal(jwt)
 	if err != nil {
 		return
+	}
+
+	if !env.Env.GetBool("windsurf.proxied") {
+		proxies = ""
 	}
 
 	res, err := emit.ClientBuilder(common.HTTPClient).

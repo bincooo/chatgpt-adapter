@@ -164,7 +164,7 @@ func ReasonResponse(ctx *gin.Context, mod, content, reasoningContent string) {
 	}
 
 	ctx.JSON(http.StatusOK, model.Response{
-		Model:   mod,
+		Model:   "LLM",
 		Created: created,
 		Id:      fmt.Sprintf("chatcmpl-%d", created),
 		Object:  "chat.completion",
@@ -264,7 +264,7 @@ func ReasonSSEResponse(ctx *gin.Context, mod, content, reasoningContent string, 
 	if content != "" {
 		splitEach(content, func(value string) {
 			response := model.Response{
-				Model:   mod,
+				Model:   "LLM",
 				Created: created,
 				Id:      fmt.Sprintf("chatcmpl-%d", created),
 				Object:  "chat.completion.chunk",
@@ -290,7 +290,7 @@ func ReasonSSEResponse(ctx *gin.Context, mod, content, reasoningContent string, 
 label:
 	if done {
 		response := model.Response{
-			Model:   mod,
+			Model:   "LLM",
 			Created: created,
 			Id:      fmt.Sprintf("chatcmpl-%d", created),
 			Object:  "chat.completion.chunk",
@@ -321,7 +321,7 @@ func ToolCallResponse(ctx *gin.Context, mod, name, args string) {
 	usage := common.GetGinCompletionUsage(ctx)
 
 	ctx.JSON(http.StatusOK, model.Response{
-		Model:   mod,
+		Model:   "LLM",
 		Created: created,
 		Id:      fmt.Sprintf("chatcmpl-%d", created),
 		Object:  "chat.completion",
@@ -360,7 +360,7 @@ func SSEToolCallResponse(ctx *gin.Context, mod, name, args string, created int64
 	usage := common.GetGinCompletionUsage(ctx)
 
 	response := model.Response{
-		Model:   mod,
+		Model:   "LLM",
 		Created: created,
 		Id:      fmt.Sprintf("chatcmpl-%d", created),
 		Object:  "chat.completion.chunk",

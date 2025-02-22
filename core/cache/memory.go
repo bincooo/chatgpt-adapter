@@ -24,6 +24,7 @@ var (
 	windsurfCacheManager  *Manager[string]
 	bingCacheManager      *Manager[string]
 	cursorCacheManager    *Manager[string]
+	qodoCacheManager      *Manager[string]
 )
 
 func init() {
@@ -47,6 +48,11 @@ func init() {
 		cursorCacheManager = &Manager[string]{
 			cache.New[string](gocacheStore.NewGoCache(client)),
 		}
+
+		client = gocache.New(5*time.Minute, 5*time.Minute)
+		qodoCacheManager = &Manager[string]{
+			cache.New[string](gocacheStore.NewGoCache(client)),
+		}
 	})
 }
 
@@ -64,6 +70,10 @@ func BingCacheManager() *Manager[string] {
 
 func CursorCacheManager() *Manager[string] {
 	return cursorCacheManager
+}
+
+func QodoCacheManager() *Manager[string] {
+	return qodoCacheManager
 }
 
 func (cacheManager *Manager[T]) SetValue(key string, value T) error {
