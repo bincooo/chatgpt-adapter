@@ -123,6 +123,17 @@ func checkUsage(ctx *gin.Context, env *env.Environment, max int) (count int, err
 		return
 	}
 
+	if som, ok := obj["startOfMonth"]; ok {
+		t, e := time.Parse("2006-01-02T15:04:05.000Z", som.(string))
+		if e != nil {
+			logger.Error(e)
+		} else {
+			if t.Before(time.Now().Add(-(14 * 24 * time.Hour))) { // 超14天
+				return
+			}
+		}
+	}
+
 	for k, v := range obj {
 		if !strings.Contains(k, "gpt-") {
 			continue

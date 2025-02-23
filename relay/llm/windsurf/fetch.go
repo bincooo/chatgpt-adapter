@@ -39,12 +39,14 @@ var (
 )
 
 func fetch(ctx context.Context, env *env.Environment, buffer []byte) (response *http.Response, err error) {
+	HTTPClient := common.HTTPClient
 	proxied := env.GetString("server.proxied")
 	if !env.GetBool("windsurf.proxied") {
+		HTTPClient = common.NopHTTPClient
 		proxied = ""
 	}
 
-	response, err = emit.ClientBuilder(common.HTTPClient).
+	response, err = emit.ClientBuilder(HTTPClient).
 		Context(ctx).
 		Proxies(proxied).
 		POST("https://server.codeium.com/exa.api_server_pb.ApiServerService/GetChatMessage").
@@ -385,11 +387,13 @@ func genToken(ctx context.Context, proxies, ident string) (token string, err err
 		return
 	}
 
+	HTTPClient := common.HTTPClient
 	if !env.Env.GetBool("windsurf.proxied") {
+		HTTPClient = common.NopHTTPClient
 		proxies = ""
 	}
 
-	res, err := emit.ClientBuilder(common.HTTPClient).
+	res, err := emit.ClientBuilder(HTTPClient).
 		Context(ctx).
 		Proxies(proxies).
 		POST("https://server.codeium.com/exa.auth_pb.AuthService/GetUserJwt").
