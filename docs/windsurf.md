@@ -1,8 +1,13 @@
 ## 配置说明
 
 ```config.yaml
-无*
+windsurf:
+  proxied: false
 ```
+
+`proxied`: 是否使用代理
+
+
 
 ## 模型列表
 
