@@ -85,7 +85,7 @@ func InvocationHandler(ctx *proxy.Context) {
 	}
 }
 
-func condition(cookie map[string]string) bool {
+func condition(cookie map[string]string, argv ...interface{}) bool {
 	marker, err := cookiesContainer.Marked(cookie)
 	if err != nil {
 		logger.Error(err)

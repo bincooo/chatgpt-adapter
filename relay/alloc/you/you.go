@@ -143,8 +143,8 @@ func InvocationHandler(ctx *proxy.Context) {
 	}
 }
 
-func condition(env *env.Environment) func(string) bool {
-	return func(cookies string) bool {
+func condition(env *env.Environment) func(string, ...interface{}) bool {
+	return func(cookies string, argv ...interface{}) bool {
 
 		marker, err := cookiesContainer.Marked(cookies)
 		if err != nil {

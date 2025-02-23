@@ -55,8 +55,8 @@ func removeTask(value *obj) {
 	}
 }
 
-func condition(proxied string) func(value *account) bool {
-	return func(value *account) bool {
+func condition(proxied string) func(value *account, argv ...interface{}) bool {
+	return func(value *account, argv ...interface{}) bool {
 		cookies := value.Cookies
 		if cookies == "" {
 			return false

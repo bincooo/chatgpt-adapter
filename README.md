@@ -15,6 +15,7 @@
  - [new bing copilot](https://copilot.microsoft.com)
  - [cursor editor](https://www.cursor.com)
  - [windsurf editor](https://codeium.com)
+ - [qodo](https://www.qodo.ai)
  - [deepseek](https://www.deepseek.com)
  - [Chatbot Arena LMSYS](https://lmarena.ai)
  - [you](https://you.com)

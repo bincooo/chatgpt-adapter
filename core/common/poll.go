@@ -28,7 +28,7 @@ type PollContainer[T interface{}] struct {
 	markers   map[interface{}]*state
 	mu        *lock.ExpireLock // mark
 	cmu       *lock.ExpireLock // delete
-	Condition func(T) bool
+	Condition func(T, ...interface{}) bool
 }
 
 // resetTime 用于复位状态：0 就绪状态，1 使用状态，2 异常状态
@@ -96,7 +96,7 @@ func timer[T interface{}](container *PollContainer[T], resetTime time.Duration) 
 	}
 }
 
-func (container *PollContainer[T]) Poll() (T, error) {
+func (container *PollContainer[T]) Poll(argv ...interface{}) (T, error) {
 	var zero T
 	if container == nil || len(container.slice) == 0 {
 		return zero, errors.New("no elements in slice")
@@ -128,7 +128,7 @@ func (container *PollContainer[T]) Poll() (T, error) {
 		}
 
 		value := container.slice[curr]
-		if container.Condition(value) {
+		if container.Condition(value, argv...) {
 			container.pos = curr + 1
 			err := container.MarkTo(value, 1)
 			if err != nil {
