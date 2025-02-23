@@ -191,13 +191,17 @@ func addUnpackMatcher(env *env.Environment, matchers []inter.Matcher) []inter.Ma
 		if index+maxLen > len(rc)-1 {
 			return response.MatMatching, "", content
 		}
-		logger.Infof("execute matcher[<b>] content:\n%s", content)
+		// logger.Infof("execute matcher[<b>] content:\n%s", content)
 		for k, v := range mapC {
 			content = strings.ReplaceAll(content, b+v+b, k)
 		}
 		mapCc := env.GetStringMapString("qodo.mapC")
 		for k, v := range mapCc {
 			content = strings.ReplaceAll(content, b+v+b, k)
+		}
+
+		if strings.Contains(content, b) {
+			return response.MatMatched, content, ""
 		}
 		return response.MatMatched, cache, content
 	}))
