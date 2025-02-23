@@ -25,7 +25,7 @@ var (
 func init() {
 	inited.AddInitialized(func(env *env.Environment) {
 		cookies := env.GetStringSlice("grok.cookies")
-		cookiesContainer = common.NewPollContainer[string]("grok", cookies, 6*time.Hour)
+		cookiesContainer = common.NewPollContainer[string]("grok", cookies, time.Hour)
 		cookiesContainer.Condition = condition
 	})
 }
@@ -117,7 +117,11 @@ func condition(cookie string, argv ...interface{}) (ok bool) {
 	}
 
 	count := obj["remainingQueries"].(float64)
-	return count > 0
+	ok = count > 0
+	if !ok {
+		_ = cookiesContainer.MarkTo(cookie, 2)
+	}
+	return
 }
 
 func resetMarked(cookie string) {
