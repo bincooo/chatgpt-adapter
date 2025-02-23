@@ -1,16 +1,18 @@
-**开发中 ...**
-
 ## 配置说明
 
 ```config.yaml
 grok:
   think_reason: false
   disable_search: false
+  cookies:
+    - 'xxx'
 ```
 
 `think_reason`: 是否开启思考模式
 
 `disable_search`: 是否关闭联网搜索
+
+`cookies`: cookie池
 
 
 
@@ -25,7 +27,7 @@ grok:
 
 ## 请求示例
 
-F12打开网络面板抓取cookie即可
+F12打开网络面板抓取cookie即可, `author=cookie`
 
 ```shell
 curl -i -X POST \

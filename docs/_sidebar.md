@@ -9,6 +9,7 @@
   - [Coze](coze.md)
   - [Cursor](cursor.md)
   - [Windsurf](windsurf.md)
+  - [Qodo](qodo.md)
   - [Deepseek](deepseek.md)
   - [Lmsys](lmsys.md)
   - [You](you.md)
