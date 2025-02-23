@@ -110,11 +110,11 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 
 	msg := contentBuffer.String()
 	for k, v := range mapC {
-		msg = strings.ReplaceAll(msg, k, v)
+		msg = strings.ReplaceAll(msg, k, b+v+b)
 	}
 	mapCc := env.GetStringMapString("qodo.mapC")
 	for k, v := range mapCc {
-		msg = strings.ReplaceAll(msg, k, v)
+		msg = strings.ReplaceAll(msg, k, b+v+b)
 	}
 
 	request = qodoRequest{

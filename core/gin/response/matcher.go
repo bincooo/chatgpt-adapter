@@ -138,6 +138,13 @@ func NewMatchers(ctx *gin.Context, cb func(t byte, str string)) (slice []inter.M
 	return
 }
 
+func NewMatcher(find string, h func(index int, content string) (state int, cache, result string)) inter.Matcher {
+	return &symbolMatcher{
+		Find: find,
+		H:    h,
+	}
+}
+
 func newCancel(ctx *gin.Context) (slice []inter.Matcher) {
 	convertRole1, _ := ConvertRole(ctx, "user")
 	convertRole2, _ := ConvertRole(ctx, "system")
@@ -210,7 +217,7 @@ func (mat *symbolMatcher) Match(content string, over bool) (state int, result st
 		idx = -1
 	)
 
-	if mat.Find == "" || mat.Find == "*" {
+	if mat.Find == "" {
 		state = MatMatched
 		goto state
 	}

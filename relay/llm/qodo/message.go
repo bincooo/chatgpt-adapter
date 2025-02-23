@@ -2,6 +2,7 @@ package qodo
 
 import (
 	"bufio"
+	"chatgpt-adapter/core/gin/inter"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 
 const (
 	ginTokens = "__tokens__"
+	b         = "*"
 )
 
 type qodoResponse struct {
@@ -91,6 +93,8 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	var (
 		matchers = common.GetGinMatchers(ctx)
 	)
+
+	matchers = addUnpackMatcher(env.Env, matchers)
 
 	defer r.Body.Close()
 	reader := bufio.NewReader(r.Body)
@@ -177,6 +181,26 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		response.SSEResponse(ctx, Model, "[DONE]", created)
 	}
 	return
+}
+
+// 还原字面转义
+func addUnpackMatcher(env *env.Environment, matchers []inter.Matcher) []inter.Matcher {
+	maxLen := 5
+	return append(matchers, response.NewMatcher(b, func(index int, content string) (state int, cache, result string) {
+		rc := []rune(content)
+		if index+maxLen > len(rc)-1 {
+			return response.MatMatching, "", content
+		}
+		logger.Infof("execute matcher[<b>] content:\n%s", content)
+		for k, v := range mapC {
+			content = strings.ReplaceAll(content, b+v+b, k)
+		}
+		mapCc := env.GetStringMapString("qodo.mapC")
+		for k, v := range mapCc {
+			content = strings.ReplaceAll(content, b+v+b, k)
+		}
+		return response.MatMatched, cache, content
+	}))
 }
 
 func asError(ctx *gin.Context, err error) (ok bool) {
