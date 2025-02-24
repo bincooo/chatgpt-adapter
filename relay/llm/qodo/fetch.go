@@ -1,17 +1,17 @@
 package qodo
 
 import (
-	"bytes"
 	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
-	"chatgpt-adapter/core/gin/response"
+	"encoding/base64"
 	"fmt"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/iocgo/sdk/env"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -60,7 +60,7 @@ type qodoRequest struct {
 }
 
 func fetch(ctx *gin.Context, proxied string, request qodoRequest) (response *http.Response, err error) {
-	token, err := genToken(ctx)
+	token, err := genToken(ctx, env.Env)
 	response, err = emit.ClientBuilder(common.HTTPClient).
 		Context(ctx).
 		Proxies(proxied).
@@ -78,44 +78,53 @@ func fetch(ctx *gin.Context, proxied string, request qodoRequest) (response *htt
 }
 
 func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Completion) (request qodoRequest, err error) {
-	//chatInput := "hi"
-	contentBuffer := new(bytes.Buffer)
+	chatInput := "hi"
+	//contentBuffer := new(bytes.Buffer)
 	previousMessages := make([]struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
 		Command string `json:"command,omitempty"`
 		Mode    string `json:"mode,omitempty"`
 	}, 0)
-	for _, message := range completion.Messages {
-		//if i >= len(previousMessages)-1 {
-		//	chatInput = message.GetString("content")
-		//	break
-		//}
-		//previousMessages = append(previousMessages, struct {
-		//	Role    string `json:"role"`
-		//	Content string `json:"content"`
-		//	Command string `json:"command,omitempty"`
-		//	Mode    string `json:"mode,omitempty"`
-		//}{
-		//	Role:    elseOf(message.Is("role", "user"), "user", "assistant"),
-		//	Mode:    elseOf(message.Is("role", "user"), "freeChat", ""),
-		//	Content: message.GetString("content"),
-		//	Command: "chat",
-		//})
-		role, end := response.ConvertRole(ctx, message.GetString("role"))
-		contentBuffer.WriteString(role)
-		contentBuffer.WriteString(message.GetString("content"))
-		contentBuffer.WriteString(end)
+	for i, message := range completion.Messages {
+		content := message.GetString("content")
+		for k, v := range mapC {
+			content = strings.ReplaceAll(content, k, b+v+b)
+		}
+		mapCc := env.GetStringMapString("qodo.mapC")
+		for k, v := range mapCc {
+			content = strings.ReplaceAll(content, k, b+v+b)
+		}
+
+		if i >= len(previousMessages)-1 {
+			chatInput = content
+			break
+		}
+		previousMessages = append(previousMessages, struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+			Command string `json:"command,omitempty"`
+			Mode    string `json:"mode,omitempty"`
+		}{
+			Role:    elseOf(message.Is("role", "user"), "user", "assistant"),
+			Mode:    elseOf(message.Is("role", "user"), "freeChat", ""),
+			Command: elseOf(message.Is("role", "user"), "chat", ""),
+			Content: content,
+		})
+		//role, end := response.ConvertRole(ctx, message.GetString("role"))
+		//contentBuffer.WriteString(role)
+		//contentBuffer.WriteString(message.GetString("content"))
+		//contentBuffer.WriteString(end)
 	}
 
-	msg := contentBuffer.String()
-	for k, v := range mapC {
-		msg = strings.ReplaceAll(msg, k, b+v+b)
-	}
-	mapCc := env.GetStringMapString("qodo.mapC")
-	for k, v := range mapCc {
-		msg = strings.ReplaceAll(msg, k, b+v+b)
-	}
+	//msg := contentBuffer.String()
+	//for k, v := range mapC {
+	//	msg = strings.ReplaceAll(msg, k, b+v+b)
+	//}
+	//mapCc := env.GetStringMapString("qodo.mapC")
+	//for k, v := range mapCc {
+	//	msg = strings.ReplaceAll(msg, k, b+v+b)
+	//}
 
 	request = qodoRequest{
 		MaxRemoteContext:  0,
@@ -139,7 +148,7 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 			EditorType:                  "vscode",
 		},
 		Task:              "",
-		ChatInput:         msg,
+		ChatInput:         chatInput,
 		PreviousMessages:  previousMessages,
 		UserContext:       make([]interface{}, 0),
 		RepoContext:       make([]interface{}, 0),
@@ -149,7 +158,7 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 	return
 }
 
-func genToken(ctx *gin.Context) (token string, err error) {
+func genToken(ctx *gin.Context, env *env.Environment) (token string, err error) {
 	cookies := ctx.GetString("token")
 	cacheManager := cache.QodoCacheManager()
 	token, err = cacheManager.GetValue(cookies)
@@ -166,27 +175,87 @@ func genToken(ctx *gin.Context) (token string, err error) {
 	r, err := emit.ClientBuilder(common.HTTPClient).
 		Context(ctx.Request.Context()).
 		Proxies(ctx.GetString("proxies")).
-		POST("https://securetoken.googleapis.com/v1/token").
-		Query("key", split[0]).
+		GET("https://accounts.google.com/o/oauth2/auth").
+		Query("client_id", split[0]+".apps.googleusercontent.com").
+		Query("scope", url.QueryEscape("email profile openid")).
+		Query("response_type", "code").
+		Query("access_type", "offline").
+		Query("state", base64.URLEncoding.EncodeToString([]byte("windowId=1;vscode"))).
+		Query("redirect_uri", "https://api.qodo.ai/v1/auth/google-login/Codium.codium").
+		Header("accept", "text/html,*/*").
 		Header("Accept-Language", "en-US,en;q=0.9").
 		Header("Origin", "https://app.qodo.ai").
 		Header("Referer", "https://app.qodo.ai/").
 		Header("user-agent", userAgent).
+		Header("cookie", split[1]).
+		DoC(emit.Status(http.StatusFound), emit.IsHTML)
+	if err != nil {
+		return
+	}
+
+	location := r.Header.Get("Location")
+	_ = r.Body.Close()
+	u, err := url.Parse(location)
+	if err != nil {
+		return
+	}
+	query := u.Query()
+
+	r, err = emit.ClientBuilder(common.HTTPClient).
+		Context(ctx.Request.Context()).
+		Proxies(ctx.GetString("proxies")).
+		GET("https://api.qodo.ai/v1/auth/google-login/Codium.codium").
+		Query("state", query.Get("state")).
+		Query("code", query.Get("code")).
+		Query("scope", url.QueryEscape(query.Get("scope"))).
+		Query("authuser", query.Get("authuser")).
+		Query("prompt", query.Get("prompt")).
+		Header("accept", "text/html,*/*").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Origin", "https://app.qodo.ai").
+		Header("Referer", "https://app.qodo.ai/").
+		Header("user-agent", userAgent).
+		Header("cookie", split[1]).
+		DoS(http.StatusTemporaryRedirect)
+	if err != nil {
+		return
+	}
+
+	location = r.Header.Get("Location")
+	_ = r.Body.Close()
+	u, err = url.Parse(location)
+	if err != nil {
+		return
+	}
+	query = u.Query()
+	qodoToken := query.Get("token")
+	_ = r.Body.Close()
+
+	r, err = emit.ClientBuilder(common.HTTPClient).
+		Context(ctx.Request.Context()).
+		Proxies(ctx.GetString("proxies")).
+		POST("https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp").
+		Query("key", env.GetString("qodo.key")).
+		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Origin", "https://app.qodo.ai").
+		Header("Referer", "https://app.qodo.ai/").
+		Header("user-agent", "node").
+		JSONHeader().
 		Body(map[string]interface{}{
-			"grant_type":    "refresh_token",
-			"refresh_token": split[1],
+			"requestUri":        "http://localhost",
+			"returnSecureToken": true,
+			"postBody":          "&id_token=" + qodoToken + "&providerId=google.com",
 		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
 		return
 	}
 	defer r.Body.Close()
-
 	obj, err := emit.ToMap(r)
 	if err != nil {
 		return
 	}
 
-	accessToken, ok := obj["access_token"]
+	accessToken, ok := obj["idToken"]
 	if !ok {
 		err = fmt.Errorf("grant access_token failed")
 		return
