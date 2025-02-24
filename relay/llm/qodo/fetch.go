@@ -12,6 +12,7 @@ import (
 	"github.com/iocgo/sdk/env"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -19,17 +20,17 @@ import (
 var (
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0"
 	// 输入检测对抗
-	mapC = map[string]string{
-		"是": "似",
-		"的": "の",
-		"人": "ren",
-		"有": "you",
-		"不": "bu",
-		"上": "shang",
-		"我": "窝",
-		"他": "ta",
-		"了": "le",
-	}
+	//mapC = map[string]string{
+	//	"是": "似",
+	//	"的": "の",
+	//	"人": "ren",
+	//	"有": "you",
+	//	"不": "bu",
+	//	"上": "shang",
+	//	"我": "窝",
+	//	"他": "ta",
+	//	"了": "le",
+	//}
 )
 
 type qodoRequest struct {
@@ -78,7 +79,7 @@ func fetch(ctx *gin.Context, proxied string, request qodoRequest) (response *htt
 }
 
 func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Completion) (request qodoRequest, err error) {
-	chatInput := "hi"
+	chatInput := "\n\nreply with Chinese: "
 	//contentBuffer := new(bytes.Buffer)
 	previousMessages := make([]struct {
 		Role    string `json:"role"`
@@ -88,16 +89,18 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 	}, 0)
 	for i, message := range completion.Messages {
 		content := message.GetString("content")
-		for k, v := range mapC {
-			content = strings.ReplaceAll(content, k, b+v+b)
-		}
-		mapCc := env.GetStringMapString("qodo.mapC")
-		for k, v := range mapCc {
-			content = strings.ReplaceAll(content, k, b+v+b)
-		}
+		//for k, v := range mapC {
+		//	content = strings.ReplaceAll(content, k, b+v+b)
+		//}
+		//mapCc := env.GetStringMapString("qodo.mapC")
+		//for k, v := range mapCc {
+		//	content = strings.ReplaceAll(content, k, b+v+b)
+		//}
+		//
+		content = _hook(content)
 
 		if i >= len(previousMessages)-1 {
-			chatInput = content
+			chatInput = content + chatInput
 			break
 		}
 		previousMessages = append(previousMessages, struct {
@@ -156,6 +159,12 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 		SupportsArtifacts: true,
 	}
 	return
+}
+
+// 毁灭吧，赶紧的
+func _hook(target string) string {
+	textQuoted := strconv.QuoteToASCII(target)
+	return textQuoted[1 : len(textQuoted)-1]
 }
 
 func genToken(ctx *gin.Context, env *env.Environment) (token string, err error) {
