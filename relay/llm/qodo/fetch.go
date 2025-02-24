@@ -1,9 +1,11 @@
 package qodo
 
 import (
+	"bytes"
 	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
+	"chatgpt-adapter/core/gin/response"
 	"encoding/base64"
 	"fmt"
 	"github.com/bincooo/emit.io"
@@ -79,16 +81,18 @@ func fetch(ctx *gin.Context, proxied string, request qodoRequest) (response *htt
 }
 
 func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Completion) (request qodoRequest, err error) {
-	chatInput := "\n\nreply with Chinese: "
-	//contentBuffer := new(bytes.Buffer)
+	chatInput := "\\n\\nNo need to analyze the content, directly into the character to respond from the first perspective, Enter the scene and begin role-playing by Assistant:"
+	contentBuffer := new(bytes.Buffer)
 	previousMessages := make([]struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
 		Command string `json:"command,omitempty"`
 		Mode    string `json:"mode,omitempty"`
 	}, 0)
-	for i, message := range completion.Messages {
+	for _, message := range completion.Messages {
 		content := message.GetString("content")
+		content = _hook(content)
+
 		//for k, v := range mapC {
 		//	content = strings.ReplaceAll(content, k, b+v+b)
 		//}
@@ -97,28 +101,28 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 		//	content = strings.ReplaceAll(content, k, b+v+b)
 		//}
 		//
-		content = _hook(content)
+		//if i >= len(previousMessages)-1 {
+		//	chatInput = content + chatInput
+		//	break
+		//}
+		//previousMessages = append(previousMessages, struct {
+		//	Role    string `json:"role"`
+		//	Content string `json:"content"`
+		//	Command string `json:"command,omitempty"`
+		//	Mode    string `json:"mode,omitempty"`
+		//}{
+		//	Role:    elseOf(message.Is("role", "user"), "user", "assistant"),
+		//	Mode:    elseOf(message.Is("role", "user"), "freeChat", ""),
+		//	Command: elseOf(message.Is("role", "user"), "chat", ""),
+		//	Content: content,
+		//})
 
-		if i >= len(previousMessages)-1 {
-			chatInput = content + chatInput
-			break
-		}
-		previousMessages = append(previousMessages, struct {
-			Role    string `json:"role"`
-			Content string `json:"content"`
-			Command string `json:"command,omitempty"`
-			Mode    string `json:"mode,omitempty"`
-		}{
-			Role:    elseOf(message.Is("role", "user"), "user", "assistant"),
-			Mode:    elseOf(message.Is("role", "user"), "freeChat", ""),
-			Command: elseOf(message.Is("role", "user"), "chat", ""),
-			Content: content,
-		})
-		//role, end := response.ConvertRole(ctx, message.GetString("role"))
-		//contentBuffer.WriteString(role)
-		//contentBuffer.WriteString(message.GetString("content"))
-		//contentBuffer.WriteString(end)
+		role, end := response.ConvertRole(ctx, message.GetString("role"))
+		contentBuffer.WriteString(role)
+		contentBuffer.WriteString(content)
+		contentBuffer.WriteString(end)
 	}
+	contentBuffer.WriteString(chatInput)
 
 	//msg := contentBuffer.String()
 	//for k, v := range mapC {
@@ -151,7 +155,7 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 			EditorType:                  "vscode",
 		},
 		Task:              "",
-		ChatInput:         chatInput,
+		ChatInput:         contentBuffer.String(),
 		PreviousMessages:  previousMessages,
 		UserContext:       make([]interface{}, 0),
 		RepoContext:       make([]interface{}, 0),
