@@ -2,11 +2,10 @@
 
 ```config.yaml
 qodo:
-  mapC:
-#    "xxx": "xxx"
+  key: AIzaSyCMMynYm5VRHj1NOwkfWinX-HYsFArdUbk
 ```
 
-
+`key`: 目前固定，也可通过`https://identitytoolkit.googleapis.com/v1/accounts:lookup`请求中获取，query key就是
 
 ## 模型列表
 
@@ -25,11 +24,15 @@ qodo:
 
 ## 请求示例
 
-F12打开网络面板找到`https://securetoken.googleapis.com/v1/token`请求，找到`query`中的 `key` + | + `refresh_token`
+访问 `https://app.qodo.ai`
 
+F12打开网络面板后授权登陆，找到 `https://accounts.google.com/o/oauth2/auth` 请求，找到`query`中的 `client_id`的前id部分 + | + `cookie`
 
+注：`2521xxxx2924-ahfq8vxxxxxxxxxj3ocgb9k2.apps.googleusercontent.com`中的`.apps.googleusercontent.com`不需要
 
-格式示例: `AIzaSy....-HxxxFArdUbk|AMf-vBx......I0hw5wnatd3TNhBw9_Bpv`
+格式示例: `2521xxxx2924-ahfq8vxxxxxxxxxj3ocgb9k2|SMSV=ADHTe-CKEY9I7o_X0f....xxx ...natd3TNhBw9_Bpv`
+
+通过`Authorization`传入即可
 
 ```shell
 curl -i -X POST \
