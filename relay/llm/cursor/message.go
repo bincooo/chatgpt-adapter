@@ -8,6 +8,7 @@ import (
 	"github.com/iocgo/sdk/env"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -108,7 +109,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	completion := common.GetGinCompletion(ctx)
 	tokens := ctx.GetInt(ginTokens)
 	thinkReason := env.Env.GetBool("server.think_reason")
-	thinkReason = thinkReason && completion.Model[7:] == "deepseek-r1"
+	thinkReason = thinkReason && (slices.Contains([]string{"deepseek-r1", "claude-3.7-sonnet-thinking", "gemini-2.0-flash-thinking-exp"}, completion.Model[7:]))
 	reasoningContent := ""
 	think := 0
 
