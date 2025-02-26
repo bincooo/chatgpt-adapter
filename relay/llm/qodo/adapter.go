@@ -35,6 +35,7 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 		"gemini-2.0-flash",
 		"deepseek-r1",
 		"deepseek-r1-full",
+		"claude-3-7-sonnet",
 	}...) {
 		if model[5:] == mod {
 			ok = true
