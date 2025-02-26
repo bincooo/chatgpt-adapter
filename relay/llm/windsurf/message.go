@@ -21,7 +21,10 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-const ginTokens = "__tokens__"
+const (
+	ginTokens = "__tokens__"
+	thinkTag  = "think: "
+)
 
 type ChunkErrorWrapper struct {
 	Cause struct {
@@ -204,11 +207,21 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 		raw := string(chunk)
 		reasonContent := ""
-		if thinkReason && think == 0 {
+		if strings.HasPrefix(raw, thinkTag) {
+			reasonContent = raw[len(thinkTag):]
+			raw = ""
+			think = 2
+			logger.Debug("----- think raw -----")
+			logger.Debug(reasonContent)
+			reasoningContent += reasonContent
+			goto label
+
+		} else if thinkReason && think == 0 {
 			if strings.HasPrefix(raw, "<think>") {
 				reasonContent = raw[7:]
 				raw = ""
 				think = 1
+				goto label
 			}
 		}
 
@@ -319,7 +332,12 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			if err != nil {
 				return
 			}
-			chunk = []byte(message.Message)
+
+			if message.Think != "" {
+				chunk = append([]byte(thinkTag), []byte(message.Think)...)
+			} else {
+				chunk = []byte(message.Message)
+			}
 		}
 		return i, chunk, err
 	})

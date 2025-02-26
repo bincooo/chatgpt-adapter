@@ -103,12 +103,23 @@ message ResMessage {
     int32 value2 = 2;
   }
 
+
   message Tokens { // 觉得是token统计，但是数据对不上
-    int32 unknown_field1 = 1;
+    message Args {
+        string key = 1;
+        string value = 2;
+    }
+
+    int32 model = 1;
     int32 unknown_field2 = 2;
     int32 unknown_field3 = 3;
     int32 unknown_field4 = 4;
     int32 unknown_field5 = 5;
+    int32 unknown_field6 = 6;
+
+    string uuid = 7;
+    repeated Args args = 8;
+    string unknown_field10 = 10;
   }
 
   // 找不到think标记的字段？？
@@ -118,7 +129,7 @@ message ResMessage {
   uint32 count_token = 4;
   uint32 unknown_field5 = 5;
   Tokens tokens = 7;
-
+  string think = 9;
 }
 
 message Jwt {
