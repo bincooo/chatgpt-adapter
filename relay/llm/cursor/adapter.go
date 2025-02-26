@@ -41,6 +41,8 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 		"claude-3-haiku-200k",
 		"claude-3-5-sonnet-200k",
 		"claude-3-5-sonnet-20241022",
+		"claude-3.7-sonnet",
+		"claude-3.7-sonnet-thinking",
 		"gpt-4o-mini",
 		"o1-mini",
 		"o1-preview",
