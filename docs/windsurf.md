@@ -14,6 +14,8 @@ windsurf:
 ```json
 [
     "windsurf/claude-3-5-sonnet",
+    "claude-3-7-sonnet",
+    "claude-3-7-sonnet-think",
     "windsurf/gpt4o",
     "windsurf/deepseek-chat",
     "windsurf/deepseek-reasoner",

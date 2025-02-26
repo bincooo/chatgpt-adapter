@@ -12,6 +12,8 @@ cursor:
 ```json
 [
     "cursor/claude-3-5-sonnet-20241022",
+    "claude-3.7-sonnet",
+    "claude-3.7-sonnet-thinking",
     "cursor/claude-3-opus",
     "cursor/claude-3.5-haiku",
     "cursor/claude-3.5-sonnet",
@@ -22,7 +24,7 @@ cursor:
     "cursor/gpt-4o",
     "cursor/gpt-4o-mini",
     "cursor/o1-mini",
-    "cursor/o1-prevew"
+    "cursor/o1-prevew",
 ]
 ```
 
