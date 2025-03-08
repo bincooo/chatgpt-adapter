@@ -183,7 +183,9 @@ func Ox2(ctx *gin.Context, env *env.Environment, model, message string) (value s
 	var (
 		hash    = emit.GioHash()
 		proxied = env.GetString("server.proxied")
-		baseUrl = "https://mukaist-dalle-4k.hf.space"
+		//baseUrl = "https://mukaist-dalle-4k.hf.space"
+		baseUrl = "https://ijohn07-dalle-4k.hf.space"
+		r       = rand.New(rand.NewSource(time.Now().UnixNano()))
 	)
 
 	if u := env.GetString("hf.dalle-4k.reversal"); u != "" {
@@ -196,12 +198,16 @@ func Ox2(ctx *gin.Context, env *env.Environment, model, message string) (value s
 		negative,
 		true,
 		model,
+		r.Intn(51206501) + 1100000000,
 		1024,
 		1024,
 		6,
 		true,
 	}
-	fn, data, err = bindAttr(env, "dalle-4k", fn, data, message, negative, "", model, -1)
+	fn, data, err = bindAttr(env, "dalle-4k", fn, data, message, negative, "", model, r.Intn(51206501)+1100000000)
+	if err != nil {
+		return
+	}
 	response, err := emit.ClientBuilder(common.HTTPClient).
 		Proxies(proxied).
 		Context(ctx.Request.Context()).
@@ -300,6 +306,9 @@ func Ox3(ctx *gin.Context, env *env.Environment, message string) (value string, 
 		true,
 	}
 	fn, data, err = bindAttr(env, "dalle-3-xl", fn, data, message, negative, "", "", r.Intn(51206501)+1100000000)
+	if err != nil {
+		return
+	}
 	response, err := emit.ClientBuilder(common.HTTPClient).
 		Proxies(proxied).
 		Context(ctx.Request.Context()).
@@ -400,12 +409,13 @@ func Ox3(ctx *gin.Context, env *env.Environment, message string) (value string, 
 	return
 }
 
-// 潦草漫画的风格
+// 潦草漫画的风格v3
 func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string) (value string, err error) {
 	var (
 		hash    = emit.GioHash()
 		proxied = env.GetString("server.proxied")
-		baseUrl = "https://cagliostrolab-animagine-xl-3-1.hf.space"
+		//baseUrl = "https://cagliostrolab-animagine-xl-3-1.hf.space"
+		baseUrl = "https://asahina2k-animagine-xl-3-1.hf.space"
 		r       = rand.New(rand.NewSource(time.Now().UnixNano()))
 	)
 
@@ -432,6 +442,9 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		true,
 	}
 	fn, data, err = bindAttr(env, "animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(1490935504)+9068457)
+	if err != nil {
+		return
+	}
 	response, err := emit.ClientBuilder(common.HTTPClient).
 		Proxies(proxied).
 		Context(ctx.Request.Context()).
@@ -444,6 +457,177 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		Body(map[string]interface{}{
 			"data":         data,
 			"fn_index":     fn[0],
+			"trigger_id":   fn[1],
+			"session_hash": hash,
+		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return "", err
+	}
+	logger.Info(emit.TextResponse(response))
+	_ = response.Body.Close()
+
+	response, err = emit.ClientBuilder(common.HTTPClient).
+		Proxies(proxied).
+		Context(ctx.Request.Context()).
+		GET(baseUrl+"/queue/data").
+		Query("session_hash", hash).
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept", "text/event-stream").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	if err != nil {
+		return "", err
+	}
+
+	defer response.Body.Close()
+	c, err := emit.NewGio(ctx.Request.Context(), response)
+	if err != nil {
+		return "", err
+	}
+
+	c.Event("*", func(j emit.JoinEvent) (_ interface{}) {
+		logger.Debugf("event: %s", j.InitialBytes)
+		return
+	})
+
+	c.Event("process_completed", func(j emit.JoinEvent) (_ interface{}) {
+		d := j.Output.Data
+
+		if len(d) == 0 {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		values, ok := d[0].([]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		if len(values) == 0 {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		v, ok := values[0].(map[string]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		info, ok := v["image"].(map[string]interface{})
+		if !ok {
+			c.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+			return
+		}
+
+		// 锁环境了，只能先下载下来
+		value, err = common.DownloadFile(common.HTTPClient, proxied, info["url"].(string), "png", map[string]string{
+			// "User-Agent":      userAgent,
+			// "Accept-Language": "en-US,en;q=0.9",
+			"Origin":  "https://huggingface.co",
+			"Referer": baseUrl + "/?__theme=light",
+		})
+		if err != nil {
+			c.Failed(fmt.Errorf("image download failed: %v", err))
+			return
+		}
+
+		return
+	})
+
+	err = c.Do()
+	if err == nil && value == "" {
+		err = fmt.Errorf("image generate failed")
+	}
+	return
+}
+
+// 潦草漫画的风格v4
+func Ox5(ctx *gin.Context, env *env.Environment, model, samples, message string) (value string, err error) {
+	var (
+		hash    = emit.GioHash()
+		proxied = env.GetString("server.proxied")
+		baseUrl = "https://asahina2k-animagine-xl-4-0.hf.space"
+		r       = rand.New(rand.NewSource(time.Now().UnixNano()))
+	)
+
+	if u := env.GetString("hf.animagine-xl-4.0.reversal"); u != "" {
+		baseUrl = u
+	}
+
+	fn := []int{4, 43}
+	data := []interface{}{
+		message,
+		negative,
+		r.Intn(1490935504) + 9068457,
+		1024,
+		1024,
+		7,
+		35,
+		samples,
+		"1024 x 1024",
+		model,
+		true,
+		0.55,
+		1.5,
+		true,
+	}
+	fn, data, err = bindAttr(env, "animagine-xl-4.0", fn, data, message, negative, samples, model, r.Intn(1490935504)+9068457)
+	if err != nil {
+		return
+	}
+	//response, err := emit.ClientBuilder(common.HTTPClient).
+	//	Proxies(proxied).
+	//	Context(ctx.Request.Context()).
+	//	POST(baseUrl+"/queue/join").
+	//	Header("Origin", baseUrl).
+	//	Header("Referer", baseUrl+"/?__theme=light").
+	//	Header("User-Agent", userAgent).
+	//	Header("Accept-Language", "en-US,en;q=0.9").
+	//	JSONHeader().
+	//	Body(map[string]interface{}{
+	//		"data":         []interface{}{},
+	//		"fn_index":     fn[0],
+	//		"trigger_id":   fn[1],
+	//		"session_hash": hash,
+	//	}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	//if err != nil {
+	//	return "", err
+	//}
+	//logger.Info(emit.TextResponse(response))
+	//_ = response.Body.Close()
+	//
+	//response, err = emit.ClientBuilder(common.HTTPClient).
+	//	Proxies(proxied).
+	//	Context(ctx.Request.Context()).
+	//	GET(baseUrl+"/queue/data").
+	//	Query("session_hash", hash).
+	//	Header("Origin", baseUrl).
+	//	Header("Referer", baseUrl+"/?__theme=light").
+	//	Header("User-Agent", userAgent).
+	//	Header("Accept", "text/event-stream").
+	//	Header("Accept-Language", "en-US,en;q=0.9").
+	//	DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	//if err != nil {
+	//	return "", err
+	//}
+	//_ = response.Body.Close()
+
+	response, err := emit.ClientBuilder(common.HTTPClient).
+		Proxies(proxied).
+		Context(ctx.Request.Context()).
+		POST(baseUrl+"/queue/join").
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept-Language", "en-US,en;q=0.9").
+		JSONHeader().
+		Body(map[string]interface{}{
+			"data":         data,
+			"fn_index":     fn[0] + 1,
 			"trigger_id":   fn[1],
 			"session_hash": hash,
 		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)

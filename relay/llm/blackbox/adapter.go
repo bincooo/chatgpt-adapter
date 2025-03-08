@@ -30,6 +30,9 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 		"GPT-4o",
 		"Gemini-PRO",
 		"Claude-Sonnet-3.5",
+		"Claude-Sonnet-3.7",
+		"DeepSeek-V3",
+		"DeepSeek-R1",
 	}...) {
 		if model[9:] == mod {
 			ok = true
@@ -45,6 +48,9 @@ func (api *api) Models() (slice []model.Model) {
 		"GPT-4o",
 		"Gemini-PRO",
 		"Claude-Sonnet-3.5",
+		"Claude-Sonnet-3.7",
+		"DeepSeek-V3",
+		"DeepSeek-R1",
 	}...) {
 		slice = append(slice, model.Model{
 			Id:      Model + "/" + mod,

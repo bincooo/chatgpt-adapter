@@ -201,3 +201,32 @@ var (
 		"DDIM",
 	}
 )
+
+// let value = ""; $0.querySelectorAll('li').forEach((it) => { value += `"${it.getAttribute('aria-label')}",\n` });console.log(value)
+var (
+	ANIMAGINE_XL40_MODELS = []string{
+		"(None)",
+		"Anim4gine",
+		"Painting",
+		"Pixel art",
+		"1980s",
+		"1990s",
+		"2000s",
+		"Toon",
+		"Lineart",
+		"Art Nouveau",
+		"Western Comics",
+		"3D",
+		"Realistic",
+		"Neonpunk",
+	}
+
+	ANIMAGINE_XL40_SAMPLES = []string{
+		"DPM++ 2M Karras",
+		"DPM++ SDE Karras",
+		"DPM++ 2M SDE Karras",
+		"Euler",
+		"Euler a",
+		"DDIM",
+	}
+)

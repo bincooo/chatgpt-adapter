@@ -49,11 +49,11 @@ func fetch(ctx context.Context, proxied, cookie string, request blackboxRequest)
 		Proxies(proxied).
 		POST("https://www.blackbox.ai/api/chat").
 		JSONHeader().
-		Header("cookie", "sessionId="+cookie).
 		Header("accept-language", "en-US,en;q=0.9").
 		Header("origin", "https://www.blackbox.ai").
 		Header("referer", "https://www.blackbox.ai/").
 		Header("user-agent", userAgent).
+		Header("cookie", cookie).
 		Body(request).
 		DoC(emit.Status(http.StatusOK), emit.IsTEXT)
 	return

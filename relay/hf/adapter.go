@@ -78,6 +78,12 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 		return
 	}
 
+	if token == "sk-animagine-xl-4.0" {
+		ctx.Set(ginSpace, "animagine-xl-4.0")
+		ok = true
+		return
+	}
+
 	return
 }
 
@@ -118,6 +124,10 @@ func (api *api) Generation(ctx *gin.Context) (err error) {
 		modelSlice = ANIMAGINE_XL31_MODELS
 		samplesSlice = ANIMAGINE_XL31_SAMPLES
 		value, err = Ox4(ctx, api.env, mod, samples, message)
+	case "animagine-xl-4.0":
+		modelSlice = ANIMAGINE_XL40_MODELS
+		samplesSlice = ANIMAGINE_XL40_SAMPLES
+		value, err = Ox5(ctx, api.env, mod, samples, message)
 	case "google":
 		modelSlice = GOOGLE_MODELS
 		value, err = google(ctx, api.env, mod, message)
@@ -213,6 +223,12 @@ func matchModel(style, spase string) string {
 			return style
 		}
 		return ANIMAGINE_XL31_MODELS[rand.Intn(len(ANIMAGINE_XL31_MODELS))]
+
+	case "animagine-xl-4.0":
+		if slices.Contains(ANIMAGINE_XL40_MODELS, style) {
+			return style
+		}
+		return ANIMAGINE_XL40_MODELS[rand.Intn(len(ANIMAGINE_XL40_MODELS))]
 
 	default:
 		if slices.Contains(SD_MODELS, style) {
