@@ -30,7 +30,7 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 		if model[9:] == mod {
 			if strings.HasPrefix(mod, "deepseek") {
 				completion := common.GetGinCompletion(ctx)
-				completion.StopSequences = append(completion.StopSequences, "<codebase_search>", "<write_to_file>")
+				completion.StopSequences = append(completion.StopSequences, "<codebase_search>", "<write_to_file>", "<open_link>")
 				ctx.Set(vars.GinCompletion, completion)
 			}
 			ok = true
