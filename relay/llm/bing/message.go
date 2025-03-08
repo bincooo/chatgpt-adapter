@@ -105,6 +105,9 @@ func waitResponse(ctx *gin.Context, message chan []byte, sse bool) (content stri
 		if msg.Is("event", "imageGenerated") {
 			raw = fmt.Sprintf("![image](%s)", msg.GetString("url"))
 		}
+		if msg.Is("event", "replaceText") {
+			raw = msg.GetString("text")
+		}
 		if len(raw) == 0 {
 			continue
 		}

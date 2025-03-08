@@ -32,11 +32,11 @@ func claudeRole(role string) string {
 func bingRole(role string) string {
 	switch role {
 	case "user":
-		return "Human: "
+		return "Q: "
 	case "assistant":
-		return "Ai: "
+		return "A: "
 	default:
-		return "Instructions: "
+		return "Ins: \n"
 	}
 }
 
