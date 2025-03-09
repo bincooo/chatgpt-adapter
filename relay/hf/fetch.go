@@ -427,7 +427,7 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 	data := []interface{}{
 		message,
 		negative,
-		r.Intn(1490935504) + 9068457,
+		r.Intn(9068457) + 1490935504,
 		1024,
 		1024,
 		7,
@@ -441,7 +441,7 @@ func Ox4(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		1.5,
 		true,
 	}
-	fn, data, err = bindAttr(env, "animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(1490935504)+9068457)
+	fn, data, err = bindAttr(env, "animagine-xl-3.1", fn, data, message, negative, samples, model, r.Intn(9068457)+1490935504)
 	if err != nil {
 		return
 	}
@@ -561,8 +561,8 @@ func Ox5(ctx *gin.Context, env *env.Environment, model, samples, message string)
 	fn := []int{4, 43}
 	data := []interface{}{
 		message,
-		negative,
-		r.Intn(1490935504) + 9068457,
+		"lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry",
+		r.Intn(9068457) + 2090935504,
 		1024,
 		1024,
 		7,
@@ -575,48 +575,48 @@ func Ox5(ctx *gin.Context, env *env.Environment, model, samples, message string)
 		1.5,
 		true,
 	}
-	fn, data, err = bindAttr(env, "animagine-xl-4.0", fn, data, message, negative, samples, model, r.Intn(1490935504)+9068457)
+	fn, data, err = bindAttr(env, "animagine-xl-4.0", fn, data, message, negative, samples, model, r.Intn(9068457)+2090935504)
 	if err != nil {
 		return
 	}
-	//response, err := emit.ClientBuilder(common.HTTPClient).
-	//	Proxies(proxied).
-	//	Context(ctx.Request.Context()).
-	//	POST(baseUrl+"/queue/join").
-	//	Header("Origin", baseUrl).
-	//	Header("Referer", baseUrl+"/?__theme=light").
-	//	Header("User-Agent", userAgent).
-	//	Header("Accept-Language", "en-US,en;q=0.9").
-	//	JSONHeader().
-	//	Body(map[string]interface{}{
-	//		"data":         []interface{}{},
-	//		"fn_index":     fn[0],
-	//		"trigger_id":   fn[1],
-	//		"session_hash": hash,
-	//	}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
-	//if err != nil {
-	//	return "", err
-	//}
-	//logger.Info(emit.TextResponse(response))
-	//_ = response.Body.Close()
-	//
-	//response, err = emit.ClientBuilder(common.HTTPClient).
-	//	Proxies(proxied).
-	//	Context(ctx.Request.Context()).
-	//	GET(baseUrl+"/queue/data").
-	//	Query("session_hash", hash).
-	//	Header("Origin", baseUrl).
-	//	Header("Referer", baseUrl+"/?__theme=light").
-	//	Header("User-Agent", userAgent).
-	//	Header("Accept", "text/event-stream").
-	//	Header("Accept-Language", "en-US,en;q=0.9").
-	//	DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
-	//if err != nil {
-	//	return "", err
-	//}
-	//_ = response.Body.Close()
-
 	response, err := emit.ClientBuilder(common.HTTPClient).
+		Proxies(proxied).
+		Context(ctx.Request.Context()).
+		POST(baseUrl+"/queue/join").
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept-Language", "en-US,en;q=0.9").
+		JSONHeader().
+		Body(map[string]interface{}{
+			"data":         []interface{}{},
+			"fn_index":     fn[0],
+			"trigger_id":   fn[1],
+			"session_hash": hash,
+		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		return "", err
+	}
+	logger.Info(emit.TextResponse(response))
+	_ = response.Body.Close()
+
+	response, err = emit.ClientBuilder(common.HTTPClient).
+		Proxies(proxied).
+		Context(ctx.Request.Context()).
+		GET(baseUrl+"/queue/data").
+		Query("session_hash", hash).
+		Header("Origin", baseUrl).
+		Header("Referer", baseUrl+"/?__theme=light").
+		Header("User-Agent", userAgent).
+		Header("Accept", "text/event-stream").
+		Header("Accept-Language", "en-US,en;q=0.9").
+		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
+	if err != nil {
+		return "", err
+	}
+	_ = response.Body.Close()
+
+	response, err = emit.ClientBuilder(common.HTTPClient).
 		Proxies(proxied).
 		Context(ctx.Request.Context()).
 		POST(baseUrl+"/queue/join").
