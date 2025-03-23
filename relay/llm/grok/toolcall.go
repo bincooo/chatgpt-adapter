@@ -31,7 +31,7 @@ func toolChoice(ctx *gin.Context, env *env.Environment, proxies, cookie string, 
 			return "", err
 		}
 
-		r, err := fetch(ctx.Request.Context(), proxies, cookie, request)
+		r, err := fetch(ctx, proxies, cookie, request)
 		if err != nil {
 			return "", err
 		}

@@ -2,7 +2,6 @@ package grok
 
 import (
 	"bytes"
-	"context"
 	"net/http"
 	"strings"
 
@@ -41,19 +40,21 @@ type grokRequest struct {
 	IsReasoning               bool          `json:"isReasoning"`
 }
 
-func fetch(ctx context.Context, proxied, cookie string, request grokRequest) (response *http.Response, err error) {
+func fetch(ctx *gin.Context, proxied, cookie string, request grokRequest) (response *http.Response, err error) {
+	ua := ctx.GetString("userAgent")
+	lang := ctx.GetString("lang")
 	response, err = emit.ClientBuilder(common.HTTPClient).
-		Context(ctx).
+		Context(ctx.Request.Context()).
 		Proxies(proxied).
 		POST("https://grok.com/rest/app-chat/conversations/new").
 		JSONHeader().
-		Header("accept-language", "en-US,en;q=0.9").
 		Header("origin", "https://grok.com").
 		Header("referer", "https://grok.com/").
 		Header("baggage", "sentry-environment=production,sentry-release="+common.Hex(21)+",sentry-public_key="+strings.ReplaceAll(uuid.NewString(), "-", "")+",sentry-trace_id="+strings.ReplaceAll(uuid.NewString(), "-", "")+",sentry-replay_id="+strings.ReplaceAll(uuid.NewString(), "-", "")+",sentry-sample_rate=1,sentry-sampled=true").
 		Header("sentry-trace", strings.ReplaceAll(uuid.NewString(), "-", "")+"-"+common.Hex(16)+"-1").
-		Header("user-agent", userAgent).
-		Header("cookie", cookie).
+		Header("accept-language", elseOf(lang == "", "en-US,en;q=0.9", lang)).
+		Header("user-agent", elseOf(ua == "", userAgent, ua)).
+		Header("cookie", emit.MergeCookies(cookie, ctx.GetString("clearance"))).
 		Body(request).
 		DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	return
@@ -104,9 +105,9 @@ label:
 	return
 }
 
-func elseOf[T any](condition bool, t T) (zero T) {
+func elseOf[T any](condition bool, t1, t2 T) T {
 	if condition {
-		return t
+		return t1
 	}
-	return zero
+	return t2
 }

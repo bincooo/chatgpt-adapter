@@ -71,7 +71,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		return
 	}
 
-	r, err := fetch(ctx.Request.Context(), proxied, cookie, request)
+	r, err := fetch(ctx, proxied, cookie, request)
 	if err != nil {
 		logger.Error(err)
 		return
