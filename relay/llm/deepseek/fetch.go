@@ -3,7 +3,6 @@ package deepseek
 import (
 	"bytes"
 	"chatgpt-adapter/core/common"
-	"chatgpt-adapter/core/common/inited"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
@@ -17,11 +16,17 @@ import (
 	"github.com/iocgo/sdk/env"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
 var (
-	userAgent  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1.1 Safari/605.1.15"
+	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1.1 Safari/605.1.15"
+	lang      string
+	clearance string
+
+	mu sync.Mutex
+
 	calcServer = "https://wik5ez2o-helper.hf.space"
 )
 
@@ -36,34 +41,6 @@ var (
 //	}
 //	wasmInstance = inst
 //}
-
-var (
-	// 尝试过盾
-	cookies = ""
-)
-
-func init() {
-	inited.AddInitialized(func(env *env.Environment) {
-		_userAgent := env.GetString("deepseek.userAgent")
-		if _userAgent != "" {
-			userAgent = _userAgent
-		}
-
-		cookies = env.GetString("deepseek.cookie")
-		if cookies != "" {
-			split := strings.Split(cookies, "; ")
-			result := make([]string, 0)
-			for _, cookie := range split {
-				if strings.HasPrefix(cookie, "cf_clearance=") ||
-					strings.HasPrefix(cookie, "__cf_bm=") ||
-					strings.HasPrefix(cookie, "_cfuvid=") {
-					result = append(result, cookie)
-				}
-			}
-			cookies = strings.Join(result, "; ")
-		}
-	})
-}
 
 type deepseekRequest struct {
 	ChatSessionId   string `json:"chat_session_id"`
@@ -91,7 +68,8 @@ label:
 		Header("x-client-locale", "zh_CN").
 		Header("x-client-platform", "web").
 		Header("x-client-version", "1.0.0-always").
-		Header(elseOf(cookies != "", "cookie"), cookies).
+		Header(elseOf(clearance != "", "cookie"), clearance).
+		Header(elseOf(lang != "", "accept-language"), lang).
 		Body(map[string]interface{}{
 			"target_path": "/api/v0/chat/completion",
 		}).
@@ -156,7 +134,8 @@ label:
 		Header("x-client-platform", "web").
 		Header("x-client-version", "1.0.0-always").
 		Header("x-ds-pow-response", base64.RawStdEncoding.EncodeToString(buf)).
-		Header(elseOf(cookies != "", "cookie"), cookies).
+		Header(elseOf(clearance != "", "cookie"), clearance).
+		Header(elseOf(lang != "", "accept-language"), lang).
 		Body(request).
 		DoC(emit.Status(http.StatusOK), emit.IsSTREAM)
 	if err != nil {
@@ -185,7 +164,8 @@ func deleteSession(ctx *gin.Context, env *env.Environment, sessionId string) {
 		Header("x-client-locale", "zh_CN").
 		Header("x-client-platform", "web").
 		Header("x-client-version", "1.0.0-always").
-		Header(elseOf(cookies != "", "cookie"), cookies).
+		Header(elseOf(clearance != "", "cookie"), clearance).
+		Header(elseOf(lang != "", "accept-language"), lang).
 		Body(map[string]interface{}{
 			"chat_session_id": sessionId,
 		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
@@ -331,11 +311,16 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 		Header("x-client-locale", "zh_CN").
 		Header("x-client-platform", "web").
 		Header("x-client-version", "1.0.0-always").
-		Header(elseOf(cookies != "", "cookie"), cookies).
+		Header(elseOf(clearance != "", "cookie"), clearance).
+		Header(elseOf(lang != "", "accept-language"), lang).
 		Body(map[string]interface{}{
 			"character_id": nil,
 		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
+		var busErr emit.Error
+		if errors.As(err, &busErr) && busErr.Code == 403 {
+			_ = hookCloudflare(env)
+		}
 		return
 	}
 
@@ -384,6 +369,54 @@ label:
 		Message: contentBuffer.String(),
 	}
 	return
+}
+
+func hookCloudflare(env *env.Environment) error {
+	if clearance != "" {
+		return nil
+	}
+
+	baseUrl := env.GetString("browser-less.reversal")
+	if !env.GetBool("browser-less.enabled") && baseUrl == "" {
+		return errors.New("trying cloudflare failed, please setting `browser-less.enabled` or `browser-less.reversal`")
+	}
+
+	logger.Info("trying cloudflare ...")
+
+	mu.Lock()
+	defer mu.Unlock()
+	if clearance != "" {
+		return nil
+	}
+
+	if baseUrl == "" {
+		baseUrl = "http://127.0.0.1:" + env.GetString("browser-less.port")
+	}
+
+	r, err := emit.ClientBuilder(common.HTTPClient).
+		GET(baseUrl+"/v0/clearance").
+		Header("x-website", "https://chat.deepseek.com").
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		logger.Error(err)
+		if emit.IsJSON(r) == nil {
+			logger.Error(emit.TextResponse(r))
+		}
+		return err
+	}
+
+	defer r.Body.Close()
+	obj, err := emit.ToMap(r)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	data := obj["data"].(map[string]interface{})
+	clearance = data["cookie"].(string)
+	userAgent = data["userAgent"].(string)
+	lang = data["lang"].(string)
+	return nil
 }
 
 func elseOf[T any](condition bool, t T) (zero T) {
