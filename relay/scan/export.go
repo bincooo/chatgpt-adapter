@@ -5,6 +5,11 @@ package scan
 import (
 	"github.com/iocgo/sdk"
 
+	_ "chatgpt-adapter/relay/alloc/bing"
+	_ "chatgpt-adapter/relay/alloc/coze"
+	_ "chatgpt-adapter/relay/alloc/grok"
+	_ "chatgpt-adapter/relay/alloc/you"
+
 	"chatgpt-adapter/relay/hf"
 	"chatgpt-adapter/relay/llm/bing"
 	"chatgpt-adapter/relay/llm/blackbox"
@@ -85,5 +90,11 @@ func Injects(container *sdk.Container) (err error) {
 	if err != nil {
 		return
 	}
+
+	err = rejects(container)
+	if err != nil {
+		return
+	}
+
 	return
 }
