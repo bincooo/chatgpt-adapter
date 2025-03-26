@@ -25,6 +25,7 @@ var (
 	bingCacheManager      *Manager[string]
 	cursorCacheManager    *Manager[string]
 	qodoCacheManager      *Manager[string]
+	zedCacheManager       *Manager[string]
 )
 
 func init() {
@@ -53,6 +54,12 @@ func init() {
 		qodoCacheManager = &Manager[string]{
 			cache.New[string](gocacheStore.NewGoCache(client)),
 		}
+
+		client = gocache.New(5*time.Minute, 5*time.Minute)
+		zedCacheManager = &Manager[string]{
+			cache.New[string](gocacheStore.NewGoCache(client)),
+		}
+
 	})
 }
 
@@ -74,6 +81,10 @@ func CursorCacheManager() *Manager[string] {
 
 func QodoCacheManager() *Manager[string] {
 	return qodoCacheManager
+}
+
+func ZedCacheManager() *Manager[string] {
+	return zedCacheManager
 }
 
 func (cacheManager *Manager[T]) SetValue(key string, value T) error {
