@@ -139,10 +139,6 @@ func condition(cookie string, argv ...interface{}) (ok bool) {
 }
 
 func hookCloudflare(env *env.Environment) error {
-	if clearance != "" {
-		return nil
-	}
-
 	baseUrl := env.GetString("browser-less.reversal")
 	if !env.GetBool("browser-less.enabled") && baseUrl == "" {
 		return errors.New("trying cloudflare failed, please setting `browser-less.enabled` or `browser-less.reversal`")
@@ -152,9 +148,6 @@ func hookCloudflare(env *env.Environment) error {
 
 	mu.Lock()
 	defer mu.Unlock()
-	if clearance != "" {
-		return nil
-	}
 
 	if baseUrl == "" {
 		baseUrl = "http://127.0.0.1:" + env.GetString("browser-less.port")
