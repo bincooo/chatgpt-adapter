@@ -1,7 +1,6 @@
 package zed
 
 import (
-	"bytes"
 	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
@@ -98,14 +97,7 @@ label:
 }
 
 func convertRequest(completion model.Completion) (request zedRequest, err error) {
-	contentBuffer := new(bytes.Buffer)
 	customInstructions := ""
-
-	if len(completion.Messages) == 1 {
-		contentBuffer.WriteString(completion.Messages[0].GetString("content"))
-		goto label
-	}
-
 	if len(completion.Messages) > 1 {
 		message := completion.Messages[0]
 		if message.Is("role", "system") {
@@ -114,7 +106,26 @@ func convertRequest(completion model.Completion) (request zedRequest, err error)
 		}
 	}
 
-label:
+	if completion.Temperature < 0 || completion.Temperature > 1.0 {
+		completion.Temperature = 1.0
+	}
+	if completion.MaxTokens < 0 || completion.MaxTokens > 8192 {
+		completion.MaxTokens = 8192
+	}
+
+	messages := make([]model.Keyv[interface{}], len(completion.Messages))
+	for i, message := range completion.Messages {
+		messages[i] = model.Keyv[interface{}]{
+			"role": message.GetString("role"),
+			"content": []model.Keyv[interface{}]{
+				{
+					"type": "text",
+					"text": message.GetString("content"),
+				},
+			},
+		}
+	}
+
 	request = zedRequest{
 		Provider: "anthropic",
 		Model:    completion.Model[4:],
@@ -126,10 +137,10 @@ label:
 			Messages    []model.Keyv[interface{}] `json:"messages"`
 		}{
 			Model:       completion.Model[4:],
+			Temperature: Float32(completion.Temperature),
 			MaxTokens:   completion.MaxTokens,
 			System:      customInstructions,
-			Messages:    completion.Messages,
-			Temperature: Float32(completion.Temperature),
+			Messages:    messages,
 		},
 	}
 	return
