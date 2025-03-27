@@ -59,7 +59,6 @@ func init() {
 		zedCacheManager = &Manager[string]{
 			cache.New[string](gocacheStore.NewGoCache(client)),
 		}
-
 	})
 }
 
@@ -108,4 +107,10 @@ func (cacheManager *Manager[T]) GetValue(key string) (value T, err error) {
 		return
 	}
 	return
+}
+
+func (cacheManager *Manager[T]) Delete(key string) error {
+	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return cacheManager.cache.Delete(timeout, key)
 }

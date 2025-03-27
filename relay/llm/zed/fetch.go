@@ -61,12 +61,21 @@ func fetch(ctx *gin.Context, env *env.Environment, proxied, cookie string, reque
 		Header("authorization", "Bearer "+cookie).
 		Body(request).
 		DoS(http.StatusOK)
+	if err != nil {
+		var busErr emit.Error
+		if errors.As(err, &busErr) {
+			if busErr.Code == 402 && busErr.Msg == "Payment Required" {
+				manager := cache.ZedCacheManager()
+				_ = manager.Delete(ginTokens)
+			}
+		}
+	}
 	return
 }
 
 func genToken(ctx context.Context, url string) (value string, err error) {
 	manager := cache.ZedCacheManager()
-	if value, _ = manager.GetValue(url); value != "" {
+	if value, _ = manager.GetValue(ginTokens); value != "" {
 		return
 	}
 
@@ -78,6 +87,9 @@ label:
 		Context(ctx).
 		GET(url).DoS(http.StatusOK)
 	if err != nil {
+		if retry > 0 {
+			goto label
+		}
 		return
 	}
 	defer resp.Body.Close()
@@ -92,7 +104,7 @@ label:
 		return
 	}
 	value = value[7:]
-	_ = manager.SetWithExpiration(url, value, time.Hour)
+	_ = manager.SetWithExpiration(ginTokens, value, time.Hour)
 	return
 }
 

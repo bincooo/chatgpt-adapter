@@ -38,6 +38,9 @@ var (
 		"invalid_api",
 		"invalid usage",
 		"permission_denied",
+
+		// zed
+		"Payment Required",
 	}
 )
 
