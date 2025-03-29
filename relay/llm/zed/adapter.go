@@ -72,7 +72,7 @@ func (api *api) Completion(ctx *gin.Context) (err error) {
 		completion = common.GetGinCompletion(ctx)
 	)
 
-	request, err := convertRequest(completion)
+	request, err := convertRequest(ctx, completion)
 	if err != nil {
 		logger.Error(err)
 		return

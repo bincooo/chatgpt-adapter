@@ -39,6 +39,9 @@ var (
 		"invalid usage",
 		"permission_denied",
 
+		// corsor
+		"unauthenticated",
+
 		// zed
 		"Payment Required",
 	}

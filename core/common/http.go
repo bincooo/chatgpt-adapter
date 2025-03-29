@@ -34,7 +34,7 @@ func init() {
 			connTimeout = 180
 		}
 
-		options = append(options, emit.Ja3Helper(emit.Echo{RandomTLSExtension: true, HelloID: profiles.Chrome_124}, connTimeout))
+		options = append(options, emit.Ja3Helper(emit.Echo{RandomTLSExtension: true, HelloID: profiles.Chrome_133}, connTimeout))
 		HTTPClient, err = emit.NewSession(proxied, false, ips("127.0.0.1"), options...)
 		if err != nil {
 			logger.Fatal("Error initializing HTTPClient: ", err)

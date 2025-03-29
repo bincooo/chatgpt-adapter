@@ -1,9 +1,11 @@
 package zed
 
 import (
+	"bytes"
 	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
+	"chatgpt-adapter/core/gin/response"
 	"context"
 	"errors"
 	"fmt"
@@ -64,7 +66,7 @@ func fetch(ctx *gin.Context, env *env.Environment, proxied, cookie string, reque
 	if err != nil {
 		var busErr emit.Error
 		if errors.As(err, &busErr) {
-			if busErr.Code == 402 && busErr.Msg == "Payment Required" {
+			if busErr.Code == 403 || (busErr.Code == 402 && busErr.Msg == "Payment Required") {
 				manager := cache.ZedCacheManager()
 				_ = manager.Delete(ginTokens)
 			}
@@ -108,7 +110,7 @@ label:
 	return
 }
 
-func convertRequest(completion model.Completion) (request zedRequest, err error) {
+func convertRequest(ctx *gin.Context, completion model.Completion) (request zedRequest, err error) {
 	customInstructions := ""
 	if len(completion.Messages) > 1 {
 		message := completion.Messages[0]
@@ -125,17 +127,13 @@ func convertRequest(completion model.Completion) (request zedRequest, err error)
 		completion.MaxTokens = 8192
 	}
 
-	messages := make([]model.Keyv[interface{}], len(completion.Messages))
-	for i, message := range completion.Messages {
-		messages[i] = model.Keyv[interface{}]{
-			"role": message.GetString("role"),
-			"content": []model.Keyv[interface{}]{
-				{
-					"type": "text",
-					"text": message.GetString("content"),
-				},
-			},
-		}
+	// 有轮次限制，改为单轮对话上下文
+	contentBuffer := new(bytes.Buffer)
+	for _, message := range completion.Messages {
+		role, trun := response.ConvertRole(ctx, message.GetString("role"))
+		contentBuffer.WriteString(role)
+		contentBuffer.WriteString(message.GetString("content"))
+		contentBuffer.WriteString(trun)
 	}
 
 	request = zedRequest{
@@ -152,7 +150,12 @@ func convertRequest(completion model.Completion) (request zedRequest, err error)
 			Temperature: Float32(completion.Temperature),
 			MaxTokens:   completion.MaxTokens,
 			System:      customInstructions,
-			Messages:    messages,
+			Messages: []model.Keyv[interface{}]{
+				{
+					"role":    "user",
+					"content": contentBuffer.String(),
+				},
+			},
 		},
 	}
 	return

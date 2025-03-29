@@ -26,7 +26,7 @@ func toolChoice(ctx *gin.Context, env *env.Environment, proxies, cookie string, 
 			},
 		}
 
-		request, err := convertRequest(completion)
+		request, err := convertRequest(ctx, completion)
 		if err != nil {
 			return "", err
 		}
