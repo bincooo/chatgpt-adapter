@@ -3,7 +3,10 @@
 package scan
 
 import (
-	"chatgpt-adapter/relay/llm/trae"
+	"github.com/iocgo/sdk"
+
+	"chatgpt-adapter/relay/3rd/llm/kilo"
+	"chatgpt-adapter/relay/3rd/llm/trae"
 )
 
 func rejects(container *sdk.Container) (err error) {
@@ -11,5 +14,11 @@ func rejects(container *sdk.Container) (err error) {
 	if err != nil {
 		return
 	}
+
+	err = kilo.Injects(container)
+	if err != nil {
+		return
+	}
+
 	return
 }
