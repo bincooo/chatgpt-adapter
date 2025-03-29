@@ -18,7 +18,6 @@ import (
 	"chatgpt-adapter/relay/llm/grok"
 	"chatgpt-adapter/relay/llm/lmsys"
 	"chatgpt-adapter/relay/llm/qodo"
-	"chatgpt-adapter/relay/llm/trae"
 	"chatgpt-adapter/relay/llm/v1"
 	"chatgpt-adapter/relay/llm/windsurf"
 	"chatgpt-adapter/relay/llm/you"
@@ -73,11 +72,6 @@ func Injects(container *sdk.Container) (err error) {
 	}
 
 	err = qodo.Injects(container)
-	if err != nil {
-		return
-	}
-
-	err = trae.Injects(container)
 	if err != nil {
 		return
 	}
