@@ -28,6 +28,7 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	slice := api.env.GetStringSlice("qodo.model")
 	for _, mod := range append(slice, []string{
 		"claude-3-5-sonnet",
+		"claude-3-7-sonnet",
 		"gpt-4o",
 		"o1",
 		"o3-mini",
@@ -35,7 +36,6 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 		"gemini-2.0-flash",
 		"deepseek-r1",
 		"deepseek-r1-full",
-		"claude-3-7-sonnet",
 	}...) {
 		if model[5:] == mod {
 			ok = true
@@ -48,6 +48,7 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 func (api *api) Models() (slice []model.Model) {
 	for _, mod := range append(api.env.GetStringSlice("qodo.model"), []string{
 		"claude-3-5-sonnet",
+		"claude-3-7-sonnet",
 		"gpt-4o",
 		"o1",
 		"o3-mini",

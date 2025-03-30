@@ -2,6 +2,7 @@ package qodo
 
 import (
 	"bufio"
+	"chatgpt-adapter/core/gin/model"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -19,20 +20,18 @@ import (
 
 const (
 	ginTokens = "__tokens__"
-	b         = "*"
 )
 
 type qodoResponse struct {
-	Type      string `json:"type"`
-	SubType   string `json:"sub_type"`
-	UsedModel string `json:"used_model"`
+	SessionId string `json:"session_id"`
 	Data      struct {
-		Title              string      `json:"title"`
-		Content            string      `json:"content"`
-		CanBeRepliedTo     bool        `json:"can_be_replied_to"`
-		IsStreaming        bool        `json:"is_streaming"`
-		ArtifactAttributes interface{} `json:"artifact_attributes"`
+		Tool     string `json:"tool"`
+		ToolArgs struct {
+			Data string `json:"data"`
+		} `json:"tool_args"`
 	} `json:"data"`
+	Type    string `json:"type"`
+	SubType string `json:"sub_type"`
 }
 
 func waitMessage(r *http.Response, cancel func(str string) bool) (content string, err error) {
@@ -60,12 +59,27 @@ func waitMessage(r *http.Response, cancel func(str string) bool) (content string
 			continue
 		}
 
-		delta := res.Data
-		if delta.Content == "" {
+		delta := res.Data.ToolArgs
+		if delta.Data == "" {
 			continue
 		}
 
-		raw := delta.Content
+		var obj model.Keyv[interface{}]
+		if err = json.Unmarshal([]byte(delta.Data), &obj); err != nil {
+			logger.Warn(err)
+			continue
+		}
+
+		obj = obj.GetKeyv("data")
+		if obj == nil {
+			continue
+		}
+
+		if obj.GetString("title") != "Chat" {
+			continue
+		}
+
+		raw := obj.GetString("content")
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
 		content += raw
@@ -124,10 +138,28 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			continue
 		}
 
-		delta := res.Data
 		reasonContent := ""
+		delta := res.Data.ToolArgs
+		if delta.Data == "" {
+			continue
+		}
 
-		raw := delta.Content
+		var obj model.Keyv[interface{}]
+		if err = json.Unmarshal([]byte(delta.Data), &obj); err != nil {
+			logger.Warn(err)
+			continue
+		}
+
+		obj = obj.GetKeyv("data")
+		if obj == nil {
+			continue
+		}
+
+		if obj.GetString("title") != "Chat" {
+			continue
+		}
+
+		raw := obj.GetString("content")
 		if thinkReason && think == 0 {
 			if strings.HasPrefix(raw, "<think>") {
 				reasonContent = raw[7:]
@@ -181,30 +213,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	}
 	return
 }
-
-// 还原字面转义
-//func addUnpackMatcher(env *env.Environment, matchers []inter.Matcher) []inter.Matcher {
-//	maxLen := 5
-//	return append(matchers, response.NewMatcher(b, func(index int, content string) (state int, cache, result string) {
-//		rc := []rune(content)
-//		if index+maxLen > len(rc)-1 {
-//			return response.MatMatching, "", content
-//		}
-//		// logger.Infof("execute matcher[<b>] content:\n%s", content)
-//		for k, v := range mapC {
-//			content = strings.ReplaceAll(content, b+v+b, k)
-//		}
-//		mapCc := env.GetStringMapString("qodo.mapC")
-//		for k, v := range mapCc {
-//			content = strings.ReplaceAll(content, b+v+b, k)
-//		}
-//
-//		if strings.Contains(content, b) {
-//			return response.MatMatched, content, ""
-//		}
-//		return response.MatMatched, cache, content
-//	}))
-//}
 
 func asError(ctx *gin.Context, err error) (ok bool) {
 	if err == nil {

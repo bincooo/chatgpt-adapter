@@ -180,8 +180,9 @@ func calcAnswer(data map[string]interface{}) (num int, err error) {
 	defer cancel()
 
 	challenge := data["challenge"].(string)
-	salt := fmt.Sprintf("%s_%d_", data["salt"], int(data["expire_at"].(float64)))
+	salt := data["salt"].(string)
 	diff := int(data["difficulty"].(float64))
+	expireAt := int(data["expire_at"].(float64))
 	r, err := emit.ClientBuilder(common.NopHTTPClient).
 		Context(timeout).
 		POST(calcServer+"/ds").
@@ -190,6 +191,7 @@ func calcAnswer(data map[string]interface{}) (num int, err error) {
 			"challenge": challenge,
 			"salt":      salt,
 			"diff":      diff,
+			"expireAt":  expireAt,
 		}).DoC(emit.Status(http.StatusOK), emit.IsJSON)
 	if err != nil {
 		return
