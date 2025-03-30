@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	userAgent = "Zed/0.178.5 (macos; x86_64)"
+	userAgent = "Zed/0.179.4 (macos; x86_64)"
 )
 
 type Float32 float32
@@ -55,7 +55,7 @@ func fetch(ctx *gin.Context, env *env.Environment, proxied, cookie string, reque
 	response, err = emit.ClientBuilder(common.HTTPClient).
 		Context(ctx.Request.Context()).
 		Proxies(proxied).
-		POST("https://llm.zed.dev/completion").
+		POST("https://llm.zed.dev/completion?").
 		JSONHeader().
 		Header("accept", "*/*").
 		Header("host", "llm.zed.dev").
@@ -64,13 +64,8 @@ func fetch(ctx *gin.Context, env *env.Environment, proxied, cookie string, reque
 		Body(request).
 		DoS(http.StatusOK)
 	if err != nil {
-		var busErr emit.Error
-		if errors.As(err, &busErr) {
-			if busErr.Code == 403 || (busErr.Code == 402 && busErr.Msg == "Payment Required") {
-				manager := cache.ZedCacheManager()
-				_ = manager.Delete(ginTokens)
-			}
-		}
+		manager := cache.ZedCacheManager()
+		_ = manager.Delete(ginTokens)
 	}
 	return
 }
@@ -152,8 +147,13 @@ func convertRequest(ctx *gin.Context, completion model.Completion) (request zedR
 			System:      customInstructions,
 			Messages: []model.Keyv[interface{}]{
 				{
-					"role":    "user",
-					"content": contentBuffer.String(),
+					"role": "user",
+					"content": []model.Keyv[interface{}]{
+						{
+							"type": "text",
+							"text": contentBuffer.String(),
+						},
+					},
 				},
 			},
 		},
