@@ -7,6 +7,7 @@ import (
 
 	"chatgpt-adapter/relay/3rd/llm/kilo"
 	"chatgpt-adapter/relay/3rd/llm/trae"
+	"chatgpt-adapter/relay/3rd/llm/zed"
 )
 
 func rejects(container *sdk.Container) (err error) {
@@ -16,6 +17,11 @@ func rejects(container *sdk.Container) (err error) {
 	}
 
 	err = kilo.Injects(container)
+	if err != nil {
+		return
+	}
+
+	err = zed.Injects(container)
 	if err != nil {
 		return
 	}

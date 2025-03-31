@@ -138,6 +138,10 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			continue
 		}
 
+		if res.SubType == "code_implementation_end" {
+			continue
+		}
+
 		reasonContent := ""
 		delta := res.Data.ToolArgs
 		if delta.Data == "" {
@@ -182,6 +186,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			goto label
 		}
 
+		logger.Debug("----- chunk ----", delta)
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
 		onceExec()

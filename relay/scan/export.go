@@ -21,7 +21,6 @@ import (
 	"chatgpt-adapter/relay/llm/v1"
 	"chatgpt-adapter/relay/llm/windsurf"
 	"chatgpt-adapter/relay/llm/you"
-	"chatgpt-adapter/relay/llm/zed"
 	"chatgpt-adapter/relay/pg"
 )
 
@@ -87,11 +86,6 @@ func Injects(container *sdk.Container) (err error) {
 	}
 
 	err = blackbox.Injects(container)
-	if err != nil {
-		return
-	}
-
-	err = zed.Injects(container)
 	if err != nil {
 		return
 	}
