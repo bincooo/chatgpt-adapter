@@ -186,7 +186,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			goto label
 		}
 
-		logger.Debug("----- chunk ----", delta)
 		logger.Debug("----- raw -----")
 		logger.Debug(raw)
 		onceExec()
