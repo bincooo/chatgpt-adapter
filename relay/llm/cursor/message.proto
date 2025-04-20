@@ -2,50 +2,51 @@ syntax = "proto3";
 package  cursor;
 option go_package = "./cursor";
 
+message BidiAppend {
+
+  message SessionKey {
+    string value = 1;
+  }
+
+  string chunk = 1;
+  SessionKey sessionKey = 2;
+}
+
+message StreamUnified {
+  string value = 1;
+}
+
 message ChatMessage {
-  message FileContent {
-    message Position {
-      int32 line = 1;
-      int32 column = 2;
+
+  message Content {
+    message Message {
+      string value = 1;
+      //uint32 unknown_field2 = 2;
+      string uid = 13;
+      //uint32 unknown_field29 = 29;
+      uint32 role = 47;
+      //string unknown_field51 = 51;
     }
-    message Range {
-      Position start = 1;
-      Position end = 2;
+
+    message Model {
+      string value = 1;
     }
 
-    string filename = 1;
-    string content = 2;
-    Position position = 3;
-    string language = 5;
-    Range range = 6;
-    int32 length = 8;
-    int32 type = 9;
-    int32 error_code = 11;
+    message Info {
+      string os = 1;
+      string arch = 2;
+      string version = 3;
+      string bash = 4;
+      string date = 5;
+    }
+
+    repeated Message messages = 1;
+    Model model = 5;
+    string uid = 23;
+    Info info = 26;
   }
 
-  message UserMessage {
-    string content = 1;
-    int32 role = 2;
-    string message_id = 13;
-  }
-
-  message Model {
-    string name = 1;
-    string empty = 4;
-  }
-
-  // repeated FileContent files = 1;
-  repeated UserMessage messages = 2;
-  string unknown_field4 = 4;
-//  string projectPath = 5;
-  Model model = 7;
-//  string requestId = 9;
-//  string summary = 11; // 或许是空的，描述会话做了什么事情，但是不是标题 或许可以当作额外的设定来用
-  uint32 unknown_field13 = 13;
-  string conversationId = 15; // 又来一个uuid
-  uint32 unknown_field16 = 16;
-  uint32 unknown_field29 = 29;
-  uint32 unknown_field30 = 30;
+  Content content = 1;
 }
 
 message ResMessage {

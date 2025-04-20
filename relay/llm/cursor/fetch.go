@@ -24,19 +24,67 @@ import (
 )
 
 func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte) (response *http.Response, err error) {
-	count, err := checkUsage(ctx, env, 150)
-	if err != nil {
-		return
+	//count, err := checkUsage(ctx, env, 150)
+	//if err != nil {
+	//	return
+	//}
+	//if count <= 0 {
+	//	err = fmt.Errorf("invalid usage")
+	//	return
+	//}
+	key := uuid.NewString()
+	message := &BidiAppend{
+		Chunk: hex.EncodeToString(buffer),
+		SessionKey: &BidiAppend_SessionKey{
+			Value: key,
+		},
 	}
-	if count <= 0 {
-		err = fmt.Errorf("invalid usage")
+
+	buffer, err = proto.Marshal(message)
+	if err != nil {
 		return
 	}
 
 	response, err = emit.ClientBuilder(common.HTTPClient).
 		Context(ctx.Request.Context()).
 		Proxies(env.GetString("server.proxied")).
-		POST("https://api2.cursor.sh/aiserver.v1.AiService/StreamChat").
+		POST("https://api2.cursor.sh/aiserver.v1.BidiService/BidiAppend").
+		Header("authorization", "Bearer "+cookie).
+		Header("content-type", "application/connect+proto").
+		Header("connect-accept-encoding", "gzip").
+		Header("connect-content-encoding", "gzip").
+		Header("connect-protocol-version", "1").
+		Header("traceparent", "00-"+strings.ReplaceAll(uuid.NewString(), "-", "")+"-"+common.Hex(16)+"-00").
+		Header("user-agent", "connect-es/1.6.1").
+		Header("x-amzn-trace-id", "Root="+uuid.NewString()).
+		Header("x-client-key", genClientKey(ctx.GetString("token"))).
+		Header("x-cursor-checksum", genChecksum(ctx, env)).
+		Header("x-cursor-client-version", "0.48.9").
+		Header("x-cursor-timezone", "Asia/Shanghai").
+		Header("x-ghost-mode", "false").
+		Header("x-request-id", uuid.NewString()).
+		Header("x-session-id", uuid.NewString()).
+		Header("host", "api2.cursor.sh").
+		Header("Connection", "close").
+		Header("Transfer-Encoding", "chunked").
+		Bytes(buffer).
+		DoC(emit.Status(http.StatusOK), emit.IsPROTO)
+	if err != nil {
+		return
+	}
+
+	streamUnified := &StreamUnified{
+		Value: key,
+	}
+	buffer, err = proto.Marshal(streamUnified)
+	if err != nil {
+		return
+	}
+
+	response, err = emit.ClientBuilder(common.HTTPClient).
+		Context(ctx.Request.Context()).
+		Proxies(env.GetString("server.proxied")).
+		POST("https://api2.cursor.sh/aiserver.v1.ChatService/StreamUnifiedChatWithToolsSSE").
 		Header("authorization", "Bearer "+cookie).
 		Header("content-type", "application/connect+proto").
 		Header("connect-accept-encoding", "gzip").
@@ -61,25 +109,28 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 }
 
 func convertRequest(completion model.Completion) (buffer []byte, err error) {
-	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_UserMessage {
-		return &ChatMessage_UserMessage{
-			MessageId: uuid.NewString(),
-			Role:      elseOf[int32](message.Is("role", "user"), 1, 2),
-			Content:   message.GetString("content"),
+	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_Content_Message {
+		return &ChatMessage_Content_Message{
+			Uid:   uuid.NewString(),
+			Role:  elseOf[uint32](message.Is("role", "user"), 1, 2),
+			Value: message.GetString("content"),
 		}
 	}).ToSlice()
 	message := &ChatMessage{
-		Messages:      messages,
-		UnknownField4: "",
-		Model: &ChatMessage_Model{
-			Name:  completion.Model[7:],
-			Empty: "",
+		Content: &ChatMessage_Content{
+			Messages: messages,
+			Model: &ChatMessage_Content_Model{
+				Value: completion.Model[7:],
+			},
+			Uid: uuid.NewString(),
+			Info: &ChatMessage_Content_Info{
+				Os:      "darwin",
+				Arch:    "x64",
+				Bash:    "/bin/zsh",
+				Version: "22.2.0",
+				Date:    time.Now().Format("2006-01-02T15:04:05.000Z"),
+			},
 		},
-		UnknownField13: 1,
-		ConversationId: uuid.NewString(),
-		UnknownField16: 1,
-		UnknownField29: 1,
-		UnknownField30: 0,
 	}
 
 	protoBytes, err := proto.Marshal(message)
@@ -87,8 +138,10 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 		return
 	}
 
-	header := int32ToBytes(0, len(protoBytes))
-	buffer = append(header, protoBytes...)
+	//header := int32ToBytes(0, len(protoBytes))
+	//buffer = append(header, protoBytes...)
+
+	buffer = protoBytes
 	return
 }
 
