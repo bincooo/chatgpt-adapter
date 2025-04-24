@@ -30,7 +30,7 @@ message ChatMessage {
 
     message Model {
       string value = 1;
-      optional string empty2 = 2;
+      optional string empty4 = 4;
     }
 
     message Unknown_field15 {

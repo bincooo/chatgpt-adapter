@@ -124,11 +124,13 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 	return
 }
 
+// TODO TIPS: 有两个uuid会被验证，还不清楚怎么来的
 func convertRequest(completion model.Completion) (buffer []byte, err error) {
+	msg, _ := newMessage()
 	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_Content_Message {
 		return &ChatMessage_Content_Message{
-			Empty51:        &Empty51,
-			Uid:            uuid.NewString(),
+			Empty51:        &Empty,
+			Uid:            msg.Content.Messages[0].Uid,
 			Role:           elseOf[uint32](message.Is("role", "user"), 1, 2),
 			Value:          message.GetString("content"),
 			UnknownField2:  1,
@@ -143,7 +145,7 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 			UnknownField4: 1,
 			Model: &ChatMessage_Content_Model{
 				Value:  completion.Model[7:],
-				Empty2: &Empty,
+				Empty4: &Empty,
 			},
 			UnknownField15: &ChatMessage_Content_UnknownField15{
 				Empty3: &Empty,
@@ -164,15 +166,15 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 				Date:    time.Now().Format("2006-01-02T15:04:05.000Z"),
 			},
 			UnknownField27: 1,
-			Empty29:        &Empty51,
+			Empty29:        &Empty,
 			UnknownField30: &ChatMessage_Content_UnknownField30{
-				Uuid:          uuid.NewString(),
+				Uuid:          msg.Content.UnknownField30.Uuid,
 				UnknownField3: 1,
 			},
 			UnknownField35: &Zero,
 			UnknownField38: &Zero,
 			UnknownField46: 1,
-			Empty47:        &Empty47,
+			Empty47:        &Empty,
 			UnknownField48: &Zero,
 			UnknownField49: &Zero,
 			UnknownField51: &Zero,
@@ -181,12 +183,13 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 		},
 	}
 
-	msg, _ := newMessage()
-	message = &msg
+	//message = &msg
+	//message.Content.Messages = messages
 	protoBytes, err := proto.Marshal(message)
 	if err != nil {
 		return
 	}
+	//println(hex.EncodeToString(protoBytes))
 
 	//header := int32ToBytes(0, len(protoBytes))
 	//buffer = append(header, protoBytes...)
