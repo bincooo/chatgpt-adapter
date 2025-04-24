@@ -294,12 +294,13 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			chunk, err = io.ReadAll(reader)
 		}
 		if magic == 0 {
+			// println(hex.EncodeToString(chunk))
 			var message ResMessage
 			err = proto.Unmarshal(chunk, &message)
 			if err != nil {
 				return
 			}
-			chunk = []byte(message.Msg)
+			chunk = []byte(message.Msg.Value)
 		}
 		return i, chunk, err
 	})

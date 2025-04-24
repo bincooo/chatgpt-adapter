@@ -21,15 +21,28 @@ message ChatMessage {
   message Content {
     message Message {
       string value = 1;
-      //uint32 unknown_field2 = 2;
+      uint32 unknown_field2 = 2;
       string uid = 13;
-      //uint32 unknown_field29 = 29;
+      uint32 unknown_field29 = 29;
       uint32 role = 47;
-      //string unknown_field51 = 51;
+      optional string empty51 = 51;
     }
 
     message Model {
       string value = 1;
+      optional string empty2 = 2;
+    }
+
+    message Unknown_field15 {
+      message Unknown_field6 {
+        optional string empty1 = 1;
+        optional string empty2 = 2;
+      }
+
+      optional string empty3 = 3;
+      Unknown_field6 unknown_field6 = 6;
+      uint32 unknown_field8 = 8;
+      uint32 unknown_field9 = 9;
     }
 
     message Info {
@@ -40,15 +53,41 @@ message ChatMessage {
       string date = 5;
     }
 
+    message Unknown_field30 {
+      string uuid = 1;
+      uint32 unknown_field3 = 3;
+    }
+
     repeated Message messages = 1;
+    uint32 unknown_field2 = 2;
+    optional string empty3 = 3;
+    uint32 unknown_field4 = 4;
     Model model = 5;
+    Unknown_field15 unknown_field15 = 15;
+    uint32 unknown_field19 = 19;
     string uid = 23;
     Info info = 26;
+    uint32 unknown_field27 = 27;
+    optional string empty29 = 29;
+    Unknown_field30 unknown_field30 = 30;
+    optional uint32 unknown_field35 = 35;
+    optional uint32 unknown_field38 = 38;
+    uint32 unknown_field46 = 46; // 2
+    optional string empty47 = 47;
+    optional uint32 unknown_field48 = 48;
+    optional uint32 unknown_field49 = 49;
+    optional uint32 unknown_field51 = 51;
+    optional uint32 unknown_field53 = 53;
+    string agent = 54;
   }
 
   Content content = 1;
 }
 
 message ResMessage {
-  string msg = 1;
+  message Msg {
+    string value = 1;
+  }
+
+  Msg msg = 2;
 }
