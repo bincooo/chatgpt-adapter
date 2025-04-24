@@ -300,6 +300,10 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			if err != nil {
 				return
 			}
+			if message.Msg == nil {
+				chunk = []byte("")
+				return
+			}
 			chunk = []byte(message.Msg.Value)
 		}
 		return i, chunk, err
