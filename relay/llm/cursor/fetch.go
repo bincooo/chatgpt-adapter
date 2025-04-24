@@ -24,10 +24,8 @@ import (
 )
 
 var (
-	Empty          = ""
-	Empty51        = "\u0001\u0003\u0005\u0006\a\b\t\v\f\u000E\u000F\u0011\u0012\u0014\u0013\u0015\u0016\u0017\u0018"
-	Empty47        = "\u0012\a\u0018"
-	Zero    uint32 = 0
+	Empty        = ""
+	Zero  uint32 = 0
 )
 
 func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte) (response *http.Response, err error) {
@@ -124,13 +122,12 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 	return
 }
 
-// TODO TIPS: 有两个uuid会被验证，还不清楚怎么来的
 func convertRequest(completion model.Completion) (buffer []byte, err error) {
-	msg, _ := newMessage()
+	mid := uuid.NewString()
 	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_Content_Message {
 		return &ChatMessage_Content_Message{
 			Empty51:        &Empty,
-			Uid:            msg.Content.Messages[0].Uid,
+			Uid:            mid,
 			Role:           elseOf[uint32](message.Is("role", "user"), 1, 2),
 			Value:          message.GetString("content"),
 			UnknownField2:  1,
@@ -168,7 +165,7 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 			UnknownField27: 1,
 			Empty29:        &Empty,
 			UnknownField30: &ChatMessage_Content_UnknownField30{
-				Uuid:          msg.Content.UnknownField30.Uuid,
+				Uuid:          mid,
 				UnknownField3: 1,
 			},
 			UnknownField35: &Zero,
