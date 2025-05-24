@@ -26,6 +26,8 @@ import (
 var (
 	Empty        = ""
 	Zero  uint32 = 0
+
+	Version = "0.50.5"
 )
 
 func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte) (response *http.Response, err error) {
@@ -66,7 +68,7 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 		Header("x-amzn-trace-id", "Root="+uuid.NewString()).
 		Header("x-client-key", genClientKey(ctx.GetString("token"))).
 		Header("x-cursor-checksum", genChecksum(ctx, env)).
-		Header("x-cursor-client-version", "0.48.9").
+		Header("x-cursor-client-version", Version).
 		Header("x-cursor-config-version", configVersion).
 		Header("x-cursor-timezone", "Asia/Shanghai").
 		Header("x-ghost-mode", "false").
@@ -107,7 +109,7 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 		Header("x-amzn-trace-id", "Root="+uuid.NewString()).
 		Header("x-client-key", genClientKey(ctx.GetString("token"))).
 		Header("x-cursor-checksum", genChecksum(ctx, env)).
-		Header("x-cursor-client-version", "0.48.9").
+		Header("x-cursor-client-version", Version).
 		Header("x-cursor-config-version", configVersion).
 		Header("x-cursor-timezone", "Asia/Shanghai").
 		Header("x-ghost-mode", "false").

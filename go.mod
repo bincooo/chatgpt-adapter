@@ -14,7 +14,7 @@ require (
 	github.com/eko/gocache/store/go_cache/v4 v4.2.2
 	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/gin-gonic/gin v1.10.0
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang/protobuf v1.5.4
 	github.com/google/uuid v1.6.0
 	github.com/iocgo/sdk v0.0.0-20241203133330-43dcedf3291e
