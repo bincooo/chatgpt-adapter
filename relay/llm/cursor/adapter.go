@@ -29,7 +29,7 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 	slice := api.env.GetStringSlice("cursor.model")
 	for _, mod := range append(slice, []string{
 		"claude-3.5-sonnet",
-		"gpt-4",
+		"gpt-4.1",
 		"gpt-4o",
 		"claude-3-opus",
 		"cursor-fast",

@@ -6,7 +6,9 @@ import (
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
+	"chatgpt-adapter/core/logger"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
@@ -19,14 +21,17 @@ import (
 )
 
 var (
+	filen     = "history.txt"
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0"
 )
 
 type qodoRequest struct {
+	Tool             string                  `json:"tool"`
 	Tools            model.Keyv[interface{}] `json:"tools"`
 	CustomModel      *string                 `json:"custom_model,omitempty"`
 	ProjectsRootPath []string                `json:"projects_root_path"`
-	UserRequest      string                  `json:"user_request"`
+	UserRequest      *string                 `json:"user_request"`
+	Answer           model.Keyv[interface{}] `json:"answer"`
 	UserData         struct {
 		OsPlatform                  string `json:"os_platform"`
 		InstallationFingerprintUuid string `json:"installation_fingerprint_uuid"`
@@ -42,25 +47,91 @@ type qodoRequest struct {
 
 func fetch(ctx *gin.Context, proxied string, request qodoRequest) (response *http.Response, err error) {
 	token, err := genToken(ctx, env.Env)
-	dateStr := time.Now().Format("20060102-")
+	sessionId := request.SessionId
+	answer := request.Answer
+	request.Answer = nil
+
 	response, err = emit.ClientBuilder(common.HTTPClient).
 		Context(ctx).
 		Proxies(proxied).
 		POST("https://api.gen.qodo.ai/v2/agentic/start-task").
-		JSONHeader().
-		//Header("accept", "text/plain").
+		//JSONHeader().
+		Header("accept", "text/plain").
 		Header("host", "api.gen.qodo.ai").
 		Header("user-agent", "axios/1.7.9").
 		Header("accept-encoding", "gzip, compress, deflate, br").
 		Header("authorization", "Bearer "+token).
-		Header("Request-id", uuid.NewString()).
-		Header("session-id", dateStr+uuid.NewString()).
+		Header("request-id", uuid.NewString()).
+		Header("session-id", sessionId).
+		Body(request).
+		DoS(http.StatusOK)
+	if err != nil {
+		return
+	}
+
+	text := emit.TextResponse(response)
+	logger.Debug(text)
+	if !strings.Contains(text, "\"tool_reasoning\":") {
+		err = errors.New("not convert to reasoning")
+		return
+	}
+
+	request.ProjectsRootPath = nil
+	request.UserRequest = nil
+	request.UserContext = nil
+	request.CustomModel = nil
+	request.Tool = "search_for_files"
+	request.Answer = model.Keyv[interface{}]{
+		"content": []model.Keyv[interface{}]{
+			{
+				"type": "text",
+				"text": "/Users/alice/code-workspace/node/20250109/history.txt",
+			},
+		},
+	}
+
+	response, err = emit.ClientBuilder(common.HTTPClient).
+		Context(ctx).
+		Proxies(proxied).
+		POST("https://api.gen.qodo.ai/v2/agentic/continue-task").
+		//JSONHeader().
+		Header("accept", "text/plain").
+		Header("host", "api.gen.qodo.ai").
+		Header("user-agent", "axios/1.7.9").
+		Header("accept-encoding", "gzip, compress, deflate, br").
+		Header("authorization", "Bearer "+token).
+		Header("request-id", uuid.NewString()).
+		Header("session-id", sessionId).
+		Body(request).
+		DoS(http.StatusOK)
+	if err != nil {
+		return
+	}
+
+	text = emit.TextResponse(response)
+	logger.Debug(text)
+
+	request.Tool = "read_files"
+	request.Answer = answer
+	response, err = emit.ClientBuilder(common.HTTPClient).
+		Context(ctx).
+		Proxies(proxied).
+		POST("https://api.gen.qodo.ai/v2/agentic/continue-task").
+		//JSONHeader().
+		Header("accept", "text/plain").
+		Header("host", "api.gen.qodo.ai").
+		Header("user-agent", "axios/1.7.9").
+		Header("accept-encoding", "gzip, compress, deflate, br").
+		Header("authorization", "Bearer "+token).
+		Header("request-id", uuid.NewString()).
+		Header("session-id", sessionId).
 		Body(request).
 		DoS(http.StatusOK)
 	return
 }
 
 func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Completion) (request qodoRequest, err error) {
+	dateStr := time.Now().Format("20060102-")
 	contentBuffer := new(bytes.Buffer)
 	for _, message := range completion.Messages {
 		content := message.GetString("content")
@@ -74,6 +145,7 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 
 	mod := completion.Model[5:]
 	request = qodoRequest{
+		//Tool: "read_files",
 		Tools: model.Keyv[interface{}]{
 			//"GIT": []model.Keyv[interface{}]{
 			//	{
@@ -295,140 +367,147 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 			//		"name":        "fetch_markdown",
 			//	},
 			//},
-			//"File System": []model.Keyv[interface{}]{
-			//	{
-			//		"autoApproved": true,
-			//		"inputSchema": model.Keyv[interface{}]{
-			//			"required": []string{
-			//				"path",
-			//			},
-			//			"type":                 "object",
-			//			"$schema":              "http://json-schema.org/draft-07/schema#",
-			//			"additionalProperties": false,
-			//			"properties": model.Keyv[interface{}]{
-			//				"path": model.Keyv[interface{}]{
-			//					"type":        "string",
-			//					"description": "Directory path to analyze",
-			//				},
-			//				"options": model.Keyv[interface{}]{
-			//					"additionalProperties": false,
-			//					"type":                 "object",
-			//					"properties": model.Keyv[interface{}]{
-			//						"maxDepth": model.Keyv[interface{}]{
-			//							"type":        "number",
-			//							"description": "Maximum depth to traverse",
-			//						},
-			//						"includeDotFiles": model.Keyv[interface{}]{
-			//							"description": "Whether to include hidden files",
-			//							"type":        "boolean",
-			//						},
-			//						"onlyDirs": model.Keyv[interface{}]{
-			//							"description": "Only show directories",
-			//							"type":        "boolean",
-			//						},
-			//						"ignore": model.Keyv[interface{}]{
-			//							"items": model.Keyv[interface{}]{
-			//								"type": "string",
-			//							},
-			//							"description": "Patterns to ignore",
-			//							"type":        "array",
-			//						},
-			//					},
-			//				},
-			//			},
-			//		},
-			//		"name":        "get_directory_tree",
-			//		"description": "Generates a hierarchical tree visualization of a directory structure. Supports filtering of common development artifacts (node_modules, .git, etc.), max depth limits, and dot-file inclusion/exclusion. Output uses standard tree formatting with branch indicators.",
-			//	},
-			//	{
-			//		"inputSchema": model.Keyv[interface{}]{
-			//			"type": "object",
-			//			"properties": model.Keyv[interface{}]{
-			//				"paths": model.Keyv[interface{}]{
-			//					"type":        "array",
-			//					"description": "Full absolute path to the files to read",
-			//					"items": model.Keyv[interface{}]{
-			//						"type": "string",
-			//					},
-			//				},
-			//			},
-			//			"required": []string{
-			//				"paths",
-			//			},
-			//			"additionalProperties": false,
-			//			"$schema":              "http://json-schema.org/draft-07/schema#",
-			//		},
-			//		"autoApproved": true,
-			//		"description":  "Read the contents of one or more files simultaneously. Each file's content is returned with its path as a reference. Failed reads for individual files won't stop the entire operation. Only works within allowed directories.",
-			//		"name":         "read_files",
-			//	},
-			//	{
-			//		"description": "Recursively search for files and directories matching a pattern. Searches through all subdirectories from the starting path. The search is case-insensitive and matches partial names. Returns full paths to all matching items. Great for finding files when you don't know their exact location. Only searches within allowed directories.",
-			//		"name":        "search_for_files",
-			//		"inputSchema": model.Keyv[interface{}]{
-			//			"properties": model.Keyv[interface{}]{
-			//				"path": model.Keyv[interface{}]{
-			//					"description": "Full absolute path to start the search. Must be within the projects directories",
-			//					"type":        "string",
-			//				},
-			//				"pattern": model.Keyv[interface{}]{
-			//					"type":        "string",
-			//					"description": "Pattern to search for in file names",
-			//				},
-			//			},
-			//			"additionalProperties": false,
-			//			"required": []string{
-			//				"path",
-			//				"pattern",
-			//			},
-			//			"type":    "object",
-			//			"$schema": "http://json-schema.org/draft-07/schema#",
-			//		},
-			//		"autoApproved": true,
-			//	},
-			//	{
-			//		"description":  "Performs fast recursive file content searches within a workspace directory. Supports both plain text and regex patterns, with configurable file filtering via glob patterns. Can exclude specific paths (like node_modules, dist, etc.) and returns matches with file paths and line numbers.",
-			//		"name":         "search_in_files",
-			//		"autoApproved": true,
-			//		"inputSchema": model.Keyv[interface{}]{
-			//			"properties": model.Keyv[interface{}]{
-			//				"filePattern": model.Keyv[interface{}]{
-			//					"type":        "string",
-			//					"description": "Glob pattern to filter files (e.g., '**/*.ts')",
-			//				},
-			//				"pattern": model.Keyv[interface{}]{
-			//					"type":        "string",
-			//					"description": "String or regex pattern to search for in files",
-			//					"minLength":   1,
-			//				},
-			//				"path": model.Keyv[interface{}]{
-			//					"type":        "string",
-			//					"description": "Full absolute path to start the search. Must be within the projects directories",
-			//				},
-			//				"excludePatterns": model.Keyv[interface{}]{
-			//					"type":        "array",
-			//					"description": "Glob patterns to exclude (e.g., '**/node_modules/**', '**/venv/**', '**/__pycache__/**' etc.)",
-			//					"items": model.Keyv[interface{}]{
-			//						"type": "string",
-			//					},
-			//				},
-			//			},
-			//			"additionalProperties": false,
-			//			"$schema":              "http://json-schema.org/draft-07/schema#",
-			//			"type":                 "object",
-			//			"required": []string{
-			//				"path",
-			//				"pattern",
-			//			},
-			//		},
-			//	},
-			//},
+			"File System": []model.Keyv[interface{}]{
+				{
+					"autoApproved": true,
+					"inputSchema": model.Keyv[interface{}]{
+						"required": []string{
+							"path",
+						},
+						"type":                 "object",
+						"$schema":              "http://json-schema.org/draft-07/schema#",
+						"additionalProperties": false,
+						"properties": model.Keyv[interface{}]{
+							"path": model.Keyv[interface{}]{
+								"type":        "string",
+								"description": "Directory path to analyze",
+							},
+							"options": model.Keyv[interface{}]{
+								"additionalProperties": false,
+								"type":                 "object",
+								"properties": model.Keyv[interface{}]{
+									"maxDepth": model.Keyv[interface{}]{
+										"type":        "number",
+										"description": "Maximum depth to traverse",
+									},
+									"includeDotFiles": model.Keyv[interface{}]{
+										"description": "Whether to include hidden files",
+										"type":        "boolean",
+									},
+									"onlyDirs": model.Keyv[interface{}]{
+										"description": "Only show directories",
+										"type":        "boolean",
+									},
+									"ignore": model.Keyv[interface{}]{
+										"items": model.Keyv[interface{}]{
+											"type": "string",
+										},
+										"description": "Patterns to ignore",
+										"type":        "array",
+									},
+								},
+							},
+						},
+					},
+					"name":        "get_directory_tree",
+					"description": "Generates a hierarchical tree visualization of a directory structure. Supports filtering of common development artifacts (node_modules, .git, etc.), max depth limits, and dot-file inclusion/exclusion. Output uses standard tree formatting with branch indicators.",
+				},
+				{
+					"inputSchema": model.Keyv[interface{}]{
+						"type": "object",
+						"properties": model.Keyv[interface{}]{
+							"paths": model.Keyv[interface{}]{
+								"type":        "array",
+								"description": "Full absolute path to the files to read",
+								"items": model.Keyv[interface{}]{
+									"type": "string",
+								},
+							},
+						},
+						"required": []string{
+							"paths",
+						},
+						"additionalProperties": false,
+						"$schema":              "http://json-schema.org/draft-07/schema#",
+					},
+					"autoApproved": true,
+					"description":  "Read the contents of one or more files simultaneously. Each file's content is returned with its path as a reference. Failed reads for individual files won't stop the entire operation. Only works within allowed directories.",
+					"name":         "read_files",
+				},
+				{
+					"description": "Recursively search for files and directories matching a pattern. Searches through all subdirectories from the starting path. The search is case-insensitive and matches partial names. Returns full paths to all matching items. Great for finding files when you don't know their exact location. Only searches within allowed directories.",
+					"name":        "search_for_files",
+					"inputSchema": model.Keyv[interface{}]{
+						"properties": model.Keyv[interface{}]{
+							"path": model.Keyv[interface{}]{
+								"description": "Full absolute path to start the search. Must be within the projects directories",
+								"type":        "string",
+							},
+							"pattern": model.Keyv[interface{}]{
+								"type":        "string",
+								"description": "Pattern to search for in file names",
+							},
+						},
+						"additionalProperties": false,
+						"required": []string{
+							"path",
+							"pattern",
+						},
+						"type":    "object",
+						"$schema": "http://json-schema.org/draft-07/schema#",
+					},
+					"autoApproved": true,
+				},
+				{
+					"description":  "Performs fast recursive file content searches within a workspace directory. Supports both plain text and regex patterns, with configurable file filtering via glob patterns. Can exclude specific paths (like node_modules, dist, etc.) and returns matches with file paths and line numbers.",
+					"name":         "search_in_files",
+					"autoApproved": true,
+					"inputSchema": model.Keyv[interface{}]{
+						"properties": model.Keyv[interface{}]{
+							"filePattern": model.Keyv[interface{}]{
+								"type":        "string",
+								"description": "Glob pattern to filter files (e.g., '**/*.ts')",
+							},
+							"pattern": model.Keyv[interface{}]{
+								"type":        "string",
+								"description": "String or regex pattern to search for in files",
+								"minLength":   1,
+							},
+							"path": model.Keyv[interface{}]{
+								"type":        "string",
+								"description": "Full absolute path to start the search. Must be within the projects directories",
+							},
+							"excludePatterns": model.Keyv[interface{}]{
+								"type":        "array",
+								"description": "Glob patterns to exclude (e.g., '**/node_modules/**', '**/venv/**', '**/__pycache__/**' etc.)",
+								"items": model.Keyv[interface{}]{
+									"type": "string",
+								},
+							},
+						},
+						"additionalProperties": false,
+						"$schema":              "http://json-schema.org/draft-07/schema#",
+						"type":                 "object",
+						"required": []string{
+							"path",
+							"pattern",
+						},
+					},
+				},
+			},
 		},
-		CustomModel: elseOf(mod == "claude-3-7-sonnet", nil, &mod),
+		CustomModel: &mod,
 		ProjectsRootPath: []string{
 			"/Users/alice/code-workspace",
 		},
-		UserRequest: contentBuffer.String(),
+		Answer: model.Keyv[interface{}]{
+			"content": []model.Keyv[interface{}]{
+				{
+					"type": "text",
+					"text": "/Users/alice/code-workspace/node/20250109/history.txt:\n" + contentBuffer.String(),
+				},
+			},
+		},
 		UserData: struct {
 			OsPlatform                  string `json:"os_platform"`
 			InstallationFingerprintUuid string `json:"installation_fingerprint_uuid"`
@@ -446,8 +525,9 @@ func convertRequest(ctx *gin.Context, env *env.Environment, completion model.Com
 			InstallationId:              uuid.NewString(),
 			EditorType:                  "vscode",
 		},
-		SessionId:   uuid.NewString(),
+		SessionId:   dateStr + uuid.NewString(),
 		UserContext: make([]interface{}, 0),
+		UserRequest: &filen,
 	}
 	return
 }

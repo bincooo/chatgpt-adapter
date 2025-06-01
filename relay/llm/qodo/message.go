@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"chatgpt-adapter/core/gin/model"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -25,8 +26,10 @@ const (
 type qodoResponse struct {
 	SessionId string `json:"session_id"`
 	Data      struct {
-		Tool     string `json:"tool"`
-		ToolArgs struct {
+		Message   string `json:"message"`
+		ErrorCode string `json:"error_code"`
+		Tool      string `json:"tool"`
+		ToolArgs  struct {
 			Data string `json:"data"`
 		} `json:"tool_args"`
 	} `json:"data"`
@@ -136,6 +139,11 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		if err != nil {
 			logger.Warn(err)
 			continue
+		}
+
+		if res.Data.ErrorCode != "" {
+			asError(ctx, errors.New(res.Data.Message))
+			return
 		}
 
 		if res.SubType == "code_implementation_end" {
