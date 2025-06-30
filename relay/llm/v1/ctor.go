@@ -14,6 +14,8 @@ type Ada struct {
 	module.BasicAdapter
 }
 
+func New() *Ada { return &Ada{} }
+
 func (api *Ada) Condition(rt module.RelayType, ctx *fiber.Ctx) bool {
 	panic("implement me")
 }

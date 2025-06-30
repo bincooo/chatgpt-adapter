@@ -4,14 +4,31 @@ import (
 	"adapter/module"
 	"adapter/module/common"
 	"adapter/module/fiber/model"
+	"adapter/relay/llm/v1"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/session"
 )
 
 var (
-	store         = session.New()
-	AdaInterfaces = make([]module.Adapter, 0)
+	store    = session.New()
+	adapters = make([]module.Adapter, 0)
 )
+
+func init() {
+	adapters = append(adapters,
+		v1.New(),
+	)
+}
+
+func ModelEach(yield func(index int, model model.ModelEntity)) {
+	idx := 0
+	for _, adapter := range adapters {
+		for _, mod := range adapter.Models() {
+			yield(idx, mod)
+			idx++
+		}
+	}
+}
 
 func GetSession(ctx *fiber.Ctx) (*session.Session, error) {
 	return store.Get(ctx)
@@ -78,7 +95,7 @@ func completions(ctx *fiber.Ctx) (err error) {
 	}
 
 	sessionStore.Set("completion", completion)
-	for _, adapter := range AdaInterfaces {
+	for _, adapter := range adapters {
 		if adapter.Condition(module.RELAY_TYPE_COMPLETIONS, ctx) {
 			err = adapter.Completions(ctx)
 			break
@@ -99,7 +116,7 @@ func embeddings(ctx *fiber.Ctx) (err error) {
 	}
 
 	sessionStore.Set("embedding", embedding)
-	for _, adapter := range AdaInterfaces {
+	for _, adapter := range adapters {
 		if adapter.Condition(module.RELAY_TYPE_EMBEDDINGS, ctx) {
 			err = adapter.Embeddings(ctx)
 			break
@@ -120,7 +137,7 @@ func generations(ctx *fiber.Ctx) (err error) {
 	}
 
 	sessionStore.Set("generation", generation)
-	for _, adapter := range AdaInterfaces {
+	for _, adapter := range adapters {
 		if adapter.Condition(module.RELAY_TYPE_GENERATIONS, ctx) {
 			err = adapter.Generates(ctx)
 			break

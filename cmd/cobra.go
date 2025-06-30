@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"adapter/module/fiber/model"
 	"fmt"
 
 	"adapter/cmd/wrap"
@@ -28,12 +29,10 @@ var (
 			if cobraArgs.MView {
 				println("模型可用列表:")
 				var hasModel = false
-				for _, adapter := range fiber.AdaInterfaces {
-					for _, mod := range adapter.Models() {
-						println("    - " + mod.Id)
-						hasModel = true
-					}
-				}
+				fiber.ModelEach(func(index int, model model.ModelEntity) {
+					println("    - " + model.Id)
+					hasModel = true
+				})
 				if !hasModel {
 					println("    - 空 -")
 				}
