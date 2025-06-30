@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
-var busInterfaces = make([]module.Adapter, 0)
+var AdaInterfaces = make([]module.Adapter, 0)
 
 func init() {
 	// TODO -
@@ -48,9 +48,9 @@ func index(ctx *fiber.Ctx) error {
 
 func completions(ctx *fiber.Ctx) (err error) {
 	// TODO -
-	for _, instance := range busInterfaces {
-		if instance.Condition(module.RELAY_TYPE_COMPLETIONS, ctx) {
-			err = instance.Completions(ctx)
+	for _, adapter := range AdaInterfaces {
+		if adapter.Condition(module.RELAY_TYPE_COMPLETIONS, ctx) {
+			err = adapter.Completions(ctx)
 			break
 		}
 	}
@@ -59,9 +59,9 @@ func completions(ctx *fiber.Ctx) (err error) {
 
 func embeddings(ctx *fiber.Ctx) (err error) {
 	// TODO -
-	for _, instance := range busInterfaces {
-		if instance.Condition(module.RELAY_TYPE_EMBEDDINGS, ctx) {
-			err = instance.Embeddings(ctx)
+	for _, adapter := range AdaInterfaces {
+		if adapter.Condition(module.RELAY_TYPE_EMBEDDINGS, ctx) {
+			err = adapter.Embeddings(ctx)
 			break
 		}
 	}
@@ -70,9 +70,9 @@ func embeddings(ctx *fiber.Ctx) (err error) {
 
 func generations(ctx *fiber.Ctx) (err error) {
 	// TODO -
-	for _, instance := range busInterfaces {
-		if instance.Condition(module.RELAY_TYPE_GENERATIONS, ctx) {
-			err = instance.Generates(ctx)
+	for _, adapter := range AdaInterfaces {
+		if adapter.Condition(module.RELAY_TYPE_GENERATIONS, ctx) {
+			err = adapter.Generates(ctx)
 			break
 		}
 	}

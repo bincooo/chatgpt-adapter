@@ -1,7 +1,11 @@
 package main
 
-import "adapter/module/fiber"
+import (
+	"adapter/cmd"
+	"adapter/module/fiber"
+)
 
 func main() {
+	cmd.Initialized()
 	fiber.Initialized(":3000")
 }

@@ -8,18 +8,21 @@ type ModelEntity struct {
 }
 
 type CompletionEntity struct {
-	System        string                `json:"system,omitempty"`
-	Messages      []Record[string, any] `json:"messages"`
-	Tools         []Record[string, any] `json:"tools,omitempty"`
-	Model         string                `json:"model,omitempty"`
-	MaxTokens     int                   `json:"max_tokens"`
-	StopSequences []string              `json:"stop,omitempty"`
-	Temperature   float32               `json:"temperature"`
-	TopK          int                   `json:"top_k,omitempty"`
-	TopP          float32               `json:"top_p,omitempty"`
-	Stream        bool                  `json:"stream,omitempty"`
-	ToolChoice    interface{}           `json:"tool_choice,omitempty"`
+	System        string                    `json:"system,omitempty"`
+	Messages      []CompletionMessageEntity `json:"messages"`
+	Tools         []CompletionToolEntity    `json:"tools,omitempty"`
+	Model         string                    `json:"model,omitempty"`
+	MaxTokens     int                       `json:"max_tokens"`
+	StopSequences []string                  `json:"stop,omitempty"`
+	Temperature   float32                   `json:"temperature"`
+	TopK          int                       `json:"top_k,omitempty"`
+	TopP          float32                   `json:"top_p,omitempty"`
+	Stream        bool                      `json:"stream,omitempty"`
+	ToolChoice    interface{}               `json:"tool_choice,omitempty"`
 }
+
+type CompletionMessageEntity Record[string, any]
+type CompletionToolEntity Record[string, any]
 
 type GenerationEntity struct {
 	Model   string `json:"model"`
@@ -48,8 +51,10 @@ type ResponseEntity struct {
 		Message string `json:"message"`
 		Type    string `json:"type"`
 	} `json:"error,omitempty"`
-	Usage map[string]interface{} `json:"usage,omitempty"`
+	Usage ResponseUsageEntity `json:"usage,omitempty"`
 }
+
+type ResponseUsageEntity Record[string, any]
 
 type ChoiceEntity struct {
 	Index   int `json:"index"`
@@ -58,7 +63,7 @@ type ChoiceEntity struct {
 		Content          string `json:"content,omitempty"`
 		ReasoningContent string `json:"reasoning_content,omitempty"`
 
-		ToolCalls []Record[string, any] `json:"tool_calls,omitempty"`
+		ToolCalls []ChoiceToolCallEntity `json:"tool_calls,omitempty"`
 	} `json:"message,omitempty"`
 	Delta *struct {
 		Type             string `json:"type,omitempty"`
@@ -66,7 +71,9 @@ type ChoiceEntity struct {
 		Content          string `json:"content,omitempty"`
 		ReasoningContent string `json:"reasoning_content,omitempty"`
 
-		ToolCalls []Record[string, any] `json:"tool_calls,omitempty"`
+		ToolCalls []ChoiceToolCallEntity `json:"tool_calls,omitempty"`
 	} `json:"delta,omitempty"`
 	FinishReason *string `json:"finish_reason"`
 }
+
+type ChoiceToolCallEntity Record[string, any]
