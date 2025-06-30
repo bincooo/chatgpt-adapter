@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"adapter/cmd/wrap"
+	"adapter/module/common"
 	"adapter/module/env"
 	"adapter/module/fiber"
 	"adapter/module/logger"
@@ -21,7 +22,7 @@ var (
 		Use:     "adapter",
 		Version: "v3.0.1-beta",
 		Short:   "GPT接口适配器",
-		Long:    "GPT接口适配器。统一适配接口规范，集成了bing、claude-2，gemini...\n项目地址: https://github.com/bincooo/chatgpt-adapter",
+		Long:    "GPT接口适配器。统一适配接口规范，集成了bing、claude，gemini...\n项目地址: https://github.com/bincooo/chatgpt-adapter",
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if cobraArgs.MView {
@@ -45,12 +46,17 @@ var (
 				LogLevel(cobraArgs.LogLevel),
 			)
 
-			_, err := env.New()
+			environ, err := env.New()
 			if err != nil {
 				logger.Logger().Fatalf("config.yaml is not exists; %v", err)
 			}
 
+			if port := env.Env.GetInt("server.port"); port > 0 {
+				cobraArgs.Port = port
+			}
+
 			fiber.Initialized(fmt.Sprintf(":%d", cobraArgs.Port))
+			common.Initialized(environ)
 		},
 	}
 )

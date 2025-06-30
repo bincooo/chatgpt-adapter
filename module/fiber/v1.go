@@ -3,23 +3,42 @@ package fiber
 import (
 	"adapter/module"
 	"adapter/module/common"
+	"adapter/module/fiber/model"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/session"
 )
 
-var AdaInterfaces = make([]module.Adapter, 0)
+var (
+	store         = session.New()
+	AdaInterfaces = make([]module.Adapter, 0)
+)
 
-func init() {
-	// TODO -
+func GetSession(ctx *fiber.Ctx) (*session.Session, error) {
+	return store.Get(ctx)
 }
 
 // 初始化fiber api
 func Initialized(addr string) {
 	app := fiber.New()
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowHeaders: "Origin, Content-Type, Accept",
-	}))
+	// app.Use(cors.New(cors.Config{
+	// 	AllowOrigins: "*",
+	// 	AllowHeaders: "Origin, Content-Type, Accept",
+	// }))
+
+	// 初始化session
+	app.Use(func(ctx *fiber.Ctx) error {
+		sessionStore, err := store.Get(ctx)
+		if err != nil {
+			return err
+		}
+
+		err = sessionStore.Save()
+		if err != nil {
+			return err
+		}
+
+		return ctx.Next()
+	})
 
 	app.Get("/", index)
 
@@ -41,13 +60,24 @@ func Initialized(addr string) {
 }
 
 func index(ctx *fiber.Ctx) error {
+	ctx.Set("content-type", "text/html")
 	return common.JustError(
 		ctx.WriteString("<div style='color:green'>success ~</div>"),
 	)
 }
 
 func completions(ctx *fiber.Ctx) (err error) {
-	// TODO -
+	completion := new(model.CompletionEntity)
+	if err = ctx.BodyParser(completion); err != nil {
+		return
+	}
+
+	sessionStore, err := GetSession(ctx)
+	if err != nil {
+		return
+	}
+
+	sessionStore.Set("completion", completion)
 	for _, adapter := range AdaInterfaces {
 		if adapter.Condition(module.RELAY_TYPE_COMPLETIONS, ctx) {
 			err = adapter.Completions(ctx)
@@ -58,7 +88,17 @@ func completions(ctx *fiber.Ctx) (err error) {
 }
 
 func embeddings(ctx *fiber.Ctx) (err error) {
-	// TODO -
+	embedding := new(model.EmbeddingEntity)
+	if err = ctx.BodyParser(embedding); err != nil {
+		return
+	}
+
+	sessionStore, err := GetSession(ctx)
+	if err != nil {
+		return
+	}
+
+	sessionStore.Set("embedding", embedding)
 	for _, adapter := range AdaInterfaces {
 		if adapter.Condition(module.RELAY_TYPE_EMBEDDINGS, ctx) {
 			err = adapter.Embeddings(ctx)
@@ -69,7 +109,17 @@ func embeddings(ctx *fiber.Ctx) (err error) {
 }
 
 func generations(ctx *fiber.Ctx) (err error) {
-	// TODO -
+	generation := new(model.GenerationEntity)
+	if err = ctx.BodyParser(generation); err != nil {
+		return
+	}
+
+	sessionStore, err := GetSession(ctx)
+	if err != nil {
+		return
+	}
+
+	sessionStore.Set("generation", generation)
 	for _, adapter := range AdaInterfaces {
 		if adapter.Condition(module.RELAY_TYPE_GENERATIONS, ctx) {
 			err = adapter.Generates(ctx)
