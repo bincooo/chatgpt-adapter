@@ -1,8 +1,9 @@
 package module
 
 import (
+	"adapter/module/fiber/context"
 	"adapter/module/fiber/model"
-	"github.com/gofiber/fiber/v2"
+	"errors"
 )
 
 type RelayType byte
@@ -15,37 +16,44 @@ const (
 
 type Adapter interface {
 	// 判定函数
-	Condition(rt RelayType, ctx *fiber.Ctx) bool
+	Condition(rt RelayType, ctx *context.Ctx, model string) bool
 	// 上下文对话
-	Completions(ctx *fiber.Ctx) error
+	Completions(ctx *context.Ctx) error
 	// 向量查询
-	Embeddings(ctx *fiber.Ctx) error
+	Embeddings(ctx *context.Ctx) error
 	// 文生图
-	Generates(ctx *fiber.Ctx) error
+	Generates(ctx *context.Ctx) error
 	// 模型列表
 	Models() []model.ModelEntity
 	// 工具选择
-	ToolChoice(ctx *fiber.Ctx) (bool, error)
+	ToolExecuted(ctx *context.Ctx) (bool, error)
+	// 上下文处理
+	HandleMessages(ctx *context.Ctx) ([]model.CompletionMessageEntity, error)
 }
 
 type BasicAdapter struct {
 }
 
-func (BasicAdapter) Completions(*fiber.Ctx) error {
+func (BasicAdapter) Completions(*context.Ctx) error {
 	return nil
 }
 
-func (BasicAdapter) Embeddings(*fiber.Ctx) error {
+func (BasicAdapter) Embeddings(*context.Ctx) error {
 	return nil
 }
 
-func (BasicAdapter) Generates(*fiber.Ctx) error {
+func (BasicAdapter) Generates(*context.Ctx) error {
 	return nil
 }
 
-func (BasicAdapter) ToolChoice(*fiber.Ctx) (ok bool, err error) { return }
+func (BasicAdapter) ToolExecuted(*context.Ctx) (ok bool, err error) { return }
 
-func (BasicAdapter) HandleMessages(*fiber.Ctx) (messages []model.CompletionMessageEntity, err error) {
-	// messages = completion.Messages
+func (BasicAdapter) HandleMessages(ctx *context.Ctx) (messages []model.CompletionMessageEntity, err error) {
+	completion, ok := model.GetValue[string, *model.CompletionEntity](ctx.Record, "completion")
+	if !ok {
+		err = errors.New("completion not found")
+		return
+	}
+	messages = completion.Messages
 	return
 }

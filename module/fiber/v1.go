@@ -3,14 +3,17 @@ package fiber
 import (
 	"adapter/module"
 	"adapter/module/common"
+	"adapter/module/fiber/context"
 	"adapter/module/fiber/model"
+	"adapter/module/llm"
+	"adapter/module/logger"
 	"adapter/relay/llm/v1"
+	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
 var (
-	store    = session.New()
 	adapters = make([]module.Adapter, 0)
 )
 
@@ -30,10 +33,6 @@ func ModelEach(yield func(index int, model model.ModelEntity)) {
 	}
 }
 
-func GetSession(ctx *fiber.Ctx) (*session.Session, error) {
-	return store.Get(ctx)
-}
-
 // 初始化fiber api
 func Initialized(addr string) {
 	app := fiber.New()
@@ -42,20 +41,15 @@ func Initialized(addr string) {
 	// 	AllowHeaders: "Origin, Content-Type, Accept",
 	// }))
 
-	// 初始化session
-	app.Use(func(ctx *fiber.Ctx) error {
-		sessionStore, err := store.Get(ctx)
-		if err != nil {
-			return err
-		}
-
-		err = sessionStore.Save()
-		if err != nil {
-			return err
-		}
-
-		return ctx.Next()
-	})
+	app.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+		StackTraceHandler: func(ctx *fiber.Ctx, err interface{}) {
+			logger.Sugar().Errorf("panic: %v", err)
+		},
+	}))
+	app.Use(fiberzap.New(fiberzap.Config{
+		Logger: logger.Logger(),
+	}))
 
 	app.Get("/", index)
 
@@ -89,17 +83,31 @@ func completions(ctx *fiber.Ctx) (err error) {
 		return
 	}
 
-	sessionStore, err := GetSession(ctx)
-	if err != nil {
-		return
-	}
-
-	sessionStore.Set("completion", completion)
+	ctx.Get("")
+	c := context.New(ctx)
+	c.Put("completion", completion)
 	for _, adapter := range adapters {
-		if adapter.Condition(module.RELAY_TYPE_COMPLETIONS, ctx) {
-			err = adapter.Completions(ctx)
-			break
+		if !adapter.Condition(module.RELAY_TYPE_COMPLETIONS, c, completion.Model) {
+			continue
 		}
+
+		completion.Messages, err = adapter.HandleMessages(c)
+		if err != nil {
+			return
+		}
+
+		var choice = false
+		if llm.WillToolExecute(c) {
+			choice, err = adapter.ToolExecuted(c)
+			if err != nil {
+				return
+			}
+		}
+
+		if !choice {
+			err = adapter.Completions(c)
+		}
+		break
 	}
 	return
 }
@@ -110,15 +118,11 @@ func embeddings(ctx *fiber.Ctx) (err error) {
 		return
 	}
 
-	sessionStore, err := GetSession(ctx)
-	if err != nil {
-		return
-	}
-
-	sessionStore.Set("embedding", embedding)
+	c := context.New(ctx)
+	c.Put("embedding", embedding)
 	for _, adapter := range adapters {
-		if adapter.Condition(module.RELAY_TYPE_EMBEDDINGS, ctx) {
-			err = adapter.Embeddings(ctx)
+		if adapter.Condition(module.RELAY_TYPE_EMBEDDINGS, c, embedding.Model) {
+			err = adapter.Embeddings(c)
 			break
 		}
 	}
@@ -131,15 +135,11 @@ func generations(ctx *fiber.Ctx) (err error) {
 		return
 	}
 
-	sessionStore, err := GetSession(ctx)
-	if err != nil {
-		return
-	}
-
-	sessionStore.Set("generation", generation)
+	c := context.New(ctx)
+	c.Put("generation", generation)
 	for _, adapter := range adapters {
-		if adapter.Condition(module.RELAY_TYPE_GENERATIONS, ctx) {
-			err = adapter.Generates(ctx)
+		if adapter.Condition(module.RELAY_TYPE_GENERATIONS, c, generation.Model) {
+			err = adapter.Generates(c)
 			break
 		}
 	}

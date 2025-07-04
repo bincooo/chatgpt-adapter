@@ -49,13 +49,13 @@ func getWriter(filename string, maxsize, maxBackup, maxAge int) zapcore.WriteSyn
 	return zapcore.NewMultiWriteSyncer(zapcore.AddSync(lumberJackLogger), zapcore.AddSync(os.Stdout))
 }
 
-func sugar() *zap.SugaredLogger {
+func Sugar() *zap.SugaredLogger {
 	if _sugar == nil {
 		_sugar = _logger.Sugar()
 	}
 	return _sugar
 }
 
-func Logger() *zap.SugaredLogger {
-	return sugar()
+func Logger() *zap.Logger {
+	return _logger
 }

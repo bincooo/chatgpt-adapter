@@ -21,8 +21,8 @@ type CompletionEntity struct {
 	ToolChoice    interface{}               `json:"tool_choice,omitempty"`
 }
 
-type CompletionMessageEntity Record[string, any]
-type CompletionToolEntity Record[string, any]
+type CompletionMessageEntity = Record[string, any]
+type CompletionToolEntity = Record[string, any]
 
 type GenerationEntity struct {
 	Model   string `json:"model"`

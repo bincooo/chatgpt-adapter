@@ -47,15 +47,15 @@ var (
 
 			environ, err := env.New()
 			if err != nil {
-				logger.Logger().Fatalf("config.yaml is not exists; %v", err)
+				logger.Sugar().Fatalf("config.yaml is not exists; %v", err)
 			}
 
 			if port := env.Env.GetInt("server.port"); port > 0 {
 				cobraArgs.Port = port
 			}
 
-			fiber.Initialized(fmt.Sprintf(":%d", cobraArgs.Port))
 			common.Initialized(environ)
+			fiber.Initialized(fmt.Sprintf(":%d", cobraArgs.Port))
 		},
 	}
 )
