@@ -34,7 +34,7 @@ require (
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bincooo/go-annotation v0.0.0-20241210101123-2fc3053d2f16 // indirect
+	github.com/bincooo/go-annotation v0.0.0-20250715054007-ed92d574bb99 // indirect
 	github.com/bogdanfinn/fhttp v0.5.36 // indirect
 	github.com/bogdanfinn/utls v1.6.5 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect

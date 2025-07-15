@@ -12,8 +12,8 @@ github.com/bincooo/edge-api v1.0.4-0.20250211074233-37fe84649a9b h1:zxLIcGXY5jlb
 github.com/bincooo/edge-api v1.0.4-0.20250211074233-37fe84649a9b/go.mod h1:O6hvVd4ekQtiHx5YBbwsmJ4RyF0jV3O5jHHpp4Srfw8=
 github.com/bincooo/emit.io v1.0.1-0.20250327152715-789fc5920a10 h1:uh/lKBrAMWi3vSA77gJhem55tuH3BACOSzKIX8QR8Dw=
 github.com/bincooo/emit.io v1.0.1-0.20250327152715-789fc5920a10/go.mod h1:I1tjrFEmu9ZOBizt3yTfOfafrUilFL/uM/QcPGyGGys=
-github.com/bincooo/go-annotation v0.0.0-20241210101123-2fc3053d2f16 h1:/2MZmTiHa1a+hfUsmZxvOjQh1+lfZU/9gd7QRjD+xo8=
-github.com/bincooo/go-annotation v0.0.0-20241210101123-2fc3053d2f16/go.mod h1:3ZV3/eOQJ/28O5jINzNi98+K+8WY/pOvDYidT7WWaFs=
+github.com/bincooo/go-annotation v0.0.0-20250715054007-ed92d574bb99 h1:I0jJRSjXrGEPtmBsk+YxqVQvsj9i6LjFps82Fv7wOd8=
+github.com/bincooo/go-annotation v0.0.0-20250715054007-ed92d574bb99/go.mod h1:3ZV3/eOQJ/28O5jINzNi98+K+8WY/pOvDYidT7WWaFs=
 github.com/bincooo/you.com v0.0.0-20250205070606-666b6847729b h1:rAGbe2sYsJQEiKr69VI4f/yZH/L/CLwOjeoIylqH1BM=
 github.com/bincooo/you.com v0.0.0-20250205070606-666b6847729b/go.mod h1:M7kpyfEvvZ6hzhUtizkSSvnzzhA+RT1HcYDucPQQLLY=
 github.com/bogdanfinn/fhttp v0.5.36 h1:t1sO/EkO4K40QD/Ti8f6t80leZIdh2AaeLfN7dMvjH8=
@@ -67,8 +67,6 @@ github.com/go-playground/validator/v10 v10.20.0 h1:K9ISHbSaI0lyB2eWMPJo+kOS/FBEx
 github.com/go-playground/validator/v10 v10.20.0/go.mod h1:dbuPbCMFw/DrkbEynArYaCwl3amGuJotoKCe95atGMM=
 github.com/goccy/go-json v0.10.2 h1:CrxCmQqYDkv1z7lO7Wbh2HN93uovUHgrECaO5ZrCXAU=
 github.com/goccy/go-json v0.10.2/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
-github.com/golang-jwt/jwt/v5 v5.2.1 h1:OuVbFODueb089Lh128TAcimifWaLhJwVflnrgM17wHk=
-github.com/golang-jwt/jwt/v5 v5.2.1/go.mod h1:pqrtFR0X4osieyHYxtmOUWsAWrfe1Q5UVIyoH402zdk=
 github.com/golang-jwt/jwt/v5 v5.2.2 h1:Rl4B7itRWVtYIHFrSNd7vhTiz9UpLdi6gZhZ3wEeDy8=
 github.com/golang-jwt/jwt/v5 v5.2.2/go.mod h1:pqrtFR0X4osieyHYxtmOUWsAWrfe1Q5UVIyoH402zdk=
 github.com/golang/mock v1.6.0 h1:ErTB+efbowRARo13NNdxyJji2egdxLGQhRaY+DUumQc=

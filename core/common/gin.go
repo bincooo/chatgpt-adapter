@@ -71,16 +71,16 @@ func GetGinValues[T any](ctx *gin.Context, key string) ([]T, bool) {
 	return t, ok
 }
 
-// func GetGinContext(ctx *gin.Context) context.Context {
+// func GetGinContext(ctx *gin.context) context.context {
 // 	var key = "__context__"
 // 	{
-// 		value, exists := GetGinValue[context.Context](ctx, key)
+// 		value, exists := GetGinValue[context.context](ctx, key)
 // 		if exists {
 // 			return value
 // 		}
 // 	}
 //
-// 	reqCtx := ctx.Request.Context()
+// 	reqCtx := ctx.Request.context()
 // 	connTimeout := gin2.Config.GetInt("server-conn.connTimeout")
 // 	if connTimeout > 0 {
 // 		timeout, cancelFunc := context.WithTimeout(reqCtx, time.Duration(connTimeout)*time.Second)
@@ -91,7 +91,7 @@ func GetGinValues[T any](ctx *gin.Context, key string) ([]T, bool) {
 // 	return reqCtx
 // }
 
-// func GetGinIdleConnectOption(ctx *gin.Context) *emit.ConnectOption {
+// func GetGinIdleConnectOption(ctx *gin.context) *emit.ConnectOption {
 //	key := "__IdleConnectOption__"
 //	{
 //		value, exists := GetGinValue[*emit.ConnectOption](ctx, key)
