@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/logger"
@@ -16,12 +18,18 @@ import (
 
 const (
 	baseUrl = "https://legacy.lmarena.ai"
-	ua      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"
 )
 
 var (
 	baseCookies = "_gid=GA1.2.68066840.1717017781; _ga_K6D24EE9ED=GS1.1.1717087813.23.1.1717088648.0.0.0; _gat_gtag_UA_156449732_1=1; _ga_R1FN4KJKJH=GS1.1.1717087813.37.1.1717088648.0.0.0; _ga=GA1.1.1320014795.1715641484"
 	ver         = ""
+
+	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"
+	clearance = ""
+	lang      = ""
+
+	mu    sync.Mutex
+	state int32 = 0 // 0 常态 1 等待中
 )
 
 type options struct {
@@ -78,11 +86,11 @@ func partTwo(ctx context.Context, proxied, cookies, hash string, opts options) e
 		POST(baseUrl+"/queue/join").
 		JSONHeader().
 		Ja3().
-		Header("User-Agent", ua).
+		Header("User-Agent", userAgent).
 		Header("Cookie", cookies).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/").
-		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Accept-Language", lang).
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
 		Body(obj).
@@ -112,11 +120,11 @@ func partTwo(ctx context.Context, proxied, cookies, hash string, opts options) e
 		Ja3().
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
-		Header("User-Agent", ua).
+		Header("User-Agent", userAgent).
 		Header("Cookie", cookies).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/").
-		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Accept-Language", lang).
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
 		DoS(http.StatusOK)
@@ -153,11 +161,11 @@ func partThree(ctx context.Context, proxied, cookies, hash string, opts options)
 		POST(baseUrl+"/queue/join").
 		JSONHeader().
 		Ja3().
-		Header("User-Agent", ua).
+		Header("User-Agent", userAgent).
 		Header("Cookie", cookies).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/").
-		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Accept-Language", lang).
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
 		Body(obj).
@@ -185,11 +193,11 @@ func partThree(ctx context.Context, proxied, cookies, hash string, opts options)
 		Ja3().
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
-		Header("User-Agent", ua).
+		Header("User-Agent", userAgent).
 		Header("Cookie", cookies).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/").
-		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Accept-Language", lang).
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
 		DoS(http.StatusOK)
@@ -302,11 +310,11 @@ func partOne(ctx context.Context, env *env.Environment, proxied string, opts *op
 		POST(baseUrl+"/queue/join").
 		JSONHeader().
 		Ja3().
-		Header("User-Agent", ua).
+		Header("User-Agent", userAgent).
 		Header("Cookie", cookies).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/").
-		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Accept-Language", lang).
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
 		Body(obj).
@@ -336,11 +344,11 @@ func partOne(ctx context.Context, env *env.Environment, proxied string, opts *op
 		Ja3().
 		GET(baseUrl+"/queue/data").
 		Query("session_hash", hash).
-		Header("User-Agent", ua).
+		Header("User-Agent", userAgent).
 		Header("Cookie", cookies).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/").
-		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Accept-Language", lang).
 		Header("Cache-Control", "no-cache").
 		Header("Priority", "u=1, i").
 		DoS(http.StatusOK)
@@ -420,6 +428,7 @@ func fetchCookies(ctx context.Context, proxied string) (cookies string) {
 	if ver != "" {
 		cookies = fmt.Sprintf("SERVERID=%s|%s", ver, common.Hex(5))
 		cookies = emit.MergeCookies(baseCookies, cookies)
+		cookies = emit.MergeCookies(cookies, clearance)
 		return
 	}
 	retry := 3
@@ -435,14 +444,20 @@ label:
 		Ja3().
 		Header("pragma", "no-cache").
 		Header("cache-control", "no-cache").
-		Header("Accept-Language", "en-US,en;q=0.9").
+		Header("Accept-Language", lang).
 		Header("Origin", baseUrl).
 		Header("Referer", baseUrl+"/").
 		Header("priority", "u=1, i").
-		Header("cookie", baseCookies).
-		Header("User-Agent", ua).
+		Header("cookie", emit.MergeCookies(baseCookies, clearance)).
+		Header("User-Agent", userAgent).
 		DoS(http.StatusOK)
 	if err != nil {
+		var emitErr emit.Error
+		// 人机验证
+		if errors.As(err, &emitErr) && emitErr.Code == 403 {
+			err = hookCloudflare(env.Env)
+			goto label
+		}
 		logger.Error(err)
 		return
 	}
@@ -460,6 +475,54 @@ label:
 
 	ver = co[0]
 	cookies = fmt.Sprintf("SERVERID=%s|%s", ver, common.Hex(5))
-	cookies = emit.MergeCookies(baseCookies, cookies)
+	cookies = emit.MergeCookies(baseCookies, clearance)
 	return
+}
+
+func hookCloudflare(env *env.Environment) error {
+	atomic.CompareAndSwapInt32(&state, 0, 1)
+
+	reversalUrl := env.GetString("browser-less.reversal")
+	if !env.GetBool("browser-less.enabled") && reversalUrl == "" {
+		return errors.New("trying cloudflare failed, please setting `browser-less.enabled` or `browser-less.reversal`")
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if state != 1 {
+		return nil
+	}
+
+	defer func() { state = 0 }()
+
+	logger.Info("trying cloudflare ...")
+
+	if reversalUrl == "" {
+		reversalUrl = "http://127.0.0.1:" + env.GetString("browser-less.port")
+	}
+
+	r, err := emit.ClientBuilder(common.HTTPClient).
+		Header("x-website", baseUrl).
+		GET(reversalUrl+"/v0/clearance").
+		DoC(emit.Status(http.StatusOK), emit.IsJSON)
+	if err != nil {
+		logger.Error(err)
+		if emit.IsJSON(r) == nil {
+			logger.Error(emit.TextResponse(r))
+		}
+		return err
+	}
+
+	defer r.Body.Close()
+	obj, err := emit.ToMap(r)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	data := obj["data"].(map[string]interface{})
+	clearance = data["cookie"].(string)
+	userAgent = data["userAgent"].(string)
+	lang = data["lang"].(string)
+	return nil
 }
