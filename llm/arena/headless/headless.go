@@ -62,10 +62,10 @@ func (simulator *Simulator) Launch(ctx context.Context, cookie string) (id strin
 			Bin(simulator.bin).
 			Proxy(simulator.proxied).
 			HeadlessNew(simulator.headless). // 无头模式
-			Devtools(false). // 是否打开开发者工具
+			Devtools(false).                 // 是否打开开发者工具
 
 			Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
-			Delete("enable-automation"). // 启用自动化标记
+			Delete("enable-automation").             // 启用自动化标记
 
 			Set("disable-extensions").
 			Set("disable-gpu").

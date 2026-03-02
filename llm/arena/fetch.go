@@ -14,8 +14,6 @@ func fetch(ctx *model.Ctx) (reader io.Reader, err error) {
 		completion = model.JustValue[string, *model.Completion](ctx.Record, "completion")
 	)
 
-	mod := completion.Model[6:]
-	// TODO -
 	content, err := model.JinjaMessage(headless.JinjaTemplate, completion)
 	if err != nil {
 		logger.Sugar().Error(err)
@@ -27,6 +25,6 @@ func fetch(ctx *model.Ctx) (reader io.Reader, err error) {
 		simulator.Close(id)
 	})
 
-	reader, err = simulator.Relay(id, mod, content)
-	return
+	mod := completion.Model[6:]
+	return simulator.Relay(id, mod, content)
 }

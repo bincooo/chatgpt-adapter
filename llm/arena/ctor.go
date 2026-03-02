@@ -172,7 +172,6 @@ func init() {
 			Relay(func(ctx *model.Ctx) (err error) {
 				completion := model.JustValue[string, *model.Completion](ctx.Record, "completion")
 				unix := time.Now().Unix()
-
 				response, err := fetch(ctx)
 				if err != nil {
 					return err

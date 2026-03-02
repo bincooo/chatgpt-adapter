@@ -2,9 +2,11 @@ package arena
 
 import (
 	"bufio"
+	"encoding/json"
 	"io"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/xllm-go/g/logger"
 	"github.com/xllm-go/g/model"
@@ -19,7 +21,12 @@ func waitChannel(ctx *model.Ctx, response io.Reader) *model.ChunkBodies {
 			break
 		}
 		chunk += bodies.Chunk
-		think = bodies.Think
+		if bodies.Think != "" {
+			think = bodies.Think
+		}
+		if bodies.Function != nil {
+			return model.CreateFunction(bodies.Function.Name, bodies.Function.Args)
+		}
 	}
 	return model.CreateChunk(chunk, think)
 }
@@ -29,18 +36,37 @@ func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 
 	go func() {
 		scanner := bufio.NewScanner(reader)
-		matchers := model.JustValue[string, []model.Matcher](ctx.Record, model.Matchers)
-
 		defer func() {
-			if chunk := model.ExecMatchers(matchers, "", true); chunk != "" {
+			chunk := model.ExecMatchers(ctx, "", true)
+			if chunk != "" {
 				channel <- model.CreateChunk(chunk, "")
 			}
 			close(channel)
 		}()
 
 		for {
-			if ok := scan(scanner, matchers, channel); ok {
-				break
+			select {
+			case <-ctx.Ctx().Context().Done():
+				return
+			default:
+				if ok := scan(ctx, scanner, channel,
+					sync.OnceFunc(func() {
+						if think, ok := model.GetValue[string, string](ctx.Record, model.ThinkReason); ok {
+							channel <- model.CreateChunk("", think)
+						}
+					}),
+					sync.OnceFunc(func() {
+						if chunk, ok := model.GetValue[string, string](ctx.Record, model.ToolCall); ok {
+							var fc model.FuncCall
+							_ = json.Unmarshal([]byte(chunk), &fc)
+							channel <- model.CreateFunction(fc.Name, make(json.RawMessage, 0))
+							channel <- model.CreateFunction(fc.Name, fc.Args)
+							ctx.Cancel()
+						}
+					}),
+				); ok {
+					return
+				}
 			}
 		}
 	}()
@@ -48,13 +74,11 @@ func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 	return channel
 }
 
-func scan(scanner *bufio.Scanner, matchers []model.Matcher, channel chan *model.ChunkBodies) (ok bool) {
+func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodies, onceSlice ...func()) (ok bool) {
 	if !scanner.Scan() {
 		if err := scanner.Err(); err != nil {
 			logger.Sugar().Error(err)
-			channel <- &model.ChunkBodies{
-				Chunk: "error: " + err.Error(),
-			}
+			channel <- model.CreateChunk("error: "+err.Error(), "")
 		}
 		ok = true
 		return
@@ -88,12 +112,16 @@ func scan(scanner *bufio.Scanner, matchers []model.Matcher, channel chan *model.
 
 	logger.Sugar().Debug("----- raw -----")
 	logger.Sugar().Debug(chunk)
+	chunk = model.ExecMatchers(ctx, chunk, false)
+	for _, yield := range onceSlice {
+		yield()
+	}
+	if chunk == "" {
+		return
+	}
 
-	chunk = model.ExecMatchers(matchers, chunk, false)
 	model.SplitEach(chunk, func(message string) {
-		channel <- &model.ChunkBodies{
-			Chunk: message,
-		}
+		channel <- model.CreateChunk(message, "")
 	})
 	return
 }

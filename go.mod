@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/go-rod/rod v0.116.2
-	github.com/xllm-go/g v0.0.0-20260301222413-05f310886773
+	github.com/xllm-go/g v0.0.0-20260302051702-d0acb92cac79
 )
 
 require (
