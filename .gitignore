@@ -15,7 +15,7 @@
 *.out
 .env
 /bin/
-/log/
+/logger/
 /images/
 /tmp/
 /plugins/

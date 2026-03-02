@@ -3,6 +3,7 @@ package arena
 import (
 	"bypass/llm/arena/headless"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/xllm-go/g"
@@ -151,10 +152,18 @@ var (
 func init() {
 	Sdk.OnInitialized(func() {
 		proxied := Sdk.Env().GetString("server.proxied")
-		simulator = headless.NewSimulator(proxied)
+		bin := Sdk.Env().GetString("server.bin")
+		str := Sdk.Env().GetString("headless.enabled")
+
+		hd := true
+		if b, err := strconv.ParseBool(str); err == nil {
+			hd = b
+		}
+
+		simulator = headless.NewSimulator(proxied, bin, hd)
 		Sdk.OnExited(simulator.Kill)
 
-		slice := make([]string, len(models))
+		slice := make([]string, 0)
 		for _, i := range models {
 			slice = append(slice, "arena/"+i)
 		}

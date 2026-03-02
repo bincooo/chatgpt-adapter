@@ -4,13 +4,13 @@ go 1.25.0
 
 require (
 	github.com/go-rod/rod v0.116.2
-	github.com/xllm-go/g v0.0.0-20260228233048-e7459cc048e6
+	github.com/xllm-go/g v0.0.0-20260301222413-05f310886773
 )
 
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
-	github.com/bincooo/ago v0.0.0-20260209031442-3333e4ce454e // indirect
 	github.com/bincooo/ja3 v0.0.0-20250809061016-e32ddf230191 // indirect
+	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect

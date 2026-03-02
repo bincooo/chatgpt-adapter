@@ -1,6 +1,7 @@
 package headless
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -18,14 +19,21 @@ import (
 )
 
 type Simulator struct {
-	proxied string
+	proxied  string
+	bin      string
+	headless bool
 
 	browser *rod.Browser
 	tabs    map[string]*rod.Page
 }
 
-func NewSimulator(proxied string) *Simulator {
-	return &Simulator{proxied: proxied, tabs: make(map[string]*rod.Page)}
+func NewSimulator(proxied, bin string, headless bool) *Simulator {
+	return &Simulator{
+		headless: headless,
+		proxied:  proxied,
+		bin:      bin,
+
+		tabs: make(map[string]*rod.Page)}
 }
 
 func (simulator *Simulator) Close(id string) {
@@ -49,29 +57,35 @@ func (simulator *Simulator) Kill() {
 
 // 启动自动化
 func (simulator *Simulator) Launch(ctx context.Context, cookie string) (id string) {
-	url := launcher.New().
-		Proxy(simulator.proxied).
-		Bin("/opt/ungoogled-chromium-142/chrome").
-		Headless(false). // 无头模式
-		Devtools(false). // 是否打开开发者工具
+	if simulator.browser == nil {
+		url := launcher.New().
+			Bin(simulator.bin).
+			Proxy(simulator.proxied).
+			HeadlessNew(simulator.headless). // 无头模式
+			Devtools(false). // 是否打开开发者工具
 
-		Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
-		Delete("enable-automation").             // 启用自动化标记
+			Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
+			Delete("enable-automation"). // 启用自动化标记
 
-		Set("disable-extensions").
-		Set("disable-gpu").
-		Set("disable-css-animations").
-		Set("hide-scrollbars").
-		Set("no-default-browser-check").
-		Set("safebrowsing-disable-auto-update").
-		Set("window-size", "800,600").
-		Set("fingerprint", strconv.FormatInt(time.Now().Unix(), 10)).
-		Set("fingerprint-brand", "Edge").
-		Set("fingerprint-platform", "macos").
-		Set("fingerprint-platform-version", "15.2.0").
-		MustLaunch()
+			Set("disable-extensions").
+			Set("disable-gpu").
+			Set("disable-css-animations").
+			Set("hide-scrollbars").
+			Set("no-default-browser-check").
+			Set("safebrowsing-disable-auto-update").
+			Set("window-size", "800,600").
+			Set("disable-extensions").
+			Set("disable-default-apps").
+			Set("disable-popup-blocking").
+			Set("disable-images").
+			Set("fingerprint", strconv.FormatInt(time.Now().Unix(), 10)).
+			Set("fingerprint-brand", "Edge").
+			Set("fingerprint-platform", "macos").
+			Set("fingerprint-platform-version", "15.2.0").
+			MustLaunch()
+		simulator.browser = rod.New().ControlURL(url).MustConnect()
+	}
 
-	simulator.browser = rod.New().ControlURL(url).MustConnect()
 	tab := simulator.browser.MustPage().Context(ctx)
 	if tab == nil {
 		panic("failed to open tab")
@@ -130,8 +144,21 @@ func (simulator *Simulator) Relay(id, model, message string) (r io.Reader, err e
 	// 批处理
 	batch(tab, model, message)
 	// 检查状态
-	if err = <-ech; err != nil {
+	select {
+	case <-time.After(12 * time.Second):
+		// 超时，执行操作
+		err = errors.New("请求超时")
+		tex := tab.MustElement(".hidden p.text-interactive-negative > span").MustText()
+		if tex != "" {
+			err = errors.New(tex)
+		}
 		_ = writer.CloseWithError(err)
+		simulator.Close(id)
+	case err = <-ech:
+		if err != nil {
+			_ = writer.CloseWithError(err)
+			simulator.Close(id)
+		}
 	}
 
 	r = reader
@@ -140,7 +167,7 @@ func (simulator *Simulator) Relay(id, model, message string) (r io.Reader, err e
 
 func pipe(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), chan error) {
 	ech := make(chan error, 1)
-	size := 64
+	size := 2048
 
 	return func(id proto.FetchRequestID) {
 		streamResult, err := proto.FetchTakeResponseBodyAsStream{
@@ -179,7 +206,7 @@ func pipe(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), cha
 				_, _ = writer.Write(chunk)
 			}
 
-			if result.EOF {
+			if result.EOF || bytes.Contains(chunk, []byte("{\"finishReason\":\"stop\"}")) {
 				_ = writer.Close()
 				_ = tab.Close()
 				return
