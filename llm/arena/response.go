@@ -33,6 +33,7 @@ func waitChannel(ctx *model.Ctx, response io.Reader) *model.ChunkBodies {
 
 func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 	channel := make(chan *model.ChunkBodies)
+	completion := model.JustValue[string, *model.Completion](ctx.Record, "completion")
 
 	go func() {
 		scanner := bufio.NewScanner(reader)
@@ -59,7 +60,9 @@ func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 						if chunk, ok := model.GetValue[string, string](ctx.Record, model.ToolCall); ok {
 							var fc model.FuncCall
 							_ = json.Unmarshal([]byte(chunk), &fc)
-							channel <- model.CreateFunction(fc.Name, make(json.RawMessage, 0))
+							if completion.Stream {
+								channel <- model.CreateFunction(fc.Name, make(json.RawMessage, 0))
+							}
 							channel <- model.CreateFunction(fc.Name, fc.Args)
 							ctx.Cancel()
 						}
