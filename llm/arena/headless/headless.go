@@ -120,15 +120,8 @@ func (simulator *Simulator) Relay(id, model, message string) (r io.Reader, err e
 	tab.MustNavigate("https://arena.ai/text/direct")
 	tab.MustWaitLoad()
 
-	// 拦截请求
-	_ = proto.FetchEnable{Patterns: []*proto.FetchRequestPattern{
-		{
-			URLPattern:   "*/stream/create-evaluation",
-			RequestStage: proto.FetchRequestStageResponse,
-		},
-	}}.Call(tab)
-
 	reader, writer := io.Pipe()
+	// 拦截请求
 	await, ech := pipe(tab, writer)
 
 	// 轮训请求事件
@@ -166,6 +159,13 @@ func (simulator *Simulator) Relay(id, model, message string) (r io.Reader, err e
 }
 
 func pipe(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), chan error) {
+	_ = proto.FetchEnable{Patterns: []*proto.FetchRequestPattern{
+		{
+			URLPattern:   "*/stream/create-evaluation",
+			RequestStage: proto.FetchRequestStageResponse,
+		},
+	}}.Call(tab)
+
 	ech := make(chan error, 1)
 	size := 2048
 

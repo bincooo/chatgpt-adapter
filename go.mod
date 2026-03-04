@@ -4,8 +4,10 @@ go 1.25.0
 
 require (
 	github.com/go-rod/rod v0.116.2
-	github.com/xllm-go/g v0.0.0-20260302051702-d0acb92cac79
+	github.com/xllm-go/g v0.0.0-20260304045918-477d614af2e1
 )
+
+//replace github.com/xllm-go/g v0.0.0-20260304045918-477d614af2e1 => ../g
 
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect

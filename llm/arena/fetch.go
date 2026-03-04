@@ -20,7 +20,7 @@ func fetch(ctx *model.Ctx) (reader io.Reader, err error) {
 		return
 	}
 
-	id := simulator.Launch(ctx.Ctx().Context(), ctx.Token)
+	id := simulator.Launch(ctx.Context(), ctx.Token)
 	Sdk.OnPanic(func(err interface{}) {
 		simulator.Close(id)
 	})

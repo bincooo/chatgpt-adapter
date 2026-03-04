@@ -178,21 +178,19 @@ func init() {
 				}
 
 				if completion.Stream {
-					ctx.StreamWriter(func(w func(interface{}) error) {
-						chunkChan := createChannel(ctx, response)
+					ctx.StreamWriter(func(w func(*model.ChunkBodies) error) {
+						channel := createChannel(ctx, response)
 						for {
-							bodies, ok := <-chunkChan
+							bodies, ok := <-channel
 							if !ok {
-								err = w(io.EOF)
+								err = w(&model.ChunkBodies{Err: io.EOF})
 								break
 							}
-
-							err = w(model.CreateStreamResponse(bodies, unix))
-							if err != nil {
+							if err = w(bodies); err != nil {
 								break
 							}
 						}
-					})
+					}, unix)
 					return
 				}
 
