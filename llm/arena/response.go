@@ -2,6 +2,7 @@ package arena
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -35,7 +36,7 @@ func waitChannel(ctx *model.Ctx, response io.Reader) *model.ChunkBodies {
 }
 
 func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
-	channel := make(chan *model.ChunkBodies)
+	channel := make(chan *model.ChunkBodies, 1)
 	completion := model.JustValue[string, *model.Completion](ctx.Record, "completion")
 
 	go func() {
@@ -90,10 +91,15 @@ func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodie
 		return
 	}
 
+	if strings.HasPrefix(data, "{\"error\":") {
+		channel <- &model.ChunkBodies{Err: errors.New(data), Stream: true}
+		ok = true
+		return
+	}
+
 	state := data[:2]
 	data = data[3:]
 	if state == "ad" && strings.Contains(data, "\"finishReason\":\"stop\"") {
-		ok = true
 		return
 	}
 
