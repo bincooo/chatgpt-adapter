@@ -7,8 +7,6 @@ require (
 	github.com/xllm-go/g v0.0.0-20260304045918-477d614af2e1
 )
 
-//replace github.com/xllm-go/g v0.0.0-20260304045918-477d614af2e1 => ../g
-
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/bincooo/ja3 v0.0.0-20250809061016-e32ddf230191 // indirect

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,11 @@ import (
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/xllm-go/g/logger"
+	"github.com/xllm-go/g/model"
+)
+
+const (
+	javaScript = `() => { eval(function(p,a,c,k,e,r){e=function(c){return c.toString(36)};if('0'.replace(0,e)==0){while(c--)r[e(c)]=k[c];k=[function(e){return r[e]||e}];e=function(){return'[1-9a-df-r]'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p}('1 f=2.g;2.g=h function(...3){1 4=i f.apply(this,3);1 6=(typeof 3[0]===\'string\')?3[0]:3[0]?.6||\'\';1 j=4.headers.get(\'7-5\')||\'\';k(!j.l(\'8/event-9\')&&!6.l(\'/9/create-evaluation\')){m 4}1 n=4.clone();(h()=>{1 o=n.body.getReader();1 p=new TextDecoder();try{while(q){1{a,r}=i o.read();k(a){2.b(c.d({5:\'a\'}));break}1 8=p.decode(r,{9:q});2.b(c.d({5:\'data\',7:8}))}}catch(e){2.b(c.d({5:\'error\',7:e.message}))}})();m 4}',[],28,'|const|window|args|response|type|url|content|text|stream|done|__sseCallback|JSON|stringify||originalFetch|fetch|async|await|contentType|if|includes|return|clonedResponse|reader|decoder|true|value'.split('|'),0,{})) }`
 )
 
 type Simulator struct {
@@ -62,10 +68,10 @@ func (simulator *Simulator) Launch(ctx context.Context, cookie string) (id strin
 			Bin(simulator.bin).
 			Proxy(simulator.proxied).
 			HeadlessNew(simulator.headless). // 无头模式
-			Devtools(false).                 // 是否打开开发者工具
+			Devtools(false). // 是否打开开发者工具
 
 			Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
-			Delete("enable-automation").             // 启用自动化标记
+			Delete("enable-automation"). // 启用自动化标记
 
 			Set("disable-extensions").
 			Set("disable-gpu").
@@ -125,14 +131,15 @@ func (simulator *Simulator) Relay(id, model, message string) (r io.Reader, err e
 	await, ech := pipe(tab, writer)
 
 	// 轮训请求事件
-	go tab.EachEvent(func(e *proto.FetchRequestPaused) {
-		// 确认状态码正常
-		if *e.ResponseStatusCode != 200 {
-			_ = proto.FetchContinueRequest{RequestID: e.RequestID}.Call(tab)
-			return
-		}
-		go await(e.RequestID)
-	})()
+	//go tab.EachEvent(func(e *proto.FetchRequestPaused) {
+	//	// 确认状态码正常
+	//	if *e.ResponseStatusCode != 200 {
+	//		_ = proto.FetchContinueRequest{RequestID: e.RequestID}.Call(tab)
+	//		return
+	//	}
+	//	go await(e.RequestID)
+	//})()
+	go await("")
 
 	// 批处理
 	batch(tab, model, message)
@@ -159,6 +166,50 @@ func (simulator *Simulator) Relay(id, model, message string) (r io.Reader, err e
 }
 
 func pipe(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), chan error) {
+	callbackName := "__sseCallback"
+	// 1. 注册 Go 回调绑定
+	_ = proto.RuntimeAddBinding{Name: callbackName}.Call(tab)
+
+	// 2. 监听 JS 回调
+	go tab.EachEvent(func(e *proto.RuntimeBindingCalled) {
+		if e.Name == callbackName {
+			var dict model.Record[string, string]
+			_ = json.Unmarshal([]byte(e.Payload), &dict)
+			if dict.ValueEqual("type", "done") {
+				_ = writer.Close()
+				_ = tab.Close()
+				return
+			}
+			if dict.ValueEqual("type", "error") {
+				_ = writer.CloseWithError(errors.New(dict.Get("content")))
+				_ = tab.Close()
+				return
+			}
+
+			_, _ = writer.Write([]byte(dict.Get("content")))
+			if strings.Contains(dict.Get("content"), "{\"finishReason\":\"stop\"}") {
+				_ = writer.Close()
+				_ = tab.Close()
+				return
+			}
+		}
+	})()
+
+	ech := make(chan error, 1)
+	return func(id proto.FetchRequestID) {
+		// 3. 注入 JS，Hook fetch
+		_, err := tab.Evaluate(rod.Eval(fmt.Sprintf(javaScript)))
+		if err != nil {
+			ech <- fmt.Errorf("构建流失败: %v", err)
+			return
+		}
+		ech <- nil
+	}, ech
+
+}
+
+// 废弃，无法实现流读取
+func pipe1(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), chan error) {
 	_ = proto.FetchEnable{Patterns: []*proto.FetchRequestPattern{
 		{
 			URLPattern:   "*/stream/create-evaluation",
