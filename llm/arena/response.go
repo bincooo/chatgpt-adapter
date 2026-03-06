@@ -119,6 +119,13 @@ func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodie
 
 	logger.Sugar().Debug("----- raw -----")
 	logger.Sugar().Debug(chunk)
+	if state == "ag" {
+		splitEach(chunk, func(message string) {
+			channel <- &model.ChunkBodies{Think: message, Stream: true}
+		})
+		return
+	}
+
 	chunk = model.ExecMatchers(ctx, chunk, false)
 	for _, yield := range calls {
 		yield()

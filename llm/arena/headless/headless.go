@@ -40,12 +40,12 @@ type Simulator struct {
 
 type IncognitoBrowser struct {
 	instance *rod.Browser
+	timer    *time.Timer
 	count    int
 }
 
 type IncognitoTab struct {
 	*rod.Page
-	timer *time.Timer
 
 	id        string
 	onCleanup func() // 清理回调
@@ -176,7 +176,6 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 		simulator.pages[accessToken] = page
 	}
 
-	//c.simulator.tabs[accessToken] = tab
 	tab := page.instance.MustPage().Context(ctx)
 	if tab == nil {
 		panic("failed to open tab")
@@ -201,21 +200,25 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 		})
 	}
 
-	page.count++
 	tab.MustNavigate("https://arena.ai/text/direct")
 	tab.MustWaitLoad()
 	incognitoTab := &IncognitoTab{
 		Page: tab,
 	}
 
-	incognitoTab.onCleanup = onCleanup(simulator, page, incognitoTab, accessToken)
+	incognitoTab.onCleanup = onCleanup(simulator, page, accessToken)
 	return incognitoTab, nil
 }
 
-func onCleanup(simulator *Simulator, page *IncognitoBrowser, tab *IncognitoTab, id string) func() {
+func onCleanup(simulator *Simulator, page *IncognitoBrowser, id string) func() {
+	page.count++
+	if page.timer != nil {
+		page.timer.Stop()
+		page.timer = nil
+	}
+
 	return func() {
 		logger.Sugar().Debugf("running onCleanup.")
-		_ = tab.Page.Close()
 
 		simulator.mu.Lock()
 		defer simulator.mu.Unlock()
@@ -225,7 +228,7 @@ func onCleanup(simulator *Simulator, page *IncognitoBrowser, tab *IncognitoTab, 
 			return
 		}
 
-		tab.timer = time.AfterFunc(idleTimeout, func() {
+		page.timer = time.AfterFunc(idleTimeout, func() {
 			delete(simulator.pages, id)
 			page.Close()
 		})
