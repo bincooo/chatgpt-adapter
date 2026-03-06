@@ -14,17 +14,21 @@ func fetch(ctx *model.Ctx) (reader io.Reader, err error) {
 		completion = model.JustValue[string, *model.Completion](ctx.Record, "completion")
 	)
 
-	content, err := model.JinjaMessage(headless.JinjaTemplate, completion)
+	message, err := model.JinjaMessage(headless.JinjaTemplate, completion)
 	if err != nil {
 		logger.Sugar().Error(err)
 		return
 	}
 
-	id := simulator.Launch(ctx.Context(), ctx.Token)
+	incognitoTab, err := simulator.Launch(ctx.Context(), ctx.Token)
+	if err != nil {
+		logger.Sugar().Error(err)
+		return
+	}
+
 	Sdk.OnPanic(func(err interface{}) {
-		simulator.Close(id)
+		incognitoTab.Close()
 	})
 
-	mod := completion.Model[6:]
-	return simulator.Relay(id, mod, content)
+	return incognitoTab.Relay(completion.Model[6:], message)
 }

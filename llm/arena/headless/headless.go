@@ -10,6 +10,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -21,7 +22,8 @@ import (
 )
 
 const (
-	javaScript = `() => { eval(function(p,a,c,k,e,r){e=function(c){return c.toString(36)};if('0'.replace(0,e)==0){while(c--)r[e(c)]=k[c];k=[function(e){return r[e]||e}];e=function(){return'[1-9a-df-r]'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p}('1 f=2.g;2.g=h function(...3){1 4=i f.apply(this,3);1 6=(typeof 3[0]===\'string\')?3[0]:3[0]?.6||\'\';1 j=4.headers.get(\'7-5\')||\'\';k(!j.l(\'8/event-9\')&&!6.l(\'/9/create-evaluation\')){m 4}1 n=4.clone();(h()=>{1 o=n.body.getReader();1 p=new TextDecoder();try{while(q){1{a,r}=i o.read();k(a){2.b(c.d({5:\'a\'}));break}1 8=p.decode(r,{9:q});2.b(c.d({5:\'data\',7:8}))}}catch(e){2.b(c.d({5:\'error\',7:e.message}))}})();m 4}',[],28,'|const|window|args|response|type|url|content|text|stream|done|__sseCallback|JSON|stringify||originalFetch|fetch|async|await|contentType|if|includes|return|clonedResponse|reader|decoder|true|value'.split('|'),0,{})) }`
+	javaScript  = `() => { eval(function(p,a,c,k,e,r){e=function(c){return c.toString(36)};if('0'.replace(0,e)==0){while(c--)r[e(c)]=k[c];k=[function(e){return r[e]||e}];e=function(){return'[1-9a-df-r]'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p}('1 f=2.g;2.g=h function(...3){1 4=i f.apply(this,3);1 6=(typeof 3[0]===\'string\')?3[0]:3[0]?.6||\'\';1 j=4.headers.get(\'7-5\')||\'\';k(!j.l(\'8/event-9\')&&!6.l(\'/9/create-evaluation\')){m 4}1 n=4.clone();(h()=>{1 o=n.body.getReader();1 p=new TextDecoder();try{while(q){1{a,r}=i o.read();k(a){2.b(c.d({5:\'a\'}));break}1 8=p.decode(r,{9:q});2.b(c.d({5:\'data\',7:8}))}}catch(e){2.b(c.d({5:\'error\',7:e.message}))}})();m 4}',[],28,'|const|window|args|response|type|url|content|text|stream|done|__sseCallback|JSON|stringify||originalFetch|fetch|async|await|contentType|if|includes|return|clonedResponse|reader|decoder|true|value'.split('|'),0,{})) }`
+	idleTimeout = 120 * time.Second
 )
 
 type Simulator struct {
@@ -29,103 +31,49 @@ type Simulator struct {
 	bin      string
 	headless bool
 
-	browser *rod.Browser
-	tabs    map[string]*rod.Page
+	setup *rod.Browser
+	pages map[string]*IncognitoBrowser
+	mu    sync.Mutex
+
+	max int // 最大池数量
 }
 
-func NewSimulator(proxied, bin string, headless bool) *Simulator {
+type IncognitoBrowser struct {
+	instance *rod.Browser
+	count    int
+}
+
+type IncognitoTab struct {
+	*rod.Page
+	timer *time.Timer
+
+	id        string
+	onCleanup func() // 清理回调
+}
+
+func NewSimulator(proxied, bin string, headless bool, max int) *Simulator {
 	return &Simulator{
 		headless: headless,
 		proxied:  proxied,
 		bin:      bin,
 
-		tabs: make(map[string]*rod.Page)}
-}
-
-func (simulator *Simulator) Close(id string) {
-	tab, ok := simulator.tabs[id]
-	if !ok {
-		return
-	}
-
-	_ = tab.Close()
-	delete(simulator.tabs, id)
-}
-
-func (simulator *Simulator) Kill() {
-	for id := range simulator.tabs {
-		simulator.Close(id)
-	}
-	if simulator.browser != nil {
-		_ = simulator.browser.Close()
+		pages: make(map[string]*IncognitoBrowser),
+		max:   max,
 	}
 }
 
-// 启动自动化
-func (simulator *Simulator) Launch(ctx context.Context, cookie string) (id string) {
-	if simulator.browser == nil {
-		url := launcher.New().
-			Bin(simulator.bin).
-			Proxy(simulator.proxied).
-			HeadlessNew(simulator.headless). // 无头模式
-			Devtools(false).                 // 是否打开开发者工具
-
-			Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
-			Delete("enable-automation").             // 启用自动化标记
-
-			Set("disable-extensions").
-			Set("disable-gpu").
-			Set("disable-css-animations").
-			Set("hide-scrollbars").
-			Set("no-default-browser-check").
-			Set("safebrowsing-disable-auto-update").
-			Set("window-size", "800,600").
-			Set("disable-extensions").
-			Set("disable-default-apps").
-			Set("disable-popup-blocking").
-			Set("disable-images").
-			Set("fingerprint", strconv.FormatInt(time.Now().Unix(), 10)).
-			Set("fingerprint-brand", "Edge").
-			Set("fingerprint-platform", "macos").
-			Set("fingerprint-platform-version", "15.2.0").
-			MustLaunch()
-		simulator.browser = rod.New().ControlURL(url).MustConnect()
-	}
-
-	tab := simulator.browser.MustPage().Context(ctx)
-	if tab == nil {
-		panic("failed to open tab")
-	}
-
-	id = string(tab.TargetID)
-	simulator.tabs[id] = tab
-	var cookies = []string{
-		"arena-auth-prod-v1.0=base64-" + cookie[:3173],
-		"arena-auth-prod-v1.1=" + cookie[3173:],
-	}
-
-	// 导入cookies
-	for i := 0; i < len(cookies); i++ {
-		kv := strings.Split(cookies[i], "=")
-		if len(kv) < 2 {
-			continue
-		}
-		tab.MustSetCookies(&proto.NetworkCookieParam{
-			Name:   kv[0],
-			Value:  kv[1],
-			Domain: "arena.ai",
-			Path:   "/",
-		})
-	}
-
-	return
+func (tab *IncognitoBrowser) Close() {
+	logger.Sugar().Debugf("close incognito browser.")
+	_ = tab.instance.Close()
 }
 
-func (simulator *Simulator) Relay(id, model, message string) (r io.Reader, err error) {
-	tab := simulator.tabs[id]
-	tab.MustNavigate("https://arena.ai/text/direct")
-	tab.MustWaitLoad()
+func (tab *IncognitoTab) Close() {
+	logger.Sugar().Debugf("close incognito tab.")
+	_ = tab.Page.Close()
+	tab.onCleanup()
+}
 
+func (tab *IncognitoTab) Relay(model string, message string) (r io.Reader, err error) {
 	reader, writer := io.Pipe()
 	// 拦截请求
 	await, ech := pipe(tab, writer)
@@ -153,11 +101,11 @@ func (simulator *Simulator) Relay(id, model, message string) (r io.Reader, err e
 			err = errors.New(tex)
 		}
 		_ = writer.CloseWithError(err)
-		simulator.Close(id)
+		tab.Close()
 	case err = <-ech:
 		if err != nil {
 			_ = writer.CloseWithError(err)
-			simulator.Close(id)
+			tab.Close()
 		}
 	}
 
@@ -165,7 +113,126 @@ func (simulator *Simulator) Relay(id, model, message string) (r io.Reader, err e
 	return
 }
 
-func pipe(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), chan error) {
+func (simulator *Simulator) Kill() {
+	logger.Sugar().Debugf("kill setup browser.")
+	for _, page := range simulator.pages {
+		page.Close()
+	}
+
+	if simulator.setup != nil {
+		_ = simulator.setup.Close()
+	}
+}
+
+// 启动自动化
+func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*IncognitoTab, error) {
+	if simulator.setup == nil {
+		url := launcher.New().
+			Bin(simulator.bin).
+			Proxy(simulator.proxied).
+			HeadlessNew(simulator.headless). // 无头模式
+			Devtools(false). // 是否打开开发者工具
+
+			Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
+			Delete("enable-automation"). // 启用自动化标记
+
+			Set("disable-extensions").
+			Set("disable-gpu").
+			Set("disable-css-animations").
+			Set("hide-scrollbars").
+			Set("no-default-browser-check").
+			Set("safebrowsing-disable-auto-update").
+			Set("window-size", "800,600").
+			Set("disable-extensions").
+			Set("disable-default-apps").
+			Set("disable-popup-blocking").
+			Set("disable-images").
+			Set("fingerprint", strconv.FormatInt(time.Now().Unix(), 10)).
+			Set("fingerprint-brand", "Edge").
+			Set("fingerprint-platform", "macos").
+			Set("fingerprint-platform-version", "15.2.0").
+			MustLaunch()
+		simulator.setup = rod.New().ControlURL(url).MustConnect()
+	}
+
+	simulator.mu.Lock()
+	defer simulator.mu.Unlock()
+	if len(simulator.pages) >= simulator.max {
+		return nil, errors.New("连接池已满")
+	}
+
+	page, ok := simulator.pages[accessToken]
+	if !ok {
+		incognito := simulator.setup.MustIncognito()
+		if incognito == nil {
+			panic("failed to open browser")
+		}
+		if p := incognito.MustPage("about:blank"); p == nil {
+			panic("failed to open tab")
+		}
+		page = &IncognitoBrowser{
+			instance: incognito,
+		}
+		simulator.pages[accessToken] = page
+	}
+
+	//c.simulator.tabs[accessToken] = tab
+	tab := page.instance.MustPage().Context(ctx)
+	if tab == nil {
+		panic("failed to open tab")
+	}
+
+	var cookies = []string{
+		"arena-auth-prod-v1.0=base64-" + accessToken[:3173],
+		"arena-auth-prod-v1.1=" + accessToken[3173:],
+	}
+
+	// 导入cookies
+	for i := 0; i < len(cookies); i++ {
+		kv := strings.Split(cookies[i], "=")
+		if len(kv) < 2 {
+			continue
+		}
+		tab.MustSetCookies(&proto.NetworkCookieParam{
+			Name:   kv[0],
+			Value:  kv[1],
+			Domain: "arena.ai",
+			Path:   "/",
+		})
+	}
+
+	page.count++
+	tab.MustNavigate("https://arena.ai/text/direct")
+	tab.MustWaitLoad()
+	incognitoTab := &IncognitoTab{
+		Page: tab,
+	}
+
+	incognitoTab.onCleanup = onCleanup(simulator, page, incognitoTab, accessToken)
+	return incognitoTab, nil
+}
+
+func onCleanup(simulator *Simulator, page *IncognitoBrowser, tab *IncognitoTab, id string) func() {
+	return func() {
+		logger.Sugar().Debugf("running onCleanup.")
+		_ = tab.Page.Close()
+
+		simulator.mu.Lock()
+		defer simulator.mu.Unlock()
+
+		if page.count > 1 {
+			page.count--
+			return
+		}
+
+		tab.timer = time.AfterFunc(idleTimeout, func() {
+			delete(simulator.pages, id)
+			page.Close()
+		})
+	}
+}
+
+func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID), chan error) {
 	callbackName := "__sseCallback"
 	// 1. 注册 Go 回调绑定
 	_ = proto.RuntimeAddBinding{Name: callbackName}.Call(tab)
@@ -177,19 +244,19 @@ func pipe(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), cha
 			_ = json.Unmarshal([]byte(e.Payload), &dict)
 			if dict.ValueEqual("type", "done") {
 				_ = writer.Close()
-				_ = tab.Close()
+				tab.Close()
 				return
 			}
 			if dict.ValueEqual("type", "error") {
 				_ = writer.CloseWithError(errors.New(dict.Get("content")))
-				_ = tab.Close()
+				tab.Close()
 				return
 			}
 
 			_, _ = writer.Write([]byte(dict.Get("content")))
 			if strings.Contains(dict.Get("content"), "{\"finishReason\":\"stop\"}") {
 				_ = writer.Close()
-				_ = tab.Close()
+				tab.Close()
 				return
 			}
 		}
@@ -209,7 +276,7 @@ func pipe(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), cha
 }
 
 // 废弃，无法实现流读取
-func pipe1(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), chan error) {
+func pipe1(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID), chan error) {
 	_ = proto.FetchEnable{Patterns: []*proto.FetchRequestPattern{
 		{
 			URLPattern:   "*/stream/create-evaluation",
@@ -242,7 +309,7 @@ func pipe1(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), ch
 			if ierr != nil {
 				logger.Sugar().Errorf("[SSE] 读取出错: %v\n", ierr)
 				_ = writer.CloseWithError(errors.New("读取出错"))
-				_ = tab.Close()
+				tab.Close()
 				return
 			}
 
@@ -259,14 +326,14 @@ func pipe1(tab *rod.Page, writer *io.PipeWriter) (func(proto.FetchRequestID), ch
 
 			if result.EOF || bytes.Contains(chunk, []byte("{\"finishReason\":\"stop\"}")) {
 				_ = writer.Close()
-				_ = tab.Close()
+				tab.Close()
 				return
 			}
 		}
 	}, ech
 }
 
-func batch(tab *rod.Page, model, message string) {
+func batch(tab *IncognitoTab, model, message string) {
 	message = fmt.Sprintf(
 		"=== [start new conversation - %s ] ===\n\n%s",
 		time.Now().Format("2006-01-02 15:04:05"),

@@ -153,14 +153,19 @@ func init() {
 	Sdk.OnInitialized(func() {
 		proxied := Sdk.Env().GetString("server.proxied")
 		bin := Sdk.Env().GetString("server.bin")
+		maxIdle := Sdk.Env().GetInt("headless.maxIdle")
 		str := Sdk.Env().GetString("headless.enabled")
 
-		hd := true
-		if b, err := strconv.ParseBool(str); err == nil {
-			hd = b
+		if maxIdle == 0 {
+			maxIdle = 10
 		}
 
-		simulator = headless.NewSimulator(proxied, bin, hd)
+		less := true
+		if b, err := strconv.ParseBool(str); err == nil {
+			less = b
+		}
+
+		simulator = headless.NewSimulator(proxied, bin, less, maxIdle)
 		Sdk.OnExited(simulator.Kill)
 
 		slice := make([]string, 0)
