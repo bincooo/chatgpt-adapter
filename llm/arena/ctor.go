@@ -174,7 +174,7 @@ func init() {
 
 		Sdk.Support(slice...).
 			Relay(func(ctx *model.Ctx) (err error) {
-				completion := model.JustValue[string, *model.Completion](ctx.Record, "completion")
+				completion := ctx.GetCompletion()
 				unix := time.Now().Unix()
 				response, err := fetch(ctx)
 				if err != nil {
@@ -185,10 +185,6 @@ func init() {
 					channel := createChannel(ctx, response)
 					ctx.StreamWriter(channel, unix)
 					return
-				}
-
-				if err != nil {
-					return err
 				}
 
 				bodies := waitChannel(ctx, response)

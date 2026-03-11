@@ -62,10 +62,6 @@ func init() {
 					return
 				}
 
-				if err != nil {
-					return err
-				}
-
 				bodies := waitChannel(ctx, response)
 				return ctx.Writer(model.CreateResponse(bodies, unix))
 			})
