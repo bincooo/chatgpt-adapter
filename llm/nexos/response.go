@@ -1,34 +1,34 @@
-package arena
+package nexos
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
-	"strconv"
-	"strings"
 	"sync"
-	"time"
+
+	"encoding/json"
 
 	"github.com/xllm-go/g/logger"
 	"github.com/xllm-go/g/model"
 )
 
-func waitChannel(ctx *model.Ctx, response io.Reader) *model.ChunkBodies {
-	channel := createChannel(ctx, response)
+func waitChannel(ctx *model.Ctx, reader io.Reader) *model.ChunkBodies {
+	channel := createChannel(ctx, reader)
 	var chunk, think string
 	for {
 		bodies, ok := <-channel
 		if !ok {
 			break
 		}
-		chunk += bodies.Chunk
-		if bodies.Think != "" {
-			think = bodies.Think
-		}
+
 		if bodies.Function != nil {
 			bodies.Stream = false
 			return bodies
+		}
+
+		chunk += bodies.Chunk
+		if bodies.Think != "" {
+			think = bodies.Think
 		}
 	}
 
@@ -87,44 +87,28 @@ func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodie
 	}
 
 	data := scanner.Text()
-	if len(data) < 3 {
+	if len(data) < 5 {
 		return
 	}
-
-	if strings.HasPrefix(data, "{\"error\":") {
-		channel <- &model.ChunkBodies{Err: errors.New(data), Stream: true}
-		ok = true
-		return
-	}
-
-	state := data[:2]
-	data = data[3:]
-	if state == "ad" && strings.Contains(data, "\"finishReason\":\"stop\"") {
-		return
-	}
-
-	if state == "a2" {
-		return
-	}
-
+	data = data[6:]
 	if len(data) == 0 {
 		return
 	}
 
-	chunk, err := strconv.Unquote(data)
-	if err != nil {
-		logger.Sugar().Errorf("转义失败： %v -- %s", err, chunk)
+	var response model.Response
+	if err := json.Unmarshal([]byte(data), &response); err != nil {
+		logger.Sugar().Errorf("解码失败： %v -- %s", err, data)
 		return
 	}
 
+	choice := response.Choices[0]
+	if choice.FinishReason != nil && *choice.FinishReason == "stop" {
+		return true
+	}
+
+	chunk := choice.Delta.Content
 	logger.Sugar().Debug("----- raw -----")
 	logger.Sugar().Debug(chunk)
-	if state == "ag" {
-		splitEach(chunk, func(message string) {
-			channel <- &model.ChunkBodies{Think: message, Stream: true}
-		})
-		return
-	}
 
 	chunk = model.ExecMatchers(ctx, chunk, false)
 	for _, yield := range calls {
@@ -134,27 +118,6 @@ func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodie
 		return
 	}
 
-	splitEach(chunk, func(message string) {
-		channel <- &model.ChunkBodies{Chunk: message, Stream: true}
-	})
+	channel <- &model.ChunkBodies{Chunk: chunk, Stream: true}
 	return
-}
-
-func splitEach(content string, w func(chunk string)) {
-	pos := 0
-	runeStr := []rune(content)
-	step := 30
-
-	for {
-		contentL := len(runeStr[pos:])
-		if contentL > step {
-			w(string(runeStr[pos : pos+step]))
-			pos += step
-			continue
-		}
-
-		w(string(runeStr[pos:]))
-		time.Sleep(80 * time.Millisecond)
-		break
-	}
 }

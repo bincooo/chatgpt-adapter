@@ -1,7 +1,7 @@
-package headless
+package jinja
 
 var (
-	JinjaTemplate = `
+	DefaultTemplate = `
 {%- if tools %}
     {{- '<|im_start|>system\n' }}
     {%- if messages[0].role == 'system' %}

@@ -1,20 +1,16 @@
 package arena
 
 import (
+	"bypass/jinja"
 	"io"
-
-	"bypass/llm/arena/headless"
 
 	"github.com/xllm-go/g/logger"
 	"github.com/xllm-go/g/model"
 )
 
 func fetch(ctx *model.Ctx) (reader io.Reader, err error) {
-	var (
-		completion = model.JustValue[string, *model.Completion](ctx.Record, "completion")
-	)
-
-	message, err := model.JinjaMessage(headless.JinjaTemplate, completion)
+	completion := ctx.GetCompletion()
+	message, err := model.JinjaMessage(jinja.DefaultTemplate, completion)
 	if err != nil {
 		logger.Sugar().Error(err)
 		return

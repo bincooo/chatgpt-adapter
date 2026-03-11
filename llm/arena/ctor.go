@@ -2,7 +2,6 @@ package arena
 
 import (
 	"bypass/llm/arena/headless"
-	"io"
 	"strconv"
 	"time"
 
@@ -183,19 +182,8 @@ func init() {
 				}
 
 				if completion.Stream {
-					ctx.StreamWriter(func(w func(*model.ChunkBodies) error) {
-						channel := createChannel(ctx, response)
-						for {
-							bodies, ok := <-channel
-							if !ok {
-								err = w(&model.ChunkBodies{Err: io.EOF})
-								break
-							}
-							if err = w(bodies); err != nil {
-								break
-							}
-						}
-					}, unix)
+					channel := createChannel(ctx, response)
+					ctx.StreamWriter(channel, unix)
 					return
 				}
 
