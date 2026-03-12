@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/devices"
 	"github.com/go-rod/rod/lib/input"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
@@ -131,10 +132,10 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 			Bin(simulator.bin).
 			Proxy(simulator.proxied).
 			HeadlessNew(simulator.headless). // 无头模式
-			Devtools(false).                 // 是否打开开发者工具
+			Devtools(false). // 是否打开开发者工具
 
 			Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
-			Delete("enable-automation").             // 启用自动化标记
+			Delete("enable-automation"). // 启用自动化标记
 
 			Set("disable-extensions").
 			Set("disable-gpu").
@@ -181,6 +182,7 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 		panic("failed to open tab")
 	}
 
+	tab.MustEmulate(devices.Pixel2)
 	var cookies = []string{
 		"arena-auth-prod-v1.0=base64-" + accessToken[:3173],
 		"arena-auth-prod-v1.1=" + accessToken[3173:],
@@ -337,6 +339,25 @@ func pipe1(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID)
 }
 
 func batch(tab *IncognitoTab, model, message string) {
+	message = fmt.Sprintf(
+		"=== [start new conversation - %s ] ===\n\n%s",
+		time.Now().Format("2006-01-02 15:04:05"),
+		message,
+	)
+
+	tab.MustElement("#chat-area .border-t button.whitespace-nowrap:not([role])").
+		MustEval(`() => this.click()`)
+	time.Sleep(200 * time.Millisecond)
+	div := tab.MustElement("div[data-radix-scroll-area-viewport]")
+	div.MustElementX(fmt.Sprintf(`.//*[normalize-space(text())='%s']`, model)).
+		MustEval(`() => this.click()`)
+	tab.MustElement("form textarea").MustInput(message)
+	time.Sleep(200 * time.Millisecond)
+	tab.MustElement("form .justify-between.gap-4 button[type=submit]").
+		MustEval(`() => this.click()`)
+}
+
+func batch1(tab *IncognitoTab, model, message string) {
 	message = fmt.Sprintf(
 		"=== [start new conversation - %s ] ===\n\n%s",
 		time.Now().Format("2006-01-02 15:04:05"),

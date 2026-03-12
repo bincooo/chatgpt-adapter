@@ -7,7 +7,7 @@ import (
 	xtls "github.com/refraction-networking/utls"
 	"github.com/xllm-go/g"
 
-	//_ "bypass/llm/arena"
+	_ "bypass/llm/arena"
 	_ "bypass/llm/nexos"
 )
 
