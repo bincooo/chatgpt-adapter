@@ -2,7 +2,6 @@ package arena
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -38,6 +37,7 @@ func waitChannel(ctx *model.Ctx, response io.Reader) *model.ChunkBodies {
 func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 	channel := make(chan *model.ChunkBodies, 1)
 	completion := ctx.GetCompletion()
+	logger.Sugar().Infof("create new channel")
 
 	go func() {
 		scanner := bufio.NewScanner(reader)
@@ -92,7 +92,7 @@ func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodie
 	}
 
 	if strings.HasPrefix(data, "{\"error\":") {
-		channel <- &model.ChunkBodies{Err: errors.New(data), Stream: true}
+		channel <- &model.ChunkBodies{Chunk: fmt.Sprintf("error: %v", data), Stream: true}
 		ok = true
 		return
 	}
@@ -113,14 +113,14 @@ func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodie
 
 	chunk, err := strconv.Unquote(data)
 	if err != nil {
-		logger.Sugar().Errorf("转义失败： %v -- %s", err, chunk)
+		logger.Sugar().Errorf("转义失败： %v -- %s", err, data)
 		return
 	}
 
 	logger.Sugar().Debug("----- raw -----")
 	logger.Sugar().Debug(chunk)
 	if state == "ag" {
-		splitEach(chunk, func(message string) {
+		each(chunk, func(message string) {
 			channel <- &model.ChunkBodies{Think: message, Stream: true}
 		})
 		return
@@ -134,13 +134,13 @@ func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodie
 		return
 	}
 
-	splitEach(chunk, func(message string) {
+	each(chunk, func(message string) {
 		channel <- &model.ChunkBodies{Chunk: message, Stream: true}
 	})
 	return
 }
 
-func splitEach(content string, w func(chunk string)) {
+func each(content string, w func(chunk string)) {
 	pos := 0
 	runeStr := []rune(content)
 	step := 30

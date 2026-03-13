@@ -150,10 +150,12 @@ var (
 
 func init() {
 	Sdk.OnInitialized(func() {
-		proxied := Sdk.Env().GetString("server.proxied")
-		bin := Sdk.Env().GetString("server.bin")
-		maxIdle := Sdk.Env().GetInt("headless.maxIdle")
-		str := Sdk.Env().GetString("headless.enabled")
+		environ := Sdk.Env()
+		proxied := environ.GetString("server.proxied")
+		bin := environ.GetString("headless.bin")
+		maxIdle := environ.GetInt("headless.maxIdle")
+		nopeCHAToken := environ.GetString("headless.nopeCHAToken")
+		str := environ.GetString("headless.enabled")
 
 		if maxIdle == 0 {
 			maxIdle = 10
@@ -164,7 +166,10 @@ func init() {
 			less = b
 		}
 
-		simulator = headless.NewSimulator(proxied, bin, less, maxIdle)
+		simulator = headless.NewSimulator(proxied, bin, less,
+			headless.OptionMax(maxIdle),
+			headless.OptionNopeCHAToken(nopeCHAToken),
+		)
 		Sdk.OnExited(simulator.Kill)
 
 		slice := make([]string, 0)

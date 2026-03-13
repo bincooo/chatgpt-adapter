@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,6 +19,7 @@ import (
 	"github.com/go-rod/rod/lib/input"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
+	"github.com/xllm-go/g/env"
 	"github.com/xllm-go/g/logger"
 	"github.com/xllm-go/g/model"
 )
@@ -37,6 +39,8 @@ type Simulator struct {
 	mu    sync.Mutex
 
 	max int // 最大池数量
+
+	nopeCHAToken string
 }
 
 type IncognitoBrowser struct {
@@ -52,15 +56,34 @@ type IncognitoTab struct {
 	onCleanup func() // 清理回调
 }
 
-func NewSimulator(proxied, bin string, headless bool, max int) *Simulator {
-	return &Simulator{
+type SimulatorOption func(*Simulator)
+
+func OptionMax(max int) SimulatorOption {
+	return func(simulator *Simulator) {
+		simulator.max = max
+	}
+}
+
+func OptionNopeCHAToken(nopeCHAToken string) SimulatorOption {
+	return func(simulator *Simulator) {
+		simulator.nopeCHAToken = nopeCHAToken
+	}
+}
+
+func NewSimulator(proxied, bin string, headless bool, opts ...SimulatorOption) *Simulator {
+	simulator := &Simulator{
 		headless: headless,
 		proxied:  proxied,
 		bin:      bin,
 
 		pages: make(map[string]*IncognitoBrowser),
-		max:   max,
 	}
+
+	for _, yield := range opts {
+		yield(simulator)
+	}
+
+	return simulator
 }
 
 func (tab *IncognitoBrowser) Close() {
@@ -94,13 +117,13 @@ func (tab *IncognitoTab) Relay(model string, message string) (r io.Reader, err e
 	batch(tab, model, message)
 	// 检查状态
 	select {
-	case <-time.After(12 * time.Second):
+	case <-time.After(25 * time.Second):
 		// 超时，执行操作
 		err = errors.New("请求超时")
-		tex := tab.MustElement(".hidden p.text-interactive-negative > span").MustText()
-		if tex != "" {
-			err = errors.New(tex)
-		}
+		//tex := tab.MustElement(".hidden p.text-interactive-negative > span").MustText()
+		//if tex != "" {
+		//	err = errors.New(tex)
+		//}
 		_ = writer.CloseWithError(err)
 		tab.Close()
 	case err = <-ech:
@@ -128,32 +151,45 @@ func (simulator *Simulator) Kill() {
 // 启动自动化
 func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*IncognitoTab, error) {
 	if simulator.setup == nil {
-		url := launcher.New().
+		extensions := []string{
+			"./plugins/NopeCHA",
+		}
+
+		launch := launcher.New().
 			Bin(simulator.bin).
 			Proxy(simulator.proxied).
 			HeadlessNew(simulator.headless). // 无头模式
-			Devtools(false). // 是否打开开发者工具
+			Devtools(false).                 // 是否打开开发者工具
 
 			Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
-			Delete("enable-automation"). // 启用自动化标记
+			Delete("enable-automation").             // 启用自动化标记
 
-			Set("disable-extensions").
 			Set("disable-gpu").
 			Set("disable-css-animations").
 			Set("hide-scrollbars").
 			Set("no-default-browser-check").
 			Set("safebrowsing-disable-auto-update").
 			Set("window-size", "800,600").
-			Set("disable-extensions").
 			Set("disable-default-apps").
 			Set("disable-popup-blocking").
 			Set("disable-images").
 			Set("fingerprint", strconv.FormatInt(time.Now().Unix(), 10)).
 			Set("fingerprint-brand", "Edge").
 			Set("fingerprint-platform", "macos").
-			Set("fingerprint-platform-version", "15.2.0").
-			MustLaunch()
+			Set("fingerprint-platform-version", "15.2.0")
+		enabledPlugin := env.Env.GetBool("headless.plugin")
+		if enabledPlugin {
+			launch.
+				Set("disable-extensions-except", strings.Join(extensions, ",")).
+				Set("load-extension", strings.Join(extensions, ","))
+			//Set("disable-extensions", "false")
+		}
+
+		url := launch.MustLaunch()
 		simulator.setup = rod.New().ControlURL(url).MustConnect()
+		if enabledPlugin {
+			enableExtensions(simulator)
+		}
 	}
 
 	simulator.mu.Lock()
@@ -168,6 +204,7 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 		if incognito == nil {
 			panic("failed to open browser")
 		}
+
 		if p := incognito.MustPage("about:blank"); p == nil {
 			panic("failed to open tab")
 		}
@@ -182,7 +219,7 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 		panic("failed to open tab")
 	}
 
-	tab.MustEmulate(devices.Pixel2)
+	tab.MustEmulate(randEmulate())
 	var cookies = []string{
 		"arena-auth-prod-v1.0=base64-" + accessToken[:3173],
 		"arena-auth-prod-v1.1=" + accessToken[3173:],
@@ -210,6 +247,79 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 
 	incognitoTab.onCleanup = onCleanup(simulator, page, accessToken)
 	return incognitoTab, nil
+}
+
+func randEmulate() devices.Device {
+	slice := []devices.Device{
+		devices.IPhone4,
+		devices.IPhone5orSE,
+		devices.IPhone6or7or8,
+		devices.IPhone6or7or8Plus,
+		devices.IPhoneX,
+		devices.Nexus4,
+		devices.Nexus5,
+		devices.Nexus5X,
+		devices.Nexus6,
+		devices.Nexus6P,
+		devices.Pixel2,
+		devices.Pixel2XL,
+		devices.GalaxySIII,
+		devices.GalaxyS5,
+		devices.JioPhone2,
+		devices.Nexus10,
+		devices.Nexus7,
+		devices.GalaxyNote3,
+		devices.GalaxyNoteII,
+		devices.MotoG4,
+		devices.GalaxyFold,
+	}
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	i := r.Intn(len(slice) - 1)
+	return slice[i]
+}
+
+func enableExtensions(simulator *Simulator) {
+	script := `() => {
+			let manager = document.querySelector('extensions-manager');
+			let list = manager.shadowRoot.querySelector('extensions-item-list');
+			let arr = [];
+			list.shadowRoot
+				.querySelectorAll('extensions-item')
+				.forEach(it => arr.push(it.id));
+			return arr;
+		}`
+	tab := simulator.setup.MustPage("chrome://extensions")
+	time.Sleep(1 * time.Second)
+	ids := tab.MustEval(script).Arr()
+
+	script = `() => {
+			let manager = document.querySelector('extensions-manager');
+			let toolbar = manager.shadowRoot.querySelector('#toolbar');
+			toolbar.shadowRoot.querySelector('.more-actions cr-toggle').click();
+		}`
+	tab.MustEval(script)
+	time.Sleep(1 * time.Second)
+
+	script = `() => {
+			let manager = document.querySelector('extensions-manager');
+			let viewManager = manager.shadowRoot.querySelector('cr-view-manager extensions-detail-view');
+			let incognito = viewManager.shadowRoot.querySelector('#allow-incognito')
+			incognito.shadowRoot.querySelector('cr-toggle').click()
+		}`
+	for _, id := range ids {
+		extension := fmt.Sprintf("chrome://extensions/?id=%s", id.String())
+		tab.MustNavigate(extension)
+		time.Sleep(1 * time.Second)
+		tab.MustEval(script)
+	}
+
+	if simulator.nopeCHAToken != "" {
+		tab.MustNavigate("https://nopecha.com/setup#" + simulator.nopeCHAToken)
+		tab.MustWaitLoad()
+	}
+
+	_ = tab.Close()
 }
 
 func onCleanup(simulator *Simulator, page *IncognitoBrowser, id string) func() {
@@ -243,19 +353,43 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 	_ = proto.RuntimeAddBinding{Name: callbackName}.Call(tab)
 
 	// 2. 监听 JS 回调
+	recaptchaFailed := false
+	ech := make(chan error, 1)
+
 	go tab.EachEvent(func(e *proto.RuntimeBindingCalled) {
 		if e.Name == callbackName {
+			logger.Sugar().Debugf("got event[%s]: %s", e.Name, e.Payload)
 			var dict model.Record[string, string]
 			_ = json.Unmarshal([]byte(e.Payload), &dict)
 			if dict.ValueEqual("type", "done") {
-				_ = writer.Close()
-				tab.Close()
+				if recaptchaFailed {
+					recaptchaFailed = false
+				} else {
+					_ = writer.Close()
+					tab.Close()
+				}
 				return
 			}
+
 			if dict.ValueEqual("type", "error") {
 				_ = writer.CloseWithError(errors.New(dict.Get("content")))
 				tab.Close()
 				return
+			}
+
+			if dict.ValueEqual("type", "data") {
+				content := dict.Get("content")
+				if strings.Contains(content, "recaptcha validation failed") ||
+					strings.Contains(content, "prompt failed") {
+					logger.Sugar().Warn("recaptcha validation failed.")
+					recaptchaFailed = true
+					return
+				}
+			}
+
+			if ech != nil {
+				ech <- nil
+				ech = nil
 			}
 
 			_, _ = writer.Write([]byte(dict.Get("content")))
@@ -267,7 +401,6 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 		}
 	})()
 
-	ech := make(chan error, 1)
 	return func(id proto.FetchRequestID) {
 		// 3. 注入 JS，Hook fetch
 		_, err := tab.Evaluate(rod.Eval(fmt.Sprintf(javaScript)))
@@ -275,7 +408,6 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 			ech <- fmt.Errorf("构建流失败: %v", err)
 			return
 		}
-		ech <- nil
 	}, ech
 
 }
