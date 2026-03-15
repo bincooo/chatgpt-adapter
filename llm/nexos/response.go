@@ -13,38 +13,24 @@ import (
 
 func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 	channel := make(chan *model.ChunkBodies, 1)
-	completion := ctx.GetCompletion()
 
 	go func() {
 		scanner := bufio.NewScanner(reader)
+		chainInterceptor := interceptor.ExecuteInterceptors(ctx, channel)
 		defer func() {
-			chunk := interceptor.ExecuteInterceptors(ctx, "", true)
+			chunk := chainInterceptor("", true)
 			if chunk != "" {
 				channel <- &model.ChunkBodies{Chunk: chunk, Stream: true}
 			}
 			close(channel)
 		}()
 
-		callers := make([]func(), 0)
-		callers = append(callers, func() {
-			if think, ok := model.GetValue[string, string](ctx.Record, interceptor.ThinkReason); ok {
-				ctx.Record.Del(interceptor.ThinkReason)
-				channel <- &model.ChunkBodies{Think: think, Stream: true}
-			}
-		})
-		callers = append(callers, func() {
-			if chunk, ok := model.GetValue[string, string](ctx.Record, interceptor.ToolCall); ok {
-				channel <- model.CreateFunction(chunk, completion.Stream)
-				ctx.Cancel()
-			}
-		})
-
 		for {
 			select {
 			case <-ctx.Context().Done():
 				return
 			default:
-				if ok := scan(ctx, scanner, channel, callers...); ok {
+				if ok := scan(scanner, channel, chainInterceptor); ok {
 					return
 				}
 			}
@@ -54,7 +40,7 @@ func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 	return channel
 }
 
-func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodies, calls ...func()) (ok bool) {
+func scan(scanner *bufio.Scanner, channel chan *model.ChunkBodies, chainInterceptor interceptor.ChainInterceptor) (ok bool) {
 	if !scanner.Scan() {
 		if err := scanner.Err(); err != nil {
 			logger.Sugar().Error(err)
@@ -88,10 +74,7 @@ func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodie
 	logger.Sugar().Debug("----- raw -----")
 	logger.Sugar().Debug(chunk)
 
-	chunk = interceptor.ExecuteInterceptors(ctx, chunk, false)
-	for _, yield := range calls {
-		yield()
-	}
+	chunk = chainInterceptor(chunk, false)
 	if chunk == "" {
 		return
 	}
