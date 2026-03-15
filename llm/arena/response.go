@@ -9,30 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/xllm-go/g/interceptor"
 	"github.com/xllm-go/g/logger"
 	"github.com/xllm-go/g/model"
 )
-
-func waitChannel(ctx *model.Ctx, response io.Reader) *model.ChunkBodies {
-	channel := createChannel(ctx, response)
-	var chunk, think string
-	for {
-		bodies, ok := <-channel
-		if !ok {
-			break
-		}
-		chunk += bodies.Chunk
-		if bodies.Think != "" {
-			think = bodies.Think
-		}
-		if bodies.Function != nil {
-			bodies.Stream = false
-			return bodies
-		}
-	}
-
-	return &model.ChunkBodies{Chunk: chunk, Think: think}
-}
 
 func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 	channel := make(chan *model.ChunkBodies, 1)
@@ -42,7 +22,7 @@ func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 	go func() {
 		scanner := bufio.NewScanner(reader)
 		defer func() {
-			chunk := model.ExecMatchers(ctx, "", true)
+			chunk := interceptor.ExecuteInterceptors(ctx, "", true)
 			if chunk != "" {
 				channel <- &model.ChunkBodies{Chunk: chunk, Stream: true}
 			}
@@ -56,12 +36,12 @@ func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 			default:
 				calls := make([]func(), 0)
 				calls = append(calls, sync.OnceFunc(func() {
-					if think, ok := model.GetValue[string, string](ctx.Record, model.ThinkReason); ok {
+					if think, ok := model.GetValue[string, string](ctx.Record, interceptor.ThinkReason); ok {
 						channel <- &model.ChunkBodies{Think: think, Stream: true}
 					}
 				}))
 				calls = append(calls, sync.OnceFunc(func() {
-					if chunk, ok := model.GetValue[string, string](ctx.Record, model.ToolCall); ok {
+					if chunk, ok := model.GetValue[string, string](ctx.Record, interceptor.ToolCall); ok {
 						channel <- model.CreateFunction(chunk, completion.Stream)
 						ctx.Cancel()
 					}
@@ -126,7 +106,7 @@ func scan(ctx *model.Ctx, scanner *bufio.Scanner, channel chan *model.ChunkBodie
 		return
 	}
 
-	chunk = model.ExecMatchers(ctx, chunk, false)
+	chunk = interceptor.ExecuteInterceptors(ctx, chunk, false)
 	for _, yield := range calls {
 		yield()
 	}
@@ -154,7 +134,7 @@ func each(content string, w func(chunk string)) {
 		}
 
 		w(string(runeStr[pos:]))
-		time.Sleep(80 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		break
 	}
 }

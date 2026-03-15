@@ -62,8 +62,8 @@ func init() {
 					return
 				}
 
-				bodies := waitChannel(ctx, response)
-				return ctx.Writer(model.CreateResponse(bodies, unix))
+				channel := createChannel(ctx, response)
+				return ctx.Writer(model.WaitChannelResponse(channel, unix))
 			})
 	})
 }
