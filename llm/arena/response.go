@@ -6,7 +6,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/xllm-go/g/interceptor"
@@ -29,24 +28,27 @@ func createChannel(ctx *model.Ctx, reader io.Reader) chan *model.ChunkBodies {
 			close(channel)
 		}()
 
+		callers := make([]func(), 0)
+		callers = append(callers, func() {
+			if think, ok := model.GetValue[string, string](ctx.Record, interceptor.ThinkReason); ok {
+				ctx.Record.Del(interceptor.ThinkReason)
+				channel <- &model.ChunkBodies{Think: think, Stream: true}
+			}
+		})
+		callers = append(callers, func() {
+			if chunk, ok := model.GetValue[string, string](ctx.Record, interceptor.ToolCall); ok {
+				channel <- model.CreateFunction(chunk, completion.Stream)
+				ctx.Cancel()
+			}
+		})
+
 		for {
 			select {
 			case <-ctx.Context().Done():
 				return
 			default:
-				calls := make([]func(), 0)
-				calls = append(calls, sync.OnceFunc(func() {
-					if think, ok := model.GetValue[string, string](ctx.Record, interceptor.ThinkReason); ok {
-						channel <- &model.ChunkBodies{Think: think, Stream: true}
-					}
-				}))
-				calls = append(calls, sync.OnceFunc(func() {
-					if chunk, ok := model.GetValue[string, string](ctx.Record, interceptor.ToolCall); ok {
-						channel <- model.CreateFunction(chunk, completion.Stream)
-						ctx.Cancel()
-					}
-				}))
-				if ok := scan(ctx, scanner, channel, calls...); ok {
+
+				if ok := scan(ctx, scanner, channel, callers...); ok {
 					return
 				}
 			}
