@@ -87,12 +87,11 @@ func NewSimulator(proxied, bin string, headless bool, opts ...SimulatorOption) *
 }
 
 func (tab *IncognitoBrowser) Close() {
-	logger.Sugar().Debugf("close incognito browser.")
+	logger.Sugar().Infof("close incognito browser.")
 	_ = tab.instance.Close()
 }
 
 func (tab *IncognitoTab) Close() {
-	logger.Sugar().Debugf("close incognito tab.")
 	_ = tab.Page.Close()
 	tab.onCleanup()
 }
@@ -205,12 +204,13 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 			panic("failed to open browser")
 		}
 
-		if p := incognito.MustPage("about:blank"); p == nil {
+		blank := "about:blank"
+		if x := incognito.MustPage(blank); x == nil {
 			panic("failed to open tab")
+		} else {
+			x.MustWaitLoad()
 		}
-		page = &IncognitoBrowser{
-			instance: incognito,
-		}
+		page = &IncognitoBrowser{instance: incognito}
 		simulator.pages[accessToken] = page
 	}
 
@@ -330,7 +330,7 @@ func onCleanup(simulator *Simulator, page *IncognitoBrowser, id string) func() {
 	}
 
 	return func() {
-		logger.Sugar().Debugf("running onCleanup.")
+		logger.Sugar().Infof("running onCleanup.")
 
 		simulator.mu.Lock()
 		defer simulator.mu.Unlock()
@@ -352,10 +352,24 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 	// 1. 注册 Go 回调绑定
 	_ = proto.RuntimeAddBinding{Name: callbackName}.Call(tab)
 
+	echo := make(chan error, 1)
+	mark := func(err ...error) {
+		if echo == nil {
+			return
+		}
+
+		x := echo
+		echo = nil
+
+		if len(err) == 0 {
+			x <- nil
+			return
+		}
+		x <- err[0]
+	}
+
 	// 2. 监听 JS 回调
 	recaptchaFailed := false
-	ech := make(chan error, 1)
-
 	go tab.EachEvent(func(e *proto.RuntimeBindingCalled) {
 		if e.Name == callbackName {
 			logger.Sugar().Debugf("got event[%s]: %s", e.Name, e.Payload)
@@ -387,11 +401,7 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 				}
 			}
 
-			if ech != nil {
-				ech <- nil
-				ech = nil
-			}
-
+			mark()
 			_, _ = writer.Write([]byte(dict.Get("content")))
 			if strings.Contains(dict.Get("content"), "{\"finishReason\":\"stop\"}") {
 				_ = writer.Close()
@@ -405,10 +415,10 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 		// 3. 注入 JS，Hook fetch
 		_, err := tab.Evaluate(rod.Eval(fmt.Sprintf(javaScript)))
 		if err != nil {
-			ech <- fmt.Errorf("构建流失败: %v", err)
+			mark(fmt.Errorf("构建流失败: %v", err))
 			return
 		}
-	}, ech
+	}, echo
 
 }
 
@@ -477,12 +487,56 @@ func batch(tab *IncognitoTab, model, message string) {
 		message,
 	)
 
+	div, err := tab.Timeout(time.Second).Element("#header-text")
+	if err == nil {
+		err = div.Timeout(15 * time.Second).WaitInvisible()
+		if err == nil {
+			logger.Sugar().Error("vercel security checkpoint error")
+			tab.Close()
+			return
+		}
+	}
+
+	// 白屏2-3s,被隐藏了
+	retry := 3
+label:
+
 	tab.MustElement("#chat-area .border-t button.whitespace-nowrap:not([role])").
 		MustEval(`() => this.click()`)
 	time.Sleep(200 * time.Millisecond)
-	div := tab.MustElement("div[data-radix-scroll-area-viewport]")
-	div.MustElementX(fmt.Sprintf(`.//*[normalize-space(text())='%s']`, model)).
-		MustEval(`() => this.click()`)
+	div, err = tab.Timeout(time.Second).Element("div[data-radix-scroll-area-viewport]")
+	if err != nil {
+		if retry <= 0 {
+			logger.Sugar().Error("元素等待超时")
+			tab.Close()
+			return
+		}
+		retry--
+		goto label
+	}
+
+	if err = tab.
+		MustElement("div[data-radix-scroll-area-viewport]").
+		Timeout(time.Second).
+		WaitVisible(); err != nil {
+		if retry <= 0 {
+			logger.Sugar().Error("元素等待超时")
+			tab.Close()
+			return
+		}
+		retry--
+		goto label
+	}
+
+	div = tab.MustElement("div[data-radix-scroll-area-viewport]")
+	divs, err := div.ElementsX(fmt.Sprintf(`.//*[normalize-space(text())='%s']`, model))
+	if err != nil || len(divs) == 0 {
+		logger.Sugar().Errorf("找不到模型标签: len(%d) - %v", len(divs), err)
+		tab.Close()
+		return
+	}
+
+	divs[0].MustEval(`() => this.click()`)
 	tab.MustElement("form textarea").MustInput(message)
 	time.Sleep(200 * time.Millisecond)
 	tab.MustElement("form .justify-between.gap-4 button[type=submit]").
