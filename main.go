@@ -18,10 +18,11 @@ var (
 func main() {
 	Sdk.OnInitialized(func() {
 		Env := Sdk.Env()
+		proxied := Env.GetString("server.proxied")
 		ja3.NewTransport(
 			ja3.WithClientHelloID(xtls.HelloChrome_133),
 			ja3.WithOriginalTransport(http.DefaultTransport.(*http.Transport)),
-			ja3.WithProxy(Env.GetString("server.proxied")),
+			ja3.WithProxy(proxied),
 		)
 	})
 	g.Execute()
