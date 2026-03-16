@@ -150,12 +150,7 @@ func (simulator *Simulator) Kill() {
 // 启动自动化
 func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*IncognitoTab, error) {
 	if simulator.setup == nil {
-		extensions := []string{
-			"./plugins/NopeCHA",
-		}
-
 		launch := launcher.New().
-			Bin(simulator.bin).
 			Proxy(simulator.proxied).
 			HeadlessNew(simulator.headless). // 无头模式
 			Devtools(false).                 // 是否打开开发者工具
@@ -176,7 +171,13 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 			Set("fingerprint-brand", "Edge").
 			Set("fingerprint-platform", "macos").
 			Set("fingerprint-platform-version", "15.2.0")
+		if simulator.bin != "" {
+			launch.Bin(simulator.bin)
+		}
 		enabledPlugin := env.Env.GetBool("headless.plugin")
+		extensions := []string{
+			"./plugins/NopeCHA",
+		}
 		if enabledPlugin {
 			launch.
 				Set("disable-extensions-except", strings.Join(extensions, ",")).
