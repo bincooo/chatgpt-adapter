@@ -3,28 +3,22 @@ diff --git a/lib/launcher/browser.go b/lib/launcher/browser.go
 index 733af27..02ec0ab 100644
 --- a/lib/launcher/browser.go
 +++ b/lib/launcher/browser.go
-@@ -55,13 +55,18 @@ func HostNPM(revision int) string {
+@@ -55,13 +55,12 @@ func HostNPM(revision int) string {
  
  // HostPlaywright to download browser.
  func HostPlaywright(revision int) string {
 -	rev := RevisionPlaywright
 -	if !(runtime.GOOS == "linux" && runtime.GOARCH == "arm64") {
 -		rev = revision
-+	if runtime.GOARCH == "arm64" {
++	if strings.Contains(runtime.GOARCH, "arm") {
 +		panic("Unsupported platforms: arm64")
 +		os.Exit(-1)
  	}
 -	return fmt.Sprintf(
 -		"https://playwright.azureedge.net/builds/chromium/%d/chromium-linux-arm64.zip",
 -		rev,
-+	zipNames := map[string]string{
-+		"linux": "zip",
-+		"darwin": "tar.gz",
-+		"windows": "zip",
-+	}
-+	return fmt.Sprintf("https://gh.felicity.ac.cn/https://github.com/bincooo/cdn/releases/download/0.0.1/chromium-142_%s.%s",
++	return fmt.Sprintf("https://gh.felicity.ac.cn/https://github.com/bincooo/cdn/releases/download/0.0.1/chromium-142_%s.zip",
 +		runtime.GOOS,
-+		zipNames[runtime.GOOS],
  	)
  }
  

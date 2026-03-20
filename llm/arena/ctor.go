@@ -167,8 +167,8 @@ func init() {
 		}
 
 		simulator = headless.NewSimulator(proxied, bin, less,
-			headless.OptionMax(maxIdle),
-			headless.OptionNopeCHAToken(nopeCHAToken),
+			headless.WithMax(maxIdle),
+			headless.WithNopeCHAToken(nopeCHAToken),
 		)
 		Sdk.OnExited(simulator.Kill)
 

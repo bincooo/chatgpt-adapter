@@ -58,13 +58,13 @@ type IncognitoTab struct {
 
 type SimulatorOption func(*Simulator)
 
-func OptionMax(max int) SimulatorOption {
+func WithMax(max int) SimulatorOption {
 	return func(simulator *Simulator) {
 		simulator.max = max
 	}
 }
 
-func OptionNopeCHAToken(nopeCHAToken string) SimulatorOption {
+func WithNopeCHAToken(nopeCHAToken string) SimulatorOption {
 	return func(simulator *Simulator) {
 		simulator.nopeCHAToken = nopeCHAToken
 	}

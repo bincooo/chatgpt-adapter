@@ -105,12 +105,13 @@ func scan(scanner *bufio.Scanner, channel chan *model.ChunkBodies, chainIntercep
 	return
 }
 
-func each(content string, w func(chunk string)) {
+func each(content string, w func(string)) {
 	pos := 0
 	runeStr := []rune(content)
 	step := 30
 
 	for {
+		time.Sleep(100 * time.Millisecond)
 		contentL := len(runeStr[pos:])
 		if contentL > step {
 			w(string(runeStr[pos : pos+step]))
@@ -118,8 +119,9 @@ func each(content string, w func(chunk string)) {
 			continue
 		}
 
-		w(string(runeStr[pos:]))
-		time.Sleep(100 * time.Millisecond)
+		if len(runeStr[pos:]) > 0 {
+			w(string(runeStr[pos:]))
+		}
 		break
 	}
 }
