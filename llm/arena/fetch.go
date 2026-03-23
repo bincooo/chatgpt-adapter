@@ -1,8 +1,9 @@
 package arena
 
 import (
-	"bypass/jinja"
 	"io"
+
+	"bypass/jinja"
 
 	"github.com/xllm-go/g/logger"
 	"github.com/xllm-go/g/model"
@@ -22,9 +23,8 @@ func fetch(ctx *model.Ctx) (reader io.Reader, err error) {
 		return
 	}
 
-	Sdk.OnPanic(func(err interface{}) {
+	Sdk.OnError(ctx.Ctx(), func(err interface{}) {
 		incognitoTab.Close()
 	})
-
-	return incognitoTab.Relay(completion.Model[6:], message)
+	return incognitoTab.Relay(ctx, completion.Model[6:], message)
 }

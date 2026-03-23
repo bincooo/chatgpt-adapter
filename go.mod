@@ -7,7 +7,7 @@ require (
 	github.com/go-rod/rod v0.116.2
 	github.com/google/uuid v1.6.0
 	github.com/refraction-networking/utls v1.8.2
-	github.com/xllm-go/g v0.0.0-20260320135612-a8d060f9ede8
+	github.com/xllm-go/g v0.0.0-20260323000905-de42c4d74354
 )
 
 require (

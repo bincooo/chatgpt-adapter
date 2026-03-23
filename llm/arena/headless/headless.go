@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	javaScript  = `() => { eval(function(p,a,c,k,e,r){e=function(c){return c.toString(36)};if('0'.replace(0,e)==0){while(c--)r[e(c)]=k[c];k=[function(e){return r[e]||e}];e=function(){return'[1-9a-df-r]'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p}('1 f=2.g;2.g=h function(...3){1 4=i f.apply(this,3);1 6=(typeof 3[0]===\'string\')?3[0]:3[0]?.6||\'\';1 j=4.headers.get(\'7-5\')||\'\';k(!j.l(\'8/event-9\')&&!6.l(\'/9/create-evaluation\')){m 4}1 n=4.clone();(h()=>{1 o=n.body.getReader();1 p=new TextDecoder();try{while(q){1{a,r}=i o.read();k(a){2.b(c.d({5:\'a\'}));break}1 8=p.decode(r,{9:q});2.b(c.d({5:\'data\',7:8}))}}catch(e){2.b(c.d({5:\'error\',7:e.message}))}})();m 4}',[],28,'|const|window|args|response|type|url|content|text|stream|done|__sseCallback|JSON|stringify||originalFetch|fetch|async|await|contentType|if|includes|return|clonedResponse|reader|decoder|true|value'.split('|'),0,{})) }`
-	idleTimeout = 120 * time.Second
+	javaScript     = `() => { eval(function(p,a,c,k,e,r){e=function(c){return c.toString(36)};if('0'.replace(0,e)==0){while(c--)r[e(c)]=k[c];k=[function(e){return r[e]||e}];e=function(){return'[1-9a-df-r]'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p}('1 f=2.g;2.g=h function(...3){1 4=i f.apply(this,3);1 6=(typeof 3[0]===\'string\')?3[0]:3[0]?.6||\'\';1 j=4.headers.get(\'7-5\')||\'\';k(!j.l(\'8/event-9\')&&!6.l(\'/9/create-evaluation\')){m 4}1 n=4.clone();(h()=>{1 o=n.body.getReader();1 p=new TextDecoder();try{while(q){1{a,r}=i o.read();k(a){2.b(c.d({5:\'a\'}));break}1 8=p.decode(r,{9:q});2.b(c.d({5:\'data\',7:8}))}}catch(e){2.b(c.d({5:\'error\',7:e.message}))}})();m 4}',[],28,'|const|window|args|response|type|url|content|text|stream|done|__sseCallback|JSON|stringify||originalFetch|fetch|async|await|contentType|if|includes|return|clonedResponse|reader|decoder|true|value'.split('|'),0,{})) }`
+	idleTimeout    = 180 * time.Second
+	simulatorRetry = 2
 )
 
 type Simulator struct {
@@ -34,13 +35,15 @@ type Simulator struct {
 	bin      string
 	headless bool
 
-	setup *rod.Browser
-	pages map[string]*IncognitoBrowser
-	mu    sync.Mutex
+	launch *launcher.Launcher
+	setup  *rod.Browser
+	pages  map[string]*IncognitoBrowser
+	mu     sync.Mutex
 
 	max int // 最大池数量
 
-	nopeCHAToken string
+	nopeCHAToken   string
+	recaptchaCount int
 }
 
 type IncognitoBrowser struct {
@@ -52,7 +55,7 @@ type IncognitoBrowser struct {
 type IncognitoTab struct {
 	*rod.Page
 
-	id        string
+	simulator *Simulator
 	onCleanup func() // 清理回调
 }
 
@@ -96,10 +99,10 @@ func (tab *IncognitoTab) Close() {
 	tab.onCleanup()
 }
 
-func (tab *IncognitoTab) Relay(model string, message string) (r io.Reader, err error) {
+func (tab *IncognitoTab) Relay(ctx *model.Ctx, model string, message string) (r io.Reader, err error) {
 	reader, writer := io.Pipe()
 	// 拦截请求
-	await, ech := pipe(tab, writer)
+	await, ech := pipe(ctx, tab, writer)
 
 	// 轮训请求事件
 	//go tab.EachEvent(func(e *proto.FetchRequestPaused) {
@@ -110,7 +113,7 @@ func (tab *IncognitoTab) Relay(model string, message string) (r io.Reader, err e
 	//	}
 	//	go await(e.RequestID)
 	//})()
-	go await("")
+	go await()
 
 	// 批处理
 	batch(tab, model, message)
@@ -137,14 +140,20 @@ func (tab *IncognitoTab) Relay(model string, message string) (r io.Reader, err e
 }
 
 func (simulator *Simulator) Kill() {
-	logger.Sugar().Debugf("kill setup browser.")
+	logger.Sugar().Info("kill setup browser.")
 	for _, page := range simulator.pages {
 		page.Close()
 	}
 
+	clear(simulator.pages)
 	if simulator.setup != nil {
 		_ = simulator.setup.Close()
+		simulator.setup = nil
 	}
+
+	simulator.launch.Cleanup()
+	simulator.launch.Kill()
+
 }
 
 // 启动自动化
@@ -153,24 +162,24 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 		launch := launcher.New().
 			Proxy(simulator.proxied).
 			HeadlessNew(simulator.headless). // 无头模式
-			Devtools(false).                 // 是否打开开发者工具
+			Devtools(false). // 是否打开开发者工具
 
 			Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
-			Delete("enable-automation").             // 启用自动化标记
+			Delete("enable-automation"). // 启用自动化标记
 
 			Set("disable-gpu").
 			Set("disable-css-animations").
 			Set("hide-scrollbars").
 			Set("no-default-browser-check").
 			Set("safebrowsing-disable-auto-update").
-			Set("window-size", "800,600").
 			Set("disable-default-apps").
 			Set("disable-popup-blocking").
 			Set("disable-images").
-			Set("fingerprint", strconv.FormatInt(time.Now().Unix(), 10)).
-			Set("fingerprint-brand", "Edge").
-			Set("fingerprint-platform", "macos").
-			Set("fingerprint-platform-version", "15.2.0")
+			Set("window-size", []string{"600,900", "610,910", "620,920", "630,930"}[random(4)]).
+			Set("fingerprint", strconv.FormatInt(time.Now().UnixNano(), 10)).
+			Set("fingerprint-brand", []string{"Edge", "Chrome", "Safari"}[random(3)]).
+			Set("fingerprint-platform", []string{"macos", "linux", "windows"}[random(3)]).
+			Set("fingerprint-platform-version", []string{"15.2.0", "15.2.1", "15.2.2", "15.2.3"}[random(4)])
 		if simulator.bin != "" {
 			launch.Bin(simulator.bin)
 		}
@@ -187,6 +196,7 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 
 		url := launch.MustLaunch()
 		simulator.setup = rod.New().ControlURL(url).MustConnect()
+		simulator.launch = launch
 		if enabledPlugin {
 			enableExtensions(simulator)
 		}
@@ -243,7 +253,8 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 	tab.MustNavigate("https://arena.ai/text/direct")
 	tab.MustWaitLoad()
 	incognitoTab := &IncognitoTab{
-		Page: tab,
+		Page:      tab,
+		simulator: simulator,
 	}
 
 	incognitoTab.onCleanup = onCleanup(simulator, page, accessToken)
@@ -275,9 +286,14 @@ func randEmulate() devices.Device {
 		devices.GalaxyFold,
 	}
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	i := r.Intn(len(slice) - 1)
+	i := random(len(slice))
 	return slice[i]
+}
+
+func random(n int) int {
+	unix := time.Now().UnixNano()
+	ra := rand.New(rand.NewSource(unix))
+	return ra.Intn(n - 1)
 }
 
 func enableExtensions(simulator *Simulator) {
@@ -320,10 +336,12 @@ func enableExtensions(simulator *Simulator) {
 		tab.MustWaitLoad()
 	}
 
+	logger.Sugar().Infof("enable extensions setting.")
 	_ = tab.Close()
 }
 
 func onCleanup(simulator *Simulator, page *IncognitoBrowser, id string) func() {
+	cleanup := true
 	page.count++
 	if page.timer != nil {
 		page.timer.Stop()
@@ -331,11 +349,18 @@ func onCleanup(simulator *Simulator, page *IncognitoBrowser, id string) func() {
 	}
 
 	return func() {
-		logger.Sugar().Infof("running onCleanup.")
+		if !cleanup {
+			return
+		}
 
 		simulator.mu.Lock()
 		defer simulator.mu.Unlock()
+		if !cleanup {
+			return
+		}
 
+		cleanup = false
+		logger.Sugar().Infof("running onCleanup.")
 		if page.count > 1 {
 			page.count--
 			return
@@ -348,7 +373,7 @@ func onCleanup(simulator *Simulator, page *IncognitoBrowser, id string) func() {
 	}
 }
 
-func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID), chan error) {
+func pipe(ctx *model.Ctx, tab *IncognitoTab, writer *io.PipeWriter) (func(), chan error) {
 	callbackName := "__sseCallback"
 	// 1. 注册 Go 回调绑定
 	_ = proto.RuntimeAddBinding{Name: callbackName}.Call(tab)
@@ -383,6 +408,13 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 					_ = writer.Close()
 					tab.Close()
 				}
+
+				// 重置浏览器指纹信息
+				if tab.simulator.recaptchaCount >= simulatorRetry {
+					tab.simulator.Kill()
+					_ = writer.Close()
+					ctx.Cancel()
+				}
 				return
 			}
 
@@ -397,6 +429,7 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 				if strings.Contains(content, "recaptcha validation failed") ||
 					strings.Contains(content, "prompt failed") {
 					logger.Sugar().Warn("recaptcha validation failed.")
+					tab.simulator.recaptchaCount++
 					recaptchaFailed = true
 					return
 				}
@@ -405,6 +438,7 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 			mark()
 			_, _ = writer.Write([]byte(dict.Get("content")))
 			if strings.Contains(dict.Get("content"), "{\"finishReason\":\"stop\"}") {
+				tab.simulator.recaptchaCount = 0
 				_ = writer.Close()
 				tab.Close()
 				return
@@ -412,7 +446,7 @@ func pipe(tab *IncognitoTab, writer *io.PipeWriter) (func(proto.FetchRequestID),
 		}
 	})()
 
-	return func(id proto.FetchRequestID) {
+	return func() {
 		// 3. 注入 JS，Hook fetch
 		_, err := tab.Evaluate(rod.Eval(fmt.Sprintf(javaScript)))
 		if err != nil {
