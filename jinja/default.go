@@ -1,6 +1,6 @@
 package jinja
 
-var (
+const (
 	DefaultTemplate = `
 {%- if tools %}
     {{- '<|im_start|>system\n' }}

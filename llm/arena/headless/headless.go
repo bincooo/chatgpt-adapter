@@ -151,9 +151,10 @@ func (simulator *Simulator) Kill() {
 		simulator.setup = nil
 	}
 
-	simulator.launch.Cleanup()
-	simulator.launch.Kill()
-
+	if simulator.launch != nil {
+		simulator.launch.Cleanup()
+		simulator.launch.Kill()
+	}
 }
 
 // 启动自动化
@@ -162,10 +163,10 @@ func (simulator *Simulator) Launch(ctx context.Context, accessToken string) (*In
 		launch := launcher.New().
 			Proxy(simulator.proxied).
 			HeadlessNew(simulator.headless). // 无头模式
-			Devtools(false). // 是否打开开发者工具
+			Devtools(false).                 // 是否打开开发者工具
 
 			Delete("disable-site-isolation-trials"). // 禁用站点隔离试验
-			Delete("enable-automation"). // 启用自动化标记
+			Delete("enable-automation").             // 启用自动化标记
 
 			Set("disable-gpu").
 			Set("disable-css-animations").
@@ -411,6 +412,7 @@ func pipe(ctx *model.Ctx, tab *IncognitoTab, writer *io.PipeWriter) (func(), cha
 
 				// 重置浏览器指纹信息
 				if tab.simulator.recaptchaCount >= simulatorRetry {
+					mark(errors.New("recaptcha validation failed"))
 					tab.simulator.Kill()
 					_ = writer.Close()
 					ctx.Cancel()
@@ -420,6 +422,7 @@ func pipe(ctx *model.Ctx, tab *IncognitoTab, writer *io.PipeWriter) (func(), cha
 
 			if dict.ValueEqual("type", "error") {
 				_ = writer.CloseWithError(errors.New(dict.Get("content")))
+				mark(errors.New(dict.Get("content")))
 				tab.Close()
 				return
 			}
