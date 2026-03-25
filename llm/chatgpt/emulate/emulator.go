@@ -121,6 +121,10 @@ func ConvertAPIRequest(completion *model.Completion) (request *RequestStructure,
 			role = "critic"
 		}
 
+		if role == "user" && i == len(completion.Messages)-1 {
+			content += "\n\n---\nThe tool schema must be wrapped within a tool_call tag as follows: <tool_call>{...}</tool_call>"
+		}
+
 		request.addMessage(role, content)
 	}
 

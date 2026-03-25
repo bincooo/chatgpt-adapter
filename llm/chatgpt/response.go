@@ -124,13 +124,14 @@ func scan(scanner *bufio.Scanner, channel chan *model.ChunkBodies, chainIntercep
 		}
 
 		chunk := choice.Content.Parts[0]
-		if len(chunk) == 0 {
+		if len(chunk) == 0 || len(chunk) < pos {
 			return
 		}
+
 		chunk = chunk[pos:]
 		pos = len(choice.Content.Parts[0])
-		logger.Sugar().Infof("----- raw -----")
-		logger.Sugar().Infof(chunk)
+		logger.Sugar().Debug("----- raw -----")
+		logger.Sugar().Debug(chunk)
 
 		chunk = chainInterceptor(chunk, false)
 		if chunk == "" {

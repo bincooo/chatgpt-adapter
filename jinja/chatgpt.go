@@ -10,7 +10,7 @@ const (
 			{{- "\n" }}
 			{{- tool | tojson }}
 		{%- endfor %}
-		{{- "\n</tools>\n\nThe '<tool_call>' label should be placed at the beginning of the reply. When invoking the tool, do not interact with the user; simply return the result directly." }}
+		{{- "\n</tools>\n\nThe '<tool_call>' label should be placed at the beginning of the reply. When the user's needs match the tool, do not interact with the user; simply return the result directly." }}
 		{{- "\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n</tool_call>\n" }}
 	{%- else %}
 		{%- if system %}
