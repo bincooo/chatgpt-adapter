@@ -13,7 +13,9 @@ import (
 
 func fetch(ctx *model.Ctx) (reader io.Reader, err error) {
 	completion := ctx.GetCompletion()
-	message, err := emulate.ConvertAPIRequest(completion)
+
+	emulator := emulate.GetEmulator()
+	message, err := emulator.ConvertAPIRequest(completion)
 	if err != nil {
 		return
 	}
@@ -28,7 +30,6 @@ func fetch(ctx *model.Ctx) (reader io.Reader, err error) {
 		return
 	}
 
-	emulator := emulate.GetEmulator()
 	request.Header.Set("User-Agent", emulator.Equi())
 	request.Header.Set("Accept", "*/*")
 	request.Header.Set("Oai-Device-Id", emulator.GetDeviceId())

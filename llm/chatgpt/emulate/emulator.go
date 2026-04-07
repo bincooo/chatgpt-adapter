@@ -77,7 +77,7 @@ func (require chatRequire) calcProofToken() string {
 	return "gAAAAAB" + generateAnswer(require.Proof.Seed, require.Proof.Difficulty)
 }
 
-func ConvertAPIRequest(completion *model.Completion) (request *RequestStructure, err error) {
+func (emulator *Emulator) ConvertAPIRequest(completion *model.Completion) (request *RequestStructure, err error) {
 	require, err := checkRequire()
 	if err != nil {
 		return
@@ -119,10 +119,6 @@ func ConvertAPIRequest(completion *model.Completion) (request *RequestStructure,
 		role := model.JustValue[string, string](message, "role")
 		if role == "tool" || role == "system" {
 			role = "critic"
-		}
-
-		if role == "user" && i == len(completion.Messages)-1 {
-			content += "\n\n---\nThe tool schema must be wrapped within a tool_call tag as follows: <tool_call>{...}</tool_call>"
 		}
 
 		request.addMessage(role, content)
