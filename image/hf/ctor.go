@@ -1,22 +1,24 @@
 package hf
 
 import (
+	"bypass/tool"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/xllm-go/g"
 	"github.com/xllm-go/g/logger"
 	"github.com/xllm-go/g/model"
-	"github.com/xllm-go/g/tokenizer"
 )
 
 const (
-	baseURL   = "https://asahina2k-animagine-xl-4-0.hf.space"
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0"
 )
 
@@ -28,24 +30,25 @@ func init() {
 	Sdk.OnInitialized(func() {
 		Sdk.Support("animagine-xl-4.0").
 			Image(func(ctx *model.Ctx) (err error) {
+				baseUrl := "https://asahina2k-animagine-xl-4-0.hf.space"
 				generation := ctx.GetGeneration()
 				sessionHash := hash()
 				chunk := fmt.Sprintf(`{"data":[],"event_data":null,"fn_index":4,"trigger_id":43,"session_hash":"%s"}`, sessionHash)
-				request, err := http.NewRequest(http.MethodPost, "https://asahina2k-animagine-xl-4-0.hf.space/queue/join?__theme=light", strings.NewReader(chunk))
+				request, err := http.NewRequest(http.MethodPost, baseUrl+"/queue/join?__theme=light", strings.NewReader(chunk))
 				if err != nil {
 					return
 				}
 
 				request.Header.Set("content-type", "application/json")
 				request.Header.Set("user-agent", userAgent)
-				request.Header.Set("origin", baseURL)
+				request.Header.Set("origin", baseUrl)
 				response, err := Do(http.DefaultClient.Do(request))(isStatus(http.StatusOK), isJson)
 				if err != nil {
 					return
 				}
 				_ = response.Body.Close()
 
-				response, err = Do(http.DefaultClient.Get(baseURL+"/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
+				response, err = Do(http.DefaultClient.Get(baseUrl+"/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
 				if err != nil {
 					return
 				}
@@ -64,35 +67,58 @@ func init() {
 					return
 				}
 
-				rmbg := false // 是否删除背景
-				parser := tokenizer.New("tag")
-				var elems []tokenizer.Elem
-				for _, elem := range parser.Parse(generation.Message) {
-					if elem.Kind() == tokenizer.Ident {
-						switch elem.Expr() {
-						case "tag": // 特殊标签
-							if r, ok := elem.Boolean("rmbg"); ok {
-								rmbg = r
-							}
-							continue
+				var (
+					w        = 1024
+					h        = 1024
+					scale    = 7.2
+					steps    = 30
+					negative = "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry"
+
+					rmbg = false // 是否删除背景
+				)
+
+				if generation.Size != "" {
+					reg := regexp.MustCompile(`\s*x\s*`)
+					x := reg.Split(generation.Size, -1)
+					if len(x) == 2 {
+						w, err = strconv.Atoi(strings.TrimSpace(x[0]))
+						if err != nil {
+							return
+						}
+						h, err = strconv.Atoi(strings.TrimSpace(x[1]))
+						if err != nil {
+							return
 						}
 					}
-					elems = append(elems, elem)
 				}
-				generation.Message = tokenizer.Join(elems)
+
+				if generation.Extra != nil {
+					if generation.Extra.Contains("scale") {
+						scale = generation.Extra.Get("scale").(float64)
+					}
+					if generation.Extra.Contains("steps") {
+						steps = int(generation.Extra.Get("steps").(float64))
+					}
+					if generation.Extra.Contains("negative") {
+						negative = generation.Extra.Get("negative").(string)
+					}
+					if generation.Extra.Contains("rmbg") {
+						rmbg = generation.Extra.Get("rmbg").(bool)
+					}
+				}
 
 				r := rand.New(rand.NewSource(time.Now().UnixNano()))
 				data := map[string]interface{}{
 					"data": []interface{}{
 						generation.Message,
-						"lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry",
-						r.Intn(79367128) + 800000000,
-						1024,
-						1024,
-						5,
-						28,
+						negative,
+						r.Intn(2047483647) + 80000000,
+						w,
+						h,
+						scale,
+						steps,
 						generation.Quality,
-						"1024 x 1024",
+						fmt.Sprintf("%d x %d", w, h),
 						generation.Style,
 						true,
 						0.55,
@@ -109,20 +135,20 @@ func init() {
 					return
 				}
 
-				request, err = http.NewRequest(http.MethodPost, "https://asahina2k-animagine-xl-4-0.hf.space/queue/join?__theme=light", bytes.NewReader(buf))
+				request, err = http.NewRequest(http.MethodPost, baseUrl+"/queue/join?__theme=light", bytes.NewReader(buf))
 				if err != nil {
 					return
 				}
 
 				request.Header.Set("content-type", "application/json")
 				request.Header.Set("user-agent", userAgent)
-				request.Header.Set("origin", baseURL)
+				request.Header.Set("origin", baseUrl)
 				response, err = Do(http.DefaultClient.Do(request))(isStatus(http.StatusOK), isJson)
 				if err != nil {
 					return
 				}
 
-				response, err = Do(http.DefaultClient.Get(baseURL+"/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
+				response, err = Do(http.DefaultClient.Get(baseUrl+"/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
 				if err != nil {
 					return
 				}
@@ -190,7 +216,135 @@ func init() {
 						"Realistic",
 						"Neonpunk",
 					},
-					"prompt": generation.Message,
+					"data": []map[string]string{
+						{
+							"url": value,
+						},
+					},
+				})
+			})
+
+		Sdk.Support("z-image-turbo").
+			Image(func(ctx *model.Ctx) (err error) {
+				baseUrl := "https://mrfakename-z-image-turbo.hf.space"
+				generation := ctx.GetGeneration()
+				sessionHash := hash()
+
+				var (
+					w     = 1024
+					h     = 1024
+					steps = 9
+
+					rmbg = false // 是否删除背景
+				)
+
+				if generation.Size != "" {
+					reg := regexp.MustCompile(`\s*x\s*`)
+					x := reg.Split(generation.Size, -1)
+					if len(x) == 2 {
+						w, err = strconv.Atoi(strings.TrimSpace(x[0]))
+						if err != nil {
+							return
+						}
+						h, err = strconv.Atoi(strings.TrimSpace(x[1]))
+						if err != nil {
+							return
+						}
+					}
+				}
+
+				if generation.Extra != nil {
+					if generation.Extra.Contains("steps") {
+						steps = int(generation.Extra.Get("steps").(float64))
+					}
+					if generation.Extra.Contains("rmbg") {
+						rmbg = generation.Extra.Get("rmbg").(bool)
+					}
+				}
+
+				data := map[string]interface{}{
+					"data": []interface{}{
+						generation.Message,
+						w,
+						h,
+						steps,
+						42,
+						true,
+					},
+					"fn_index":     2,
+					"trigger_id":   16,
+					"session_hash": sessionHash,
+				}
+				buf, err := json.Marshal(data)
+				if err != nil {
+					return
+				}
+
+				request, err := http.NewRequest(http.MethodPost, baseUrl+"/gradio_api/queue/join?__theme=light", bytes.NewReader(buf))
+				if err != nil {
+					return
+				}
+
+				request.Header.Set("content-type", "application/json")
+				request.Header.Set("user-agent", userAgent)
+				request.Header.Set("origin", baseUrl)
+				response, err := Do(http.DefaultClient.Do(request))(isStatus(http.StatusOK), isJson)
+				if err != nil {
+					return
+				}
+
+				response, err = Do(http.DefaultClient.Get(baseUrl+"/gradio_api/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
+				if err != nil {
+					return
+				}
+
+				scanner, err := newScanner(ctx.Context(), response)
+				if err != nil {
+					return
+				}
+
+				value := ""
+				scanner.Event("process_completed", func(j JoinEvent) (_ interface{}) {
+					logger.Sugar().Debug("process completed")
+					if !j.Success {
+						scanner.Failed(fmt.Errorf("process completed but not success: %s", j.InitialBytes))
+						return
+					}
+
+					if len(j.Output.Data) == 0 {
+						scanner.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+						return
+					}
+
+					dict := j.Output.Data[0].(map[string]interface{})
+					value = dict["url"].(string)
+					return
+				})
+
+				if err = scanner.Do(); err != nil {
+					return
+				}
+
+				// 执行背景删除
+				if rmbg {
+					value, err = removeBackground(ctx, value)
+					if err != nil {
+						return
+					}
+				} else {
+					buf, err = tool.Download(value, map[string]string{
+						"origin":  "https://huggingface.co",
+						"referer": baseUrl + "/?__theme=light",
+					})
+					if err != nil {
+						return
+					}
+
+					value = "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf)
+				}
+
+				return ctx.Writer(model.Record[string, interface{}]{
+					"created": time.Now().Unix(),
 					"data": []map[string]string{
 						{
 							"url": value,

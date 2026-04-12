@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func DownloadBuffer(url string, header map[string]string) (buffer []byte, err error) {
+func Download(url string, header map[string]string) (buffer []byte, err error) {
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return
@@ -25,6 +25,7 @@ func DownloadBuffer(url string, header map[string]string) (buffer []byte, err er
 		return
 	}
 
+	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		err = fmt.Errorf("download failed with status code %d", response.StatusCode)
 		return

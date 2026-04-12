@@ -14,6 +14,8 @@ require (
 	golang.org/x/net v0.52.0
 )
 
+replace github.com/xllm-go/g v0.0.0-20260407034309-e4c9a1198abc => ../g
+
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect

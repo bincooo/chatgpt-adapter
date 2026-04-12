@@ -23,7 +23,7 @@ func removeBackground(ctx *model.Ctx, path string) (value string, err error) {
 
 	var buf []byte
 	if strings.HasPrefix(path, "http") {
-		buf, err = tool.DownloadBuffer(path, map[string]string{
+		buf, err = tool.Download(path, map[string]string{
 			"origin":  "https://huggingface.co",
 			"referer": baseUrl + "/?__theme=light",
 		})
