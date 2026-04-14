@@ -10,11 +10,9 @@ require (
 	github.com/go-rod/rod v0.116.2
 	github.com/google/uuid v1.6.0
 	github.com/refraction-networking/utls v1.8.2
-	github.com/xllm-go/g v0.0.0-20260407034309-e4c9a1198abc
+	github.com/xllm-go/g v0.0.0-20260414212820-1564b8a78ade
 	golang.org/x/net v0.52.0
 )
-
-replace github.com/xllm-go/g v0.0.0-20260407034309-e4c9a1198abc => ../g
 
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect

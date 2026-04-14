@@ -9,20 +9,22 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"net/url"
+	"time"
 )
 
 const (
 	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0"
 )
 
-func Upload(urlstr string, chunk []byte, suffix string, header map[string]string) (imageUrl, mimetype string, err error) {
+func Upload(chunk []byte, suffix string) (imageUrl, mimetype string, err error) {
 	w := &bytes.Buffer{}
 	writer := multipart.NewWriter(w)
 	mimetype = mime.TypeByExtension("." + suffix)
+	timestamp := time.Now().UnixNano()
+	_ = writer.WriteField("json", "true")
 
 	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", multipart.FileContentDisposition("files", fmt.Sprintf("1.%s", suffix)))
+	h.Set("Content-Disposition", multipart.FileContentDisposition("file_1", fmt.Sprintf("%d.%s", timestamp, suffix)))
 	h.Set("Content-Type", mimetype)
 	fw, _ := writer.CreatePart(h)
 	_, err = fw.Write(chunk)
@@ -35,7 +37,7 @@ func Upload(urlstr string, chunk []byte, suffix string, header map[string]string
 		return
 	}
 
-	request, err := http.NewRequest(http.MethodPost, urlstr, w)
+	request, err := http.NewRequest(http.MethodPost, "http://uploader.sh", w)
 	if err != nil {
 		return
 	}
@@ -44,9 +46,6 @@ func Upload(urlstr string, chunk []byte, suffix string, header map[string]string
 	request.Header.Set("Sec-Ch-Ua-Mobile", "?0")
 	request.Header.Set("Sec-Ch-Ua-Platform", "\"macOS\"")
 	request.Header.Set("user-agent", userAgent)
-	for k, v := range header {
-		request.Header.Set(k, v)
-	}
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
@@ -64,15 +63,12 @@ func Upload(urlstr string, chunk []byte, suffix string, header map[string]string
 		return
 	}
 
-	var result []string
+	var result map[string]interface{}
 	err = json.Unmarshal(chunk, &result)
 	if err != nil {
 		return
 	}
 
-	u, _ := url.Parse(urlstr)
-	u.Path = "/gradio_api/file=" + result[0]
-	u.RawQuery = ""
-	imageUrl = u.String()
+	imageUrl = result["file_1"].(map[string]interface{})["url"].(string)
 	return
 }

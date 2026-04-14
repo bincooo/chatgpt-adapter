@@ -3,7 +3,6 @@ package hf
 import (
 	"bypass/tool"
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -188,6 +187,21 @@ func init() {
 					if err != nil {
 						return
 					}
+				} else {
+					buf, err = tool.Download(value, map[string]string{
+						"origin":  "https://huggingface.co",
+						"referer": baseUrl + "/?__theme=light",
+					})
+					if err != nil {
+						return
+					}
+
+					value, _, err = tool.Upload(buf, "png")
+					if err != nil {
+						return
+					}
+					value += "?download=1"
+					//value = "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf)
 				}
 
 				return ctx.Writer(model.Record[string, interface{}]{
@@ -340,7 +354,12 @@ func init() {
 						return
 					}
 
-					value = "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf)
+					value, _, err = tool.Upload(buf, "png")
+					if err != nil {
+						return
+					}
+					value += "?download=1"
+					//value = "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf)
 				}
 
 				return ctx.Writer(model.Record[string, interface{}]{
