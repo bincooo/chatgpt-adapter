@@ -200,7 +200,6 @@ func init() {
 					if err != nil {
 						return
 					}
-					value += "?download=1"
 					//value = "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf)
 				}
 
@@ -358,7 +357,6 @@ func init() {
 					if err != nil {
 						return
 					}
-					value += "?download=1"
 					//value = "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf)
 				}
 

@@ -2,51 +2,37 @@ package tool
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
-	"mime/multipart"
 	"net/http"
-	"net/textproto"
+	"net/url"
+	"path"
 	"time"
+
+	"github.com/xllm-go/g"
 )
 
-const (
-	userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0"
+var (
+	Sdk = g.Sdk()
 )
 
 func Upload(chunk []byte, suffix string) (imageUrl, mimetype string, err error) {
-	w := &bytes.Buffer{}
-	writer := multipart.NewWriter(w)
+	baseUrl := "https://s30hxbqg-transfer.hf.space"
+
 	mimetype = mime.TypeByExtension("." + suffix)
 	timestamp := time.Now().UnixNano()
-	_ = writer.WriteField("json", "true")
 
-	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", multipart.FileContentDisposition("file_1", fmt.Sprintf("%d.%s", timestamp, suffix)))
-	h.Set("Content-Type", mimetype)
-	fw, _ := writer.CreatePart(h)
-	_, err = fw.Write(chunk)
+	if transfer := Sdk.Env().GetString("transfer"); transfer != "" {
+		baseUrl = transfer
+	}
+
+	request, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/%d.%s", baseUrl, timestamp, suffix), bytes.NewBuffer(chunk))
 	if err != nil {
 		return
 	}
 
-	err = writer.Close()
-	if err != nil {
-		return
-	}
-
-	request, err := http.NewRequest(http.MethodPost, "http://uploader.sh", w)
-	if err != nil {
-		return
-	}
-
-	request.Header.Set("content-type", writer.FormDataContentType())
-	request.Header.Set("Sec-Ch-Ua-Mobile", "?0")
-	request.Header.Set("Sec-Ch-Ua-Platform", "\"macOS\"")
-	request.Header.Set("user-agent", userAgent)
-
+	request.Header.Set("content-type", mimetype)
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return
@@ -63,12 +49,12 @@ func Upload(chunk []byte, suffix string) (imageUrl, mimetype string, err error) 
 		return
 	}
 
-	var result map[string]interface{}
-	err = json.Unmarshal(chunk, &result)
+	u, err := url.Parse(string(chunk))
 	if err != nil {
 		return
 	}
 
-	imageUrl = result["file_1"].(map[string]interface{})["url"].(string)
+	u.Path = path.Join("get", u.Path)
+	imageUrl = u.String()
 	return
 }
