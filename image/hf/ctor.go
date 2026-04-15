@@ -56,12 +56,6 @@ func init() {
 				if err != nil {
 					return
 				}
-
-				scanner.Event("process_completed", func(j JoinEvent) (_ interface{}) {
-					logger.Sugar().Debug("process completed")
-					return
-				})
-
 				if err = scanner.Do(); err != nil {
 					return
 				}
@@ -161,12 +155,12 @@ func init() {
 				scanner.Event("process_completed", func(j JoinEvent) (_ interface{}) {
 					logger.Sugar().Debug("process completed")
 					if !j.Success {
-						scanner.Failed(fmt.Errorf("process completed but not success: %s", j.InitialBytes))
+						scanner.Failed(fmt.Errorf("process completed but not success: %s", j.Output.Err))
 						return
 					}
 
 					if len(j.Output.Data) == 0 {
-						scanner.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+						scanner.Failed(fmt.Errorf("image generate failed: %s", j.Output.Err))
 						return
 					}
 
@@ -189,8 +183,9 @@ func init() {
 					}
 				} else {
 					buf, err = tool.Download(value, map[string]string{
-						"origin":  "https://huggingface.co",
-						"referer": baseUrl + "/?__theme=light",
+						"origin":     "https://huggingface.co",
+						"referer":    baseUrl + "/?__theme=light",
+						"user-agent": userAgent,
 					})
 					if err != nil {
 						return
@@ -305,6 +300,7 @@ func init() {
 				if err != nil {
 					return
 				}
+				_ = response.Body.Close()
 
 				response, err = Do(http.DefaultClient.Get(baseUrl+"/gradio_api/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
 				if err != nil {
@@ -320,12 +316,12 @@ func init() {
 				scanner.Event("process_completed", func(j JoinEvent) (_ interface{}) {
 					logger.Sugar().Debug("process completed")
 					if !j.Success {
-						scanner.Failed(fmt.Errorf("process completed but not success: %s", j.InitialBytes))
+						scanner.Failed(fmt.Errorf("process completed but not success: %s", j.Output.Err))
 						return
 					}
 
 					if len(j.Output.Data) == 0 {
-						scanner.Failed(fmt.Errorf("image generate failed: %s", j.InitialBytes))
+						scanner.Failed(fmt.Errorf("image generate failed: %s", j.Output.Err))
 						return
 					}
 
@@ -346,8 +342,9 @@ func init() {
 					}
 				} else {
 					buf, err = tool.Download(value, map[string]string{
-						"origin":  "https://huggingface.co",
-						"referer": baseUrl + "/?__theme=light",
+						"origin":     "https://huggingface.co",
+						"referer":    baseUrl + "/?__theme=light",
+						"user-agent": userAgent,
 					})
 					if err != nil {
 						return

@@ -5,12 +5,12 @@ go 1.25.0
 require (
 	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/RomiChan/websocket v1.4.3-0.20220227141055-9b2c6168c9c5
-	github.com/bincooo/ja3 v0.0.0-20250809061016-e32ddf230191
+	github.com/bincooo/ja3 v0.0.0-20260415113551-3504e0f68e68
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/go-rod/rod v0.116.2
 	github.com/google/uuid v1.6.0
 	github.com/refraction-networking/utls v1.8.2
-	github.com/xllm-go/g v0.0.0-20260414212820-1564b8a78ade
+	github.com/xllm-go/g v0.0.0-20260415114316-69612bd2da76
 	golang.org/x/net v0.52.0
 )
 

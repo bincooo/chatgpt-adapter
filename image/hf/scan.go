@@ -27,6 +27,7 @@ type joinOutput struct {
 	AverageDuration float64 `json:"average_duration"`
 
 	Data []interface{} `json:"data"`
+	Err  string        `json:"error"`
 }
 
 type Scanner struct {
@@ -156,7 +157,6 @@ func (scan *Scanner) doConn() error {
 }
 
 func (scan *Scanner) doResponse() error {
-	defer scan.response.Body.Close()
 	scanner := bufio.NewScanner(scan.response.Body)
 	scanner.Split(func(data []byte, eof bool) (advance int, token []byte, err error) {
 		if eof && len(data) == 0 {
