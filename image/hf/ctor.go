@@ -230,7 +230,7 @@ func init() {
 						},
 					},
 				})
-			})
+			}, 2, 3)
 
 		Sdk.Support("z-image-turbo").
 			Image(func(ctx *model.Ctx) (err error) {
@@ -375,6 +375,6 @@ func init() {
 						},
 					},
 				})
-			})
+			}, 2, 3)
 	})
 }
