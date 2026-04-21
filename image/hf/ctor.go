@@ -234,7 +234,7 @@ func init() {
 
 		Sdk.Support("z-image-turbo").
 			Image(func(ctx *model.Ctx) (err error) {
-				baseUrl := "https://mrfakename-z-image-turbo.hf.space"
+				baseUrl := "https://prithivmlmods-z-image-turbo-lora-dlc.hf.space"
 				generation := ctx.GetGeneration()
 				sessionHash := hash()
 
@@ -242,6 +242,7 @@ func init() {
 					w     = 1024
 					h     = 1024
 					steps = 9
+					scale = 20
 
 					rmbg = false // 是否删除背景
 				)
@@ -265,22 +266,31 @@ func init() {
 					if generation.Extra.Contains("steps") {
 						steps = int(generation.Extra.Get("steps").(float64))
 					}
+					if generation.Extra.Contains("scale") {
+						scale = int(generation.Extra.Get("scale").(float64))
+					}
 					if generation.Extra.Contains("rmbg") {
 						rmbg = generation.Extra.Get("rmbg").(bool)
 					}
 				}
 
+				r := rand.New(rand.NewSource(time.Now().UnixNano()))
 				data := map[string]interface{}{
 					"data": []interface{}{
 						generation.Message,
+						nil,
+						0.75,
+						scale,
+						steps,
+						nil,
+						true,
+						r.Intn(2047483647) + 80000000,
 						w,
 						h,
-						steps,
-						42,
-						true,
+						0.95,
 					},
-					"fn_index":     2,
-					"trigger_id":   16,
+					"fn_index":     3,
+					"trigger_id":   8,
 					"session_hash": sessionHash,
 				}
 				buf, err := json.Marshal(data)
