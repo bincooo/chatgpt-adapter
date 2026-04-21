@@ -32,8 +32,8 @@ func main() {
 		)
 		// idle 配置
 		if transport, ok := http.DefaultTransport.(interface{ Rule(string, int) }); ok {
-			transport.Rule("*animagine-xl-4-0.hf.space", 3) // 空闲3s关闭, 用于代理连接池的切换
-			transport.Rule("*z-image-turbo.hf.space", 3)    // 空闲3s关闭, 用于代理连接池的切换
+			transport.Rule("*animagine-xl-4-0.hf.space", 3)       // 空闲3s关闭, 用于代理连接池的切换
+			transport.Rule("*z-image-turbo-lora-dlc.hf.space", 3) // 空闲3s关闭, 用于代理连接池的切换
 		}
 
 		http.DefaultClient.Jar, _ = cookiejar.New(
