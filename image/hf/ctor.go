@@ -7,14 +7,18 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"net/http/cookiejar"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/bincooo/ja3"
+	xtls "github.com/refraction-networking/utls"
 	"github.com/xllm-go/g"
 	"github.com/xllm-go/g/logger"
 	"github.com/xllm-go/g/model"
+	"golang.org/x/net/publicsuffix"
 )
 
 const (
@@ -27,8 +31,13 @@ var (
 
 func init() {
 	Sdk.OnInitialized(func() {
+		Env := Sdk.Env()
+		proxied := Env.GetString("server.proxied")
+
 		Sdk.Support("animagine-xl-4.0").
 			Image(func(ctx *model.Ctx) (err error) {
+				client := newClient(proxied)
+				defer client.CloseIdleConnections()
 				baseUrl := "https://asahina2k-animagine-xl-4-0.hf.space"
 				generation := ctx.GetGeneration()
 				sessionHash := hash()
@@ -41,13 +50,13 @@ func init() {
 				request.Header.Set("content-type", "application/json")
 				request.Header.Set("user-agent", userAgent)
 				request.Header.Set("origin", baseUrl)
-				response, err := Do(http.DefaultClient.Do(request))(isStatus(http.StatusOK), isJson)
+				response, err := Do(client.Do(request))(isStatus(http.StatusOK), isJson)
 				if err != nil {
 					return
 				}
 				_ = response.Body.Close()
 
-				response, err = Do(http.DefaultClient.Get(baseUrl+"/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
+				response, err = Do(client.Get(baseUrl+"/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
 				if err != nil {
 					return
 				}
@@ -136,12 +145,12 @@ func init() {
 				request.Header.Set("content-type", "application/json")
 				request.Header.Set("user-agent", userAgent)
 				request.Header.Set("origin", baseUrl)
-				response, err = Do(http.DefaultClient.Do(request))(isStatus(http.StatusOK), isJson)
+				response, err = Do(client.Do(request))(isStatus(http.StatusOK), isJson)
 				if err != nil {
 					return
 				}
 
-				response, err = Do(http.DefaultClient.Get(baseUrl+"/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
+				response, err = Do(client.Get(baseUrl+"/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
 				if err != nil {
 					return
 				}
@@ -182,7 +191,7 @@ func init() {
 						return
 					}
 				} else {
-					buf, err = tool.Download(value, map[string]string{
+					buf, err = tool.Download(client, value, map[string]string{
 						"origin":     "https://huggingface.co",
 						"referer":    baseUrl + "/?__theme=light",
 						"user-agent": userAgent,
@@ -234,6 +243,8 @@ func init() {
 
 		Sdk.Support("z-image-turbo").
 			Image(func(ctx *model.Ctx) (err error) {
+				client := newClient(proxied)
+				defer client.CloseIdleConnections()
 				baseUrl := "https://prithivmlmods-z-image-turbo-lora-dlc.hf.space"
 				generation := ctx.GetGeneration()
 				sessionHash := hash()
@@ -306,13 +317,13 @@ func init() {
 				request.Header.Set("content-type", "application/json")
 				request.Header.Set("user-agent", userAgent)
 				request.Header.Set("origin", baseUrl)
-				response, err := Do(http.DefaultClient.Do(request))(isStatus(http.StatusOK), isJson)
+				response, err := Do(client.Do(request))(isStatus(http.StatusOK), isJson)
 				if err != nil {
 					return
 				}
 				_ = response.Body.Close()
 
-				response, err = Do(http.DefaultClient.Get(baseUrl+"/gradio_api/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
+				response, err = Do(client.Get(baseUrl+"/gradio_api/queue/data?session_hash="+sessionHash))(isStatus(http.StatusOK), isStream)
 				if err != nil {
 					return
 				}
@@ -351,7 +362,7 @@ func init() {
 						return
 					}
 				} else {
-					buf, err = tool.Download(value, map[string]string{
+					buf, err = tool.Download(client, value, map[string]string{
 						"origin":     "https://huggingface.co",
 						"referer":    baseUrl + "/?__theme=light",
 						"user-agent": userAgent,
@@ -377,4 +388,25 @@ func init() {
 				})
 			}, 2, 3)
 	})
+}
+
+// 单独管理session, 避免高并发导致tcp一直没有进入待机回收，从而无法切换ip
+func newClient(proxied string) (client *http.Client) {
+	client = &http.Client{}
+
+	clone := http.DefaultTransport.(*http.Transport).Clone()
+	clone.IdleConnTimeout = 30 * time.Second
+	client.Transport = ja3.NewTransport(
+		ja3.WithClientHelloID(xtls.HelloChrome_133),
+		ja3.WithOriginalTransport(clone),
+		ja3.WithProxy(proxied),
+	)
+
+	client.Jar, _ = cookiejar.New(
+		&cookiejar.Options{
+			PublicSuffixList: publicsuffix.List,
+		},
+	)
+
+	return
 }

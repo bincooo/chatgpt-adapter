@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func Download(url string, header map[string]string) (buffer []byte, err error) {
+func Download(client *http.Client, url string, header map[string]string) (buffer []byte, err error) {
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return
@@ -20,7 +20,7 @@ func Download(url string, header map[string]string) (buffer []byte, err error) {
 		request.Header.Set(k, v)
 	}
 
-	response, err := http.DefaultClient.Do(request)
+	response, err := client.Do(request)
 	if err != nil {
 		return
 	}
